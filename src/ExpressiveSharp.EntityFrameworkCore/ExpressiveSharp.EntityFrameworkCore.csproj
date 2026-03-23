@@ -4,12 +4,15 @@
     <Description>EF Core integration for ExpressiveSharp — automatically expands [Expressive] members in queries</Description>
   </PropertyGroup>
 
+  <!-- EF Core major version must match the target framework (8.x for net8.0, 10.x for net10.0).
+       Do NOT merge these into a single unconditional reference. -->
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore"
-                      Condition="'$(TargetFramework)' == 'net8.0'" />
+                      Condition="'$(TargetFramework)' == 'net8.0'"
+                      VersionOverride="8.0.25" />
     <PackageReference Include="Microsoft.EntityFrameworkCore"
                       Condition="'$(TargetFramework)' == 'net10.0'"
-                      VersionOverride="10.0.5" />
+                      VersionOverride="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>
