@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using ExpressiveSharp.EntityFrameworkCore.Tests.Models;
 using ExpressiveSharp.Extensions;
 using Microsoft.Data.Sqlite;
@@ -63,35 +62,6 @@ public class UseExpressivesTests
     }
 
     [TestMethod]
-    public void UseExpressives_ExpandsExpressivePropertyInQuery()
-    {
-        using var ctx = CreateContext();
-
-        // Query using an [Expressive] property — should auto-expand without manual ExpandExpressives()
-        var query = ctx.Set<Order>().Select(o => o.Total);
-        var sql = query.ToQueryString();
-
-        // The SQL should contain the arithmetic expansion (Price * Quantity), not "Total"
-        Assert.IsTrue(sql.Contains("*"), $"Expected multiplication in SQL, got: {sql}");
-    }
-
-    [TestMethod]
-    public void UseExpressives_ExpandsExpressiveMethodInQuery()
-    {
-        using var ctx = CreateContext();
-
-        var query = ctx.Set<Order>().Select(o => o.GetGrade());
-        var sql = query.ToQueryString();
-
-        // Switch expression should expand to CASE WHEN or IIF pattern
-        Assert.IsTrue(
-            sql.Contains("WHEN", StringComparison.OrdinalIgnoreCase) ||
-            sql.Contains("IIF", StringComparison.OrdinalIgnoreCase) ||
-            sql.Contains("CASE", StringComparison.OrdinalIgnoreCase),
-            $"Expected conditional in SQL, got: {sql}");
-    }
-
-    [TestMethod]
     public void UseExpressives_AppliesNullConditionalTransformer()
     {
         using var ctx = CreateContext();
@@ -134,20 +104,6 @@ public class UseExpressivesTests
         // Should contain the expanded filter (Price * Quantity > 0)
         Assert.IsTrue(query.Contains("*"),
             $"Expected multiplication in query filter SQL, got: {query}");
-    }
-
-    [TestMethod]
-    public void UseExpressives_ExpandsConstructorProjection()
-    {
-        using var ctx = CreateContext();
-
-        // new OrderDto(id, desc, total) with [Expressive] constructor
-        // should expand to MemberInit: new OrderDto { Id = ..., Description = ..., Total = ... }
-        var query = ctx.Set<Order>().Select(o => new OrderDto(o.Id, "test", o.Total));
-        var sql = query.ToQueryString();
-
-        // Should contain the expanded Total (Price * Quantity)
-        Assert.IsTrue(sql.Contains("*"), $"Expected multiplication in SQL, got: {sql}");
     }
 
     // ── ExpressiveDbSet tests ──────────────────────────────────────────

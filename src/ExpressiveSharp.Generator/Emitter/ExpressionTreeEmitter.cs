@@ -404,6 +404,7 @@ internal sealed class ExpressionTreeEmitter
             IConditionalAccessInstanceOperation => EmitConditionalAccessInstance(),
             IBlockOperation block => EmitBlock(block),
             IReturnOperation ret => EmitReturn(ret),
+            IInterpolatedStringOperation interp => EmitInterpolatedString(interp),
             _ => EmitUnsupported(operation),
         };
 
@@ -1558,6 +1559,159 @@ internal sealed class ExpressionTreeEmitter
         var resultVar = NextVar();
         AppendLine($"var {resultVar} = {Expr}.Default(typeof(void));");
         return resultVar;
+    }
+
+    // ── String interpolation ────────────────────────────────────────────────
+
+    private string EmitInterpolatedString(IInterpolatedStringOperation operation)
+    {
+        var partVars = new List<string>();
+
+        foreach (var part in operation.Parts)
+        {
+            switch (part)
+            {
+                case IInterpolatedStringTextOperation text:
+                {
+                    var constVar = NextVar();
+                    var textValue = text.Text.ConstantValue.Value?.ToString() ?? "";
+                    AppendLine($"var {constVar} = {Expr}.Constant(\"{EscapeString(textValue)}\", typeof(string));");
+                    partVars.Add(constVar);
+                    break;
+                }
+
+                case IInterpolationOperation interp:
+                {
+                    if (interp.Alignment is not null)
+                        return EmitUnsupported(operation);
+
+                    var innerVar = EmitOperation(interp.Expression);
+                    var innerType = interp.Expression.Type;
+
+                    if (interp.FormatString is not null)
+                    {
+                        // Has format specifier: call ToString(format)
+                        var formatValue = interp.FormatString.ConstantValue.Value?.ToString() ?? "";
+                        var toStringMethod = FindToStringWithFormat(innerType);
+                        if (toStringMethod is not null)
+                        {
+                            var methodField = _fieldCache.EnsureMethodInfo(toStringMethod);
+                            var fmtVar = NextVar();
+                            AppendLine($"var {fmtVar} = {Expr}.Constant(\"{EscapeString(formatValue)}\", typeof(string));");
+                            var formattedVar = NextVar();
+                            AppendLine($"var {formattedVar} = {Expr}.Call({innerVar}, {methodField}, {fmtVar});");
+                            partVars.Add(formattedVar);
+                        }
+                        else
+                        {
+                            // Fallback: call parameterless ToString()
+                            partVars.Add(EmitToStringCall(innerVar, innerType));
+                        }
+                    }
+                    else if (innerType is not null && innerType.SpecialType != SpecialType.System_String)
+                    {
+                        // Non-string type: call ToString()
+                        partVars.Add(EmitToStringCall(innerVar, innerType));
+                    }
+                    else
+                    {
+                        // Already string-typed
+                        partVars.Add(innerVar);
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        // Reduce parts via string.Concat(string, string)
+        if (partVars.Count == 0)
+        {
+            var emptyVar = NextVar();
+            AppendLine($"var {emptyVar} = {Expr}.Constant(\"\", typeof(string));");
+            return emptyVar;
+        }
+
+        if (partVars.Count == 1)
+            return partVars[0];
+
+        // Left-fold: Concat(Concat(p0, p1), p2) ...
+        var concatMethod = EnsureStringConcatMethod();
+        var current = partVars[0];
+        for (var i = 1; i < partVars.Count; i++)
+        {
+            var concatVar = NextVar();
+            AppendLine($"var {concatVar} = {Expr}.Call({concatMethod}, {current}, {partVars[i]});");
+            current = concatVar;
+        }
+
+        return current;
+    }
+
+    private string EmitToStringCall(string innerVar, ITypeSymbol? innerType)
+    {
+        var toStringMethod = FindParameterlessToString(innerType);
+        if (toStringMethod is not null)
+        {
+            var methodField = _fieldCache.EnsureMethodInfo(toStringMethod);
+            var strVar = NextVar();
+            AppendLine($"var {strVar} = {Expr}.Call({innerVar}, {methodField});");
+            return strVar;
+        }
+
+        // Fallback: box to object and call object.ToString()
+        var boxed = NextVar();
+        AppendLine($"var {boxed} = {Expr}.Convert({innerVar}, typeof(object));");
+        var result = NextVar();
+        AppendLine($"var {result} = {Expr}.Call({boxed}, typeof(object).GetMethod(\"ToString\"));");
+        return result;
+    }
+
+    private IMethodSymbol? FindParameterlessToString(ITypeSymbol? type)
+    {
+        if (type is null) return null;
+        return type.GetMembers("ToString")
+            .OfType<IMethodSymbol>()
+            .FirstOrDefault(m => m.Parameters.Length == 0 && !m.IsStatic);
+    }
+
+    private IMethodSymbol? FindToStringWithFormat(ITypeSymbol? type)
+    {
+        if (type is null) return null;
+        return type.GetMembers("ToString")
+            .OfType<IMethodSymbol>()
+            .FirstOrDefault(m => m.Parameters.Length == 1
+                && m.Parameters[0].Type.SpecialType == SpecialType.System_String
+                && !m.IsStatic);
+    }
+
+    private string? _concatMethodField;
+
+    private string EnsureStringConcatMethod()
+    {
+        if (_concatMethodField is not null)
+            return _concatMethodField;
+
+        var stringType = _semanticModel.Compilation.GetSpecialType(SpecialType.System_String);
+        var concatMethod = stringType.GetMembers("Concat")
+            .OfType<IMethodSymbol>()
+            .FirstOrDefault(m => m.IsStatic
+                && m.Parameters.Length == 2
+                && m.Parameters[0].Type.SpecialType == SpecialType.System_String
+                && m.Parameters[1].Type.SpecialType == SpecialType.System_String);
+
+        if (concatMethod is not null)
+        {
+            _concatMethodField = _fieldCache.EnsureMethodInfo(concatMethod);
+        }
+        else
+        {
+            // Fallback: emit inline reflection
+            _concatMethodField = "_stringConcat";
+            _fieldCache.GetDeclarations(); // ensure we can add to it
+        }
+
+        return _concatMethodField;
     }
 
     // ── Unsupported fallback ─────────────────────────────────────────────────

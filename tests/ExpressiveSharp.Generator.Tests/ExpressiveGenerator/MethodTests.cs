@@ -451,6 +451,93 @@ public class MethodTests : GeneratorTestBase
     }
 
     [TestMethod]
+    public Task StringInterpolation_SimpleIntProperty()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    public int Id { get; set; }
+
+                    [Expressive]
+                    public string Label => $"Id: {Id}";
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task StringInterpolation_MultiplePartsWithNullCoalescing()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    public int Id { get; set; }
+                    public string? Tag { get; set; }
+
+                    [Expressive]
+                    public string Summary => $"#{Id}: {Tag ?? "N/A"}";
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task StringInterpolation_FormatSpecifier()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    public double Price { get; set; }
+
+                    [Expressive]
+                    public string FormattedPrice => $"{Price:F2}";
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task StringInterpolation_LiteralOnly()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    [Expressive]
+                    public string Greeting => $"hello";
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
     public Task TypesInBodyGetsFullyQualified()
     {
         var compilation = CreateCompilation(

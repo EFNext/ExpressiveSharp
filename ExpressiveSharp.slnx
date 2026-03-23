@@ -11,6 +11,8 @@
   <Folder Name="/tests/">
     <Project Path="tests/ExpressiveSharp.EntityFrameworkCore.Tests/ExpressiveSharp.EntityFrameworkCore.Tests.csproj" />
     <Project Path="tests/ExpressiveSharp.Generator.Tests/ExpressiveSharp.Generator.Tests.csproj" />
-    <Project Path="tests/ExpressiveSharp.FunctionalTests/ExpressiveSharp.FunctionalTests.csproj" />
+    <Project Path="tests/ExpressiveSharp.IntegrationTests/ExpressiveSharp.IntegrationTests.csproj" />
+    <Project Path="tests/ExpressiveSharp.IntegrationTests.ExpressionCompile/ExpressiveSharp.IntegrationTests.ExpressionCompile.csproj" />
+    <Project Path="tests/ExpressiveSharp.IntegrationTests.EntityFrameworkCore/ExpressiveSharp.IntegrationTests.EntityFrameworkCore.csproj" />
   </Folder>
 </Solution>
