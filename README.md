@@ -267,8 +267,8 @@ Development docs for contributors:
 - [Recovery Notes](docs/recovery-notes.md) — migration status from legacy syntax rewriting to IOperation-based emitter
 
 ```bash
-dotnet build                # Build all projects
-dotnet msbuild -t:Test tests/ExpressiveSharp.Generator.Tests/   # Run generator tests
+dotnet build    # Build all projects
+dotnet test     # Run all tests
 ```
 
 ## License

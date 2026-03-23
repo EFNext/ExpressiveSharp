@@ -11,17 +11,17 @@ ExpressiveSharp is a C# source generator that enables modern C# syntax (e.g., nu
 ```bash
 dotnet restore              # Restore dependencies
 dotnet build                # Build all projects
-dotnet msbuild -t:Test tests/ExpressiveSharp.Generator.Tests/   # Run all tests
+dotnet test                 # Run all tests
 dotnet pack                 # Build NuGet packages
 
 # Run a single test project
-dotnet msbuild -t:Test tests/ExpressiveSharp.Generator.Tests/
+dotnet test tests/ExpressiveSharp.Generator.Tests/
 
-# Run tests matching a filter (pass args via MSBuild property)
-dotnet msbuild -t:Test tests/ExpressiveSharp.Generator.Tests/ -p:TestingPlatformCommandLineArguments="--filter FullyQualifiedName~SomeTestName"
+# Run tests matching a filter
+dotnet test --filter FullyQualifiedName~SomeTestName
 
 # Accept new Verify snapshots
-VERIFY_AUTO_APPROVE=true dotnet msbuild -t:Test tests/ExpressiveSharp.Generator.Tests/
+VERIFY_AUTO_APPROVE=true dotnet test
 ```
 
 > **Note:** This project uses MSTest.Sdk with Microsoft.Testing.Platform (MTP). On .NET 10 SDK, `dotnet test` (VSTest path) is incompatible with MTP; use `dotnet msbuild -t:Test` instead.
