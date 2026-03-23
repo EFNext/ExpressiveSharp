@@ -450,7 +450,7 @@ public class PropertyTests : GeneratorTestBase
     }
 
     [TestMethod]
-    public Task PropertyWithTransformerFlag()
+    public Task PropertyWithCustomTransformers()
     {
         var compilation = CreateCompilation(
             """
@@ -458,7 +458,7 @@ public class PropertyTests : GeneratorTestBase
                 class C {
                     public string? Bar { get; set; }
 
-                    [Expressive(RemoveNullConditionalPatterns = true)]
+                    [Expressive(Transformers = [typeof(ExpressiveSharp.Transformers.RemoveNullConditionalPatterns)])]
                     public int? Foo => Bar?.Length;
                 }
             }

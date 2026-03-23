@@ -57,9 +57,10 @@ public class Order
     [Expressive]
     public string? CustomerName => Customer?.Name;
 
-    /// Same expression, but with RemoveNullConditionalPatterns transformer applied at runtime.
-    /// Strips the null check: Customer?.Name → Customer.Name
-    [Expressive(RemoveNullConditionalPatterns = true)]
+    /// Same expression, but without the null-check pattern.
+    /// When consumed by a LINQ provider that registers RemoveNullConditionalPatterns globally
+    /// (e.g. EF Core via UseExpressives()), the null check is stripped: Customer?.Name → Customer.Name
+    [Expressive]
     public string? CustomerNameUnsafe => Customer?.Name;
 
     /// Enum method expansion: expands GetDescription() into a ternary chain per enum value.

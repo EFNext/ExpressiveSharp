@@ -20,7 +20,7 @@ public class Order
     [Expressive]
     public double Total => Price * Quantity;
 
-    [Expressive(RemoveNullConditionalPatterns = true)]
+    [Expressive]
     public string? CustomerEmail => Customer?.Email;
 
     [Expressive]

@@ -11,7 +11,7 @@ namespace ExpressiveSharp.Generated
         private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.C).GetProperty("Bar");
         private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(string).GetProperty("Length");
 
-        // [Expressive(RemoveNullConditionalPatterns = true)]
+        // [Expressive(Transformers = [typeof(ExpressiveSharp.Transformers.RemoveNullConditionalPatterns)])]
         // public int? Foo => Bar?.Length;
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int?>> Expression() 
         {

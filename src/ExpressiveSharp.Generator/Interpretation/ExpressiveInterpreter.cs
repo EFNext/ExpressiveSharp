@@ -38,10 +38,6 @@ static internal partial class ExpressiveInterpreter
             isExtensionMember, extensionParameter, extensionReceiverType);
 
         // Populate declared transformers from attribute
-        if (expressiveAttribute.RemoveNullConditionalPatterns)
-            descriptor.DeclaredTransformerTypeNames.Add("global::ExpressiveSharp.Transformers.RemoveNullConditionalPatterns");
-        if (expressiveAttribute.FlattenBlockExpressions)
-            descriptor.DeclaredTransformerTypeNames.Add("global::ExpressiveSharp.Transformers.FlattenBlockExpressions");
         foreach (var typeName in expressiveAttribute.TransformerTypeNames)
             descriptor.DeclaredTransformerTypeNames.Add(typeName);
 

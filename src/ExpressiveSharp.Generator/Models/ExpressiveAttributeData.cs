@@ -7,17 +7,11 @@ namespace ExpressiveSharp.Generator.Models;
 /// </summary>
 readonly internal record struct ExpressiveAttributeData
 {
-    // Built-in transformer flags
-    public bool RemoveNullConditionalPatterns { get; }
-    public bool FlattenBlockExpressions { get; }
-
     // Custom transformer type names (fully qualified)
     public IReadOnlyList<string> TransformerTypeNames { get; }
 
     public ExpressiveAttributeData(AttributeData attribute)
     {
-        var removeNullConditionalPatterns = false;
-        var flattenBlockExpressions = false;
         var transformerTypeNames = new List<string>();
 
         foreach (var namedArgument in attribute.NamedArguments)
@@ -26,14 +20,6 @@ readonly internal record struct ExpressiveAttributeData
             var value = namedArgument.Value;
             switch (key)
             {
-                case nameof(RemoveNullConditionalPatterns):
-                    if (value.Value is true)
-                        removeNullConditionalPatterns = true;
-                    break;
-                case nameof(FlattenBlockExpressions):
-                    if (value.Value is true)
-                        flattenBlockExpressions = true;
-                    break;
                 case "Transformers":
                     if (value.Kind == TypedConstantKind.Array)
                     {
@@ -50,8 +36,6 @@ readonly internal record struct ExpressiveAttributeData
             }
         }
 
-        RemoveNullConditionalPatterns = removeNullConditionalPatterns;
-        FlattenBlockExpressions = flattenBlockExpressions;
         TransformerTypeNames = transformerTypeNames;
     }
 }
