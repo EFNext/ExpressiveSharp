@@ -25,25 +25,37 @@ public sealed class EFCoreSqliteTestRunner : IIntegrationTestRunner
         _context.Database.EnsureCreated();
     }
 
-    public async Task SeedAsync(IReadOnlyList<Customer> customers, IReadOnlyList<Order> orders)
+    public async Task SeedAsync(
+        IReadOnlyList<Address> addresses,
+        IReadOnlyList<Customer> customers,
+        IReadOnlyList<Order> orders,
+        IReadOnlyList<LineItem> lineItems)
     {
-        _context.Customers.AddRange(customers);
+        _context.Set<Address>().AddRange(addresses);
         await _context.SaveChangesAsync();
 
-        // Add orders without navigation property to avoid tracking conflicts
+        // Add customers without navigation to avoid tracking conflicts
+        foreach (var c in customers)
+        {
+            _context.Customers.Add(new Customer
+            {
+                Id = c.Id, Name = c.Name, Email = c.Email, AddressId = c.AddressId,
+            });
+        }
+        await _context.SaveChangesAsync();
+
+        // Add orders without navigation to avoid tracking conflicts
         foreach (var order in orders)
         {
             _context.Orders.Add(new Order
             {
-                Id = order.Id,
-                Tag = order.Tag,
-                Price = order.Price,
-                Quantity = order.Quantity,
-                Status = order.Status,
-                CustomerId = order.CustomerId,
+                Id = order.Id, Tag = order.Tag, Price = order.Price,
+                Quantity = order.Quantity, Status = order.Status, CustomerId = order.CustomerId,
             });
         }
+        await _context.SaveChangesAsync();
 
+        _context.Set<LineItem>().AddRange(lineItems);
         await _context.SaveChangesAsync();
     }
 

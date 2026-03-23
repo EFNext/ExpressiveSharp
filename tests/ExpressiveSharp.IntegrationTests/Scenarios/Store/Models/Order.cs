@@ -10,9 +10,19 @@ public class Order
 
     public int? CustomerId { get; set; }
     public Customer? Customer { get; set; }
+    public List<LineItem> Items { get; set; } = new();
 
     [Expressive]
     public double Total => Price * Quantity;
+
+    // Multi-level null-conditional chain: Order → Customer → Address → Country
+    [Expressive]
+    public string? CustomerCountry => Customer?.Address?.Country;
+
+    // Tuple projection
+    [Expressive]
+    public (int Id, string Grade, double Total) GetOrderSummaryTuple()
+        => (Id, GetGrade(), Total);
 
     [Expressive]
     public string? CustomerName => Customer?.Name;

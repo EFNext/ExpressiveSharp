@@ -9,9 +9,22 @@ public sealed class ExpressionCompileTestRunner : IIntegrationTestRunner
     private List<Order> _orders = new();
     private List<Customer> _customers = new();
 
-    public Task SeedAsync(IReadOnlyList<Customer> customers, IReadOnlyList<Order> orders)
+    public Task SeedAsync(
+        IReadOnlyList<Address> addresses,
+        IReadOnlyList<Customer> customers,
+        IReadOnlyList<Order> orders,
+        IReadOnlyList<LineItem> lineItems)
     {
-        _customers = customers.ToList();
+        var addressList = addresses.ToList();
+        _customers = customers.Select(c => new Customer
+        {
+            Id = c.Id,
+            Name = c.Name,
+            Email = c.Email,
+            AddressId = c.AddressId,
+            Address = addressList.FirstOrDefault(a => a.Id == c.AddressId),
+        }).ToList();
+
         _orders = orders.Select(o => new Order
         {
             Id = o.Id,
@@ -20,7 +33,8 @@ public sealed class ExpressionCompileTestRunner : IIntegrationTestRunner
             Quantity = o.Quantity,
             Status = o.Status,
             CustomerId = o.CustomerId,
-            Customer = customers.FirstOrDefault(c => c.Id == o.CustomerId),
+            Customer = _customers.FirstOrDefault(c => c.Id == o.CustomerId),
+            Items = lineItems.Where(li => li.OrderId == o.Id).ToList(),
         }).ToList();
 
         return Task.CompletedTask;

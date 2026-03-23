@@ -14,15 +14,31 @@ public class IntegrationTestDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Address>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+        });
+
+        modelBuilder.Entity<Customer>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Address)
+                .WithMany()
+                .HasForeignKey(e => e.AddressId);
+        });
+
         modelBuilder.Entity<Order>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.HasOne(e => e.Customer)
                 .WithMany()
                 .HasForeignKey(e => e.CustomerId);
+            entity.HasMany(e => e.Items)
+                .WithOne()
+                .HasForeignKey(e => e.OrderId);
         });
 
-        modelBuilder.Entity<Customer>(entity =>
+        modelBuilder.Entity<LineItem>(entity =>
         {
             entity.HasKey(e => e.Id);
         });

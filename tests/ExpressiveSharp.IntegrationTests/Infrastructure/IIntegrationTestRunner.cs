@@ -5,7 +5,11 @@ namespace ExpressiveSharp.IntegrationTests.Infrastructure;
 
 public interface IIntegrationTestRunner : IAsyncDisposable
 {
-    Task SeedAsync(IReadOnlyList<Customer> customers, IReadOnlyList<Order> orders);
+    Task SeedAsync(
+        IReadOnlyList<Address> addresses,
+        IReadOnlyList<Customer> customers,
+        IReadOnlyList<Order> orders,
+        IReadOnlyList<LineItem> lineItems);
 
     Task<List<TEntity>> WhereAsync<TEntity>(
         Expression<Func<TEntity, bool>> predicate) where TEntity : class;
