@@ -6,6 +6,7 @@
 	<LangVersion Condition="'$(TargetFramework)' == 'net10.0'">14.0</LangVersion>
 	<Nullable>enable</Nullable>
 	<EnableNETAnalyzers>true</EnableNETAnalyzers>
+	<EnableMSTestAnalyzers>true</EnableMSTestAnalyzers>
 	<NoWarn>CS1591</NoWarn>
 	<NuGetAudit>false</NuGetAudit>
 	<ImplicitUsings>enable</ImplicitUsings>
