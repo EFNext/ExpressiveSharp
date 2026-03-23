@@ -1,0 +1,23 @@
+<Project>
+  <PropertyGroup>
+	<TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+	<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+	<LangVersion>12.0</LangVersion>
+	<LangVersion Condition="'$(TargetFramework)' == 'net10.0'">14.0</LangVersion>
+	<Nullable>enable</Nullable>
+	<EnableNETAnalyzers>true</EnableNETAnalyzers>
+	<NoWarn>CS1591</NoWarn>
+	<NuGetAudit>false</NuGetAudit>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<InterceptorsNamespaces>$(InterceptorsNamespaces);ExpressiveSharp.Generated.Interceptors</InterceptorsNamespaces>
+  </PropertyGroup>
+
+  <PropertyGroup>
+	<Authors>Koen Bekkenutte</Authors>
+	<PackageLicenseExpression>MIT</PackageLicenseExpression>
+	<PackageProjectUrl>https://github.com/EFNext/ExpressiveSharp</PackageProjectUrl>
+	<RepositoryUrl>https://github.com/EFNext/ExpressiveSharp.git</RepositoryUrl>
+	<RepositoryType>git</RepositoryType>
+	<Description>Source generator that polyfills modern C# syntax into expression trees</Description>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,20 @@
+<Project Sdk="MSTest.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="Verify.MSTest" />
+    <PackageReference Include="Basic.Reference.Assemblies.Net80"  Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageReference Include="Basic.Reference.Assemblies.Net100" Condition="'$(TargetFramework)' == 'net10.0'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ExpressiveSharp.Generator\ExpressiveSharp.Generator.csproj" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp\ExpressiveSharp.csproj" />
+  </ItemGroup>
+
+</Project>

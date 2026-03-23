@@ -1,0 +1,23 @@
+<Project Sdk="MSTest.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"
+                      Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"
+                      Condition="'$(TargetFramework)' == 'net10.0'"
+                      VersionOverride="10.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ExpressiveSharp.EntityFrameworkCore\ExpressiveSharp.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp\ExpressiveSharp.csproj" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp.Generator\ExpressiveSharp.Generator.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

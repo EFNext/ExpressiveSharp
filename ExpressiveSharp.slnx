@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/BasicSample/BasicSample.csproj" />
+    <Project Path="samples/EFCoreSample/EFCoreSample.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/ExpressiveSharp.EntityFrameworkCore/ExpressiveSharp.EntityFrameworkCore.csproj" />
+    <Project Path="src/ExpressiveSharp.Generator/ExpressiveSharp.Generator.csproj" />
+    <Project Path="src/ExpressiveSharp/ExpressiveSharp.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ExpressiveSharp.EntityFrameworkCore.Tests/ExpressiveSharp.EntityFrameworkCore.Tests.csproj" />
+    <Project Path="tests/ExpressiveSharp.Generator.Tests/ExpressiveSharp.Generator.Tests.csproj" />
+    <Project Path="tests/ExpressiveSharp.FunctionalTests/ExpressiveSharp.FunctionalTests.csproj" />
+  </Folder>
+</Solution>

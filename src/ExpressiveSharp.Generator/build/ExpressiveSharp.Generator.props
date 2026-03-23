@@ -1,0 +1,5 @@
+<Project>
+  <PropertyGroup>
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);ExpressiveSharp.Generated.Interceptors</InterceptorsNamespaces>
+  </PropertyGroup>
+</Project>
