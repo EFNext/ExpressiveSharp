@@ -101,4 +101,20 @@ public class Order
         }
         return total;
     }
+
+    // Collection expression: array literal
+    [Expressive]
+    public int[] PriceBreakpoints => [10, 50, 100];
+
+    // Tuple equality
+    [Expressive]
+    public bool IsPriceQuantityMatch => (Price, Quantity) == (50.0, 5);
+
+    // Tuple inequality
+    [Expressive]
+    public bool IsPriceQuantityDifferent => (Price, Quantity) != (50.0, 5);
+
+    // Checked arithmetic
+    [Expressive]
+    public double CheckedTotal => checked(Price * Quantity);
 }

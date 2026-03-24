@@ -5,20 +5,17 @@ using ExpressiveSharp.Generator.Tests.Infrastructure;
 namespace ExpressiveSharp.Generator.Tests.ExpressiveGenerator;
 
 [TestClass]
-public class TupleTests : GeneratorTestBase
+public class CollectionExpressionTests : GeneratorTestBase
 {
     [TestMethod]
-    public Task TupleLiteralInMethod()
+    public Task CollectionInitializer_ListOfInt()
     {
         var compilation = CreateCompilation(
             """
             namespace Foo {
                 class C {
-                    public int Id { get; set; }
-                    public string Name { get; set; }
-
                     [Expressive]
-                    public (int, string) GetTuple() => (Id, Name);
+                    public List<int> Numbers => new List<int> { 1, 2, 3 };
                 }
             }
             """);
@@ -31,17 +28,14 @@ public class TupleTests : GeneratorTestBase
     }
 
     [TestMethod]
-    public Task TupleLiteralWithNamedElements()
+    public Task CollectionInitializer_DictionaryAdd()
     {
         var compilation = CreateCompilation(
             """
             namespace Foo {
                 class C {
-                    public int Id { get; set; }
-                    public string Name { get; set; }
-
                     [Expressive]
-                    public (int Id, string Name) GetTuple() => (Id: Id, Name: Name);
+                    public Dictionary<string, int> Map => new Dictionary<string, int> { { "a", 1 }, { "b", 2 } };
                 }
             }
             """);
@@ -54,14 +48,14 @@ public class TupleTests : GeneratorTestBase
     }
 
     [TestMethod]
-    public Task TupleLiteralWithParameters()
+    public Task CollectionExpression_Array()
     {
         var compilation = CreateCompilation(
             """
             namespace Foo {
                 class C {
                     [Expressive]
-                    public (int, string) MakeTuple(int id, string name) => (id, name);
+                    public int[] Numbers => [1, 2, 3];
                 }
             }
             """);
@@ -74,14 +68,16 @@ public class TupleTests : GeneratorTestBase
     }
 
     [TestMethod]
-    public Task NestedTupleLiteral()
+    public Task CollectionExpression_ArrayWithSpread()
     {
         var compilation = CreateCompilation(
             """
             namespace Foo {
                 class C {
+                    public int[] Items { get; set; }
+
                     [Expressive]
-                    public (int, (string, bool)) GetNested(int a, string b, bool c) => (a, (b, c));
+                    public int[] Combined => [1, ..Items, 2];
                 }
             }
             """);
@@ -94,15 +90,16 @@ public class TupleTests : GeneratorTestBase
     }
 
     [TestMethod]
-    public Task TupleLiteralWith8Elements()
+    public Task CollectionExpression_ListWithSpread()
     {
         var compilation = CreateCompilation(
             """
             namespace Foo {
                 class C {
+                    public List<int> Items { get; set; }
+
                     [Expressive]
-                    public (int, int, int, int, int, int, int, int) GetLarge(int a, int b, int c, int d, int e, int f, int g, int h)
-                        => (a, b, c, d, e, f, g, h);
+                    public List<int> Combined => [1, ..Items, 2];
                 }
             }
             """);
@@ -115,17 +112,16 @@ public class TupleTests : GeneratorTestBase
     }
 
     [TestMethod]
-    public Task TupleBinary_Equality()
+    public Task CollectionExpression_SpreadOnly()
     {
         var compilation = CreateCompilation(
             """
             namespace Foo {
                 class C {
-                    public (int X, int Y) A { get; set; }
-                    public (int X, int Y) B { get; set; }
+                    public int[] Items { get; set; }
 
                     [Expressive]
-                    public bool Same => A == B;
+                    public int[] Copy => [..Items];
                 }
             }
             """);
@@ -138,17 +134,17 @@ public class TupleTests : GeneratorTestBase
     }
 
     [TestMethod]
-    public Task TupleBinary_Inequality()
+    public Task CollectionExpression_MultipleSpreads()
     {
         var compilation = CreateCompilation(
             """
             namespace Foo {
                 class C {
-                    public (int X, int Y) A { get; set; }
-                    public (int X, int Y) B { get; set; }
+                    public int[] Items { get; set; }
+                    public int[] Others { get; set; }
 
                     [Expressive]
-                    public bool Different => A != B;
+                    public int[] All => [..Items, ..Others];
                 }
             }
             """);
