@@ -417,6 +417,7 @@ internal sealed class ExpressionTreeEmitter
             IReturnOperation ret => EmitReturn(ret),
             IInterpolatedStringOperation interp => EmitInterpolatedString(interp),
             IWithOperation withOp => EmitWith(withOp),
+            IRangeOperation range => EmitRange(range),
             ICollectionExpressionOperation collExpr => EmitCollectionExpression(collExpr),
             IExpressionStatementOperation exprStmt => EmitOperation(exprStmt.Operation),
             ISimpleAssignmentOperation assign => EmitSimpleAssignment(assign),
@@ -1987,6 +1988,54 @@ internal sealed class ExpressionTreeEmitter
         var indexCtor = NextVar();
         AppendLine($"var {indexCtor} = typeof(global::System.Index).GetConstructor(new global::System.Type[] {{ typeof(int), typeof(bool) }});");
         AppendLine($"var {resultVar} = {Expr}.New({indexCtor}, {innerVar}, {trueConst});");
+        return resultVar;
+    }
+
+    // ── Range (.. operator) ─────────────────────────────────────────────────
+
+    private string EmitRange(IRangeOperation range)
+    {
+        var resultVar = NextVar();
+
+        string startVar;
+        if (range.LeftOperand is not null)
+        {
+            startVar = EmitOperation(range.LeftOperand);
+        }
+        else
+        {
+            // Implicit start: Index.Start (== new Index(0, fromEnd: false))
+            startVar = NextVar();
+            var zeroConst = NextVar();
+            AppendLine($"var {zeroConst} = {Expr}.Constant(0);");
+            var falseConst = NextVar();
+            AppendLine($"var {falseConst} = {Expr}.Constant(false);");
+            var startCtor = NextVar();
+            AppendLine($"var {startCtor} = typeof(global::System.Index).GetConstructor(new global::System.Type[] {{ typeof(int), typeof(bool) }});");
+            AppendLine($"var {startVar} = {Expr}.New({startCtor}, {zeroConst}, {falseConst});");
+        }
+
+        string endVar;
+        if (range.RightOperand is not null)
+        {
+            endVar = EmitOperation(range.RightOperand);
+        }
+        else
+        {
+            // Implicit end: Index.End (== new Index(0, fromEnd: true))
+            endVar = NextVar();
+            var zeroConst = NextVar();
+            AppendLine($"var {zeroConst} = {Expr}.Constant(0);");
+            var trueConst = NextVar();
+            AppendLine($"var {trueConst} = {Expr}.Constant(true);");
+            var endCtor = NextVar();
+            AppendLine($"var {endCtor} = typeof(global::System.Index).GetConstructor(new global::System.Type[] {{ typeof(int), typeof(bool) }});");
+            AppendLine($"var {endVar} = {Expr}.New({endCtor}, {zeroConst}, {trueConst});");
+        }
+
+        var rangeCtor = NextVar();
+        AppendLine($"var {rangeCtor} = typeof(global::System.Range).GetConstructor(new global::System.Type[] {{ typeof(global::System.Index), typeof(global::System.Index) }});");
+        AppendLine($"var {resultVar} = {Expr}.New({rangeCtor}, {startVar}, {endVar});");
         return resultVar;
     }
 

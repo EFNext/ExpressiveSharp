@@ -127,8 +127,8 @@ Unrecognized operations fall through to `EmitUnsupported()` which emits `Express
 | `IBinaryPatternOperation` | `Expression.AndAlso` / `Expression.OrElse` | Implemented | |
 | `IRecursivePatternOperation` | Null-check + type guard + property/positional conditions | Implemented | Positional patterns resolve via `Deconstruct` parameters or `ItemN` fields. |
 | `IDiscardPatternOperation` | `Expression.Constant(true)` | Implemented | |
-| `IListPatternOperation` | — | Not yet implemented | |
-| `ISlicePatternOperation` | — | Not yet implemented | |
+| `IListPatternOperation` | Count/Length check + indexed element pattern checks | Implemented | Fixed-length and slice patterns. Requires `Count`/`Length` property and indexer on operand type. |
+| `ISlicePatternOperation` | *(handled within list pattern)* | Implemented | Slice (`..`) adjusts index calculations for elements after the slice. |
 
 ## Switch Expressions
 
@@ -141,6 +141,13 @@ Unrecognized operations fall through to `EmitUnsupported()` which emits `Express
 | IOperation | Expression Factory | Status | Notes |
 |---|---|---|---|
 | `ITupleOperation` | `Expression.New(ValueTuple<...> ctor, elements)` | Implemented | Handles 1-7 elements directly. 8+ elements use nested `ValueTuple` for `Rest` argument. |
+
+## Index & Range
+
+| IOperation | Expression Factory | Status | Notes |
+|---|---|---|---|
+| `IUnaryOperation` (Hat) | `Expression.New(Index ctor, value, true)` | Implemented | `^n` → `new Index(n, fromEnd: true)`. |
+| `IRangeOperation` | `Expression.New(Range ctor, start, end)` | Implemented | `a..b` → `new Range(start, end)`. Implicit start/end produce `new Index(0, false)` / `new Index(0, true)`. Operand `int→Index` conversions handled by `EmitConversion`. |
 
 ## Collection Expressions
 
@@ -186,12 +193,8 @@ Unrecognized operations fall through to `EmitUnsupported()` which emits `Express
 | IOperation | Target Expression Factory | Notes |
 |---|---|---|
 | `IAnonymousObjectCreationOperation` | `Expression.New(ctor, args, members)` | Anonymous types can't be referenced by name in generated source. Use `PolyfillInterceptorGenerator` path or named types. |
-| `IListPatternOperation` | — | Not yet designed. |
-| `ISlicePatternOperation` | — | Not yet designed. |
 | `ITupleBinaryOperation` | Expanded equality/inequality | `(a, b) == (c, d)` → `Expression.AndAlso(Expression.Equal(a, c), Expression.Equal(b, d))` |
 | `IThrowOperation` | `Expression.Throw(expr, typeof(T))` | `throw` expressions. `Expression.Throw` exists but not all LINQ providers support it. Detected early by block body validation (EXP0006). |
-| `IRangeOperation` | `Expression.New(Range ctor, start, end)` | `a..b` → `new Range(new Index(a), new Index(b))` |
-| `IWithOperation` | `Expression.MemberInit(...)` | Record `with { }` expressions. |
 
 ---
 

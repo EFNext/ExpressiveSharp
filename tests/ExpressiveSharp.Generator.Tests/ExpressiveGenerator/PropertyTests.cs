@@ -534,6 +534,29 @@ public class PropertyTests : GeneratorTestBase
     }
 
     [TestMethod]
+    public Task Range_WorksAsExpression()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    public int Start { get; set; }
+                    public int End { get; set; }
+
+                    [Expressive]
+                    public Range Slice => Start..End;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
     public Task WithExpression_OnRecord()
     {
         var compilation = CreateCompilation(
