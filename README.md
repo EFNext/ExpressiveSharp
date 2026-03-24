@@ -1,22 +1,69 @@
 # ExpressiveSharp
 
-Source generator that enables modern C# syntax in LINQ expression trees.
+[![CI](https://github.com/EFNext/ExpressiveSharp/actions/workflows/ci.yml/badge.svg)](https://github.com/EFNext/ExpressiveSharp/actions/workflows/ci.yml)
+
+Source generator that enables modern C# syntax in LINQ expression trees. All expression trees are generated at compile time with minimal runtime overhead.
 
 ## The Problem
 
-C# expression trees (`Expression<Func<...>>`) only support a restricted subset of the language — no null-conditional operators (`?.`), no switch expressions, no pattern matching. This forces you to write clunky workarounds or give up on computed properties in EF Core queries entirely.
+There are two problems when using C# with LINQ providers like EF Core:
 
-ExpressiveSharp lifts this restriction using Roslyn source generators. Write natural C# and let the generator build the expression tree for you.
+**1. Expression tree syntax restrictions.** You write a perfectly reasonable query and hit:
+
+```
+error CS8072: An expression tree lambda may not contain a null propagating operator
+```
+
+Expression trees (`Expression<Func<...>>`) only support a restricted subset of C# — no `?.`, no switch expressions, no pattern matching. So you end up writing ugly ternary chains instead of the clean code you'd write anywhere else.
+
+**2. Computed properties are opaque to LINQ providers.** You define `public string FullName => FirstName + " " + LastName` and use it in a query — but EF Core can't see inside the property getter. It either throws a runtime translation error, or worse, silently fetches the entire entity to evaluate `FullName` on the client (overfetching). The only workaround is to duplicate the logic as an inline expression in every query that needs it.
+
+ExpressiveSharp fixes this. Write natural C# and the source generator builds the expression tree at compile time:
 
 ```csharp
-// Without ExpressiveSharp — compiler error: "An expression tree may not contain
-// a null propagating operator"
-db.Orders.Where(o => o.Customer?.Email != null);
+public class Order
+{
+    public int Id { get; set; }
+    public double Price { get; set; }
+    public int Quantity { get; set; }
+    public Customer? Customer { get; set; }
 
-// With ExpressiveSharp — just works
-db.Orders
-    .WithExpressionRewrite()
-    .Where(o => o.Customer?.Email != null);
+    // Computed property — reusable in any query, translated to SQL
+    [Expressive]
+    public double Total => Price * Quantity;
+
+    // Switch expression — normally illegal in expression trees
+    [Expressive]
+    public string GetGrade() => Price switch
+    {
+        >= 100 => "Premium",
+        >= 50  => "Standard",
+        _      => "Budget",
+    };
+}
+
+// [Expressive] members + ?. syntax — all translated to SQL
+var results = db.Orders
+    .AsExpressiveDbSet()
+    .Where(o => o.Customer?.Email != null)
+    .Select(o => new { o.Id, o.Total, Email = o.Customer?.Email, Grade = o.GetGrade() })
+    .ToList();
+```
+
+Generated SQL (SQLite):
+
+```sql
+SELECT "o"."Id",
+       "o"."Price" * CAST("o"."Quantity" AS REAL) AS "Total",
+       "c"."Email",
+       CASE
+           WHEN "o"."Price" >= 100.0 THEN 'Premium'
+           WHEN "o"."Price" >= 50.0 THEN 'Standard'
+           ELSE 'Budget'
+       END AS "Grade"
+FROM "Orders" AS "o"
+LEFT JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
+WHERE "c"."Email" IS NOT NULL
 ```
 
 ## Quick Start
@@ -27,25 +74,16 @@ dotnet add package ExpressiveSharp
 dotnet add package ExpressiveSharp.EntityFrameworkCore
 ```
 
-Mark a computed property with `[Expressive]` and use it in queries:
+### Which API Should I Use?
 
-```csharp
-public class Order
-{
-    public double Price { get; set; }
-    public int Quantity { get; set; }
+Mark computed properties and methods with [`[Expressive]`](#expressive-attribute) to generate companion expression trees. Then choose how to wire them into your queries:
 
-    [Expressive]
-    public double Total => Price * Quantity;
-}
-
-// The source generator creates a companion expression tree for Total,
-// so EF Core can translate it to SQL
-var expensive = db.Orders
-    .Select(o => new { o.Id, o.Total })
-    .Where(o => o.Total > 100)
-    .ToList();
-```
+| Scenario | API |
+|---|---|
+| **EF Core** — modern syntax + `[Expressive]` expansion on `DbSet` | [`ExpressiveDbSet<T>`](#ef-core-integration) (or [`UseExpressives()`](#ef-core-integration) for global `[Expressive]` expansion) |
+| **Any `IQueryable`** — modern syntax + `[Expressive]` expansion | [`.WithExpressionRewrite()`](#irewritablequeryt) |
+| **Advanced** — build an `Expression<T>` inline, no attribute needed | [`ExpressionPolyfill.Create`](#expressionpolyfillcreate) |
+| **Advanced** — expand `[Expressive]` members in an existing expression tree | [`.ExpandExpressives()`](#expressive-attribute) |
 
 ## Usage
 
@@ -72,8 +110,8 @@ public class Order
         _ => "Budget",
     };
 
-    // Block-bodied methods
-    [Expressive]
+    // Block bodies are opt-in and experimental
+    [Expressive(AllowBlockBody = true)]
     public string GetCategory()
     {
         var threshold = Quantity * 10;
@@ -81,6 +119,16 @@ public class Order
         return "Regular";
     }
 }
+```
+
+EF Core translates block bodies to SQL CASE expressions:
+
+```sql
+SELECT CASE
+    WHEN ("o"."Quantity" * 10) > 100 THEN 'Bulk'
+    ELSE 'Regular'
+END AS "Category"
+FROM "Orders" AS "o"
 ```
 
 Expand `[Expressive]` members manually in expression trees — this replaces `o.Total` (a property access) with the generated expression (`o.Price * o.Quantity`), so LINQ providers can translate it:
@@ -140,14 +188,18 @@ var options = new DbContextOptionsBuilder<MyDbContext>()
     .Options;
 ```
 
-This automatically expands `[Expressive]` members in queries and applies database-friendly transformers (removes null-conditional patterns, flattens block expressions).
+This automatically:
+- Expands `[Expressive]` member references in queries
+- Marks `[Expressive]` properties as unmapped in the EF model
+- Applies database-friendly transformers (`ConvertLoopsToLinq`, `RemoveNullConditionalPatterns`, `FlattenTupleComparisons`, `FlattenBlockExpressions`)
 
 For direct access on `DbSet`, use `ExpressiveDbSet<T>`:
 
 ```csharp
 public class MyDbContext : DbContext
 {
-    public ExpressiveDbSet<Order> Orders => Set<Order>().AsExpressiveDbSet();
+    // Shorthand for Set<Order>().AsExpressiveDbSet()
+    public ExpressiveDbSet<Order> Orders => this.ExpressiveSet<Order>();
 }
 
 // Modern syntax works directly — no .WithExpressionRewrite() needed
@@ -156,26 +208,24 @@ ctx.Orders.Where(o => o.Customer?.Name == "Alice");
 
 ## Supported C# Features
 
-**Legend:** supported | partial | not supported
-
 ### Expression-Level
 
-| Feature | Status |
-|---|---|
-| Switch expressions | Supported |
-| Pattern matching (constant, type, relational, logical, property, positional) | Supported |
-| Declaration patterns with named variables | Partial — works in switch arms only |
-| String interpolation | Supported |
-| Null-conditional `?.` (member access and indexer) | Supported |
-| Tuple literals | Supported |
-| C# 14 extension members | Supported |
-| Enum method expansion | Supported |
-| Dictionary indexer initializers | Supported |
-| `this`/`base` references | Supported |
-| List patterns (fixed-length and slice) | Supported |
-| Index/range (`^1`, `1..3`) | Supported |
-| `with` expressions (records) | Supported |
-| Collection expressions (`[1, 2, 3]`, `[..items]`) | Supported |
+| Feature | Status | Notes |
+|---|---|---|
+| Null-conditional `?.` (member access and indexer) | Supported | Generates faithful null-check ternary; `UseExpressives()` strips it for SQL |
+| Switch expressions | Supported | Translated to nested CASE/ternary |
+| Pattern matching (constant, type, relational, logical, property, positional) | Supported | |
+| Declaration patterns with named variables | Partial | Works in switch arms only |
+| String interpolation | Supported | Converted to `string.Concat` calls |
+| Tuple literals | Supported | |
+| Enum method expansion | Supported | Expands enum extension methods into per-value ternary chains |
+| C# 14 extension members | Supported | |
+| List patterns (fixed-length and slice) | Supported | |
+| Index/range (`^1`, `1..3`) | Supported | |
+| `with` expressions (records) | Supported | |
+| Collection expressions (`[1, 2, 3]`, `[..items]`) | Supported | |
+| Dictionary indexer initializers | Supported | |
+| `this`/`base` references | Supported | |
 
 ### Block-Body
 
@@ -190,6 +240,39 @@ ctx.Orders.Where(o => o.Customer?.Name == "Alice");
 
 ### Constructor Projection (EF Core)
 
+Mark constructors with `[Expressive]` to generate `MemberInit` expressions that EF Core can translate to SQL projections:
+
+```csharp
+public class OrderSummaryDto
+{
+    public int Id { get; set; }
+    public string Description { get; set; } = "";
+    public double Total { get; set; }
+
+    public OrderSummaryDto() { }
+
+    [Expressive]
+    public OrderSummaryDto(int id, string description, double total)
+    {
+        Id = id;
+        Description = description;
+        Total = total;
+    }
+}
+
+// Constructor call is translated to SQL projection
+var dtos = db.Orders
+    .Select(o => new OrderSummaryDto(o.Id, o.Tag ?? "N/A", o.Total))
+    .ToList();
+```
+
+```sql
+SELECT "o"."Id",
+       COALESCE("o"."Tag", 'N/A') AS "Description",
+       "o"."Price" * CAST("o"."Quantity" AS REAL) AS "Total"
+FROM "Orders" AS "o"
+```
+
 Property assignments, local variables, `if`/`else`, and `base()`/`this()` initializer chains are all supported.
 
 ## Expression Transformers
@@ -200,24 +283,18 @@ ExpressiveSharp generates faithful expression trees that mirror the original C# 
 
 **`RemoveNullConditionalPatterns`** — Strips null-check ternaries (`x != null ? x.Prop : default` becomes `x.Prop`). Useful for databases that handle null propagation natively.
 
-```csharp
-[Expressive(RemoveNullConditionalPatterns = true)]
-public string? CustomerName => Customer?.Name;
-```
-
 **`FlattenBlockExpressions`** — Inlines block-local variables and removes `Expression.Block` nodes. Required for LINQ providers that don't support block expressions (including EF Core).
 
-```csharp
-[Expressive(FlattenBlockExpressions = true)]
-public string GetCategory()
-{
-    var threshold = Quantity * 10;
-    if (threshold > 100) return "Bulk";
-    return "Regular";
-}
-```
+**`FlattenTupleComparisons`** — Replaces `ValueTuple` field access on inline tuple construction with the underlying arguments, so `(Price, Quantity) == (50.0, 5)` translates to `Price == 50.0 AND Quantity == 5` instead of requiring `ValueTuple` construction.
 
-Both transformers are applied automatically when using `UseExpressives()` with EF Core.
+**`ConvertLoopsToLinq`** — Converts loop expressions (produced by the emitter for `foreach`/`for` loops) into equivalent LINQ method calls (`Sum`, `Count`, `Any`, `All`, etc.) that LINQ providers can translate to SQL.
+
+All four transformers are applied automatically when using `UseExpressives()` with EF Core. To apply them per-member without EF Core, use the `Transformers` property:
+
+```csharp
+[Expressive(Transformers = new[] { typeof(RemoveNullConditionalPatterns) })]
+public string? CustomerName => Customer?.Name;
+```
 
 ### Custom Transformers
 
@@ -248,11 +325,39 @@ expr.ExpandExpressives(new MyTransformer());
 
 ExpressiveSharp uses two Roslyn source generators:
 
-1. **`ExpressiveGenerator`** — Finds `[Expressive]` members and generates `Expression<Func<...>>` method bodies using `Expression.*` factory calls. Registers them in a per-assembly expression registry for runtime lookup.
+1. **`ExpressiveGenerator`** — Finds `[Expressive]` members, analyzes them at the semantic level (IOperation), and generates `Expression<Func<...>>` factory code using `Expression.*` calls. Registers them in a per-assembly expression registry for runtime lookup.
 
 2. **`PolyfillInterceptorGenerator`** — Uses C# 13 method interceptors to replace `ExpressionPolyfill.Create` calls and `IRewritableQueryable<T>` LINQ methods at their call sites, converting lambdas to expression trees at compile time.
 
-All transformations happen at compile time. There is no runtime reflection or expression compilation.
+All expression trees are generated at compile time. There is no runtime reflection or expression compilation.
+
+## FAQ
+
+### Does this have any runtime overhead?
+
+No practical impact. The source generators emit `Expression.*` factory calls at compile time. At runtime, `UseExpressives()` replaces opaque property accesses with the pre-built expressions during EF Core query compilation — this adds a small cost on first execution, but the expanded query is cached by EF Core afterward. There is no runtime reflection, no `Compile()`, and no expression tree parsing.
+
+### Can `[Expressive]` members call other `[Expressive]` members?
+
+Yes. `ExpandExpressives()` (and `UseExpressives()`) recursively resolves nested `[Expressive]` references. You can compose computed properties freely:
+
+```csharp
+[Expressive]
+public double Total => Price * Quantity;
+
+[Expressive]
+public double TotalWithTax => Total * (1 + TaxRate);  // references Total
+```
+
+### Is this EF Core specific?
+
+No. The core `ExpressiveSharp` package works with any LINQ provider or standalone expression tree use case. The `ExpressiveSharp.EntityFrameworkCore` package adds EF Core-specific integration (auto-expansion, model conventions, transformers).
+
+### Coming from EntityFrameworkCore.Projectables?
+
+ExpressiveSharp is its spiritual successor. See the [Migration Guide](docs/migration-from-projectables.md) for a step-by-step walkthrough including automated code fixers.
+
+Key improvements: broader C# syntax support (switch expressions, pattern matching, string interpolation, tuples), customizable transformer pipeline, inline expression creation via `ExpressionPolyfill.Create`, modern syntax in LINQ chains via `IRewritableQueryable<T>`, and no EF Core coupling.
 
 ## Requirements
 
@@ -267,7 +372,6 @@ Development docs for contributors:
 
 - [Testing Strategy](docs/testing-strategy.md) — snapshot tests, functional tests, and test consumers
 - [IOperation to Expression Mapping](docs/ioperation-to-expression-mapping.md) — reference table for the expression tree emitter
-- [Recovery Notes](docs/recovery-notes.md) — migration status from legacy syntax rewriting to IOperation-based emitter
 
 ```bash
 dotnet build    # Build all projects
