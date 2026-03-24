@@ -8,17 +8,36 @@
 	<EnableNETAnalyzers>true</EnableNETAnalyzers>
 	<EnableMSTestAnalyzers>true</EnableMSTestAnalyzers>
 	<NoWarn>CS1591</NoWarn>
-	<NuGetAudit>false</NuGetAudit>
 	<ImplicitUsings>enable</ImplicitUsings>
 	<InterceptorsNamespaces>$(InterceptorsNamespaces);ExpressiveSharp.Generated.Interceptors</InterceptorsNamespaces>
   </PropertyGroup>
 
   <PropertyGroup>
-	<Authors>Koen Bekkenutte</Authors>
+	<Authors>Koen</Authors>
+	<Copyright>Copyright (c) Koen 2025</Copyright>
 	<PackageLicenseExpression>MIT</PackageLicenseExpression>
 	<PackageProjectUrl>https://github.com/EFNext/ExpressiveSharp</PackageProjectUrl>
 	<RepositoryUrl>https://github.com/EFNext/ExpressiveSharp.git</RepositoryUrl>
 	<RepositoryType>git</RepositoryType>
 	<Description>Source generator that polyfills modern C# syntax into expression trees</Description>
+	<PackageTags>expression-trees;source-generator;roslyn;linq;efcore;csharp</PackageTags>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <!-- SourceLink & reproducible builds -->
+  <PropertyGroup>
+	<PublishRepositoryUrl>true</PublishRepositoryUrl>
+	<EmbedUntrackedSources>true</EmbedUntrackedSources>
+	<IncludeSymbols>true</IncludeSymbols>
+	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(CI)' == 'true'">
+	<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
 </Project>

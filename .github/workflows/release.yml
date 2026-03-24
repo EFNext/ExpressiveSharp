@@ -18,6 +18,9 @@ jobs:
     name: Pack & Publish to NuGet
     runs-on: ubuntu-latest
 
+    env:
+      CI: true
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -68,7 +71,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nuget-packages
-          path: ./packages/*.nupkg
+          path: |
+            ./packages/*.nupkg
+            ./packages/*.snupkg
           retention-days: 90
 
       - name: Publish to NuGet.org
