@@ -13,7 +13,7 @@ namespace ExpressiveSharp.Generated
         private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::System.Collections.Generic.IEnumerator<int>).GetProperty("Current");
         private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.C).GetProperty("Multiplier");
 
-        // [Expressive]
+        // [Expressive(AllowBlockBody = true)]
         // public int WeightedSum(List<int> items)
         // {
         //     var sum = 0;

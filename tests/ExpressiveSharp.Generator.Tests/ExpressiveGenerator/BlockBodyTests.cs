@@ -14,7 +14,7 @@ public class BlockBodyTests : GeneratorTestBase
             """
             namespace Foo {
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int Foo()
                     {
                         return 1;
@@ -37,7 +37,7 @@ public class BlockBodyTests : GeneratorTestBase
                 class C {
                     public int Value { get; set; }
 
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int GetDouble()
                     {
                         return Value * 2;
@@ -58,7 +58,7 @@ public class BlockBodyTests : GeneratorTestBase
             """
             namespace Foo {
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int Foo()
                     {
                         return 42;
@@ -83,7 +83,7 @@ public class BlockBodyTests : GeneratorTestBase
                 class C {
                     public int Bar { get; set; }
 
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int Foo()
                     {
                         return Bar + 10;
@@ -108,7 +108,7 @@ public class BlockBodyTests : GeneratorTestBase
                 class C {
                     public int Bar { get; set; }
 
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int Foo()
                     {
                         if (Bar > 10)
@@ -140,7 +140,7 @@ public class BlockBodyTests : GeneratorTestBase
                 class C {
                     public int Bar { get; set; }
 
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public string Foo()
                     {
                         if (Bar > 10)
@@ -176,7 +176,7 @@ public class BlockBodyTests : GeneratorTestBase
                 class C {
                     public int Bar { get; set; }
 
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int Foo()
                     {
                         var temp = Bar * 2;
@@ -202,7 +202,7 @@ public class BlockBodyTests : GeneratorTestBase
                 class C {
                     public int Bar { get; set; }
 
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int Foo()
                     {
                         var a = Bar * 2;

@@ -176,7 +176,7 @@ public class PropertyTests : GeneratorTestBase
             """
             namespace Foo {
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int Foo { get { return 1; } }
                 }
             }
@@ -220,7 +220,7 @@ public class PropertyTests : GeneratorTestBase
                 class C {
                     public int Bar { get; set; }
 
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int Foo { get { return Bar + 1; } }
                 }
             }
@@ -242,7 +242,7 @@ public class PropertyTests : GeneratorTestBase
                 class C {
                     public int Bar { get; set; }
 
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int Foo { get { return this.Bar; } }
                 }
             }
@@ -264,7 +264,7 @@ public class PropertyTests : GeneratorTestBase
                 class C {
                     public int Bar() => 1;
 
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int Foo { get { return Bar(); } }
                 }
             }
@@ -284,7 +284,7 @@ public class PropertyTests : GeneratorTestBase
             """
             namespace Foo {
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int Foo { get { return 1; } }
                 }
             }

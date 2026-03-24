@@ -31,7 +31,7 @@ public class Order
         _ => "Budget",
     };
 
-    [Expressive]
+    [Expressive(AllowBlockBody = true)]
     public string GetCategory()
     {
         var threshold = Quantity * 10;

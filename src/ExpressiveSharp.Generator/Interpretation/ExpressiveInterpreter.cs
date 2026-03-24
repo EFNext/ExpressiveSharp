@@ -46,11 +46,11 @@ static internal partial class ExpressiveInterpreter
         {
             MethodDeclarationSyntax methodDecl =>
                 TryApplyMethodBody(methodDecl, memberSymbol, semanticModel,
-                    declarationSyntaxRewriter, context, descriptor),
+                    declarationSyntaxRewriter, context, descriptor, expressiveAttribute.AllowBlockBody),
 
             PropertyDeclarationSyntax propDecl =>
                 TryApplyPropertyBody(propDecl, memberSymbol, semanticModel,
-                    declarationSyntaxRewriter, context, descriptor),
+                    declarationSyntaxRewriter, context, descriptor, expressiveAttribute.AllowBlockBody),
 
             ConstructorDeclarationSyntax ctorDecl =>
                 TryApplyConstructorBody(ctorDecl, memberSymbol, semanticModel,

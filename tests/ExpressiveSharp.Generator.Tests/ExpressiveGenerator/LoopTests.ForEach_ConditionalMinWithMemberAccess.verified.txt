@@ -15,7 +15,7 @@ namespace ExpressiveSharp.Generated
         private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.Item).GetProperty("Value");
         private static readonly global::System.Reflection.MethodInfo _m2 = typeof(global::System.Math).GetMethod("Min", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(int), typeof(int) }, null);
 
-        // [Expressive]
+        // [Expressive(AllowBlockBody = true)]
         // public int MinPositive(List<Item> items)
         // {
         //     var min = int.MaxValue;

@@ -79,7 +79,7 @@ public class Order
     };
 
     /// Block body with if/else and local variables.
-    [Expressive]
+    [Expressive(AllowBlockBody = true)]
     public string GetCategory()
     {
         var threshold = Quantity * 10;

@@ -123,4 +123,12 @@ static internal class Diagnostics
         category: "Design",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
+
+    public readonly static DiagnosticDescriptor BlockBodyRequiresOptIn = new DiagnosticDescriptor(
+        id: "EXP0020",
+        title: "Block-bodied [Expressive] member requires AllowBlockBody",
+        messageFormat: "Member '{0}' uses a block body ({{ }}) which requires [Expressive(AllowBlockBody = true)]. Block bodies support local variables, if/else, and foreach loops, but not all constructs are translatable by every LINQ provider. Use an expression-bodied member (=>) for full compatibility, or opt in with AllowBlockBody = true.",
+        category: "Design",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }

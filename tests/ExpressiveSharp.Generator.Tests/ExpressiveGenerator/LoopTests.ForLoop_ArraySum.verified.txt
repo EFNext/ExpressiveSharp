@@ -10,7 +10,7 @@ namespace ExpressiveSharp.Generated
     {
         private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::System.Array).GetProperty("Length");
 
-        // [Expressive]
+        // [Expressive(AllowBlockBody = true)]
         // public int Sum(int[] arr)
         // {
         //     var sum = 0;

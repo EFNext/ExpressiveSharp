@@ -10,7 +10,7 @@ namespace ExpressiveSharp.Generated
     {
         private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.C).GetProperty("Bar");
 
-        // [Expressive]
+        // [Expressive(AllowBlockBody = true)]
         // public int Foo()
         // {
         //     var temp = Bar * 2;

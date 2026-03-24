@@ -12,7 +12,7 @@ namespace ExpressiveSharp.Generated
         private static readonly global::System.Reflection.MethodInfo _m1 = typeof(global::System.Collections.IEnumerator).GetMethod("MoveNext", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null);
         private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::System.Collections.Generic.IEnumerator<int>).GetProperty("Current");
 
-        // [Expressive]
+        // [Expressive(AllowBlockBody = true)]
         // public int ProductOfPositive(List<int> items)
         // {
         //     var product = 1;

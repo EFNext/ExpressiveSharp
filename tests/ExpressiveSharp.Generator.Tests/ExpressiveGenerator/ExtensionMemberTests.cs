@@ -151,7 +151,7 @@ public class ExtensionMemberTests : GeneratorTestBase
 
                 static class EntityExtensions {
                     extension(Entity e) {
-                        [Expressive]
+                        [Expressive(AllowBlockBody = true)]
                         public string GetStatus()
                         {
                             if (e.IsActive && e.Value > 0)

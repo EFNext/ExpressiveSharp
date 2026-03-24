@@ -15,7 +15,7 @@ namespace ExpressiveSharp.Generated
         private static readonly global::System.Reflection.MethodInfo _m2 = typeof(global::System.Collections.Generic.List<string>).GetMethod("Add", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] { typeof(string) }, null);
         private static readonly global::System.Reflection.MethodInfo _m3 = typeof(int).GetMethod("ToString", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null);
 
-        // [Expressive]
+        // [Expressive(AllowBlockBody = true)]
         // public List<string> Names(List<int> items)
         // {
         //     var result = new List<string>();

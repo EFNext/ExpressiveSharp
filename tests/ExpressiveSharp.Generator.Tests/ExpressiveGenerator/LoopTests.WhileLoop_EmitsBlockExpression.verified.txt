@@ -8,7 +8,7 @@ namespace ExpressiveSharp.Generated
     [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
     static class Foo_C_Countdown_P0_int 
     {
-        // [Expressive]
+        // [Expressive(AllowBlockBody = true)]
         // public int Countdown(int n)
         // {
         //     var result = 0;

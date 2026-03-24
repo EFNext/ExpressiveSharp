@@ -14,7 +14,7 @@ public class LoopTests : GeneratorTestBase
             """
             namespace Foo {
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int Sum(List<int> items)
                     {
                         var sum = 0;
@@ -39,7 +39,7 @@ public class LoopTests : GeneratorTestBase
             """
             namespace Foo {
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int Sum(List<int> items)
                     {
                         var sum = 0;
@@ -66,7 +66,7 @@ public class LoopTests : GeneratorTestBase
             """
             namespace Foo {
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int Countdown(int n)
                     {
                         var result = 0;
@@ -91,7 +91,7 @@ public class LoopTests : GeneratorTestBase
             """
             namespace Foo {
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int Sum(List<int> items)
                     {
                         var sum = 0;
@@ -120,7 +120,7 @@ public class LoopTests : GeneratorTestBase
                     public int Value { get; set; }
                 }
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int Sum(List<Item> items)
                     {
                         var sum = 0;
@@ -146,7 +146,7 @@ public class LoopTests : GeneratorTestBase
             """
             namespace Foo {
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int CountPositive(List<int> items)
                     {
                         var count = 0;
@@ -172,7 +172,7 @@ public class LoopTests : GeneratorTestBase
             """
             namespace Foo {
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int CountAll(List<int> items)
                     {
                         var count = 0;
@@ -198,7 +198,7 @@ public class LoopTests : GeneratorTestBase
             """
             namespace Foo {
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int FindMin(List<int> items)
                     {
                         var min = int.MaxValue;
@@ -224,7 +224,7 @@ public class LoopTests : GeneratorTestBase
             """
             namespace Foo {
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public bool HasNegative(List<int> items)
                     {
                         var found = false;
@@ -250,7 +250,7 @@ public class LoopTests : GeneratorTestBase
             """
             namespace Foo {
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public bool AllPositive(List<int> items)
                     {
                         var all = true;
@@ -276,7 +276,7 @@ public class LoopTests : GeneratorTestBase
             """
             namespace Foo {
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int Product(List<int> items)
                     {
                         var product = 1;
@@ -302,7 +302,7 @@ public class LoopTests : GeneratorTestBase
             """
             namespace Foo {
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int Sum(int[] arr)
                     {
                         var sum = 0;
@@ -328,7 +328,7 @@ public class LoopTests : GeneratorTestBase
             """
             namespace Foo {
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int SumEven(List<int> items)
                     {
                         var sum = 0;
@@ -354,7 +354,7 @@ public class LoopTests : GeneratorTestBase
             """
             namespace Foo {
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int ProductOfPositive(List<int> items)
                     {
                         var product = 1;
@@ -382,7 +382,7 @@ public class LoopTests : GeneratorTestBase
                 class C {
                     public static int Transform(int x) => x * x;
 
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int SumOfSquares(List<int> items)
                     {
                         var sum = 0;
@@ -410,7 +410,7 @@ public class LoopTests : GeneratorTestBase
                 class Inner { public int Score { get; set; } }
                 class Outer { public Inner Inner { get; set; } }
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int Sum(List<Outer> items)
                     {
                         var sum = 0;
@@ -436,7 +436,7 @@ public class LoopTests : GeneratorTestBase
             """
             namespace Foo {
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public List<string> Names(List<int> items)
                     {
                         var result = new List<string>();
@@ -463,7 +463,7 @@ public class LoopTests : GeneratorTestBase
             namespace Foo {
                 class Item { public int Value { get; set; } public string Name { get; set; } }
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public List<string> NamesOfExpensive(List<Item> items)
                     {
                         var result = new List<string>();
@@ -490,7 +490,7 @@ public class LoopTests : GeneratorTestBase
             namespace Foo {
                 class Item { public int Value { get; set; } }
                 class C {
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int MinPositive(List<Item> items)
                     {
                         var min = int.MaxValue;
@@ -518,7 +518,7 @@ public class LoopTests : GeneratorTestBase
                 class C {
                     public int Multiplier { get; set; }
 
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int WeightedSum(List<int> items)
                     {
                         var sum = 0;

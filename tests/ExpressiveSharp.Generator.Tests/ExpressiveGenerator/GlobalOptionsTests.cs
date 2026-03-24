@@ -17,7 +17,7 @@ public class GlobalOptionsTests : GeneratorTestBase
             namespace Foo {
                 class C {
                     public int Value { get; set; }
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int GetDouble()
                     {
                         return Value * 2;
@@ -146,7 +146,7 @@ public class GlobalOptionsTests : GeneratorTestBase
             namespace Foo {
                 class C {
                     public int Value { get; set; }
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int GetDouble()
                     {
                         return Value * 2;
@@ -168,7 +168,7 @@ public class GlobalOptionsTests : GeneratorTestBase
             namespace Foo {
                 class C {
                     public int Value { get; set; }
-                    [Expressive]
+                    [Expressive(AllowBlockBody = true)]
                     public int GetDouble()
                     {
                         return Value * 2;

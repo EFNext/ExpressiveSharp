@@ -20,7 +20,8 @@ static internal partial class ExpressiveInterpreter
         SemanticModel semanticModel,
         DeclarationSyntaxRewriter declarationSyntaxRewriter,
         SourceProductionContext context,
-        ExpressiveDescriptor descriptor)
+        ExpressiveDescriptor descriptor,
+        bool allowBlockBody)
     {
         SyntaxNode bodySyntax;
 
@@ -30,6 +31,14 @@ static internal partial class ExpressiveInterpreter
         }
         else if (methodDeclarationSyntax.Body is not null)
         {
+            if (!allowBlockBody)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Diagnostics.BlockBodyRequiresOptIn,
+                    methodDeclarationSyntax.Identifier.GetLocation(),
+                    memberSymbol.Name));
+                return false;
+            }
             bodySyntax = methodDeclarationSyntax.Body;
         }
         else
@@ -64,9 +73,11 @@ static internal partial class ExpressiveInterpreter
         SemanticModel semanticModel,
         DeclarationSyntaxRewriter declarationSyntaxRewriter,
         SourceProductionContext context,
-        ExpressiveDescriptor descriptor)
+        ExpressiveDescriptor descriptor,
+        bool allowBlockBody)
     {
         SyntaxNode? bodySyntax = null;
+        var isBlockBody = false;
 
         if (propertyDeclarationSyntax.ExpressionBody is not null)
         {
@@ -83,8 +94,18 @@ static internal partial class ExpressiveInterpreter
             }
             else if (getter?.Body is not null)
             {
+                isBlockBody = true;
                 bodySyntax = getter.Body;
             }
+        }
+
+        if (isBlockBody && !allowBlockBody)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                Diagnostics.BlockBodyRequiresOptIn,
+                propertyDeclarationSyntax.Identifier.GetLocation(),
+                memberSymbol.Name));
+            return false;
         }
 
         if (bodySyntax is null)

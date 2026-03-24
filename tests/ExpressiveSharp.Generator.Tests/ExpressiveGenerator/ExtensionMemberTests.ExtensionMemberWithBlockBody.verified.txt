@@ -11,7 +11,7 @@ namespace ExpressiveSharp.Generated
         private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.Entity).GetProperty("IsActive");
         private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.Entity).GetProperty("Value");
 
-        // [Expressive]
+        // [Expressive(AllowBlockBody = true)]
         // public string GetStatus()
         // {
         //     if (e.IsActive && e.Value > 0)

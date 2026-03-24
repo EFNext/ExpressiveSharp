@@ -13,7 +13,7 @@ namespace ExpressiveSharp.Generated
         private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::System.Collections.Generic.IEnumerator<global::Foo.Item>).GetProperty("Current");
         private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.Item).GetProperty("Value");
 
-        // [Expressive]
+        // [Expressive(AllowBlockBody = true)]
         // public int Sum(List<Item> items)
         // {
         //     var sum = 0;

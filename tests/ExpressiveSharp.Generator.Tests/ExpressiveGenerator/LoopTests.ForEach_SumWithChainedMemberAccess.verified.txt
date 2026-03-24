@@ -14,7 +14,7 @@ namespace ExpressiveSharp.Generated
         private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.Inner).GetProperty("Score");
         private static readonly global::System.Reflection.PropertyInfo _p2 = typeof(global::Foo.Outer).GetProperty("Inner");
 
-        // [Expressive]
+        // [Expressive(AllowBlockBody = true)]
         // public int Sum(List<Outer> items)
         // {
         //     var sum = 0;

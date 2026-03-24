@@ -41,7 +41,7 @@ public class Order
         _ => "Budget",
     };
 
-    [Expressive]
+    [Expressive(AllowBlockBody = true)]
     public string GetCategory()
     {
         var threshold = Quantity * 10;
@@ -59,7 +59,7 @@ public class Order
     public string Summary => $"Order #{Id}: {Tag ?? "N/A"}";
 
     // Loop-based computed members (foreach → Expression.Loop)
-    [Expressive]
+    [Expressive(AllowBlockBody = true)]
     public int ItemCount()
     {
         var count = 0;
@@ -67,7 +67,7 @@ public class Order
         return count;
     }
 
-    [Expressive]
+    [Expressive(AllowBlockBody = true)]
     public double ItemTotal()
     {
         var total = 0.0;
@@ -75,7 +75,7 @@ public class Order
         return total;
     }
 
-    [Expressive]
+    [Expressive(AllowBlockBody = true)]
     public bool HasExpensiveItems()
     {
         var found = false;
@@ -83,7 +83,7 @@ public class Order
         return found;
     }
 
-    [Expressive]
+    [Expressive(AllowBlockBody = true)]
     public bool AllItemsAffordable()
     {
         var all = true;
@@ -91,7 +91,7 @@ public class Order
         return all;
     }
 
-    [Expressive]
+    [Expressive(AllowBlockBody = true)]
     public double ItemTotalForExpensive()
     {
         var total = 0.0;
