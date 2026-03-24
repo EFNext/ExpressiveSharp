@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using ExpressiveSharp.Extensions;
+using ExpressiveSharp.Services;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 
@@ -11,6 +12,13 @@ namespace ExpressiveSharp.EntityFrameworkCore.Infrastructure.Internal;
 /// </summary>
 public class ExpressiveExpandQueryFiltersConvention : IModelFinalizingConvention
 {
+    private readonly ExpressiveOptions _options;
+
+    public ExpressiveExpandQueryFiltersConvention(ExpressiveOptions options)
+    {
+        _options = options;
+    }
+
     public void ProcessModelFinalizing(
         IConventionModelBuilder modelBuilder,
         IConventionContext<IConventionModelBuilder> context)
@@ -25,7 +33,7 @@ public class ExpressiveExpandQueryFiltersConvention : IModelFinalizingConvention
                 if (filter.Expression is null)
                     continue;
 
-                var expanded = filter.Expression.ExpandExpressives() as LambdaExpression;
+                var expanded = filter.Expression.ExpandExpressives(_options) as LambdaExpression;
 
                 if (filter.Key is not null)
                     entityType.SetQueryFilter(filter.Key, expanded);
@@ -37,7 +45,7 @@ public class ExpressiveExpandQueryFiltersConvention : IModelFinalizingConvention
             if (queryFilter is not null)
             {
                 entityType.SetQueryFilter(
-                    queryFilter.ExpandExpressives() as LambdaExpression);
+                    queryFilter.ExpandExpressives(_options) as LambdaExpression);
             }
 #endif
         }

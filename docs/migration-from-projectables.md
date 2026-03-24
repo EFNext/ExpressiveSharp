@@ -135,7 +135,7 @@ The `InterceptorsNamespaces` MSBuild property needed for method interceptors is 
 
 3. **`NullConditionalRewriteSupport` enum removed** — ExpressiveSharp always generates faithful null-conditional ternaries. `UseExpressives()` globally registers the `RemoveNullConditionalPatterns` transformer to strip them for EF Core. No per-member configuration needed.
 
-4. **`ProjectableOptionsBuilder` callback removed** — `UseProjectables(opts => { ... })` becomes `UseExpressives()` with no parameters. Global transformer configuration is done via `ExpressiveDefaults` if needed.
+4. **`ProjectableOptionsBuilder` callback removed** — `UseProjectables(opts => { ... })` becomes `UseExpressives()` with no parameters. Global transformer configuration is done via `ExpressiveOptions.Default` if needed.
 
 5. **`UseMemberBody` property removed** — This was typically a workaround for syntax limitations in Projectable expression bodies. Since ExpressiveSharp supports block bodies, switch expressions, pattern matching, and more, you likely don't need it. Remove any `UseMemberBody` assignments. If your use case still requires it, please [open an issue](https://github.com/koenbeuk/ExpressiveSharp/issues).
 

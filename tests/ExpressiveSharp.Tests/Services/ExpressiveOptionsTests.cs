@@ -4,21 +4,16 @@ using ExpressiveSharp.Services;
 namespace ExpressiveSharp.Tests.Services;
 
 [TestClass]
-public class ExpressiveDefaultsTests
+public class ExpressiveOptionsTests
 {
-    [TestCleanup]
-    public void Cleanup()
-    {
-        ExpressiveDefaults.ClearTransformers();
-    }
-
     [TestMethod]
     public void AddTransformers_RegistersTransformers()
     {
+        var options = new ExpressiveOptions();
         var transformer = new NoOpTransformer();
-        ExpressiveDefaults.AddTransformers(transformer);
+        options.AddTransformers(transformer);
 
-        var result = ExpressiveDefaults.GetTransformers();
+        var result = options.GetTransformers();
 
         Assert.AreEqual(1, result.Count);
         Assert.AreSame(transformer, result[0]);
@@ -27,10 +22,11 @@ public class ExpressiveDefaultsTests
     [TestMethod]
     public void ClearTransformers_RemovesAll()
     {
-        ExpressiveDefaults.AddTransformers(new NoOpTransformer(), new NoOpTransformer());
-        ExpressiveDefaults.ClearTransformers();
+        var options = new ExpressiveOptions();
+        options.AddTransformers(new NoOpTransformer(), new NoOpTransformer());
+        options.ClearTransformers();
 
-        var result = ExpressiveDefaults.GetTransformers();
+        var result = options.GetTransformers();
 
         Assert.AreEqual(0, result.Count);
     }
@@ -38,11 +34,12 @@ public class ExpressiveDefaultsTests
     [TestMethod]
     public void GetTransformers_ReturnsSnapshot_NotLiveReference()
     {
-        ExpressiveDefaults.AddTransformers(new NoOpTransformer());
-        var snapshot = ExpressiveDefaults.GetTransformers();
+        var options = new ExpressiveOptions();
+        options.AddTransformers(new NoOpTransformer());
+        var snapshot = options.GetTransformers();
 
-        ExpressiveDefaults.AddTransformers(new NoOpTransformer());
-        var updated = ExpressiveDefaults.GetTransformers();
+        options.AddTransformers(new NoOpTransformer());
+        var updated = options.GetTransformers();
 
         Assert.AreEqual(1, snapshot.Count);
         Assert.AreEqual(2, updated.Count);
@@ -51,19 +48,20 @@ public class ExpressiveDefaultsTests
     [TestMethod]
     public void AddAndClear_ConcurrentAccess_NoExceptions()
     {
+        var options = new ExpressiveOptions();
         var tasks = new Task[20];
         for (var i = 0; i < tasks.Length; i++)
         {
             tasks[i] = i % 2 == 0
-                ? Task.Run(() => ExpressiveDefaults.AddTransformers(new NoOpTransformer()))
-                : Task.Run(() => ExpressiveDefaults.ClearTransformers());
+                ? Task.Run(() => options.AddTransformers(new NoOpTransformer()))
+                : Task.Run(() => options.ClearTransformers());
         }
 
         Task.WaitAll(tasks);
 
         // No exceptions thrown — thread safety verified
-        ExpressiveDefaults.ClearTransformers();
-        Assert.AreEqual(0, ExpressiveDefaults.GetTransformers().Count);
+        options.ClearTransformers();
+        Assert.AreEqual(0, options.GetTransformers().Count);
     }
 
     private class NoOpTransformer : IExpressionTreeTransformer

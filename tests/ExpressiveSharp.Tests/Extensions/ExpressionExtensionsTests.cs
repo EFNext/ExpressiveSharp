@@ -8,12 +8,6 @@ namespace ExpressiveSharp.Tests.Extensions;
 [TestClass]
 public class ExpressionExtensionsTests
 {
-    [TestCleanup]
-    public void Cleanup()
-    {
-        ExpressiveDefaults.ClearTransformers();
-    }
-
     [TestMethod]
     public void ExpandExpressives_NoTransformers_ExpandsExpressiveMembers()
     {
@@ -43,31 +37,33 @@ public class ExpressionExtensionsTests
     }
 
     [TestMethod]
-    public void ExpandExpressives_DefaultTransformers_UsedWhenNoExplicit()
+    public void ExpandExpressives_OptionsTransformers_UsedWhenProvided()
     {
+        var options = new ExpressiveOptions();
         var callOrder = new List<int>();
         var transformer = new RecordingTransformer(1, callOrder);
-        ExpressiveDefaults.AddTransformers(transformer);
+        options.AddTransformers(transformer);
         var expr = Expression.Constant(42);
 
-        expr.ExpandExpressives();
+        expr.ExpandExpressives(options);
 
         Assert.AreEqual(1, callOrder.Count);
         Assert.AreEqual(1, callOrder[0]);
     }
 
     [TestMethod]
-    public void ExpandExpressives_ExplicitTransformers_OverrideDefaults()
+    public void ExpandExpressives_ExplicitTransformers_OverrideOptions()
     {
-        var defaultOrder = new List<int>();
+        var options = new ExpressiveOptions();
+        var optionsOrder = new List<int>();
         var explicitOrder = new List<int>();
-        ExpressiveDefaults.AddTransformers(new RecordingTransformer(1, defaultOrder));
+        options.AddTransformers(new RecordingTransformer(1, optionsOrder));
         var explicitTransformer = new RecordingTransformer(2, explicitOrder);
         var expr = Expression.Constant(42);
 
         expr.ExpandExpressives(explicitTransformer);
 
-        Assert.AreEqual(0, defaultOrder.Count, "Default transformer should not have been called");
+        Assert.AreEqual(0, optionsOrder.Count, "Options transformer should not have been called");
         Assert.AreEqual(1, explicitOrder.Count, "Explicit transformer should have been called");
     }
 

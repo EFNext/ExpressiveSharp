@@ -1,20 +1,30 @@
 namespace ExpressiveSharp.Services;
 
 /// <summary>
-/// Global configuration for expression tree transformers applied by
+/// Configuration for expression tree transformers applied by
 /// <see cref="Extensions.ExpressionExtensions.ExpandExpressives(System.Linq.Expressions.Expression)"/>.
-/// Consumer libraries register default transformers at startup.
+/// Use <see cref="Default"/> for the global instance, or create new instances for isolated scenarios.
 /// </summary>
-public static class ExpressiveDefaults
+public class ExpressiveOptions
 {
-    private static readonly List<IExpressionTreeTransformer> _transformers = [];
-    private static readonly object _lock = new();
+    /// <summary>
+    /// The global default instance used by the parameterless
+    /// <see cref="Extensions.ExpressionExtensions.ExpandExpressives(System.Linq.Expressions.Expression)"/> overload.
+    /// </summary>
+    public static ExpressiveOptions Default { get; } = new();
+
+    private readonly List<IExpressionTreeTransformer> _transformers = [];
+#if NET10_0_OR_GREATER
+    private readonly Lock _lock = new();
+#else
+    private readonly object _lock = new();
+#endif
 
     /// <summary>
-    /// Registers additional default transformers that will be applied to all
-    /// <c>ExpandExpressives()</c> calls unless overridden at the call site.
+    /// Registers additional transformers that will be applied to
+    /// <c>ExpandExpressives()</c> calls using this instance.
     /// </summary>
-    public static void AddTransformers(params IExpressionTreeTransformer[] transformers)
+    public void AddTransformers(params IExpressionTreeTransformer[] transformers)
     {
         lock (_lock)
         {
@@ -23,9 +33,9 @@ public static class ExpressiveDefaults
     }
 
     /// <summary>
-    /// Clears all registered default transformers.
+    /// Clears all registered transformers on this instance.
     /// </summary>
-    public static void ClearTransformers()
+    public void ClearTransformers()
     {
         lock (_lock)
         {
@@ -34,9 +44,9 @@ public static class ExpressiveDefaults
     }
 
     /// <summary>
-    /// Returns a snapshot of the currently registered default transformers.
+    /// Returns a snapshot of the currently registered transformers.
     /// </summary>
-    internal static IReadOnlyList<IExpressionTreeTransformer> GetTransformers()
+    public IReadOnlyList<IExpressionTreeTransformer> GetTransformers()
     {
         lock (_lock)
         {

@@ -17,8 +17,6 @@ namespace ExpressiveSharp.EntityFrameworkCore.Infrastructure.Internal;
 /// </summary>
 public class ExpressiveOptionsExtension : IDbContextOptionsExtension
 {
-    private static int _defaultTransformersRegistered;
-
     public ExpressiveOptionsExtension()
     {
         Info = new ExtensionInfo(this);
@@ -46,13 +44,15 @@ public class ExpressiveOptionsExtension : IDbContextOptionsExtension
             serviceProvider => decoratorFactory(serviceProvider, [CreateTargetInstance(serviceProvider, targetDescriptor)]),
             targetDescriptor.Lifetime));
 
-        // Register default EF Core transformers (idempotent)
-        if (Interlocked.Exchange(ref _defaultTransformersRegistered, 1) == 0)
+        // Register a dedicated ExpressiveOptions instance with EF Core transformers
+        services.AddSingleton(sp =>
         {
-            ExpressiveDefaults.AddTransformers(
+            var options = new ExpressiveOptions();
+            options.AddTransformers(
                 new RemoveNullConditionalPatterns(),
                 new FlattenBlockExpressions());
-        }
+            return options;
+        });
     }
 
     public void Validate(IDbContextOptions options)
