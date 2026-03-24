@@ -8,12 +8,15 @@ namespace ExpressiveSharp.Generated
     [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
     static class Foo_C_Negated 
     {
+        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.C).GetProperty("A");
+
         // [Expressive]
         // public int Negated => checked(-A);
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int>> Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
-            var expr_0 = global::System.Linq.Expressions.Expression.Default(typeof(int));
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, _p0); // A
+            var expr_0 = global::System.Linq.Expressions.Expression.MakeUnary(global::System.Linq.Expressions.ExpressionType.NegateChecked, expr_1, typeof(int));
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, int>>(expr_0, p__this);
         }
     }

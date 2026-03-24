@@ -8,12 +8,17 @@ namespace ExpressiveSharp.Generated
     [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
     static class Foo_C_Diff 
     {
+        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.C).GetProperty("A");
+        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.C).GetProperty("B");
+
         // [Expressive]
         // public int Diff => checked(A - B);
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int>> Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
-            var expr_0 = global::System.Linq.Expressions.Expression.Default(typeof(int));
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, _p0); // A
+            var expr_2 = global::System.Linq.Expressions.Expression.Property(p__this, _p1); // B
+            var expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.SubtractChecked, expr_1, expr_2);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, int>>(expr_0, p__this);
         }
     }

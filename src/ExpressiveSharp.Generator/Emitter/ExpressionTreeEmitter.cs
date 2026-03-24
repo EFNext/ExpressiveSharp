@@ -2,6 +2,8 @@ using System.Collections.Immutable;
 using System.Text;
 using ExpressiveSharp.Generator.Infrastructure;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 
 namespace ExpressiveSharp.Generator.Emitter;
@@ -83,10 +85,18 @@ internal sealed class ExpressionTreeEmitter
                 _thisVarName = varName;
         }
 
+        // Unwrap syntax wrappers that don't produce their own IOperation.
+        // Without this, GetOperation returns null and the entire expression is silently lost.
+        bodySyntax = UnwrapTransparentSyntax(bodySyntax);
+
         // Get IOperation for the body and emit it
         var operation = _semanticModel.GetOperation(bodySyntax);
         if (operation is null)
         {
+            ReportDiagnostic(Diagnostics.UnsupportedOperation,
+                bodySyntax.GetLocation(),
+                bodySyntax.Kind().ToString());
+
             var fallbackVar = NextVar();
             AppendLine($"var {fallbackVar} = {Expr}.Default(typeof({returnTypeFqn}));");
             var fallbackParams = paramVarNames.Count > 0
@@ -158,7 +168,7 @@ internal sealed class ExpressionTreeEmitter
         var propertyAssignments = new Dictionary<string, (ISymbol Symbol, string ValueVar)>();
 
         // Process the constructor body, collecting property assignments
-        var operation = _semanticModel.GetOperation(bodySyntax);
+        var operation = _semanticModel.GetOperation(UnwrapTransparentSyntax(bodySyntax));
         if (operation is IBlockOperation block)
         {
             ProcessConstructorStatements(block.Operations, propertyAssignments);
@@ -1242,8 +1252,8 @@ internal sealed class ExpressionTreeEmitter
             ReportDiagnostic(Diagnostics.UnsupportedOperator,
                 relational.Syntax?.GetLocation() ?? Location.None,
                 relational.OperatorKind.ToString());
-            // Fall back to constant true so surrounding pattern logic doesn't break
-            AppendLine($"var {resultVar} = {Expr}.Constant(true);");
+            // Fall back to constant false (never matches) — safer than true (always matches)
+            AppendLine($"var {resultVar} = {Expr}.Constant(false);");
             return resultVar;
         }
 
@@ -1544,7 +1554,8 @@ internal sealed class ExpressionTreeEmitter
             return varName;
         }
 
-        // Fallback: should not happen if the IOperation tree is well-formed
+        // Should not happen if the IOperation tree is well-formed
+        ReportDiagnostic(Diagnostics.UnsupportedOperation, Location.None, "ConditionalAccessInstance (empty receiver stack)");
         var resultVar = NextVar();
         AppendLine($"var {resultVar} = {Expr}.Default(typeof(object));");
         return resultVar;
@@ -1687,7 +1698,10 @@ internal sealed class ExpressionTreeEmitter
                         }
                         else
                         {
-                            // Fallback: call parameterless ToString()
+                            // Type doesn't have ToString(string) — format specifier is lost
+                            ReportDiagnostic(Diagnostics.UnsupportedOperation,
+                                interp.FormatString.Syntax?.GetLocation() ?? Location.None,
+                                $"Format specifier '{formatValue}' on type without ToString(string)");
                             partVars.Add(EmitToStringCall(innerVar, innerType));
                         }
                     }
@@ -1877,6 +1891,33 @@ internal sealed class ExpressionTreeEmitter
     private void ReportDiagnostic(DiagnosticDescriptor descriptor, Location location, params object[] messageArgs)
     {
         _context?.ReportDiagnostic(Diagnostic.Create(descriptor, location, messageArgs));
+    }
+
+    /// <summary>
+    /// Unwraps syntax nodes that are transparent to the IOperation model.
+    /// These wrappers (checked, unchecked, parenthesized, null-forgiving !)
+    /// cause <c>GetOperation</c> to return null if not stripped first.
+    /// </summary>
+    private static SyntaxNode UnwrapTransparentSyntax(SyntaxNode node)
+    {
+        while (true)
+        {
+            switch (node)
+            {
+                case CheckedExpressionSyntax checkedExpr:
+                    node = checkedExpr.Expression;
+                    continue;
+                case ParenthesizedExpressionSyntax paren:
+                    node = paren.Expression;
+                    continue;
+                case PostfixUnaryExpressionSyntax postfix
+                    when postfix.IsKind(SyntaxKind.SuppressNullableWarningExpression):
+                    node = postfix.Operand;
+                    continue;
+                default:
+                    return node;
+            }
+        }
     }
 
     private static string SanitizeIdentifier(string name)
