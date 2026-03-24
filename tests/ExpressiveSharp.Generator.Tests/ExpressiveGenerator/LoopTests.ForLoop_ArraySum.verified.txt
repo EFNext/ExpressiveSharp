@@ -8,6 +8,8 @@ namespace ExpressiveSharp.Generated
     [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
     static class Foo_C_Sum_P0_int__ 
     {
+        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::System.Array).GetProperty("Length");
+
         // [Expressive]
         // public int Sum(int[] arr)
         // {
@@ -26,10 +28,25 @@ namespace ExpressiveSharp.Generated
             var expr_0 = global::System.Linq.Expressions.Expression.Variable(typeof(int), "sum"); // {             var sum = 0;             for (var i = 0; i ...
             var expr_1 = global::System.Linq.Expressions.Expression.Constant(0, typeof(int)); // 0
             var expr_2 = global::System.Linq.Expressions.Expression.Assign(expr_0, expr_1);
-            /* Unsupported IOperation: Loop */ // for (var i = 0; i < arr.Length; i++) { sum += arr[i]; }
-            var expr_3 = global::System.Linq.Expressions.Expression.Default(typeof(object));
-            var expr_4 = global::System.Linq.Expressions.Expression.Block(new global::System.Linq.Expressions.ParameterExpression[] { expr_0 }, new global::System.Linq.Expressions.Expression[] { expr_2, expr_3, expr_0 });
-            return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, int[], int>>(expr_4, p__this, p_arr);
+            var expr_4 = global::System.Linq.Expressions.Expression.Variable(typeof(int), "i"); // for (var i = 0; i < arr.Length; i++) { sum += arr[i]; }
+            var expr_5 = global::System.Linq.Expressions.Expression.Constant(0, typeof(int)); // 0
+            var expr_6 = global::System.Linq.Expressions.Expression.Assign(expr_4, expr_5);
+            var expr_7 = global::System.Linq.Expressions.Expression.Label("break");
+            var expr_9 = global::System.Linq.Expressions.Expression.Property(p_arr, _p0); // arr.Length
+            var expr_8 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.LessThan, expr_4, expr_9);
+            var expr_11 = global::System.Linq.Expressions.Expression.ArrayIndex(p_arr, expr_4); // arr[i]
+            var expr_12 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_0, expr_11);
+            var expr_10 = global::System.Linq.Expressions.Expression.Assign(expr_0, expr_12);
+            var expr_14 = global::System.Linq.Expressions.Expression.Constant(1, typeof(int)); // i++
+            var expr_15 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_4, expr_14);
+            var expr_13 = global::System.Linq.Expressions.Expression.Assign(expr_4, expr_15);
+            var expr_16 = global::System.Linq.Expressions.Expression.Block(expr_10, expr_13);
+            var expr_17 = global::System.Linq.Expressions.Expression.Break(expr_7);
+            var expr_18 = global::System.Linq.Expressions.Expression.IfThenElse(expr_8, expr_16, expr_17);
+            var expr_19 = global::System.Linq.Expressions.Expression.Loop(expr_18, expr_7);
+            var expr_3 = global::System.Linq.Expressions.Expression.Block(new global::System.Linq.Expressions.ParameterExpression[] { expr_4 }, expr_6, expr_19);
+            var expr_20 = global::System.Linq.Expressions.Expression.Block(new global::System.Linq.Expressions.ParameterExpression[] { expr_0 }, new global::System.Linq.Expressions.Expression[] { expr_2, expr_3, expr_0 });
+            return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, int[], int>>(expr_20, p__this, p_arr);
         }
     }
 }

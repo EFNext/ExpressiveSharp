@@ -9,6 +9,12 @@ namespace ExpressiveSharp.Generated
     static class Foo_C_NamesOfExpensive_P0_System_Collections_Generic_List_global__Foo_Item_ 
     {
         private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::System.Collections.Generic.List<string>).GetConstructor(new global::System.Type[] {  });
+        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(global::System.Collections.Generic.IEnumerable<global::Foo.Item>).GetMethod("GetEnumerator", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null);
+        private static readonly global::System.Reflection.MethodInfo _m1 = typeof(global::System.Collections.IEnumerator).GetMethod("MoveNext", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null);
+        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::System.Collections.Generic.IEnumerator<global::Foo.Item>).GetProperty("Current");
+        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.Item).GetProperty("Value");
+        private static readonly global::System.Reflection.MethodInfo _m2 = typeof(global::System.Collections.Generic.List<string>).GetMethod("Add", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] { typeof(string) }, null);
+        private static readonly global::System.Reflection.PropertyInfo _p2 = typeof(global::Foo.Item).GetProperty("Name");
 
         // [Expressive]
         // public List<string> NamesOfExpensive(List<Item> items)
@@ -29,10 +35,27 @@ namespace ExpressiveSharp.Generated
             var expr_0 = global::System.Linq.Expressions.Expression.Variable(typeof(global::System.Collections.Generic.List<string>), "result"); // {             var result = new List<string>();           ...
             var expr_1 = global::System.Linq.Expressions.Expression.New(_c0); // new List<string>()
             var expr_2 = global::System.Linq.Expressions.Expression.Assign(expr_0, expr_1);
-            /* Unsupported IOperation: Loop */ // foreach (var x in items) { if (x.Value > 100) result.Add(...
-            var expr_3 = global::System.Linq.Expressions.Expression.Default(typeof(object));
-            var expr_4 = global::System.Linq.Expressions.Expression.Block(new global::System.Linq.Expressions.ParameterExpression[] { expr_0 }, new global::System.Linq.Expressions.Expression[] { expr_2, expr_3, expr_0 });
-            return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, global::System.Collections.Generic.List<global::Foo.Item>, global::System.Collections.Generic.List<string>>>(expr_4, p__this, p_items);
+            var expr_4 = global::System.Linq.Expressions.Expression.Variable(typeof(global::Foo.Item), "x"); // foreach (var x in items) { if (x.Value > 100) result.Add(...
+            var expr_5 = global::System.Linq.Expressions.Expression.Variable(typeof(global::System.Collections.Generic.IEnumerator<global::Foo.Item>), "enumerator");
+            var expr_6 = global::System.Linq.Expressions.Expression.Call(p_items, _m0);
+            var expr_7 = global::System.Linq.Expressions.Expression.Assign(expr_5, expr_6);
+            var expr_8 = global::System.Linq.Expressions.Expression.Label("break");
+            var expr_9 = global::System.Linq.Expressions.Expression.Property(expr_5, _p0);
+            var expr_10 = global::System.Linq.Expressions.Expression.Assign(expr_4, expr_9);
+            var expr_13 = global::System.Linq.Expressions.Expression.Property(expr_4, _p1); // x.Value
+            var expr_14 = global::System.Linq.Expressions.Expression.Constant(100, typeof(int)); // 100
+            var expr_12 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.GreaterThan, expr_13, expr_14);
+            var expr_16 = global::System.Linq.Expressions.Expression.Property(expr_4, _p2); // x.Name
+            var expr_15 = global::System.Linq.Expressions.Expression.Call(expr_0, _m2, new global::System.Linq.Expressions.Expression[] { expr_16 });
+            var expr_11 = global::System.Linq.Expressions.Expression.IfThen(expr_12, expr_15);
+            var expr_17 = global::System.Linq.Expressions.Expression.Block(expr_10, expr_11);
+            var expr_18 = global::System.Linq.Expressions.Expression.Call(expr_5, _m1);
+            var expr_19 = global::System.Linq.Expressions.Expression.Break(expr_8);
+            var expr_20 = global::System.Linq.Expressions.Expression.IfThenElse(expr_18, expr_17, expr_19);
+            var expr_21 = global::System.Linq.Expressions.Expression.Loop(expr_20, expr_8);
+            var expr_3 = global::System.Linq.Expressions.Expression.Block(new global::System.Linq.Expressions.ParameterExpression[] { expr_5, expr_4 }, expr_7, expr_21);
+            var expr_22 = global::System.Linq.Expressions.Expression.Block(new global::System.Linq.Expressions.ParameterExpression[] { expr_0 }, new global::System.Linq.Expressions.Expression[] { expr_2, expr_3, expr_0 });
+            return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, global::System.Collections.Generic.List<global::Foo.Item>, global::System.Collections.Generic.List<string>>>(expr_22, p__this, p_items);
         }
     }
 }

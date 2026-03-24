@@ -416,6 +416,13 @@ internal sealed class ExpressionTreeEmitter
             IBlockOperation block => EmitBlock(block),
             IReturnOperation ret => EmitReturn(ret),
             IInterpolatedStringOperation interp => EmitInterpolatedString(interp),
+            IExpressionStatementOperation exprStmt => EmitOperation(exprStmt.Operation),
+            ISimpleAssignmentOperation assign => EmitSimpleAssignment(assign),
+            ICompoundAssignmentOperation compoundAssign => EmitCompoundAssignment(compoundAssign),
+            IIncrementOrDecrementOperation incDec => EmitIncrementOrDecrement(incDec),
+            IForEachLoopOperation forEach => EmitForEachLoop(forEach),
+            IForLoopOperation forLoop => EmitForLoop(forLoop),
+            IWhileLoopOperation whileLoop => EmitWhileLoop(whileLoop),
             _ => EmitUnsupported(operation),
         };
 
@@ -853,11 +860,27 @@ internal sealed class ExpressionTreeEmitter
         if (conditional.WhenFalse is not null)
         {
             var ifFalseVar = EmitOperation(conditional.WhenFalse);
-            AppendLine($"var {resultVar} = {Expr}.Condition({testVar}, {ifTrueVar}, {ifFalseVar}, typeof({typeFqn}));");
+            if (condType is null || condType.SpecialType == SpecialType.System_Void)
+            {
+                // Statement-form if/else: use IfThenElse (returns void)
+                AppendLine($"var {resultVar} = {Expr}.IfThenElse({testVar}, {ifTrueVar}, {ifFalseVar});");
+            }
+            else
+            {
+                AppendLine($"var {resultVar} = {Expr}.Condition({testVar}, {ifTrueVar}, {ifFalseVar}, typeof({typeFqn}));");
+            }
         }
         else
         {
-            AppendLine($"var {resultVar} = {Expr}.Condition({testVar}, {ifTrueVar}, {Expr}.Default(typeof({typeFqn})), typeof({typeFqn}));");
+            if (condType is null || condType.SpecialType == SpecialType.System_Void)
+            {
+                // Statement-form if (no else): use IfThen (returns void)
+                AppendLine($"var {resultVar} = {Expr}.IfThen({testVar}, {ifTrueVar});");
+            }
+            else
+            {
+                AppendLine($"var {resultVar} = {Expr}.Condition({testVar}, {ifTrueVar}, {Expr}.Default(typeof({typeFqn})), typeof({typeFqn}));");
+            }
         }
 
         return resultVar;
@@ -1827,18 +1850,342 @@ internal sealed class ExpressionTreeEmitter
         return _concatMethodField;
     }
 
+    // ── Assignments ─────────────────────────────────────────────────────────
+
+    private string EmitSimpleAssignment(ISimpleAssignmentOperation assign)
+    {
+        var resultVar = NextVar();
+        var targetVar = EmitOperation(assign.Target);
+        var valueVar = EmitOperation(assign.Value);
+        AppendLine($"var {resultVar} = {Expr}.Assign({targetVar}, {valueVar});");
+        return resultVar;
+    }
+
+    private string EmitCompoundAssignment(ICompoundAssignmentOperation compoundAssign)
+    {
+        var resultVar = NextVar();
+        var targetVar = EmitOperation(compoundAssign.Target);
+        var valueVar = EmitOperation(compoundAssign.Value);
+
+        var exprType = MapBinaryOperatorKind(compoundAssign.OperatorKind);
+        if (exprType is null)
+        {
+            ReportDiagnostic(Diagnostics.UnsupportedOperator,
+                compoundAssign.Syntax?.GetLocation() ?? Location.None,
+                compoundAssign.OperatorKind.ToString());
+            return EmitUnsupported(compoundAssign);
+        }
+
+        if (compoundAssign.IsChecked)
+        {
+            exprType = exprType switch
+            {
+                "Add" => "AddChecked",
+                "Subtract" => "SubtractChecked",
+                "Multiply" => "MultiplyChecked",
+                _ => exprType,
+            };
+        }
+
+        // sum += x → Expression.Assign(sum, Expression.MakeBinary(Add, sum, x))
+        var binaryVar = NextVar();
+        AppendLine($"var {binaryVar} = {Expr}.MakeBinary(global::System.Linq.Expressions.ExpressionType.{exprType}, {targetVar}, {valueVar});");
+        AppendLine($"var {resultVar} = {Expr}.Assign({targetVar}, {binaryVar});");
+        return resultVar;
+    }
+
+    private string EmitIncrementOrDecrement(IIncrementOrDecrementOperation incDec)
+    {
+        var resultVar = NextVar();
+        var operandVar = EmitOperation(incDec.Target);
+        var oneConst = NextVar();
+        var typeFqn = incDec.Type?.ToDisplayString(_fqnFormat) ?? "int";
+        AppendLine($"var {oneConst} = {Expr}.Constant(1, typeof({typeFqn}));");
+
+        var isIncrement = incDec.Kind == OperationKind.Increment;
+        var op = isIncrement ? "Add" : "Subtract";
+        if (incDec.IsChecked)
+        {
+            op = isIncrement ? "AddChecked" : "SubtractChecked";
+        }
+
+        var binaryVar = NextVar();
+        AppendLine($"var {binaryVar} = {Expr}.MakeBinary(global::System.Linq.Expressions.ExpressionType.{op}, {operandVar}, {oneConst});");
+        AppendLine($"var {resultVar} = {Expr}.Assign({operandVar}, {binaryVar});");
+        return resultVar;
+    }
+
+    // ── Loops ───────────────────────────────────────────────────────────────
+
+    private string EmitForEachLoop(IForEachLoopOperation forEach)
+    {
+        var resultVar = NextVar();
+
+        // Emit collection expression
+        var collectionVar = EmitOperation(forEach.Collection);
+
+        // Determine element type and collection interface
+        var elementType = forEach.LoopControlVariable switch
+        {
+            IVariableDeclaratorOperation declarator => declarator.Symbol.Type,
+            _ => forEach.Collection.Type is INamedTypeSymbol namedType
+                ? namedType.AllInterfaces.Concat(new[] { namedType })
+                    .FirstOrDefault(i => i.OriginalDefinition.SpecialType == SpecialType.System_Collections_Generic_IEnumerable_T)
+                    ?.TypeArguments.FirstOrDefault()
+                : null,
+        };
+
+        var elementTypeFqn = elementType?.ToDisplayString(_fqnFormat) ?? "object";
+
+        // Create iteration variable
+        var iterVarName = forEach.LoopControlVariable is IVariableDeclaratorOperation decl
+            ? decl.Symbol.Name : "item";
+        var iterVar = NextVar();
+        AppendLine($"var {iterVar} = {Expr}.Variable(typeof({elementTypeFqn}), \"{iterVarName}\");");
+
+        // Register the iteration variable so EmitLocalReference can find it
+        if (forEach.LoopControlVariable is IVariableDeclaratorOperation varDecl)
+        {
+            _localToVar[varDecl.Symbol] = iterVar;
+        }
+
+        // Create enumerator variable
+        var collectionType = forEach.Collection.Type;
+        var enumerableInterface = collectionType is INamedTypeSymbol nt
+            ? nt.AllInterfaces.Concat(new[] { nt })
+                .FirstOrDefault(i => i.OriginalDefinition.SpecialType == SpecialType.System_Collections_Generic_IEnumerable_T)
+            : null;
+
+        IMethodSymbol? getEnumeratorMethod = null;
+        IMethodSymbol? moveNextMethod = null;
+        IPropertySymbol? currentProperty = null;
+
+        if (enumerableInterface is not null)
+        {
+            getEnumeratorMethod = enumerableInterface.GetMembers("GetEnumerator")
+                .OfType<IMethodSymbol>().FirstOrDefault();
+
+            var enumeratorType = getEnumeratorMethod?.ReturnType as INamedTypeSymbol;
+            if (enumeratorType is not null)
+            {
+                moveNextMethod = enumeratorType.AllInterfaces.Concat(new[] { enumeratorType })
+                    .SelectMany(i => i.GetMembers("MoveNext").OfType<IMethodSymbol>())
+                    .FirstOrDefault(m => m.Parameters.Length == 0);
+
+                // Prefer the generic Current (returns T) over the non-generic one (returns object)
+                currentProperty = enumeratorType.GetMembers("Current").OfType<IPropertySymbol>().FirstOrDefault()
+                    ?? enumeratorType.AllInterfaces
+                        .SelectMany(i => i.GetMembers("Current").OfType<IPropertySymbol>())
+                        .OrderByDescending(p => p.Type.SpecialType != SpecialType.System_Object ? 1 : 0)
+                        .FirstOrDefault();
+            }
+        }
+
+        if (getEnumeratorMethod is null || moveNextMethod is null || currentProperty is null)
+        {
+            ReportDiagnostic(Diagnostics.UnsupportedOperation,
+                forEach.Syntax?.GetLocation() ?? Location.None,
+                "ForEachLoop (could not resolve enumerator pattern)");
+            return EmitUnsupported(forEach);
+        }
+
+        var getEnumField = _fieldCache.EnsureMethodInfo(getEnumeratorMethod);
+        var moveNextField = _fieldCache.EnsureMethodInfo(moveNextMethod);
+        var currentField = _fieldCache.EnsurePropertyInfo(currentProperty);
+        var enumeratorTypeFqn = getEnumeratorMethod.ReturnType.ToDisplayString(_fqnFormat);
+
+        // var enumerator = collection.GetEnumerator();
+        var enumVar = NextVar();
+        AppendLine($"var {enumVar} = {Expr}.Variable(typeof({enumeratorTypeFqn}), \"enumerator\");");
+        var getEnumCall = NextVar();
+        AppendLine($"var {getEnumCall} = {Expr}.Call({collectionVar}, {getEnumField});");
+        var assignEnum = NextVar();
+        AppendLine($"var {assignEnum} = {Expr}.Assign({enumVar}, {getEnumCall});");
+
+        // Break label
+        var breakLabel = NextVar();
+        AppendLine($"var {breakLabel} = {Expr}.Label(\"break\");");
+
+        // Body: assign Current to iteration variable, then execute loop body
+        var getCurrent = NextVar();
+        AppendLine($"var {getCurrent} = {Expr}.Property({enumVar}, {currentField});");
+        var assignCurrent = NextVar();
+        AppendLine($"var {assignCurrent} = {Expr}.Assign({iterVar}, {getCurrent});");
+
+        var bodyVar = EmitOperation(forEach.Body);
+
+        var bodyBlock = NextVar();
+        AppendLine($"var {bodyBlock} = {Expr}.Block({assignCurrent}, {bodyVar});");
+
+        // Loop: if (MoveNext()) { body } else { break }
+        var moveNextCall = NextVar();
+        AppendLine($"var {moveNextCall} = {Expr}.Call({enumVar}, {moveNextField});");
+        var breakExpr = NextVar();
+        AppendLine($"var {breakExpr} = {Expr}.Break({breakLabel});");
+        var ifThenElse = NextVar();
+        AppendLine($"var {ifThenElse} = {Expr}.IfThenElse({moveNextCall}, {bodyBlock}, {breakExpr});");
+        var loopExpr = NextVar();
+        AppendLine($"var {loopExpr} = {Expr}.Loop({ifThenElse}, {breakLabel});");
+
+        // Wrap in block: { var enumerator = ...; var item; loop; }
+        AppendLine($"var {resultVar} = {Expr}.Block(new global::System.Linq.Expressions.ParameterExpression[] {{ {enumVar}, {iterVar} }}, {assignEnum}, {loopExpr});");
+        return resultVar;
+    }
+
+    private string EmitForLoop(IForLoopOperation forLoop)
+    {
+        var resultVar = NextVar();
+
+        // Emit initializers (Before)
+        var initVars = new List<string>();
+        var blockVariables = new List<string>();
+        foreach (var beforeOp in forLoop.Before)
+        {
+            if (beforeOp is IVariableDeclarationGroupOperation varDeclGroup)
+            {
+                foreach (var declaration in varDeclGroup.Declarations)
+                {
+                    foreach (var declarator in declaration.Declarators)
+                    {
+                        var localSymbol = declarator.Symbol;
+                        var localTypeFqn = localSymbol.Type.ToDisplayString(_fqnFormat);
+                        var localVar = NextVar();
+                        AppendLine($"var {localVar} = {Expr}.Variable(typeof({localTypeFqn}), \"{localSymbol.Name}\");");
+                        _localToVar[localSymbol] = localVar;
+                        blockVariables.Add(localVar);
+
+                        if (declarator.Initializer is not null)
+                        {
+                            var initVar = EmitOperation(declarator.Initializer.Value);
+                            var assignVar = NextVar();
+                            AppendLine($"var {assignVar} = {Expr}.Assign({localVar}, {initVar});");
+                            initVars.Add(assignVar);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                initVars.Add(EmitOperation(beforeOp));
+            }
+        }
+
+        // Break label
+        var breakLabel = NextVar();
+        AppendLine($"var {breakLabel} = {Expr}.Label(\"break\");");
+
+        // Condition
+        var conditionVar = forLoop.Condition is not null
+            ? EmitOperation(forLoop.Condition)
+            : null;
+
+        // Body
+        var bodyVar = EmitOperation(forLoop.Body);
+
+        // Increment (AtLoopBottom)
+        var incrementVars = new List<string>();
+        foreach (var bottomOp in forLoop.AtLoopBottom)
+        {
+            incrementVars.Add(EmitOperation(bottomOp));
+        }
+
+        // Build loop body: if (condition) { body; increment; } else { break; }
+        var loopBodyParts = new List<string> { bodyVar };
+        loopBodyParts.AddRange(incrementVars);
+        var loopBodyBlock = NextVar();
+        AppendLine($"var {loopBodyBlock} = {Expr}.Block({string.Join(", ", loopBodyParts)});");
+
+        var breakExpr = NextVar();
+        AppendLine($"var {breakExpr} = {Expr}.Break({breakLabel});");
+
+        string loopContent;
+        if (conditionVar is not null)
+        {
+            var ifThenElse = NextVar();
+            AppendLine($"var {ifThenElse} = {Expr}.IfThenElse({conditionVar}, {loopBodyBlock}, {breakExpr});");
+            loopContent = ifThenElse;
+        }
+        else
+        {
+            loopContent = loopBodyBlock;
+        }
+
+        var loopExpr = NextVar();
+        AppendLine($"var {loopExpr} = {Expr}.Loop({loopContent}, {breakLabel});");
+
+        // Wrap: { initializers; loop; }
+        var allStatements = new List<string>();
+        allStatements.AddRange(initVars);
+        allStatements.Add(loopExpr);
+
+        if (blockVariables.Count > 0)
+        {
+            AppendLine($"var {resultVar} = {Expr}.Block(new global::System.Linq.Expressions.ParameterExpression[] {{ {string.Join(", ", blockVariables)} }}, {string.Join(", ", allStatements)});");
+        }
+        else
+        {
+            AppendLine($"var {resultVar} = {Expr}.Block({string.Join(", ", allStatements)});");
+        }
+        return resultVar;
+    }
+
+    private string EmitWhileLoop(IWhileLoopOperation whileLoop)
+    {
+        var resultVar = NextVar();
+
+        // Break label
+        var breakLabel = NextVar();
+        AppendLine($"var {breakLabel} = {Expr}.Label(\"break\");");
+
+        // Condition and body
+        var conditionVar = whileLoop.Condition is not null
+            ? EmitOperation(whileLoop.Condition)
+            : null;
+        var bodyVar = EmitOperation(whileLoop.Body);
+
+        var breakExpr = NextVar();
+        AppendLine($"var {breakExpr} = {Expr}.Break({breakLabel});");
+
+        if (conditionVar is null)
+        {
+            // Infinite loop (no condition) — unlikely in [Expressive] but handle gracefully
+            var loopExpr = NextVar();
+            AppendLine($"var {loopExpr} = {Expr}.Loop({bodyVar}, {breakLabel});");
+            AppendLine($"var {resultVar} = {loopExpr};");
+        }
+        else if (whileLoop.ConditionIsTop)
+        {
+            // while (cond) { body; } → Loop(IfThenElse(cond, body, break), label)
+            var ifThenElse = NextVar();
+            AppendLine($"var {ifThenElse} = {Expr}.IfThenElse({conditionVar}, {bodyVar}, {breakExpr});");
+            var loopExpr = NextVar();
+            AppendLine($"var {loopExpr} = {Expr}.Loop({ifThenElse}, {breakLabel});");
+            AppendLine($"var {resultVar} = {loopExpr};");
+        }
+        else
+        {
+            // do { body; } while (cond); → Loop(Block(body, IfThen(!cond, break)), label)
+            var negatedCond = NextVar();
+            AppendLine($"var {negatedCond} = {Expr}.Not({conditionVar});");
+            var ifBreak = NextVar();
+            AppendLine($"var {ifBreak} = {Expr}.IfThen({negatedCond}, {breakExpr});");
+            var loopBody = NextVar();
+            AppendLine($"var {loopBody} = {Expr}.Block({bodyVar}, {ifBreak});");
+            var loopExpr = NextVar();
+            AppendLine($"var {loopExpr} = {Expr}.Loop({loopBody}, {breakLabel});");
+            AppendLine($"var {resultVar} = {loopExpr};");
+        }
+
+        return resultVar;
+    }
+
     // ── Unsupported fallback ─────────────────────────────────────────────────
 
     private string EmitUnsupported(IOperation operation)
     {
-        // Don't report diagnostics for operations handled by the legacy block statement converter
-        // (loops are rewritten at the syntax level before the emitter runs)
-        if (operation is not ILoopOperation)
-        {
-            ReportDiagnostic(Diagnostics.UnsupportedOperation,
-                operation.Syntax?.GetLocation() ?? Location.None,
-                operation.Kind.ToString());
-        }
+        ReportDiagnostic(Diagnostics.UnsupportedOperation,
+            operation.Syntax?.GetLocation() ?? Location.None,
+            operation.Kind.ToString());
 
         var resultVar = NextVar();
         var typeFqn = operation.Type?.ToDisplayString(_fqnFormat) ?? "object";

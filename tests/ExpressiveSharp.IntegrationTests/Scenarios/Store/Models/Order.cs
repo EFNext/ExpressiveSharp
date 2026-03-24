@@ -57,4 +57,29 @@ public class Order
 
     [Expressive]
     public string Summary => $"Order #{Id}: {Tag ?? "N/A"}";
+
+    // Loop-based computed members (foreach → Expression.Loop)
+    [Expressive]
+    public int ItemCount()
+    {
+        var count = 0;
+        foreach (var item in Items) { count++; }
+        return count;
+    }
+
+    [Expressive]
+    public double ItemTotal()
+    {
+        var total = 0.0;
+        foreach (var item in Items) { total += item.UnitPrice * item.Quantity; }
+        return total;
+    }
+
+    [Expressive]
+    public bool HasExpensiveItems()
+    {
+        var found = false;
+        foreach (var item in Items) { if (item.UnitPrice > 40) found = true; }
+        return found;
+    }
 }
