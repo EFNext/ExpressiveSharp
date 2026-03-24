@@ -416,6 +416,8 @@ internal sealed class ExpressionTreeEmitter
             IBlockOperation block => EmitBlock(block),
             IReturnOperation ret => EmitReturn(ret),
             IInterpolatedStringOperation interp => EmitInterpolatedString(interp),
+            IWithOperation withOp => EmitWith(withOp),
+            ICollectionExpressionOperation collExpr => EmitCollectionExpression(collExpr),
             IExpressionStatementOperation exprStmt => EmitOperation(exprStmt.Operation),
             ISimpleAssignmentOperation assign => EmitSimpleAssignment(assign),
             ICompoundAssignmentOperation compoundAssign => EmitCompoundAssignment(compoundAssign),
@@ -769,6 +771,12 @@ internal sealed class ExpressionTreeEmitter
 
     private string EmitUnary(IUnaryOperation unary)
     {
+        // Special case: ^ operator (Index from end) → new Index(operand, fromEnd: true)
+        if (unary.OperatorKind == UnaryOperatorKind.Hat)
+        {
+            return EmitIndexFromEnd(unary);
+        }
+
         var exprType = MapUnaryOperatorKind(unary.OperatorKind);
         if (exprType is null)
         {
@@ -1226,6 +1234,7 @@ internal sealed class ExpressionTreeEmitter
             IBinaryPatternOperation binaryPattern => EmitBinaryPattern(binaryPattern, operandVar, operandType),
             IDiscardPatternOperation => EmitDiscardPattern(),
             IRecursivePatternOperation recursive => EmitRecursivePattern(recursive, operandVar, operandType),
+            IListPatternOperation listPattern => EmitListPattern(listPattern, operandVar, operandType),
             _ => EmitUnsupported(pattern),
         };
     }
@@ -1307,6 +1316,107 @@ internal sealed class ExpressionTreeEmitter
         var resultVar = NextVar();
         AppendLine($"var {resultVar} = {Expr}.Constant(true);");
         return resultVar;
+    }
+
+    private string EmitListPattern(IListPatternOperation listPattern, string operandVar, ITypeSymbol? operandType)
+    {
+        var conditions = new List<string>();
+
+        // Find Count/Length property on the collection type
+        var countProp = operandType?.GetMembers("Count").OfType<IPropertySymbol>().FirstOrDefault()
+            ?? operandType?.GetMembers("Length").OfType<IPropertySymbol>().FirstOrDefault();
+
+        // Find indexer (this[int])
+        var indexer = operandType?.GetMembers()
+            .OfType<IPropertySymbol>()
+            .FirstOrDefault(p => p.IsIndexer && p.Parameters.Length == 1
+                && p.Parameters[0].Type.SpecialType == SpecialType.System_Int32);
+
+        if (countProp is null || indexer is null)
+        {
+            ReportDiagnostic(Diagnostics.UnsupportedOperation,
+                listPattern.Syntax?.GetLocation() ?? Location.None,
+                "ListPattern (type lacks Count/Length or indexer)");
+            return EmitUnsupported(listPattern);
+        }
+
+        var countField = _fieldCache.EnsurePropertyInfo(countProp);
+
+        // Check if there's a slice pattern (.. rest) — determines exact vs minimum length
+        var hasSlice = listPattern.Patterns.Any(p => p is ISlicePatternOperation);
+        var fixedPatterns = listPattern.Patterns.Where(p => p is not ISlicePatternOperation).ToList();
+        var requiredCount = fixedPatterns.Count;
+
+        // Length check: exact match if no slice, minimum if slice present
+        var countAccess = NextVar();
+        AppendLine($"var {countAccess} = {Expr}.Property({operandVar}, {countField});");
+        var countConst = NextVar();
+        AppendLine($"var {countConst} = {Expr}.Constant({requiredCount});");
+        var lengthCheck = NextVar();
+        if (hasSlice)
+        {
+            AppendLine($"var {lengthCheck} = {Expr}.GreaterThanOrEqual({countAccess}, {countConst});");
+        }
+        else
+        {
+            AppendLine($"var {lengthCheck} = {Expr}.Equal({countAccess}, {countConst});");
+        }
+        conditions.Add(lengthCheck);
+
+        // Element checks: pattern[i] against collection[i]
+        var elementIndex = 0;
+        foreach (var subPattern in listPattern.Patterns)
+        {
+            if (subPattern is ISlicePatternOperation)
+            {
+                // Skip slice — it matches "the rest"
+                continue;
+            }
+
+            if (subPattern is IDiscardPatternOperation)
+            {
+                elementIndex++;
+                continue;
+            }
+
+            // Access collection[elementIndex]
+            var idxConst = NextVar();
+            AppendLine($"var {idxConst} = {Expr}.Constant({elementIndex});");
+            var elementAccess = NextVar();
+
+            if (operandType is IArrayTypeSymbol)
+            {
+                AppendLine($"var {elementAccess} = {Expr}.ArrayIndex({operandVar}, {idxConst});");
+            }
+            else
+            {
+                var indexerField = _fieldCache.EnsurePropertyInfo(indexer);
+                AppendLine($"var {elementAccess} = {Expr}.Property({operandVar}, {indexerField}, {idxConst});");
+            }
+
+            var elementType = indexer.Type;
+            var subCondition = EmitPattern(subPattern, elementAccess, elementType);
+            conditions.Add(subCondition);
+            elementIndex++;
+        }
+
+        // Combine all conditions with AndAlso
+        if (conditions.Count == 0)
+        {
+            var trueVar = NextVar();
+            AppendLine($"var {trueVar} = {Expr}.Constant(true);");
+            return trueVar;
+        }
+
+        var result = conditions[0];
+        for (var i = 1; i < conditions.Count; i++)
+        {
+            var combined = NextVar();
+            AppendLine($"var {combined} = {Expr}.AndAlso({result}, {conditions[i]});");
+            result = combined;
+        }
+
+        return result;
     }
 
     private string EmitRecursivePattern(IRecursivePatternOperation recursive, string operandVar, ITypeSymbol? operandType)
@@ -1848,6 +1958,168 @@ internal sealed class ExpressionTreeEmitter
         }
 
         return _concatMethodField;
+    }
+
+    // ── Index from end (^ operator) ───────────────────────────────────────────
+
+    private string EmitIndexFromEnd(IUnaryOperation unary)
+    {
+        var resultVar = NextVar();
+        var innerVar = EmitOperation(unary.Operand);
+        var trueConst = NextVar();
+        AppendLine($"var {trueConst} = {Expr}.Constant(true);");
+        var indexCtor = NextVar();
+        AppendLine($"var {indexCtor} = typeof(global::System.Index).GetConstructor(new global::System.Type[] {{ typeof(int), typeof(bool) }});");
+        AppendLine($"var {resultVar} = {Expr}.New({indexCtor}, {innerVar}, {trueConst});");
+        return resultVar;
+    }
+
+    // ── With expressions ─────────────────────────────────────────────────────
+
+    private string EmitWith(IWithOperation withOp)
+    {
+        var resultVar = NextVar();
+        var operandVar = EmitOperation(withOp.Operand);
+        var type = withOp.Type!;
+        var typeFqn = type.ToDisplayString(_fqnFormat);
+
+        // Find the clone method (records have a <Clone>$ method)
+        var cloneMethod = type.GetMembers("<Clone>$")
+            .OfType<IMethodSymbol>()
+            .FirstOrDefault();
+
+        if (cloneMethod is not null)
+        {
+            // Clone the original: clone = original.<Clone>$()
+            var cloneField = _fieldCache.EnsureMethodInfo(cloneMethod);
+            var cloneVar = NextVar();
+            AppendLine($"var {cloneVar} = {Expr}.Call({operandVar}, {cloneField});");
+
+            // Cast to the target type (Clone returns object)
+            var typedClone = NextVar();
+            AppendLine($"var {typedClone} = {Expr}.Convert({cloneVar}, typeof({typeFqn}));");
+
+            // Apply property modifications from the initializer
+            if (withOp.Initializer is not null)
+            {
+                // Store in a variable so we can modify properties
+                var tempVar = NextVar();
+                AppendLine($"var {tempVar} = {Expr}.Variable(typeof({typeFqn}), \"withTemp\");");
+                var assignTemp = NextVar();
+                AppendLine($"var {assignTemp} = {Expr}.Assign({tempVar}, {typedClone});");
+
+                var statements = new List<string> { assignTemp };
+
+                foreach (var init in withOp.Initializer.Initializers)
+                {
+                    if (init is ISimpleAssignmentOperation assignment
+                        && assignment.Target is IPropertyReferenceOperation propRef)
+                    {
+                        var valueVar = EmitOperation(assignment.Value);
+                        var propField = _fieldCache.EnsurePropertyInfo(propRef.Property);
+                        var propAccess = NextVar();
+                        AppendLine($"var {propAccess} = {Expr}.Property({tempVar}, {propField});");
+                        var assignProp = NextVar();
+                        AppendLine($"var {assignProp} = {Expr}.Assign({propAccess}, {valueVar});");
+                        statements.Add(assignProp);
+                    }
+                }
+
+                // Block: { var temp = clone; temp.Prop = value; temp }
+                statements.Add(tempVar);
+                AppendLine($"var {resultVar} = {Expr}.Block(new global::System.Linq.Expressions.ParameterExpression[] {{ {tempVar} }}, {string.Join(", ", statements)});");
+            }
+            else
+            {
+                AppendLine($"var {resultVar} = {typedClone};");
+            }
+        }
+        else
+        {
+            ReportDiagnostic(Diagnostics.UnsupportedOperation,
+                withOp.Syntax?.GetLocation() ?? Location.None,
+                "With (no Clone method found on type)");
+            return EmitUnsupported(withOp);
+        }
+
+        return resultVar;
+    }
+
+    // ── Collection expressions ──────────────────────────────────────────────
+
+    private string EmitCollectionExpression(ICollectionExpressionOperation collExpr)
+    {
+        var resultVar = NextVar();
+        var type = collExpr.Type!;
+        var typeFqn = type.ToDisplayString(_fqnFormat);
+
+        // Emit each element
+        var elementVars = new List<string>();
+        foreach (var element in collExpr.Elements)
+        {
+            if (element is ISpreadOperation)
+            {
+                // Spread not yet supported
+                ReportDiagnostic(Diagnostics.UnsupportedOperation,
+                    element.Syntax?.GetLocation() ?? Location.None,
+                    "Spread element (..) in collection expression");
+                return EmitUnsupported(collExpr);
+            }
+            elementVars.Add(EmitOperation(element));
+        }
+
+        var elementsExpr = string.Join(", ", elementVars);
+
+        if (type is IArrayTypeSymbol arrayType)
+        {
+            // Array: Expression.NewArrayInit(typeof(T), elements)
+            var elementTypeFqn = arrayType.ElementType.ToDisplayString(_fqnFormat);
+            AppendLine($"var {resultVar} = {Expr}.NewArrayInit(typeof({elementTypeFqn}), {elementsExpr});");
+        }
+        else if (type is INamedTypeSymbol namedType && namedType.IsGenericType
+            && namedType.OriginalDefinition.SpecialType == SpecialType.None)
+        {
+            // List/Collection: Expression.ListInit(new T(), ElementInit(Add, element)...)
+            var ctor = namedType.Constructors.FirstOrDefault(c => c.Parameters.Length == 0);
+            if (ctor is not null)
+            {
+                var ctorField = _fieldCache.EnsureConstructorInfo(ctor);
+                var newVar = NextVar();
+                AppendLine($"var {newVar} = {Expr}.New({ctorField});");
+
+                var addMethod = namedType.GetMembers("Add")
+                    .OfType<IMethodSymbol>()
+                    .FirstOrDefault(m => m.Parameters.Length == 1);
+
+                if (addMethod is not null)
+                {
+                    var addField = _fieldCache.EnsureMethodInfo(addMethod);
+                    var elemInitVars = new List<string>();
+                    foreach (var elemVar in elementVars)
+                    {
+                        var eiVar = NextVar();
+                        AppendLine($"var {eiVar} = {Expr}.ElementInit({addField}, {elemVar});");
+                        elemInitVars.Add(eiVar);
+                    }
+                    AppendLine($"var {resultVar} = {Expr}.ListInit({newVar}, {string.Join(", ", elemInitVars)});");
+                }
+                else
+                {
+                    // No Add method — just return empty collection
+                    AppendLine($"var {resultVar} = {newVar};");
+                }
+            }
+            else
+            {
+                return EmitUnsupported(collExpr);
+            }
+        }
+        else
+        {
+            return EmitUnsupported(collExpr);
+        }
+
+        return resultVar;
     }
 
     // ── Assignments ─────────────────────────────────────────────────────────

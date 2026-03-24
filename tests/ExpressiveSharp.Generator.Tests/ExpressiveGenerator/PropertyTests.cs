@@ -510,4 +510,114 @@ public class PropertyTests : GeneratorTestBase
 
         return Verifier.Verify(result.GeneratedTrees[0].ToString());
     }
+
+    [TestMethod]
+    public Task IndexFromEnd_WorksAsExpression()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    public int[] Items { get; set; }
+
+                    [Expressive]
+                    public int Last => Items[^1];
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task WithExpression_OnRecord()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                record Point(int X, int Y);
+
+                class C {
+                    public Point P { get; set; }
+
+                    [Expressive]
+                    public Point Shifted => P with { X = P.X + 1 };
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task CollectionExpression_Array()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    [Expressive]
+                    public int[] Numbers => [1, 2, 3];
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task ListPattern_FixedLength()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    public List<int> Items { get; set; }
+
+                    [Expressive]
+                    public bool IsOneTwoThree => Items is [1, 2, 3];
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task ListPattern_WithSlice()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    public List<int> Items { get; set; }
+
+                    [Expressive]
+                    public bool StartsWithOne => Items is [1, ..];
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
 }
