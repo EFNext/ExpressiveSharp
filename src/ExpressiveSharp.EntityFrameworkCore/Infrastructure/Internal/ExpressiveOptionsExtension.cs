@@ -51,6 +51,7 @@ public class ExpressiveOptionsExtension : IDbContextOptionsExtension
             options.AddTransformers(
                 new ConvertLoopsToLinq(),
                 new RemoveNullConditionalPatterns(),
+                new FlattenTupleComparisons(),
                 new FlattenBlockExpressions());
             return options;
         });
