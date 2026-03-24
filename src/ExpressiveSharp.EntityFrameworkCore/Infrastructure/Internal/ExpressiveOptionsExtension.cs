@@ -49,6 +49,7 @@ public class ExpressiveOptionsExtension : IDbContextOptionsExtension
         {
             var options = new ExpressiveOptions();
             options.AddTransformers(
+                new ConvertLoopsToLinq(),
                 new RemoveNullConditionalPatterns(),
                 new FlattenBlockExpressions());
             return options;

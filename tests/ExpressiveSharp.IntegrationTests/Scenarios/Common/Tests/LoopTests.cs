@@ -44,4 +44,32 @@ public abstract class LoopTests : StoreTestBase
         // Order 3: no items → false, Order 4: Gizmo 10.0 ≤ 40 → false
         CollectionAssert.AreEquivalent(new[] { true, true, false, false }, results);
     }
+
+    [TestMethod]
+    public async Task Select_AllItemsAffordable_ReturnsCorrectFlags()
+    {
+        Expression<Func<Order, bool>> expr = o => o.AllItemsAffordable();
+        var expanded = (Expression<Func<Order, bool>>)expr.ExpandExpressives();
+
+        var results = await Runner.SelectAsync<Order, bool>(expanded);
+
+        // All items have UnitPrice <= 100, so All returns true for all orders
+        // Order 3 has no items — All() on empty returns true
+        CollectionAssert.AreEquivalent(new[] { true, true, true, true }, results);
+    }
+
+    [TestMethod]
+    public async Task Select_ItemTotalForExpensive_ReturnsCorrectTotals()
+    {
+        Expression<Func<Order, double>> expr = o => o.ItemTotalForExpensive();
+        var expanded = (Expression<Func<Order, double>>)expr.ExpandExpressives();
+
+        var results = await Runner.SelectAsync<Order, double>(expanded);
+
+        // Order 1: Widget 50.0 > 40 → 50*3=150 (Gadget 25.0 ≤ 40 skipped)
+        // Order 2: Widget 50.0 > 40 → 50*10=500
+        // Order 3: no items → 0
+        // Order 4: Gizmo 10.0 ≤ 40 → 0
+        CollectionAssert.AreEquivalent(new[] { 150.0, 500.0, 0.0, 0.0 }, results);
+    }
 }

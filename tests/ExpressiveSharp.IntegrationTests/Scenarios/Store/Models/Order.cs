@@ -82,4 +82,23 @@ public class Order
         foreach (var item in Items) { if (item.UnitPrice > 40) found = true; }
         return found;
     }
+
+    [Expressive]
+    public bool AllItemsAffordable()
+    {
+        var all = true;
+        foreach (var item in Items) { if (!(item.UnitPrice <= 100)) all = false; }
+        return all;
+    }
+
+    [Expressive]
+    public double ItemTotalForExpensive()
+    {
+        var total = 0.0;
+        foreach (var item in Items)
+        {
+            if (item.UnitPrice > 40) { total += item.UnitPrice * item.Quantity; }
+        }
+        return total;
+    }
 }
