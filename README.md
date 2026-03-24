@@ -175,7 +175,7 @@ ctx.Orders.Where(o => o.Customer?.Name == "Alice");
 | List patterns (fixed-length and slice) | Supported |
 | Index/range (`^1`, `1..3`) | Supported |
 | `with` expressions (records) | Supported |
-| Collection expressions (`[1, 2, 3]`) | Supported — spread (`..`) not yet supported |
+| Collection expressions (`[1, 2, 3]`, `[..items]`) | Supported |
 
 ### Block-Body
 

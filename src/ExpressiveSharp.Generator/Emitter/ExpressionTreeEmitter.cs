@@ -1960,6 +1960,22 @@ internal sealed class ExpressionTreeEmitter
         return _concatMethodField;
     }
 
+    private INamedTypeSymbol? _enumerableType;
+
+    private string? ResolveEnumerableMethod(string methodName, int paramCount, ITypeSymbol elementType)
+    {
+        _enumerableType ??= _semanticModel.Compilation.GetTypeByMetadataName("System.Linq.Enumerable");
+        if (_enumerableType is null) return null;
+
+        var methodDef = _enumerableType.GetMembers(methodName)
+            .OfType<IMethodSymbol>()
+            .FirstOrDefault(m => m.IsStatic && m.IsGenericMethod
+                && m.TypeParameters.Length == 1 && m.Parameters.Length == paramCount);
+        if (methodDef is null) return null;
+
+        return _fieldCache.EnsureMethodInfo(methodDef.Construct(elementType));
+    }
+
     // ── Index from end (^ operator) ───────────────────────────────────────────
 
     private string EmitIndexFromEnd(IUnaryOperation unary)
@@ -2051,20 +2067,27 @@ internal sealed class ExpressionTreeEmitter
     {
         var resultVar = NextVar();
         var type = collExpr.Type!;
-        var typeFqn = type.ToDisplayString(_fqnFormat);
 
-        // Emit each element
-        var elementVars = new List<string>();
+        bool hasSpread = false;
         foreach (var element in collExpr.Elements)
         {
             if (element is ISpreadOperation)
             {
-                // Spread not yet supported
-                ReportDiagnostic(Diagnostics.UnsupportedOperation,
-                    element.Syntax?.GetLocation() ?? Location.None,
-                    "Spread element (..) in collection expression");
-                return EmitUnsupported(collExpr);
+                hasSpread = true;
+                break;
             }
+        }
+
+        if (hasSpread)
+        {
+            return EmitCollectionExpressionWithSpread(collExpr, resultVar);
+        }
+
+        // ── No-spread path (unchanged) ──────────────────────────────────────
+
+        var elementVars = new List<string>();
+        foreach (var element in collExpr.Elements)
+        {
             elementVars.Add(EmitOperation(element));
         }
 
@@ -2119,6 +2142,97 @@ internal sealed class ExpressionTreeEmitter
             return EmitUnsupported(collExpr);
         }
 
+        return resultVar;
+    }
+
+    private string EmitCollectionExpressionWithSpread(ICollectionExpressionOperation collExpr, string resultVar)
+    {
+        var type = collExpr.Type!;
+
+        // Determine element type
+        ITypeSymbol elementType;
+        if (type is IArrayTypeSymbol arrayType)
+        {
+            elementType = arrayType.ElementType;
+        }
+        else if (type is INamedTypeSymbol namedType && namedType.TypeArguments.Length > 0)
+        {
+            elementType = namedType.TypeArguments[0];
+        }
+        else
+        {
+            return EmitUnsupported(collExpr);
+        }
+
+        var elementTypeFqn = elementType.ToDisplayString(_fqnFormat);
+
+        // Resolve Enumerable.ToArray/ToList for materialization
+        var materializeMethod = type is IArrayTypeSymbol ? "ToArray" : "ToList";
+        var materializeField = ResolveEnumerableMethod(materializeMethod, 1, elementType);
+
+        if (materializeField is null)
+        {
+            ReportDiagnostic(Diagnostics.UnsupportedOperation,
+                collExpr.Syntax?.GetLocation() ?? Location.None,
+                "Spread in collection expression (System.Linq.Enumerable not available)");
+            return EmitUnsupported(collExpr);
+        }
+
+        // Build segments: consecutive literals become NewArrayInit, spreads become their operand
+        var segments = new List<string>();
+        var currentLiterals = new List<string>();
+
+        foreach (var element in collExpr.Elements)
+        {
+            if (element is ISpreadOperation spread)
+            {
+                // Flush any accumulated literals as an array segment
+                if (currentLiterals.Count > 0)
+                {
+                    var arrVar = NextVar();
+                    AppendLine($"var {arrVar} = {Expr}.NewArrayInit(typeof({elementTypeFqn}), {string.Join(", ", currentLiterals)});");
+                    segments.Add(arrVar);
+                    currentLiterals.Clear();
+                }
+                segments.Add(EmitOperation(spread.Operand));
+            }
+            else
+            {
+                currentLiterals.Add(EmitOperation(element));
+            }
+        }
+
+        // Flush trailing literals
+        if (currentLiterals.Count > 0)
+        {
+            var arrVar = NextVar();
+            AppendLine($"var {arrVar} = {Expr}.NewArrayInit(typeof({elementTypeFqn}), {string.Join(", ", currentLiterals)});");
+            segments.Add(arrVar);
+        }
+
+        // Left-fold Concat (resolve Concat only when needed)
+        var current = segments[0];
+        if (segments.Count > 1)
+        {
+            var concatField = ResolveEnumerableMethod("Concat", 2, elementType);
+            if (concatField is null)
+            {
+                ReportDiagnostic(Diagnostics.UnsupportedOperation,
+                    collExpr.Syntax?.GetLocation() ?? Location.None,
+                    "Spread in collection expression (System.Linq.Enumerable.Concat not available)");
+                return EmitUnsupported(collExpr);
+            }
+
+            for (var i = 1; i < segments.Count; i++)
+            {
+                var concatVar = NextVar();
+                AppendLine($"var {concatVar} = {Expr}.Call({concatField}, {current}, {segments[i]});");
+                current = concatVar;
+            }
+        }
+
+        // Materialize to target type
+        AppendLine($"var {resultVar} = {Expr}.Call({materializeField}, {current});");
         return resultVar;
     }
 

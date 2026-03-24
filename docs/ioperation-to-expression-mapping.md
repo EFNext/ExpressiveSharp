@@ -142,6 +142,13 @@ Unrecognized operations fall through to `EmitUnsupported()` which emits `Express
 |---|---|---|---|
 | `ITupleOperation` | `Expression.New(ValueTuple<...> ctor, elements)` | Implemented | Handles 1-7 elements directly. 8+ elements use nested `ValueTuple` for `Rest` argument. |
 
+## Collection Expressions
+
+| IOperation | Expression Factory | Status | Notes |
+|---|---|---|---|
+| `ICollectionExpressionOperation` | `Expression.NewArrayInit` / `Expression.ListInit` | Implemented | C# 12 collection expressions. Without spread: arrays use `NewArrayInit`, collections use `ListInit` with `Add`. With spread: segments are concatenated via `Enumerable.Concat<T>` and materialized via `Enumerable.ToArray<T>` / `ToList<T>`. |
+| `ISpreadOperation` | *(handled within collection expression)* | Implemented | Spread operand emitted directly as an `IEnumerable<T>` segment. |
+
 ## String Interpolation
 
 | IOperation | Expression Factory | Status | Notes |
@@ -185,7 +192,6 @@ Unrecognized operations fall through to `EmitUnsupported()` which emits `Express
 | `IThrowOperation` | `Expression.Throw(expr, typeof(T))` | `throw` expressions. `Expression.Throw` exists but not all LINQ providers support it. Detected early by block body validation (EXP0006). |
 | `IRangeOperation` | `Expression.New(Range ctor, start, end)` | `a..b` → `new Range(new Index(a), new Index(b))` |
 | `IWithOperation` | `Expression.MemberInit(...)` | Record `with { }` expressions. |
-| `ICollectionExpressionOperation` | `Expression.NewArrayInit` / `Expression.ListInit` | C# 12 collection expressions. |
 
 ---
 
