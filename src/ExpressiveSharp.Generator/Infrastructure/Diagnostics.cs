@@ -107,4 +107,20 @@ static internal class Diagnostics
         category: "Design",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
+
+    public readonly static DiagnosticDescriptor InterceptorEmissionFailed = new DiagnosticDescriptor(
+        id: "EXP0018",
+        title: "Interceptor emission failed unexpectedly",
+        messageFormat: "Failed to generate interceptor for call site: {0}. The original delegate stub will be used at runtime.",
+        category: "Design",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    public readonly static DiagnosticDescriptor UnresolvablePatternMember = new DiagnosticDescriptor(
+        id: "EXP0019",
+        title: "Unresolvable member in pattern",
+        messageFormat: "Pattern sub-expression for member '{0}' could not be resolved and was skipped. The pattern may not match correctly.",
+        category: "Design",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
 }

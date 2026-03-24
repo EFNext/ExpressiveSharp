@@ -1320,7 +1320,12 @@ internal sealed class ExpressionTreeEmitter
         foreach (var prop in recursive.PropertySubpatterns)
         {
             if (prop.Member is not IMemberReferenceOperation memberRef)
+            {
+                ReportDiagnostic(Diagnostics.UnresolvablePatternMember,
+                    prop.Syntax?.GetLocation() ?? Location.None,
+                    prop.Syntax?.ToString() ?? "unknown");
                 continue;
+            }
 
             string propAccessVar;
             ITypeSymbol? propType = null;
@@ -1341,6 +1346,9 @@ internal sealed class ExpressionTreeEmitter
             }
             else
             {
+                ReportDiagnostic(Diagnostics.UnresolvablePatternMember,
+                    memberRef.Syntax?.GetLocation() ?? Location.None,
+                    memberRef.Member.Name);
                 continue;
             }
 
@@ -1392,7 +1400,12 @@ internal sealed class ExpressionTreeEmitter
                 }
 
                 if (propName is null)
+                {
+                    ReportDiagnostic(Diagnostics.UnresolvablePatternMember,
+                        subPattern.Syntax?.GetLocation() ?? Location.None,
+                        $"positional element {i}");
                     continue;
+                }
 
                 // Access the property/field on memberBase
                 var accessVar = NextVar();
@@ -1409,6 +1422,9 @@ internal sealed class ExpressionTreeEmitter
                 }
                 else
                 {
+                    ReportDiagnostic(Diagnostics.UnresolvablePatternMember,
+                        subPattern.Syntax?.GetLocation() ?? Location.None,
+                        propName);
                     continue;
                 }
 

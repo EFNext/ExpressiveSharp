@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
+using ExpressiveSharp.Generator.Infrastructure;
 using ExpressiveSharp.Generator.Models;
 using ExpressiveSharp.Generator.SyntaxRewriters;
 using Microsoft.CodeAnalysis;
@@ -78,10 +80,14 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                     snippetCount++;
                 }
             }
-            catch
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                // If rewriting fails unexpectedly, skip this call-site.
+                // Report the failure so it doesn't hide bugs silently.
                 // The stub body will throw UnreachableException at runtime with a clear message.
+                spc.ReportDiagnostic(Diagnostic.Create(
+                    Diagnostics.InterceptorEmissionFailed,
+                    inv.GetLocation(),
+                    ex.GetType().Name + ": " + ex.Message));
             }
         }
 
