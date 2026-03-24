@@ -83,4 +83,28 @@ static internal class Diagnostics
         category: "Design",
         DiagnosticSeverity.Info,
         isEnabledByDefault: true);
+
+    public readonly static DiagnosticDescriptor UnsupportedInitializer = new DiagnosticDescriptor(
+        id: "EXP0015",
+        title: "Unsupported initializer in object creation",
+        messageFormat: "Object initializer contains an unsupported element ({0}). Only property and field assignments are supported in expression trees.",
+        category: "Design",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    public readonly static DiagnosticDescriptor UnsupportedOperation = new DiagnosticDescriptor(
+        id: "EXP0016",
+        title: "Unsupported expression operation",
+        messageFormat: "Expression contains an unsupported operation ({0}). A default value will be used instead.",
+        category: "Design",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    public readonly static DiagnosticDescriptor UnsupportedOperator = new DiagnosticDescriptor(
+        id: "EXP0017",
+        title: "Unsupported operator in expression",
+        messageFormat: "Operator '{0}' is not supported in expression trees. A default value will be used instead.",
+        category: "Design",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
 }

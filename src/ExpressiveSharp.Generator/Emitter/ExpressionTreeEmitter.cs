@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Text;
+using ExpressiveSharp.Generator.Infrastructure;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 
@@ -685,10 +686,28 @@ internal sealed class ExpressionTreeEmitter
 
     private string EmitBinary(IBinaryOperation binary)
     {
+        var exprType = MapBinaryOperatorKind(binary.OperatorKind);
+        if (exprType is null)
+        {
+            ReportDiagnostic(Diagnostics.UnsupportedOperator, binary.Syntax?.GetLocation() ?? Location.None, binary.OperatorKind.ToString());
+            return EmitUnsupported(binary);
+        }
+
+        // Use checked variants when in a checked context
+        if (binary.IsChecked)
+        {
+            exprType = exprType switch
+            {
+                "Add" => "AddChecked",
+                "Subtract" => "SubtractChecked",
+                "Multiply" => "MultiplyChecked",
+                _ => exprType,
+            };
+        }
+
         var resultVar = NextVar();
         var leftVar = EmitOperation(binary.LeftOperand);
         var rightVar = EmitOperation(binary.RightOperand);
-        var exprType = MapBinaryOperatorKind(binary.OperatorKind);
 
         if (binary.OperatorMethod is not null)
         {
@@ -703,7 +722,7 @@ internal sealed class ExpressionTreeEmitter
         return resultVar;
     }
 
-    private static string MapBinaryOperatorKind(BinaryOperatorKind kind)
+    private static string? MapBinaryOperatorKind(BinaryOperatorKind kind)
     {
         return kind switch
         {
@@ -725,7 +744,7 @@ internal sealed class ExpressionTreeEmitter
             BinaryOperatorKind.LessThanOrEqual => "LessThanOrEqual",
             BinaryOperatorKind.GreaterThan => "GreaterThan",
             BinaryOperatorKind.GreaterThanOrEqual => "GreaterThanOrEqual",
-            _ => "Add",
+            _ => null,
         };
     }
 
@@ -733,9 +752,21 @@ internal sealed class ExpressionTreeEmitter
 
     private string EmitUnary(IUnaryOperation unary)
     {
+        var exprType = MapUnaryOperatorKind(unary.OperatorKind);
+        if (exprType is null)
+        {
+            ReportDiagnostic(Diagnostics.UnsupportedOperator, unary.Syntax?.GetLocation() ?? Location.None, unary.OperatorKind.ToString());
+            return EmitUnsupported(unary);
+        }
+
+        // Use checked variant when in a checked context
+        if (unary.IsChecked && exprType == "Negate")
+        {
+            exprType = "NegateChecked";
+        }
+
         var resultVar = NextVar();
         var operandVar = EmitOperation(unary.Operand);
-        var exprType = MapUnaryOperatorKind(unary.OperatorKind);
         var typeFqn = unary.Type?.ToDisplayString(_fqnFormat) ?? "object";
 
         if (unary.OperatorMethod is not null)
@@ -751,7 +782,7 @@ internal sealed class ExpressionTreeEmitter
         return resultVar;
     }
 
-    private static string MapUnaryOperatorKind(UnaryOperatorKind kind)
+    private static string? MapUnaryOperatorKind(UnaryOperatorKind kind)
     {
         return kind switch
         {
@@ -759,7 +790,7 @@ internal sealed class ExpressionTreeEmitter
             UnaryOperatorKind.Not => "Not",
             UnaryOperatorKind.Plus => "UnaryPlus",
             UnaryOperatorKind.Minus => "Negate",
-            _ => "Not",
+            _ => null,
         };
     }
 
@@ -774,14 +805,16 @@ internal sealed class ExpressionTreeEmitter
         var operandVar = EmitOperation(conversion.Operand);
         var targetTypeFqn = conversion.Type?.ToDisplayString(_fqnFormat) ?? "object";
 
+        var convertMethod = conversion.IsChecked ? "ConvertChecked" : "Convert";
+
         if (conversion.Conversion.MethodSymbol is not null)
         {
             var methodField = _fieldCache.EnsureMethodInfo(conversion.Conversion.MethodSymbol);
-            AppendLine($"var {resultVar} = {Expr}.Convert({operandVar}, typeof({targetTypeFqn}), {methodField});");
+            AppendLine($"var {resultVar} = {Expr}.{convertMethod}({operandVar}, typeof({targetTypeFqn}), {methodField});");
         }
         else
         {
-            AppendLine($"var {resultVar} = {Expr}.Convert({operandVar}, typeof({targetTypeFqn}));");
+            AppendLine($"var {resultVar} = {Expr}.{convertMethod}({operandVar}, typeof({targetTypeFqn}));");
         }
 
         return resultVar;
@@ -862,14 +895,26 @@ internal sealed class ExpressionTreeEmitter
                         {
                             var propField = _fieldCache.EnsurePropertyInfo(prop);
                             AppendLine($"var {bindingVar} = {Expr}.Bind({propField}, {valueVar});");
+                            bindingVars.Add(bindingVar);
                         }
                         else if (memberRef.Member is IFieldSymbol field)
                         {
                             var fieldField = _fieldCache.EnsureFieldInfo(field);
                             AppendLine($"var {bindingVar} = {Expr}.Bind({fieldField}, {valueVar});");
+                            bindingVars.Add(bindingVar);
                         }
-
-                        bindingVars.Add(bindingVar);
+                        else
+                        {
+                            ReportDiagnostic(Diagnostics.UnsupportedInitializer,
+                                initializer.Syntax?.GetLocation() ?? Location.None,
+                                memberRef.Member.Kind.ToString());
+                        }
+                    }
+                    else
+                    {
+                        ReportDiagnostic(Diagnostics.UnsupportedInitializer,
+                            initializer.Syntax?.GetLocation() ?? Location.None,
+                            initializer.GetType().Name);
                     }
                 }
 
@@ -1718,6 +1763,15 @@ internal sealed class ExpressionTreeEmitter
 
     private string EmitUnsupported(IOperation operation)
     {
+        // Don't report diagnostics for operations handled by the legacy block statement converter
+        // (loops are rewritten at the syntax level before the emitter runs)
+        if (operation is not ILoopOperation)
+        {
+            ReportDiagnostic(Diagnostics.UnsupportedOperation,
+                operation.Syntax?.GetLocation() ?? Location.None,
+                operation.Kind.ToString());
+        }
+
         var resultVar = NextVar();
         var typeFqn = operation.Type?.ToDisplayString(_fqnFormat) ?? "object";
         AppendLine($"/* Unsupported IOperation: {operation.Kind} */");

@@ -58,7 +58,16 @@ The library has two projects in `src/`:
 
 `ExpressionTreeEmitter` (`src/ExpressiveSharp.Generator/Emitter/ExpressionTreeEmitter.cs`) walks the Roslyn `IOperation` tree for expression-bodied members and emits C# code that builds the equivalent `Expression<TDelegate>` using factory methods. Handles: literals, parameters, member access, invocations, binary/unary operators, conversions, conditionals, object creation, arrays, lambdas, tuples, pattern matching, switch expressions, and null-conditional access.
 
-Block-bodied members currently use a legacy syntax rewriting path (`ExpressionSyntaxRewriter` + `BlockStatementConverter`) until the emitter supports block bodies.
+Block-bodied members are also handled by the emitter via `IBlockOperation` and `IReturnOperation`. Loop constructs (`foreach`, `for`) within block bodies are converted to LINQ equivalents (e.g., `.Sum()`, `.All()`) by `LoopConverter` before emission.
+
+### Integration Tests
+
+Three-project structure in `tests/`:
+- **ExpressiveSharp.IntegrationTests** — shared class library (not MSTest.Sdk) with Store scenario models, seed data, and abstract test classes. References `MSTest.TestFramework` directly for `[TestMethod]`/`Assert`. Generator runs here (Analyzer reference) to produce expression registries for `[Expressive]` models.
+- **ExpressiveSharp.IntegrationTests.ExpressionCompile** — compiles expression trees to delegates and executes against in-memory `List<T>`
+- **ExpressiveSharp.IntegrationTests.EntityFrameworkCore** — executes against SQLite via EF Core with `UseExpressives()`
+
+Concrete test classes are one-liners that inherit abstract tests and override `CreateRunner()`. To add a new integration (e.g., NHibernate): implement `IIntegrationTestRunner`, create concrete subclasses.
 
 ### Snapshot Tests
 
@@ -74,4 +83,5 @@ The test base class scrubs `[InterceptsLocation]` attribute arguments because th
 
 - `Directory.Build.props` — global build settings (multi-targeting `net8.0;net10.0`, warnings-as-errors, nullable)
 - `Directory.Packages.props` — centralized NuGet version pinning (edit here, not in individual `.csproj`)
+- EF Core package references use `VersionOverride` per TFM — `8.0.x` for `net8.0`, `10.0.x` for `net10.0`. Do not merge into a single unconditional reference.
 - `src/ExpressiveSharp.Abstractions/build/ExpressiveSharp.Abstractions.props` — exposes MSBuild properties: `Expressive_Disable` (comma-separated `ExpressionFeature` flags), `Expressive_NullConditionalMode`
