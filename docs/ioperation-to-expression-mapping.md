@@ -141,6 +141,7 @@ Unrecognized operations fall through to `EmitUnsupported()` which emits `Express
 | IOperation | Expression Factory | Status | Notes |
 |---|---|---|---|
 | `ITupleOperation` | `Expression.New(ValueTuple<...> ctor, elements)` | Implemented | Handles 1-7 elements directly. 8+ elements use nested `ValueTuple` for `Rest` argument. |
+| `ITupleBinaryOperation` | Element-wise `Equal` + `AndAlso` / `Not` | Implemented | `(a, b) == (c, d)` → `AndAlso(Equal(a.Item1, c.Item1), Equal(a.Item2, c.Item2))`. `!=` wraps in `Not`. |
 
 ## Index & Range
 
@@ -193,7 +194,6 @@ Unrecognized operations fall through to `EmitUnsupported()` which emits `Express
 | IOperation | Target Expression Factory | Notes |
 |---|---|---|
 | `IAnonymousObjectCreationOperation` | `Expression.New(ctor, args, members)` | Anonymous types can't be referenced by name in generated source. Use `PolyfillInterceptorGenerator` path or named types. |
-| `ITupleBinaryOperation` | Expanded equality/inequality | `(a, b) == (c, d)` → `Expression.AndAlso(Expression.Equal(a, c), Expression.Equal(b, d))` |
 | `IThrowOperation` | `Expression.Throw(expr, typeof(T))` | `throw` expressions. `Expression.Throw` exists but not all LINQ providers support it. Detected early by block body validation (EXP0006). |
 
 ---

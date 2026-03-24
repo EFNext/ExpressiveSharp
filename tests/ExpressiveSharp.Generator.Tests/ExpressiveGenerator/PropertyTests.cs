@@ -557,6 +557,52 @@ public class PropertyTests : GeneratorTestBase
     }
 
     [TestMethod]
+    public Task TupleBinary_Equality()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    public (int X, int Y) A { get; set; }
+                    public (int X, int Y) B { get; set; }
+
+                    [Expressive]
+                    public bool Same => A == B;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task TupleBinary_Inequality()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    public (int X, int Y) A { get; set; }
+                    public (int X, int Y) B { get; set; }
+
+                    [Expressive]
+                    public bool Different => A != B;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
     public Task WithExpression_OnRecord()
     {
         var compilation = CreateCompilation(

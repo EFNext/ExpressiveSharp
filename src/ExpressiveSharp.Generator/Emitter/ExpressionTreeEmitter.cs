@@ -409,6 +409,7 @@ internal sealed class ExpressionTreeEmitter
             IAnonymousFunctionOperation lambda => EmitNestedLambda(lambda),
             IDelegateCreationOperation delegateCreate => EmitDelegateCreation(delegateCreate),
             ITupleOperation tuple => EmitTuple(tuple),
+            ITupleBinaryOperation tupleBinary => EmitTupleBinary(tupleBinary),
             IIsPatternOperation isPattern => EmitIsPattern(isPattern),
             ISwitchExpressionOperation switchExpr => EmitSwitchExpression(switchExpr),
             IConditionalAccessOperation condAccess => EmitConditionalAccess(condAccess),
@@ -1213,6 +1214,74 @@ internal sealed class ExpressionTreeEmitter
         }
 
         return result;
+    }
+
+    // ── Tuple binary (== / !=) ────────────────────────────────────────────
+
+    private string EmitTupleBinary(ITupleBinaryOperation tupleBinary)
+    {
+        var leftVar = EmitOperation(tupleBinary.LeftOperand);
+        var rightVar = EmitOperation(tupleBinary.RightOperand);
+
+        var leftType = tupleBinary.LeftOperand.Type as INamedTypeSymbol;
+        var rightType = tupleBinary.RightOperand.Type as INamedTypeSymbol;
+
+        if (leftType is null || rightType is null)
+            return EmitUnsupported(tupleBinary);
+
+        var leftUnderlying = leftType.TupleUnderlyingType ?? leftType;
+        var leftFields = leftUnderlying.GetMembers()
+            .OfType<IFieldSymbol>()
+            .Where(f => f.Name.StartsWith("Item"))
+            .OrderBy(f => f.Name)
+            .ToList();
+
+        var rightUnderlying = rightType.TupleUnderlyingType ?? rightType;
+        var rightFields = rightUnderlying.GetMembers()
+            .OfType<IFieldSymbol>()
+            .Where(f => f.Name.StartsWith("Item"))
+            .OrderBy(f => f.Name)
+            .ToList();
+
+        if (leftFields.Count == 0 || leftFields.Count != rightFields.Count)
+            return EmitUnsupported(tupleBinary);
+
+        bool isEquality = tupleBinary.OperatorKind == BinaryOperatorKind.Equals;
+
+        // Build element-wise comparisons
+        var comparisons = new List<string>();
+        for (var i = 0; i < leftFields.Count; i++)
+        {
+            var leftFieldRef = _fieldCache.EnsureFieldInfo(leftFields[i]);
+            var rightFieldRef = _fieldCache.EnsureFieldInfo(rightFields[i]);
+
+            var lAccess = NextVar();
+            AppendLine($"var {lAccess} = {Expr}.Field({leftVar}, {leftFieldRef});");
+            var rAccess = NextVar();
+            AppendLine($"var {rAccess} = {Expr}.Field({rightVar}, {rightFieldRef});");
+
+            var cmpVar = NextVar();
+            AppendLine($"var {cmpVar} = {Expr}.Equal({lAccess}, {rAccess});");
+            comparisons.Add(cmpVar);
+        }
+
+        // Fold: == uses AndAlso, != uses OrElse(NotEqual) but simpler to negate the whole thing
+        var resultVar = comparisons[0];
+        for (var i = 1; i < comparisons.Count; i++)
+        {
+            var foldVar = NextVar();
+            AppendLine($"var {foldVar} = {Expr}.AndAlso({resultVar}, {comparisons[i]});");
+            resultVar = foldVar;
+        }
+
+        if (!isEquality)
+        {
+            var negVar = NextVar();
+            AppendLine($"var {negVar} = {Expr}.Not({resultVar});");
+            resultVar = negVar;
+        }
+
+        return resultVar;
     }
 
     // ── Pattern matching ────────────────────────────────────────────────────
