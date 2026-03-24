@@ -5,6 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="ExpressiveSharp.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\ExpressiveSharp.Generator\ExpressiveSharp.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 

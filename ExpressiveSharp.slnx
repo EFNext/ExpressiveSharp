@@ -14,5 +14,6 @@
     <Project Path="tests/ExpressiveSharp.IntegrationTests/ExpressiveSharp.IntegrationTests.csproj" />
     <Project Path="tests/ExpressiveSharp.IntegrationTests.ExpressionCompile/ExpressiveSharp.IntegrationTests.ExpressionCompile.csproj" />
     <Project Path="tests/ExpressiveSharp.IntegrationTests.EntityFrameworkCore/ExpressiveSharp.IntegrationTests.EntityFrameworkCore.csproj" />
+    <Project Path="tests/ExpressiveSharp.Tests/ExpressiveSharp.Tests.csproj" />
   </Folder>
 </Solution>

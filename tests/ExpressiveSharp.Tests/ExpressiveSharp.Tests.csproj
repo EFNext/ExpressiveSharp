@@ -1,0 +1,14 @@
+<Project Sdk="MSTest.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ExpressiveSharp\ExpressiveSharp.csproj" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp.Generator\ExpressiveSharp.Generator.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>
