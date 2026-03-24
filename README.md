@@ -172,7 +172,10 @@ ctx.Orders.Where(o => o.Customer?.Name == "Alice");
 | Enum method expansion | Supported |
 | Dictionary indexer initializers | Supported |
 | `this`/`base` references | Supported |
-| List patterns, index/range, `with` expressions, collection expressions | Not supported |
+| List patterns (fixed-length and slice) | Supported |
+| Index/range (`^1`, `1..3`) | Supported |
+| `with` expressions (records) | Supported |
+| Collection expressions (`[1, 2, 3]`) | Supported — spread (`..`) not yet supported |
 
 ### Block-Body
 
