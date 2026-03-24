@@ -237,8 +237,8 @@ public class BlockBodyTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0020"),
-            "Expected EXP0020 for block body without AllowBlockBody flag");
+        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0004"),
+            "Expected EXP0004 for block body without AllowBlockBody flag");
         Assert.AreEqual(0, result.GeneratedTrees.Length);
     }
 
@@ -259,8 +259,8 @@ public class BlockBodyTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0003"),
-            "Expected EXP0003 warning for try/catch in block body");
+        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0006"),
+            "Expected EXP0006 warning for try/catch in block body");
     }
 
     [TestMethod]
@@ -281,8 +281,8 @@ public class BlockBodyTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0004"),
-            "Expected EXP0004 error for await in block body");
+        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0005"),
+            "Expected EXP0005 error for await in block body");
     }
 
     [TestMethod]
@@ -303,7 +303,7 @@ public class BlockBodyTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0003"),
-            "Expected EXP0003 warning for throw in block body");
+        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0006"),
+            "Expected EXP0006 warning for throw in block body");
     }
 }

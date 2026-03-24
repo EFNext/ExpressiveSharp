@@ -4,48 +4,18 @@ namespace ExpressiveSharp.Generator.Infrastructure;
 
 static internal class Diagnostics
 {
-    public readonly static DiagnosticDescriptor UnsupportedStatementInBlockBody = new DiagnosticDescriptor(
-        id: "EXP0003",
-        title: "Unsupported statement in block-bodied method",
-        messageFormat: "Method '{0}' contains an unsupported statement: {1}",
-        category: "Design",
-        DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
-
-    public readonly static DiagnosticDescriptor SideEffectInBlockBody = new DiagnosticDescriptor(
-        id: "EXP0004",
-        title: "Statement with side effects in block-bodied method",
-        messageFormat: "{0}",
-        category: "Design",
-        DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
-    public readonly static DiagnosticDescriptor PotentialSideEffectInBlockBody = new DiagnosticDescriptor(
-        id: "EXP0005",
-        title: "Potential side effect in block-bodied method",
-        messageFormat: "{0}",
-        category: "Design",
-        DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+    // ── Errors ──────────────────────────────────────────────────────────────
 
     public readonly static DiagnosticDescriptor RequiresBodyDefinition = new DiagnosticDescriptor(
-        id: "EXP0006",
+        id: "EXP0001",
         title: "Method or property should expose a body definition",
         messageFormat: "Method or property '{0}' should expose a body definition (e.g. an expression-bodied member or a block-bodied method) to be used as the source for the generated expression tree.",
         category: "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public readonly static DiagnosticDescriptor UnsupportedPatternInExpression = new DiagnosticDescriptor(
-        id: "EXP0007",
-        title: "Unsupported pattern in expressive expression",
-        messageFormat: "The pattern '{0}' cannot be rewritten into an expression tree. Simplify the pattern or restructure the expressive member body.",
-        category: "Design",
-        DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
     public readonly static DiagnosticDescriptor MissingParameterlessConstructor = new DiagnosticDescriptor(
-        id: "EXP0008",
+        id: "EXP0002",
         title: "Target class is missing a parameterless constructor",
         messageFormat: "Class '{0}' must have a parameterless constructor to be used with an [Expressive] constructor. The generated projection uses 'new {0}() {{ ... }}' (object-initializer syntax), which requires an accessible parameterless constructor.",
         category: "Design",
@@ -53,39 +23,41 @@ static internal class Diagnostics
         isEnabledByDefault: true);
 
     public readonly static DiagnosticDescriptor NoSourceAvailableForDelegatedConstructor = new DiagnosticDescriptor(
-        id: "EXP0009",
+        id: "EXP0003",
         title: "Delegated constructor cannot be analyzed for projection",
         messageFormat: "The delegated constructor '{0}' in type '{1}' has no source available and cannot be analyzed. Base/this initializer in member '{2}' will not be projected.",
         category: "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public readonly static DiagnosticDescriptor FeatureDisabled = new DiagnosticDescriptor(
-        id: "EXP0013",
-        title: "Expression feature is disabled",
-        messageFormat: "Feature '{0}' is disabled for member '{1}'. Remove ExpressionFeature.{0} from the Disable property to enable this feature.",
+    public readonly static DiagnosticDescriptor BlockBodyRequiresOptIn = new DiagnosticDescriptor(
+        id: "EXP0004",
+        title: "Block-bodied [Expressive] member requires AllowBlockBody",
+        messageFormat: "Member '{0}' uses a block body ({{ }}) which requires [Expressive(AllowBlockBody = true)]. Block bodies support local variables, if/else, and foreach loops, but not all constructs are translatable by every LINQ provider. Use an expression-bodied member (=>) for full compatibility, or opt in with AllowBlockBody = true.",
         category: "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public readonly static DiagnosticDescriptor UnrecognizedLoopPattern = new DiagnosticDescriptor(
-        id: "EXP0014",
-        title: "Unrecognized loop pattern",
-        messageFormat: "The loop in method '{0}' could not be converted to a LINQ expression: {1}",
+    public readonly static DiagnosticDescriptor SideEffectInBlockBody = new DiagnosticDescriptor(
+        id: "EXP0005",
+        title: "Statement with side effects in block-bodied method",
+        messageFormat: "{0}",
         category: "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public readonly static DiagnosticDescriptor FactoryMethodShouldBeConstructor = new DiagnosticDescriptor(
-        id: "EXP0012",
-        title: "[Expressive] factory method can be converted to a constructor",
-        messageFormat: "Factory method '{0}' creates and returns an instance of the containing class via object initializer. Consider converting it to an [Expressive] constructor.",
+    // ── Warnings ────────────────────────────────────────────────────────────
+
+    public readonly static DiagnosticDescriptor UnsupportedStatementInBlockBody = new DiagnosticDescriptor(
+        id: "EXP0006",
+        title: "Unsupported statement in block-bodied method",
+        messageFormat: "Method '{0}' contains an unsupported statement: {1}",
         category: "Design",
-        DiagnosticSeverity.Info,
+        DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
     public readonly static DiagnosticDescriptor UnsupportedInitializer = new DiagnosticDescriptor(
-        id: "EXP0015",
+        id: "EXP0007",
         title: "Unsupported initializer in object creation",
         messageFormat: "Object initializer contains an unsupported element ({0}). Only property and field assignments are supported in expression trees.",
         category: "Design",
@@ -93,7 +65,7 @@ static internal class Diagnostics
         isEnabledByDefault: true);
 
     public readonly static DiagnosticDescriptor UnsupportedOperation = new DiagnosticDescriptor(
-        id: "EXP0016",
+        id: "EXP0008",
         title: "Unsupported expression operation",
         messageFormat: "Expression contains an unsupported operation ({0}). A default value will be used instead.",
         category: "Design",
@@ -101,7 +73,7 @@ static internal class Diagnostics
         isEnabledByDefault: true);
 
     public readonly static DiagnosticDescriptor UnsupportedOperator = new DiagnosticDescriptor(
-        id: "EXP0017",
+        id: "EXP0009",
         title: "Unsupported operator in expression",
         messageFormat: "Operator '{0}' is not supported in expression trees. A default value will be used instead.",
         category: "Design",
@@ -109,7 +81,7 @@ static internal class Diagnostics
         isEnabledByDefault: true);
 
     public readonly static DiagnosticDescriptor InterceptorEmissionFailed = new DiagnosticDescriptor(
-        id: "EXP0018",
+        id: "EXP0010",
         title: "Interceptor emission failed unexpectedly",
         messageFormat: "Failed to generate interceptor for call site: {0}. The original delegate stub will be used at runtime.",
         category: "Design",
@@ -117,18 +89,20 @@ static internal class Diagnostics
         isEnabledByDefault: true);
 
     public readonly static DiagnosticDescriptor UnresolvablePatternMember = new DiagnosticDescriptor(
-        id: "EXP0019",
+        id: "EXP0011",
         title: "Unresolvable member in pattern",
         messageFormat: "Pattern sub-expression for member '{0}' could not be resolved and was skipped. The pattern may not match correctly.",
         category: "Design",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
-    public readonly static DiagnosticDescriptor BlockBodyRequiresOptIn = new DiagnosticDescriptor(
-        id: "EXP0020",
-        title: "Block-bodied [Expressive] member requires AllowBlockBody",
-        messageFormat: "Member '{0}' uses a block body ({{ }}) which requires [Expressive(AllowBlockBody = true)]. Block bodies support local variables, if/else, and foreach loops, but not all constructs are translatable by every LINQ provider. Use an expression-bodied member (=>) for full compatibility, or opt in with AllowBlockBody = true.",
+    // ── Info ────────────────────────────────────────────────────────────────
+
+    public readonly static DiagnosticDescriptor FactoryMethodShouldBeConstructor = new DiagnosticDescriptor(
+        id: "EXP0012",
+        title: "[Expressive] factory method can be converted to a constructor",
+        messageFormat: "Factory method '{0}' creates and returns an instance of the containing class via object initializer. Consider converting it to an [Expressive] constructor.",
         category: "Design",
-        DiagnosticSeverity.Error,
+        DiagnosticSeverity.Info,
         isEnabledByDefault: true);
 }

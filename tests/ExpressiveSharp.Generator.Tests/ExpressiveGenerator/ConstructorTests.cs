@@ -643,7 +643,7 @@ public class ConstructorTests : GeneratorTestBase
         var result = RunExpressiveGenerator(compilation);
 
         Assert.AreEqual(1, result.Diagnostics.Length);
-        Assert.AreEqual("EXP0008", result.Diagnostics[0].Id);
+        Assert.AreEqual("EXP0002", result.Diagnostics[0].Id);
         Assert.AreEqual(DiagnosticSeverity.Error, result.Diagnostics[0].Severity);
         Assert.AreEqual(0, result.GeneratedTrees.Length);
     }
