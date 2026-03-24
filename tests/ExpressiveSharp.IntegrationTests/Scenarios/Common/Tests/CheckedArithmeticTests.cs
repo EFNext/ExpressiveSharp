@@ -21,4 +21,20 @@ public abstract class CheckedArithmeticTests : StoreTestBase
             new[] { 240.0, 1500.0, 30.0, 250.0 },
             results);
     }
+
+    [TestMethod]
+    public virtual async Task Where_CheckedTotalGreaterThan100_FiltersCorrectly()
+    {
+        Expression<Func<Order, double>> totalExpr = o => o.CheckedTotal;
+        var expanded = (Expression<Func<Order, double>>)totalExpr.ExpandExpressives();
+
+        var param = expanded.Parameters[0];
+        var body = Expression.GreaterThan(expanded.Body, Expression.Constant(100.0));
+        var predicate = Expression.Lambda<Func<Order, bool>>(body, param);
+
+        var results = await Runner.WhereAsync(predicate);
+
+        var ids = results.Select(o => o.Id).OrderBy(id => id).ToList();
+        CollectionAssert.AreEqual(new[] { 1, 2, 4 }, ids);
+    }
 }

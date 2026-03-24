@@ -3,6 +3,7 @@ using ExpressiveSharp.IntegrationTests.Infrastructure;
 using ExpressiveSharp.IntegrationTests.Scenarios.Store.Models;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace ExpressiveSharp.IntegrationTests.EntityFrameworkCore;
 
@@ -10,16 +11,29 @@ public sealed class EFCoreSqliteTestRunner : IIntegrationTestRunner
 {
     private readonly SqliteConnection _connection;
     private readonly IntegrationTestDbContext _context;
+    private readonly Action<string>? _logSql;
+    private bool _loggingEnabled;
 
-    public EFCoreSqliteTestRunner()
+    public EFCoreSqliteTestRunner(Action<string>? logSql = null)
     {
+        _logSql = logSql;
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
 
-        var options = new DbContextOptionsBuilder<IntegrationTestDbContext>()
+        var builder = new DbContextOptionsBuilder<IntegrationTestDbContext>()
             .UseSqlite(_connection)
-            .UseExpressives()
-            .Options;
+            .UseExpressives();
+
+        if (logSql is not null)
+        {
+            builder
+                .LogTo(message => { if (_loggingEnabled) logSql(message); },
+                    new[] { DbLoggerCategory.Database.Command.Name },
+                    Microsoft.Extensions.Logging.LogLevel.Information)
+                .EnableSensitiveDataLogging();
+        }
+
+        var options = builder.Options;
 
         _context = new IntegrationTestDbContext(options);
         _context.Database.EnsureCreated();
@@ -57,6 +71,8 @@ public sealed class EFCoreSqliteTestRunner : IIntegrationTestRunner
 
         _context.Set<LineItem>().AddRange(lineItems);
         await _context.SaveChangesAsync();
+
+        _loggingEnabled = true;
     }
 
     public async Task<List<TEntity>> WhereAsync<TEntity>(
