@@ -5,6 +5,7 @@ using ExpressiveSharp.Generator.SyntaxRewriters;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace ExpressiveSharp.Generator.Interpretation;
 
@@ -40,6 +41,7 @@ static internal partial class ExpressiveInterpreter
                 return false;
             }
             bodySyntax = methodDeclarationSyntax.Body;
+            ValidateBlockBody(semanticModel, bodySyntax, memberSymbol.Name, context);
         }
         else
         {
@@ -106,6 +108,11 @@ static internal partial class ExpressiveInterpreter
                 propertyDeclarationSyntax.Identifier.GetLocation(),
                 memberSymbol.Name));
             return false;
+        }
+
+        if (isBlockBody && bodySyntax is not null)
+        {
+            ValidateBlockBody(semanticModel, bodySyntax, memberSymbol.Name, context);
         }
 
         if (bodySyntax is null)
@@ -360,5 +367,94 @@ static internal partial class ExpressiveInterpreter
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Walks a block body's IOperation tree and reports diagnostics for constructs
+    /// that cannot be translated to expression trees. Called at interpretation time
+    /// (before emission) so users get early compile-time feedback.
+    /// </summary>
+    private static void ValidateBlockBody(
+        SemanticModel semanticModel,
+        SyntaxNode bodySyntax,
+        string memberName,
+        SourceProductionContext context)
+    {
+        var operation = semanticModel.GetOperation(bodySyntax);
+        if (operation is null) return;
+
+        WalkOperations(operation, memberName, context);
+    }
+
+    private static void WalkOperations(
+        IOperation operation,
+        string memberName,
+        SourceProductionContext context)
+    {
+        switch (operation)
+        {
+            case ITryOperation:
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Diagnostics.UnsupportedStatementInBlockBody,
+                    operation.Syntax?.GetLocation() ?? Location.None,
+                    memberName, "try/catch/finally"));
+                return;
+
+            case IUsingOperation:
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Diagnostics.UnsupportedStatementInBlockBody,
+                    operation.Syntax?.GetLocation() ?? Location.None,
+                    memberName, "using statement"));
+                return;
+
+            case ILockOperation:
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Diagnostics.UnsupportedStatementInBlockBody,
+                    operation.Syntax?.GetLocation() ?? Location.None,
+                    memberName, "lock statement"));
+                return;
+
+            case IThrowOperation:
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Diagnostics.UnsupportedStatementInBlockBody,
+                    operation.Syntax?.GetLocation() ?? Location.None,
+                    memberName, "throw expression"));
+                return;
+
+            case IAwaitOperation:
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Diagnostics.SideEffectInBlockBody,
+                    operation.Syntax?.GetLocation() ?? Location.None,
+                    $"Member '{memberName}' contains 'await' which cannot be represented in an expression tree."));
+                return;
+
+            case ICoalesceAssignmentOperation:
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Diagnostics.UnsupportedStatementInBlockBody,
+                    operation.Syntax?.GetLocation() ?? Location.None,
+                    memberName, "??= operator"));
+                return;
+
+            case IDeconstructionAssignmentOperation:
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Diagnostics.UnsupportedStatementInBlockBody,
+                    operation.Syntax?.GetLocation() ?? Location.None,
+                    memberName, "deconstruction assignment"));
+                return;
+
+            case IDynamicInvocationOperation or IDynamicMemberReferenceOperation
+                or IDynamicIndexerAccessOperation or IDynamicObjectCreationOperation:
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Diagnostics.UnsupportedStatementInBlockBody,
+                    operation.Syntax?.GetLocation() ?? Location.None,
+                    memberName, "dynamic operation"));
+                return;
+        }
+
+        // Recurse into child operations
+        foreach (var child in operation.ChildOperations)
+        {
+            WalkOperations(child, memberName, context);
+        }
     }
 }

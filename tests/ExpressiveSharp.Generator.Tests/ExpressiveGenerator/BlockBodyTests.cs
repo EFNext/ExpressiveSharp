@@ -219,4 +219,91 @@ public class BlockBodyTests : GeneratorTestBase
 
         return Verifier.Verify(result.GeneratedTrees[0].ToString());
     }
+
+    [TestMethod]
+    public void BlockBody_WithoutAllowFlag_ReportsError()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    [Expressive]
+                    public int Foo()
+                    {
+                        return 1;
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0020"),
+            "Expected EXP0020 for block body without AllowBlockBody flag");
+        Assert.AreEqual(0, result.GeneratedTrees.Length);
+    }
+
+    [TestMethod]
+    public void BlockBody_WithTryCatch_ReportsWarning()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    [Expressive(AllowBlockBody = true)]
+                    public int Foo()
+                    {
+                        try { return 1; } catch { return 0; }
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0003"),
+            "Expected EXP0003 warning for try/catch in block body");
+    }
+
+    [TestMethod]
+    public void BlockBody_WithAwait_ReportsError()
+    {
+        var compilation = CreateCompilation(
+            """
+            using System.Threading.Tasks;
+            namespace Foo {
+                class C {
+                    [Expressive(AllowBlockBody = true)]
+                    public async Task<int> Foo()
+                    {
+                        return await Task.FromResult(1);
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0004"),
+            "Expected EXP0004 error for await in block body");
+    }
+
+    [TestMethod]
+    public void BlockBody_WithThrow_ReportsWarning()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    [Expressive(AllowBlockBody = true)]
+                    public int Foo()
+                    {
+                        if (true) throw new System.Exception();
+                        return 1;
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0003"),
+            "Expected EXP0003 warning for throw in block body");
+    }
 }
