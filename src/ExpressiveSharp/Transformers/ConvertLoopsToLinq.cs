@@ -41,6 +41,27 @@ public sealed class ConvertLoopsToLinq : ExpressionVisitor, IExpressionTreeTrans
         return visited;
     }
 
+    protected override Expression VisitLoop(LoopExpression node)
+    {
+        // Foreach loops are handled at the block level (TryMatchForEachAccumulator).
+        // If a LoopExpression reaches here, it's a for/while loop that wasn't part
+        // of a recognized foreach accumulator pattern — fail clearly.
+        var hasEnumeratorPattern = node.Body is ConditionalExpression cond
+            && cond.Test is MethodCallExpression call
+            && call.Method.Name == "MoveNext";
+
+        if (!hasEnumeratorPattern)
+        {
+            throw new InvalidOperationException(
+                "Expression contains a for/while loop that cannot be converted to LINQ. " +
+                "Only foreach loops with recognized accumulator patterns " +
+                "(Sum, Count, Any, All, Min, Max, Select) are supported. " +
+                "Rewrite as a foreach loop or use an expression-bodied member.");
+        }
+
+        return base.VisitLoop(node);
+    }
+
     private bool TryMatchForEachAccumulator(BlockExpression outer, out Expression result)
     {
         result = null!;

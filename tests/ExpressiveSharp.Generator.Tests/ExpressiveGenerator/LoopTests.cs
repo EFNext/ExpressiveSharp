@@ -60,8 +60,7 @@ public class LoopTests : GeneratorTestBase
     [TestMethod]
     public Task WhileLoop_EmitsBlockExpression()
     {
-        // While loops are emitted as Expression.Block with the IOperation tree.
-        // The emitter handles them via IBlockOperation — no special diagnostics.
+        // While loops emit valid expression trees but warn that they can't be converted to LINQ.
         var compilation = CreateCompilation(
             """
             namespace Foo {
@@ -78,7 +77,8 @@ public class LoopTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0006"),
+            "Expected EXP0006 warning for while loop");
         Assert.AreEqual(1, result.GeneratedTrees.Length);
 
         return Verifier.Verify(result.GeneratedTrees[0].ToString());
@@ -314,8 +314,8 @@ public class LoopTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.AreEqual(0, result.Diagnostics.Length,
-            string.Join("\n", result.Diagnostics.Select(d => d.ToString())));
+        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0006"),
+            "Expected EXP0006 warning for for loop");
         Assert.AreEqual(1, result.GeneratedTrees.Length);
 
         return Verifier.Verify(result.GeneratedTrees[0].ToString());

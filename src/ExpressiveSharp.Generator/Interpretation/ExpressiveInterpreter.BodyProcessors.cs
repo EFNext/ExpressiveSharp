@@ -421,6 +421,20 @@ static internal partial class ExpressiveInterpreter
                     memberName, "throw expression"));
                 return;
 
+            case IForLoopOperation:
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Diagnostics.UnsupportedStatementInBlockBody,
+                    operation.Syntax?.GetLocation() ?? Location.None,
+                    memberName, "for loop — use foreach for LINQ provider compatibility"));
+                return;
+
+            case IWhileLoopOperation:
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Diagnostics.UnsupportedStatementInBlockBody,
+                    operation.Syntax?.GetLocation() ?? Location.None,
+                    memberName, "while/do-while loop — use foreach for LINQ provider compatibility"));
+                return;
+
             case IAwaitOperation:
                 context.ReportDiagnostic(Diagnostic.Create(
                     Diagnostics.SideEffectInBlockBody,
