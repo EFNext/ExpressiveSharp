@@ -8,8 +8,15 @@ namespace ExpressiveSharp.Generator.Models;
 /// </summary>
 readonly internal record struct ExpressiveGlobalOptions
 {
+    /// <summary>
+    /// Global default for <see cref="ExpressiveAttribute.AllowBlockBody"/>.
+    /// Set via MSBuild property <c>Expressive_AllowBlockBody</c>. Defaults to <c>false</c>.
+    /// </summary>
+    public bool AllowBlockBody { get; }
+
     public ExpressiveGlobalOptions(AnalyzerConfigOptions globalOptions)
     {
-        // Future: MSBuild properties for global transformer defaults can be read here.
+        AllowBlockBody = globalOptions.TryGetValue("build_property.Expressive_AllowBlockBody", out var value)
+            && bool.TryParse(value, out var parsed) && parsed;
     }
 }

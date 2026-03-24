@@ -7,14 +7,14 @@ namespace ExpressiveSharp.Generator.Models;
 /// </summary>
 readonly internal record struct ExpressiveAttributeData
 {
-    public bool AllowBlockBody { get; }
+    public bool? AllowBlockBody { get; }
 
     // Custom transformer type names (fully qualified)
     public IReadOnlyList<string> TransformerTypeNames { get; }
 
     public ExpressiveAttributeData(AttributeData attribute)
     {
-        var allowBlockBody = false;
+        bool? allowBlockBody = null;
         var transformerTypeNames = new List<string>();
 
         foreach (var namedArgument in attribute.NamedArguments)
@@ -24,8 +24,7 @@ readonly internal record struct ExpressiveAttributeData
             switch (key)
             {
                 case nameof(AllowBlockBody):
-                    if (value.Value is true)
-                        allowBlockBody = true;
+                    allowBlockBody = value.Value is true;
                     break;
                 case "Transformers":
                     if (value.Kind == TypedConstantKind.Array)

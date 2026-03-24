@@ -16,7 +16,9 @@ public sealed class ExpressiveAttribute : Attribute
     /// <summary>
     /// When <c>true</c>, allows block-bodied members (methods/properties with <c>{ }</c> bodies).
     /// Block bodies support local variables, if/else, foreach loops, and more, but not all
-    /// constructs are translatable by every LINQ provider. Default is <c>false</c>.
+    /// constructs are translatable by every LINQ provider.
+    /// When not explicitly set, the MSBuild property <c>Expressive_AllowBlockBody</c> is used
+    /// (defaults to <c>false</c>).
     /// </summary>
     public bool AllowBlockBody { get; set; }
 

@@ -41,16 +41,19 @@ static internal partial class ExpressiveInterpreter
         foreach (var typeName in expressiveAttribute.TransformerTypeNames)
             descriptor.DeclaredTransformerTypeNames.Add(typeName);
 
+        // Resolve AllowBlockBody: attribute value takes precedence, then MSBuild default
+        var allowBlockBody = expressiveAttribute.AllowBlockBody ?? globalOptions.AllowBlockBody;
+
         // Fill descriptor from the body
         var success = member switch
         {
             MethodDeclarationSyntax methodDecl =>
                 TryApplyMethodBody(methodDecl, memberSymbol, semanticModel,
-                    declarationSyntaxRewriter, context, descriptor, expressiveAttribute.AllowBlockBody),
+                    declarationSyntaxRewriter, context, descriptor, allowBlockBody),
 
             PropertyDeclarationSyntax propDecl =>
                 TryApplyPropertyBody(propDecl, memberSymbol, semanticModel,
-                    declarationSyntaxRewriter, context, descriptor, expressiveAttribute.AllowBlockBody),
+                    declarationSyntaxRewriter, context, descriptor, allowBlockBody),
 
             ConstructorDeclarationSyntax ctorDecl =>
                 TryApplyConstructorBody(ctorDecl, memberSymbol, semanticModel,

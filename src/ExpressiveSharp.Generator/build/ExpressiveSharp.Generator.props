@@ -2,4 +2,8 @@
   <PropertyGroup>
     <InterceptorsNamespaces>$(InterceptorsNamespaces);ExpressiveSharp.Generated.Interceptors</InterceptorsNamespaces>
   </PropertyGroup>
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="Expressive_AllowBlockBody" />
+  </ItemGroup>
 </Project>
