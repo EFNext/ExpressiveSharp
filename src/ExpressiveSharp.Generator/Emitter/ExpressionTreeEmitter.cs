@@ -883,11 +883,14 @@ internal sealed class ExpressionTreeEmitter
                 }
 
                 var bindingVars = new List<string>();
+                var elementInitVars = new List<string>();
+
                 foreach (var initializer in creation.Initializer.Initializers)
                 {
                     if (initializer is ISimpleAssignmentOperation assignment &&
                         assignment.Target is IMemberReferenceOperation memberRef)
                     {
+                        // Member binding: new T { Prop = value }
                         var valueVar = EmitOperation(assignment.Value);
                         var bindingVar = NextVar();
 
@@ -910,6 +913,20 @@ internal sealed class ExpressionTreeEmitter
                                 memberRef.Member.Kind.ToString());
                         }
                     }
+                    else if (initializer is IInvocationOperation invocation)
+                    {
+                        // Collection initializer: .Add(element) call
+                        var addMethodField = _fieldCache.EnsureMethodInfo(invocation.TargetMethod);
+                        var elemVars = new List<string>();
+                        foreach (var arg in invocation.Arguments)
+                        {
+                            elemVars.Add(EmitOperation(arg.Value));
+                        }
+                        var elemInitVar = NextVar();
+                        var elemsExpr = string.Join(", ", elemVars);
+                        AppendLine($"var {elemInitVar} = {Expr}.ElementInit({addMethodField}, {elemsExpr});");
+                        elementInitVars.Add(elemInitVar);
+                    }
                     else
                     {
                         ReportDiagnostic(Diagnostics.UnsupportedInitializer,
@@ -918,8 +935,18 @@ internal sealed class ExpressionTreeEmitter
                     }
                 }
 
-                var bindingsExpr = string.Join(", ", bindingVars);
-                AppendLine($"var {resultVar} = {Expr}.MemberInit({newVar}, {bindingsExpr});");
+                if (elementInitVars.Count > 0)
+                {
+                    // Collection initializer: Expression.ListInit(new, elementInits)
+                    var elementsExpr = string.Join(", ", elementInitVars);
+                    AppendLine($"var {resultVar} = {Expr}.ListInit({newVar}, {elementsExpr});");
+                }
+                else
+                {
+                    // Member initializer: Expression.MemberInit(new, bindings)
+                    var bindingsExpr = string.Join(", ", bindingVars);
+                    AppendLine($"var {resultVar} = {Expr}.MemberInit({newVar}, {bindingsExpr});");
+                }
             }
             else
             {
