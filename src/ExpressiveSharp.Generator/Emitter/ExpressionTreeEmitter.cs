@@ -1207,8 +1207,19 @@ internal sealed class ExpressionTreeEmitter
             BinaryOperatorKind.LessThanOrEqual => "LessThanOrEqual",
             BinaryOperatorKind.GreaterThan => "GreaterThan",
             BinaryOperatorKind.GreaterThanOrEqual => "GreaterThanOrEqual",
-            _ => "Equal",
+            _ => null,
         };
+
+        if (exprType is null)
+        {
+            ReportDiagnostic(Diagnostics.UnsupportedOperator,
+                relational.Syntax?.GetLocation() ?? Location.None,
+                relational.OperatorKind.ToString());
+            // Fall back to constant true so surrounding pattern logic doesn't break
+            AppendLine($"var {resultVar} = {Expr}.Constant(true);");
+            return resultVar;
+        }
+
         AppendLine($"var {resultVar} = {Expr}.MakeBinary(global::System.Linq.Expressions.ExpressionType.{exprType}, {operandVar}, {valueVar});");
         return resultVar;
     }
