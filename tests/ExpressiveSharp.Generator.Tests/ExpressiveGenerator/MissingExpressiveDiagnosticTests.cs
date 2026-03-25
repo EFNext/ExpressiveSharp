@@ -96,6 +96,50 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
     }
 
     [TestMethod]
+    public async Task ExtensionMethod_OnNonEnumReceiver_WarnsEXP0013()
+    {
+        var diagnostics = await RunAnalyzerAsync(
+            """
+            namespace Foo {
+                public static class StringExtensions {
+                    public static string Shout(this string value) => value.ToUpper() + "!";
+                }
+
+                class C {
+                    public string Name { get; set; } = "";
+
+                    [Expressive]
+                    public string Loud => Name.Shout();
+                }
+            }
+            """);
+
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0013"),
+            "Expected EXP0013 for non-enum extension method without [Expressive]");
+    }
+
+    [TestMethod]
+    public async Task PropertyWithoutExpressive_ReferencedInExpressive_WarnsEXP0013()
+    {
+        var diagnostics = await RunAnalyzerAsync(
+            """
+            namespace Foo {
+                class Order {
+                    public double Price { get; set; }
+                    public int Quantity { get; set; }
+                    public double Total => Price * Quantity;
+
+                    [Expressive]
+                    public string? Label => Total >= 0 ? "Positive" : "Negative";
+                }
+            }
+            """);
+
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0013"),
+            "Expected EXP0013 for property without [Expressive] referenced in [Expressive] member");
+    }
+
+    [TestMethod]
     public async Task EXP0013_HasAdditionalLocation_PointingToDeclaration()
     {
         var diagnostics = await RunAnalyzerAsync(
@@ -195,6 +239,35 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
 
         Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
             "Should not warn when referenced property already has [Expressive]");
+    }
+
+    [TestMethod]
+    public async Task ExtensionMethod_OnEnumReceiver_NoWarning()
+    {
+        var diagnostics = await RunAnalyzerAsync(
+            """
+            namespace Foo {
+                public enum OrderStatus { Pending, Approved, Rejected }
+
+                public static class OrderStatusExtensions {
+                    public static string GetDescription(this OrderStatus value) => value switch {
+                        OrderStatus.Pending => "Awaiting processing",
+                        OrderStatus.Approved => "Order approved",
+                        _ => value.ToString(),
+                    };
+                }
+
+                class Order {
+                    public OrderStatus Status { get; set; }
+
+                    [Expressive]
+                    public string StatusDescription => Status.GetDescription();
+                }
+            }
+            """);
+
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
+            "Should not warn for enum extension method — generator expands these via TryEmitEnumMethodExpansion");
     }
 
     // ── Helper ──────────────────────────────────────────────────────────────

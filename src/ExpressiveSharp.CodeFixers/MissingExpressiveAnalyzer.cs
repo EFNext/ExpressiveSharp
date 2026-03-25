@@ -126,7 +126,14 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
             if (node is InvocationExpressionSyntax invocation)
             {
                 var info = context.SemanticModel.GetSymbolInfo(invocation, context.CancellationToken);
-                referencedSymbol = info.Symbol;
+                if (info.Symbol is not IMethodSymbol invokedMethod)
+                    continue;
+
+                // Skip enum method calls — the generator expands these via TryEmitEnumMethodExpansion
+                if (HasEnumReceiver(invokedMethod, invocation, context.SemanticModel, context.CancellationToken))
+                    continue;
+
+                referencedSymbol = invokedMethod;
                 location = invocation.Expression is MemberAccessExpressionSyntax memberAccess
                     ? memberAccess.Name.GetLocation()
                     : invocation.Expression.GetLocation();
@@ -160,6 +167,47 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
 
             WarnIfMissingExpressive(context, referencedSymbol, location);
         }
+    }
+
+    /// <summary>
+    /// Returns true when the invocation's receiver (or first extension-method arg) is an enum
+    /// or Nullable&lt;Enum&gt;. The generator already expands these via TryEmitEnumMethodExpansion,
+    /// so EXP0013 would be a false positive.
+    /// </summary>
+    private static bool HasEnumReceiver(
+        IMethodSymbol method,
+        InvocationExpressionSyntax invocation,
+        SemanticModel semanticModel,
+        System.Threading.CancellationToken ct)
+    {
+        ITypeSymbol? receiverType = null;
+
+        if (!method.IsStatic && method.ReceiverType is not null)
+        {
+            receiverType = method.ReceiverType;
+        }
+        else if (method.IsExtensionMethod)
+        {
+            var original = method.ReducedFrom ?? method;
+            if (original.Parameters.Length > 0)
+                receiverType = original.Parameters[0].Type;
+        }
+
+        return receiverType is not null && IsEnumOrNullableEnum(receiverType);
+    }
+
+    private static bool IsEnumOrNullableEnum(ITypeSymbol type)
+    {
+        if (type.TypeKind == TypeKind.Enum)
+            return true;
+
+        if (type is INamedTypeSymbol { IsGenericType: true } namedType &&
+            namedType.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T &&
+            namedType.TypeArguments.Length == 1 &&
+            namedType.TypeArguments[0].TypeKind == TypeKind.Enum)
+            return true;
+
+        return false;
     }
 
     // ── Core logic (matches ExpressionTreeEmitter.WarnIfMissingExpressive) ──
