@@ -96,13 +96,8 @@ static internal class Diagnostics
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
-    public readonly static DiagnosticDescriptor MemberCouldBeExpressive = new DiagnosticDescriptor(
-        id: "EXP0013",
-        title: "Referenced member could benefit from [Expressive]",
-        messageFormat: "Member '{0}' is referenced in an [Expressive] expression but is not marked [Expressive]. Adding [Expressive] would allow its body to be inlined into the expression tree.",
-        category: "Design",
-        DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+    // NOTE: EXP0013 (MemberCouldBeExpressive) is now emitted by MissingExpressiveAnalyzer
+    // in ExpressiveSharp.CodeFixers, so VS can pair it with the code fix provider.
 
     // ── Info ────────────────────────────────────────────────────────────────
 

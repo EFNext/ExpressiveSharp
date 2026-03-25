@@ -1,5 +1,14 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Collections.Immutable;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using ExpressiveSharp.CodeFixers;
 using ExpressiveSharp.Generator.Tests.Infrastructure;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Text;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpressiveSharp.Generator.Tests.ExpressiveGenerator;
 
@@ -9,9 +18,9 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
     // ── Positive: EXP0013 fires ─────────────────────────────────────────────
 
     [TestMethod]
-    public void MethodCall_ToSourceMethodWithExpressionBody_WarnsEXP0013()
+    public async Task MethodCall_ToSourceMethodWithExpressionBody_WarnsEXP0013()
     {
-        var compilation = CreateCompilation(
+        var diagnostics = await RunAnalyzerAsync(
             """
             namespace Foo {
                 class C {
@@ -22,17 +31,15 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
                 }
             }
             """);
-        var result = RunExpressiveGenerator(compilation);
 
-        Assert.AreEqual(1, result.GeneratedTrees.Length);
-        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0013"),
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0013"),
             "Expected EXP0013 for method call to source method without [Expressive]");
     }
 
     [TestMethod]
-    public void PropertyAccess_ToSourcePropertyWithExpressionBody_WarnsEXP0013()
+    public async Task PropertyAccess_ToSourcePropertyWithExpressionBody_WarnsEXP0013()
     {
-        var compilation = CreateCompilation(
+        var diagnostics = await RunAnalyzerAsync(
             """
             namespace Foo {
                 class C {
@@ -44,17 +51,15 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
                 }
             }
             """);
-        var result = RunExpressiveGenerator(compilation);
 
-        Assert.AreEqual(1, result.GeneratedTrees.Length);
-        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0013"),
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0013"),
             "Expected EXP0013 for property access to source property without [Expressive]");
     }
 
     [TestMethod]
-    public void PropertyAccess_ToSourcePropertyWithBlockGetter_WarnsEXP0013()
+    public async Task PropertyAccess_ToSourcePropertyWithBlockGetter_WarnsEXP0013()
     {
-        var compilation = CreateCompilation(
+        var diagnostics = await RunAnalyzerAsync(
             """
             namespace Foo {
                 class C {
@@ -66,17 +71,15 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
                 }
             }
             """);
-        var result = RunExpressiveGenerator(compilation);
 
-        Assert.AreEqual(1, result.GeneratedTrees.Length);
-        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0013"),
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0013"),
             "Expected EXP0013 for property access to source property with block getter without [Expressive]");
     }
 
     [TestMethod]
-    public void MethodCall_ToBlockBodyMethod_WarnsEXP0013()
+    public async Task MethodCall_ToBlockBodyMethod_WarnsEXP0013()
     {
-        var compilation = CreateCompilation(
+        var diagnostics = await RunAnalyzerAsync(
             """
             namespace Foo {
                 class C {
@@ -87,19 +90,37 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
                 }
             }
             """);
-        var result = RunExpressiveGenerator(compilation);
 
-        Assert.AreEqual(1, result.GeneratedTrees.Length);
-        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0013"),
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0013"),
             "Expected EXP0013 for method call to block-body method without [Expressive]");
+    }
+
+    [TestMethod]
+    public async Task EXP0013_HasAdditionalLocation_PointingToDeclaration()
+    {
+        var diagnostics = await RunAnalyzerAsync(
+            """
+            namespace Foo {
+                class C {
+                    public static int Transform(int x) => x * x;
+
+                    [Expressive]
+                    public int Computed => Transform(42);
+                }
+            }
+            """);
+
+        var diag = diagnostics.First(d => d.Id == "EXP0013");
+        Assert.AreEqual(1, diag.AdditionalLocations.Count,
+            "EXP0013 should include the declaration as an additional location");
     }
 
     // ── Negative: no EXP0013 ────────────────────────────────────────────────
 
     [TestMethod]
-    public void MethodCall_ToMethodWithExpressive_NoWarning()
+    public async Task MethodCall_ToMethodWithExpressive_NoWarning()
     {
-        var compilation = CreateCompilation(
+        var diagnostics = await RunAnalyzerAsync(
             """
             namespace Foo {
                 class C {
@@ -111,17 +132,15 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
                 }
             }
             """);
-        var result = RunExpressiveGenerator(compilation);
 
-        Assert.AreEqual(2, result.GeneratedTrees.Length);
-        Assert.IsFalse(result.Diagnostics.Any(d => d.Id == "EXP0013"),
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
             "Should not warn when referenced method already has [Expressive]");
     }
 
     [TestMethod]
-    public void PropertyAccess_ToAutoProperty_NoWarning()
+    public async Task PropertyAccess_ToAutoProperty_NoWarning()
     {
-        var compilation = CreateCompilation(
+        var diagnostics = await RunAnalyzerAsync(
             """
             namespace Foo {
                 class C {
@@ -132,17 +151,15 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
                 }
             }
             """);
-        var result = RunExpressiveGenerator(compilation);
 
-        Assert.AreEqual(1, result.GeneratedTrees.Length);
-        Assert.IsFalse(result.Diagnostics.Any(d => d.Id == "EXP0013"),
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
             "Should not warn for auto-property access");
     }
 
     [TestMethod]
-    public void MethodCall_ToBclMethod_NoWarning()
+    public async Task MethodCall_ToBclMethod_NoWarning()
     {
-        var compilation = CreateCompilation(
+        var diagnostics = await RunAnalyzerAsync(
             """
             namespace Foo {
                 class C {
@@ -153,43 +170,15 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
                 }
             }
             """);
-        var result = RunExpressiveGenerator(compilation);
 
-        Assert.AreEqual(1, result.GeneratedTrees.Length);
-        Assert.IsFalse(result.Diagnostics.Any(d => d.Id == "EXP0013"),
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
             "Should not warn for BCL method call");
     }
 
     [TestMethod]
-    public void MethodCall_ToAbstractMethod_NoWarning()
+    public async Task PropertyAccess_ToExpressiveProperty_NoWarning()
     {
-        var compilation = CreateCompilation(
-            """
-            namespace Foo {
-                abstract class Base {
-                    public abstract int Compute();
-                }
-
-                class Derived : Base {
-                    public override int Compute() => 42;
-
-                    [Expressive]
-                    public int Result => Compute();
-                }
-            }
-            """);
-        var result = RunExpressiveGenerator(compilation);
-
-        Assert.AreEqual(1, result.GeneratedTrees.Length);
-        // The override has a body but the base is abstract; the symbol resolved
-        // here is the override which does have a body, so EXP0013 may fire.
-        // This test verifies no crash; the diagnostic behavior depends on Roslyn symbol resolution.
-    }
-
-    [TestMethod]
-    public void PropertyAccess_ToExpressiveProperty_NoWarning()
-    {
-        var compilation = CreateCompilation(
+        var diagnostics = await RunAnalyzerAsync(
             """
             namespace Foo {
                 class C {
@@ -203,10 +192,37 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
                 }
             }
             """);
-        var result = RunExpressiveGenerator(compilation);
 
-        Assert.AreEqual(2, result.GeneratedTrees.Length);
-        Assert.IsFalse(result.Diagnostics.Any(d => d.Id == "EXP0013"),
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
             "Should not warn when referenced property already has [Expressive]");
+    }
+
+    // ── Helper ──────────────────────────────────────────────────────────────
+
+    private async Task<ImmutableArray<Diagnostic>> RunAnalyzerAsync(string source)
+    {
+        var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
+        var compilation = CSharpCompilation.Create(
+            "TestCompilation",
+            new[]
+            {
+                CSharpSyntaxTree.ParseText(
+                    """
+                    global using System;
+                    global using System.Collections.Generic;
+                    global using System.Linq;
+                    global using ExpressiveSharp;
+                    """, parseOptions, "GlobalUsings.cs"),
+                CSharpSyntaxTree.ParseText(source, parseOptions, "TestFile.cs"),
+            },
+            GetDefaultReferences(),
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+        var analyzer = new MissingExpressiveAnalyzer();
+        var compilationWithAnalyzers = compilation.WithAnalyzers(
+            ImmutableArray.Create<DiagnosticAnalyzer>(analyzer));
+
+        var diagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync(CancellationToken.None);
+        return diagnostics;
     }
 }

@@ -364,7 +364,7 @@ public class MethodTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.IsTrue(result.Diagnostics.All(d => d.Id == "EXP0013"));
+        Assert.AreEqual(0, result.Diagnostics.Length);
         Assert.AreEqual(1, result.GeneratedTrees.Length);
 
         return Verifier.Verify(result.GeneratedTrees[0].ToString());
@@ -444,7 +444,7 @@ public class MethodTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.IsTrue(result.Diagnostics.All(d => d.Id == "EXP0013"));
+        Assert.AreEqual(0, result.Diagnostics.Length);
         Assert.AreEqual(1, result.GeneratedTrees.Length);
 
         return Verifier.Verify(result.GeneratedTrees[0].ToString());
@@ -609,7 +609,7 @@ public class MethodTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.IsTrue(result.Diagnostics.All(d => d.Id == "EXP0013"));
+        Assert.AreEqual(0, result.Diagnostics.Length);
         Assert.AreEqual(1, result.GeneratedTrees.Length);
 
         return Verifier.Verify(result.GeneratedTrees[0].ToString());

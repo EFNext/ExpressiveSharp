@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -175,19 +176,16 @@ public sealed class AddExpressiveCodeFixProviderTests : GeneratorTestBase
             project = callerDoc.Project;
         }
 
-        // 2. Get compilation and run generator
+        // 2. Get compilation and run analyzer
         var compilation = await project.GetCompilationAsync()
             ?? throw new System.Exception("Failed to get compilation");
 
-        var generator = new global::ExpressiveSharp.Generator.ExpressiveGenerator();
-        GeneratorDriver driver = CSharpGeneratorDriver
-            .Create(generator)
-            .WithUpdatedParseOptions(parseOptions);
+        var analyzer = new MissingExpressiveAnalyzer();
+        var compilationWithAnalyzers = compilation.WithAnalyzers(
+            System.Collections.Immutable.ImmutableArray.Create<DiagnosticAnalyzer>(analyzer));
 
-        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _);
-        var result = driver.GetRunResult();
-
-        var diagnostic = result.Diagnostics.FirstOrDefault(d => d.Id == "EXP0013");
+        var analyzerDiagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync(CancellationToken.None);
+        var diagnostic = analyzerDiagnostics.FirstOrDefault(d => d.Id == "EXP0013");
         Assert.IsNotNull(diagnostic, "Expected EXP0013 diagnostic to be emitted");
         Assert.IsTrue(diagnostic.AdditionalLocations.Count > 0,
             "Expected additional location (declaration) on EXP0013");
