@@ -27,6 +27,12 @@ VERIFY_AUTO_APPROVE=true dotnet test tests/ExpressiveSharp.Generator.Tests
 
 # Pack NuGet packages locally
 dotnet pack -c Release
+
+# Run benchmarks (all)
+dotnet run -c Release --project benchmarks/ExpressiveSharp.Benchmarks/ExpressiveSharp.Benchmarks.csproj -- --filter "*"
+
+# Run benchmarks (specific class)
+dotnet run -c Release --project benchmarks/ExpressiveSharp.Benchmarks/ExpressiveSharp.Benchmarks.csproj -- --filter "*GeneratorBenchmarks*"
 ```
 
 CI targets both .NET 8.0 and .NET 10.0 SDKs.
@@ -83,6 +89,7 @@ ExpressiveSharp.EntityFrameworkCore.CodeFixers (Roslyn analyzer, netstandard2.0)
 | `ExpressiveSharp.IntegrationTests.ExpressionCompile` | Compiles and invokes generated expression trees directly |
 | `ExpressiveSharp.IntegrationTests.EntityFrameworkCore` | EF Core query translation validation |
 | `ExpressiveSharp.EntityFrameworkCore.Tests` | EF Core integration-specific tests |
+| `ExpressiveSharp.Benchmarks` | BenchmarkDotNet performance benchmarks (generator, resolver, replacer, transformers, EF Core) |
 
 ### Three Verification Levels (see `docs/testing-strategy.md`)
 
