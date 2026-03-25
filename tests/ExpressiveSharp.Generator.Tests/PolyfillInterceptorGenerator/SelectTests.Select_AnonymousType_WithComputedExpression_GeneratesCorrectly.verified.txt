@@ -6,19 +6,23 @@ namespace ExpressiveSharp.Generated.Interceptors
     internal static class PolyfillInterceptors
     {
         private static readonly global::System.Reflection.PropertyInfo _i0_p0 = typeof(global::TestNs.Order).GetProperty("Id");
-        private static readonly global::System.Reflection.PropertyInfo _i0_p1 = typeof(global::TestNs.Order).GetProperty("Name");
+        private static readonly global::System.Reflection.PropertyInfo _i0_p1 = typeof(global::TestNs.Order).GetProperty("Price");
+        private static readonly global::System.Reflection.PropertyInfo _i0_p2 = typeof(global::TestNs.Order).GetProperty("Qty");
 
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
         internal static global::ExpressiveSharp.IRewritableQueryable<TResult> __Polyfill_Select_0<TElem, TResult>(
             this global::ExpressiveSharp.IRewritableQueryable<TElem> source,
             global::System.Func<TElem, TResult> _)
         {
-            // Source: o => new { o.Id, o.Name }
+            // Source: o => new { o.Id, Total = o.Price * o.Qty }
             var p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
             var expr_1 = global::System.Linq.Expressions.Expression.Property(p_o, _i0_p0); // o.Id
-            var expr_2 = global::System.Linq.Expressions.Expression.Property(p_o, _i0_p1); // o.Name
-            var expr_3 = typeof(TResult).GetConstructors()[0];
-            var expr_0 = global::System.Linq.Expressions.Expression.New(expr_3, new global::System.Linq.Expressions.Expression[] { expr_1, expr_2 }, new global::System.Reflection.MemberInfo[] { typeof(TResult).GetProperty("Id"), typeof(TResult).GetProperty("Name") });
+            var expr_3 = global::System.Linq.Expressions.Expression.Property(p_o, _i0_p1); // o.Price
+            var expr_5 = global::System.Linq.Expressions.Expression.Property(p_o, _i0_p2); // o.Qty
+            var expr_4 = global::System.Linq.Expressions.Expression.Convert(expr_5, typeof(decimal));
+            var expr_2 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Multiply, expr_3, expr_4);
+            var expr_6 = typeof(TResult).GetConstructors()[0];
+            var expr_0 = global::System.Linq.Expressions.Expression.New(expr_6, new global::System.Linq.Expressions.Expression[] { expr_1, expr_2 }, new global::System.Reflection.MemberInfo[] { typeof(TResult).GetProperty("Id"), typeof(TResult).GetProperty("Total") });
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, TResult>>(expr_0, p_o);
             return (global::ExpressiveSharp.IRewritableQueryable<TResult>)(object)
                 global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(

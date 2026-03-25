@@ -331,13 +331,14 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     private static Emitter.EmitResult? EmitLambdaBody(
         LambdaExpressionSyntax lambda,
         INamedTypeSymbol elementSymbol,
-        
+
         SemanticModel model,
         SourceProductionContext spc,
         ExpressiveGlobalOptions globalOptions,
         string delegateTypeFqn,
         string assignToVariable = "__lambda",
-        string fieldPrefix = "")
+        string fieldPrefix = "",
+        IReadOnlyDictionary<ITypeSymbol, string>? typeAliases = null)
     {
         if (lambda.Body is not SyntaxNode bodySyntax)
             return null;
@@ -348,6 +349,12 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         if (bodyNode is null) return null;
 
         var emitter = new Emitter.ExpressionTreeEmitter(model, spc, fieldPrefix);
+
+        if (typeAliases is not null)
+        {
+            foreach (var kvp in typeAliases)
+                emitter.RegisterTypeAlias(kvp.Key, kvp.Value);
+        }
 
         var emitterParams = new List<Emitter.EmitterParameter>();
         if (lambda is SimpleLambdaExpressionSyntax simple)
@@ -369,7 +376,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             }
         }
 
-        // Determine return type from delegate type args
+        // Determine return type from delegate type args, resolving through aliases for anonymous types.
         var returnTypeFqn = "object";
         if (elementSymbol.ContainingNamespace is not null)
         {
@@ -378,8 +385,11 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             if (typeInfo.ConvertedType is INamedTypeSymbol convertedType &&
                 convertedType.TypeArguments.Length > 0)
             {
-                returnTypeFqn = convertedType.TypeArguments[convertedType.TypeArguments.Length - 1]
-                    .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                var returnTypeSymbol = convertedType.TypeArguments[convertedType.TypeArguments.Length - 1];
+                if (typeAliases is not null && typeAliases.TryGetValue(returnTypeSymbol, out var aliasedReturn))
+                    returnTypeFqn = aliasedReturn;
+                else
+                    returnTypeFqn = returnTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             }
         }
 
@@ -479,9 +489,12 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
         // Anonymous result type: must match arity 2 (T, TResult) of Select<T, TResult>.
         // TElem is generic in signature but concrete in body via (object) cast.
-        var anonResultFqn = resultType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        var anonDelegateFqn = $"global::System.Func<{elemFqn}, {anonResultFqn}>";
-        var anonEmitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, anonDelegateFqn, fieldPrefix: $"i{idx}_");
+        var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default)
+        {
+            { resultType, "TResult" }
+        };
+        var anonDelegateFqn = $"global::System.Func<{elemFqn}, TResult>";
+        var anonEmitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, anonDelegateFqn, fieldPrefix: $"i{idx}_", typeAliases: typeAliases);
         if (anonEmitResult is null) return null;
         allStaticFields.AddRange(anonEmitResult.StaticFields);
 
@@ -534,8 +547,12 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             """;
         }
 
-        var anonDelegateFqn = $"global::System.Func<{elemFqn}, global::System.Collections.Generic.IEnumerable<{resultType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>>";
-        var anonEmitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, anonDelegateFqn, fieldPrefix: $"i{idx}_");
+        var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default)
+        {
+            { resultType, "TResult" }
+        };
+        var anonDelegateFqn = $"global::System.Func<{elemFqn}, global::System.Collections.Generic.IEnumerable<TResult>>";
+        var anonEmitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, anonDelegateFqn, fieldPrefix: $"i{idx}_", typeAliases: typeAliases);
         if (anonEmitResult is null) return null;
         allStaticFields.AddRange(anonEmitResult.StaticFields);
 
@@ -600,14 +617,21 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         }
 
         // Arity 3: <TElem, TCollection, TResult>. All become generic to match SelectMany<T, TCollection, TResult>.
-        var anonDelegateFqn1 = $"global::System.Func<{elemFqn}, global::System.Collections.Generic.IEnumerable<{collFqn}>>";
-        var anonEmitResult1 = EmitLambdaBody(lam1, elemSym, model, spc, globalOptions, anonDelegateFqn1, "__lambda1", fieldPrefix: $"i{idx}a_");
+        var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default);
+        if (IsAnonymousType(collType))
+            typeAliases[collType] = "TCollection";
+        if (IsAnonymousType(resultType))
+            typeAliases[resultType] = "TResult";
+
+        var collRef = IsAnonymousType(collType) ? "TCollection" : collFqn;
+        var anonDelegateFqn1 = $"global::System.Func<{elemFqn}, global::System.Collections.Generic.IEnumerable<{collRef}>>";
+        var anonEmitResult1 = EmitLambdaBody(lam1, elemSym, model, spc, globalOptions, anonDelegateFqn1, "__lambda1", fieldPrefix: $"i{idx}a_", typeAliases: typeAliases);
         if (anonEmitResult1 is null) return null;
         allStaticFields.AddRange(anonEmitResult1.StaticFields);
 
-        var anonResultFqn = resultType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        var anonDelegateFqn2 = $"global::System.Func<{elemFqn}, {collFqn}, {anonResultFqn}>";
-        var anonEmitResult2 = EmitLambdaBody(lam2, elemSym, model, spc, globalOptions, anonDelegateFqn2, "__lambda2", fieldPrefix: $"i{idx}b_");
+        var resultRef = IsAnonymousType(resultType) ? "TResult" : resultType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var anonDelegateFqn2 = $"global::System.Func<{elemFqn}, {collRef}, {resultRef}>";
+        var anonEmitResult2 = EmitLambdaBody(lam2, elemSym, model, spc, globalOptions, anonDelegateFqn2, "__lambda2", fieldPrefix: $"i{idx}b_", typeAliases: typeAliases);
         if (anonEmitResult2 is null) return null;
         allStaticFields.AddRange(anonEmitResult2.StaticFields);
 
@@ -669,9 +693,12 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         }
 
         // Arity 2: <TElem, TKey>. Return type stays concrete (element type).
-        var anonKeyFqn = keyType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        var anonDelegateFqn = $"global::System.Func<{elemFqn}, {anonKeyFqn}>";
-        var anonEmitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, anonDelegateFqn, fieldPrefix: $"i{idx}_");
+        var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default)
+        {
+            { keyType, "TKey" }
+        };
+        var anonDelegateFqn = $"global::System.Func<{elemFqn}, TKey>";
+        var anonEmitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, anonDelegateFqn, fieldPrefix: $"i{idx}_", typeAliases: typeAliases);
         if (anonEmitResult is null) return null;
         allStaticFields.AddRange(anonEmitResult.StaticFields);
 
@@ -726,9 +753,12 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         }
 
         // Arity 2: <TElem, TKey>. Return type is IGrouping<TKey, TElem>.
-        var anonKeyFqn = keyType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        var anonDelegateFqn = $"global::System.Func<{elemFqn}, {anonKeyFqn}>";
-        var anonEmitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, anonDelegateFqn, fieldPrefix: $"i{idx}_");
+        var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default)
+        {
+            { keyType, "TKey" }
+        };
+        var anonDelegateFqn = $"global::System.Func<{elemFqn}, TKey>";
+        var anonEmitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, anonDelegateFqn, fieldPrefix: $"i{idx}_", typeAliases: typeAliases);
         if (anonEmitResult is null) return null;
         allStaticFields.AddRange(anonEmitResult.StaticFields);
 
@@ -823,11 +853,17 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
         var returnParamName = typeParamNames.Length > 1 ? typeParamNames[typeParamNames.Length - 1] : "T0";
 
-        // For the anon branch, build the concrete delegate type for the emitter
+        // For the anon branch, build type aliases and delegate type using generic param names.
+        var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default);
+        for (int i = 0; i < methodTypeArgs.Length; i++)
+        {
+            if (IsAnonymousType(methodTypeArgs[i]))
+                typeAliases[methodTypeArgs[i]] = typeParamNames[i];
+        }
         var anonFuncFqn = "global::System.Func<" +
-            string.Join(", ", funcTypeArgs.Select(t =>
-                t.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))) + ">";
-        var anonEmitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, anonFuncFqn, fieldPrefix: $"i{idx}_");
+            string.Join(", ", funcTypeArgs.Select((t, i) =>
+                IsAnonymousType(t) ? funcArgStrings[i] : t.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))) + ">";
+        var anonEmitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, anonFuncFqn, fieldPrefix: $"i{idx}_", typeAliases: typeAliases);
         if (anonEmitResult is null) return null;
         allStaticFields.AddRange(anonEmitResult.StaticFields);
 

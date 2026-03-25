@@ -50,6 +50,7 @@ internal sealed class ExpressionTreeEmitter
     private int _varCounter;
     private int _lineCount;
     private readonly Stack<(string VarName, ITypeSymbol? Type)> _conditionalAccessReceiverStack = new();
+    private readonly Dictionary<ITypeSymbol, string> _typeAliases = new(SymbolEqualityComparer.Default);
 
     public ExpressionTreeEmitter(
         SemanticModel semanticModel,
@@ -60,6 +61,20 @@ internal sealed class ExpressionTreeEmitter
         _context = context;
         _fieldCache = new ReflectionFieldCache(fieldPrefix);
     }
+
+    /// <summary>
+    /// Registers a type alias so that <paramref name="type"/> is emitted as <paramref name="alias"/>
+    /// (e.g., a generic type parameter name) instead of its fully qualified name.
+    /// Used for anonymous types that cannot be named in generated C# source.
+    /// </summary>
+    public void RegisterTypeAlias(ITypeSymbol type, string alias)
+        => _typeAliases[type] = alias;
+
+    /// <summary>
+    /// Returns the fully qualified type name, substituting registered aliases for anonymous types.
+    /// </summary>
+    private string ResolveTypeFqn(ITypeSymbol type)
+        => _typeAliases.TryGetValue(type, out var alias) ? alias : type.ToDisplayString(_fqnFormat);
 
     /// <summary>
     /// Translates a lambda body expression into imperative <c>Expression.*</c> factory code.
@@ -399,6 +414,7 @@ internal sealed class ExpressionTreeEmitter
             IConversionOperation conversion => EmitConversion(conversion),
             IConditionalOperation conditional => EmitConditional(conditional),
             IObjectCreationOperation creation => EmitObjectCreation(creation),
+            IAnonymousObjectCreationOperation anonCreation => EmitAnonymousObjectCreation(anonCreation),
             IDefaultValueOperation defaultVal => EmitDefault(defaultVal),
             ITypeOfOperation typeOf => EmitTypeOf(typeOf),
             IParenthesizedOperation paren => EmitOperation(paren.Operand),
@@ -1011,6 +1027,69 @@ internal sealed class ExpressionTreeEmitter
             AppendLine($"var {resultVar} = {Expr}.New(typeof({typeFqn}));");
         }
 
+        return resultVar;
+    }
+
+    // ── Anonymous object creation ───────────────────────────────────────────
+
+    private string EmitAnonymousObjectCreation(IAnonymousObjectCreationOperation creation)
+    {
+        var anonType = creation.Type;
+        if (anonType is null || !_typeAliases.ContainsKey(anonType))
+        {
+            // No alias registered (e.g., nested anonymous type or [Expressive] path).
+            // Cannot generate valid C# — fall back to unsupported.
+            return EmitUnsupported(creation);
+        }
+
+        var resultVar = NextVar();
+        var typeFqn = ResolveTypeFqn(anonType);
+
+        // Emit each initializer value and collect property names.
+        var valueVars = new List<string>();
+        var propertyNames = new List<string>();
+        foreach (var initializer in creation.Initializers)
+        {
+            if (initializer is ISimpleAssignmentOperation assignment)
+            {
+                valueVars.Add(EmitOperation(assignment.Value));
+                if (assignment.Target is IPropertyReferenceOperation propRef)
+                    propertyNames.Add(propRef.Property.Name);
+            }
+            else
+            {
+                // Direct value expression — property name comes from the type symbol.
+                valueVars.Add(EmitOperation(initializer));
+            }
+        }
+
+        // If property names weren't extracted from assignments, derive from the type symbol.
+        if (propertyNames.Count < valueVars.Count && anonType is INamedTypeSymbol namedType)
+        {
+            propertyNames.Clear();
+            foreach (var member in namedType.GetMembers())
+            {
+                if (member is IPropertySymbol prop && !prop.IsImplicitlyDeclared)
+                    propertyNames.Add(prop.Name);
+            }
+        }
+
+        // Inline runtime reflection — cannot use ReflectionFieldCache because the anonymous
+        // type is referenced via a generic type parameter (e.g., TResult) that is only
+        // available at the method level, not in static field initializers.
+        var ctorVar = NextVar();
+        AppendLine($"var {ctorVar} = typeof({typeFqn}).GetConstructors()[0];");
+
+        var argsArray = valueVars.Count > 0
+            ? $"new {Expr}[] {{ {string.Join(", ", valueVars)} }}"
+            : $"global::System.Array.Empty<{Expr}>()";
+
+        var memberExprs = propertyNames.Select(n => $"typeof({typeFqn}).GetProperty(\"{n}\")");
+        var membersArray = propertyNames.Count > 0
+            ? $"new global::System.Reflection.MemberInfo[] {{ {string.Join(", ", memberExprs)} }}"
+            : $"global::System.Array.Empty<global::System.Reflection.MemberInfo>()";
+
+        AppendLine($"var {resultVar} = {Expr}.New({ctorVar}, {argsArray}, {membersArray});");
         return resultVar;
     }
 
@@ -2693,7 +2772,7 @@ internal sealed class ExpressionTreeEmitter
             operation.Kind.ToString());
 
         var resultVar = NextVar();
-        var typeFqn = operation.Type?.ToDisplayString(_fqnFormat) ?? "object";
+        var typeFqn = operation.Type is not null ? ResolveTypeFqn(operation.Type) : "object";
         AppendLine($"/* Unsupported IOperation: {operation.Kind} */");
         AppendLine($"var {resultVar} = {Expr}.Default(typeof({typeFqn}));");
         return resultVar;

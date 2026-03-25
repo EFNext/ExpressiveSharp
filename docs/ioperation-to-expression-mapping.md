@@ -49,7 +49,7 @@ Unrecognized operations fall through to `EmitUnsupported()` which emits `Express
 |---|---|---|---|
 | `IInvocationOperation` | `Expression.Call(instance, MethodInfo, args)` | Implemented | Static/instance dispatch. Generic methods resolved via `MakeGenericMethod()`. Enum method expansion to ternary chains. |
 | `IObjectCreationOperation` | `Expression.New(ConstructorInfo, args)` | Implemented | With member initializer → `Expression.MemberInit`. With collection initializer → `Expression.ListInit` via `Expression.ElementInit`. |
-| `IAnonymousObjectCreationOperation` | `Expression.New(ctor, args, members)` | Not yet implemented | Anonymous types can't be named in generated source code. Works via `PolyfillInterceptorGenerator` path instead. |
+| `IAnonymousObjectCreationOperation` | `Expression.New(ctor, args, members)` | Implemented (interceptor path) | Uses inline runtime reflection via generic type parameters (e.g., `typeof(TResult).GetConstructors()[0]`). Nested anonymous types fall back to EXP0008. |
 | `IDelegateCreationOperation` | *(transparent)* | Implemented | Emits its `Target` operation directly. |
 | `IArrayCreationOperation` | `Expression.NewArrayInit` / `Expression.NewArrayBounds` | Implemented | With initializer → `NewArrayInit`; without → `NewArrayBounds`. |
 
@@ -193,7 +193,6 @@ Unrecognized operations fall through to `EmitUnsupported()` which emits `Express
 
 | IOperation | Target Expression Factory | Notes |
 |---|---|---|
-| `IAnonymousObjectCreationOperation` | `Expression.New(ctor, args, members)` | Anonymous types can't be referenced by name in generated source. Use `PolyfillInterceptorGenerator` path or named types. |
 | `IThrowOperation` | `Expression.Throw(expr, typeof(T))` | `throw` expressions. `Expression.Throw` exists but not all LINQ providers support it. Detected early by block body validation (EXP0006). |
 
 ---
