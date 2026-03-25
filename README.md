@@ -335,7 +335,7 @@ All expression trees are generated at compile time. There is no runtime reflecti
 
 ### Does this have any runtime overhead?
 
-No practical impact. The source generators emit `Expression.*` factory calls at compile time. At runtime, `UseExpressives()` replaces opaque property accesses with the pre-built expressions during EF Core query compilation — this adds a small cost on first execution, but the expanded query is cached by EF Core afterward. There is no runtime reflection, no `Compile()`, and no expression tree parsing.
+No practical impact. The source generators emit `Expression.*` factory calls at compile time. At runtime, `ExpandExpressives()` (or `UseExpressives()` in EF Core) replaces opaque property accesses with the pre-built expressions — this adds a small cost on first execution, but LINQ providers like EF Core cache the expanded query afterward. There is no runtime reflection, no `Compile()`, and no expression tree parsing.
 
 ### Can `[Expressive]` members call other `[Expressive]` members?
 
