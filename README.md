@@ -1,6 +1,12 @@
 # <img src="assets/icon.png" width="32" height="32" alt="ExpressiveSharp icon" style="vertical-align: middle"> ExpressiveSharp
 
-[![CI](https://github.com/koenbeuk/ExpressiveSharp/actions/workflows/ci.yml/badge.svg)](https://github.com/koenbeuk/ExpressiveSharp/actions/workflows/ci.yml)
+[![CI](https://github.com/EFNext/ExpressiveSharp/actions/workflows/ci.yml/badge.svg)](https://github.com/EFNext/ExpressiveSharp/actions/workflows/ci.yml)
+[![NuGet](https://img.shields.io/nuget/v/ExpressiveSharp.svg)](https://www.nuget.org/packages/ExpressiveSharp)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/ExpressiveSharp.svg)](https://www.nuget.org/packages/ExpressiveSharp)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
+[![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%2010.0-purple)](https://dotnet.microsoft.com)
+[![GitHub Stars](https://img.shields.io/github/stars/EFNext/ExpressiveSharp)](https://github.com/EFNext/ExpressiveSharp/stargazers)
+[![GitHub Issues](https://img.shields.io/github/issues/EFNext/ExpressiveSharp)](https://github.com/EFNext/ExpressiveSharp/issues)
 
 Source generator that enables modern C# syntax in LINQ expression trees. All expression trees are generated at compile time with minimal runtime overhead.
 

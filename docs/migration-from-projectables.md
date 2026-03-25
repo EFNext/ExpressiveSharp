@@ -137,7 +137,7 @@ The `InterceptorsNamespaces` MSBuild property needed for method interceptors is 
 
 4. **`ProjectableOptionsBuilder` callback removed** — `UseProjectables(opts => { ... })` becomes `UseExpressives()` with no parameters. Global transformer configuration is done via `ExpressiveOptions.Default` if needed.
 
-5. **`UseMemberBody` property removed** — This was typically a workaround for syntax limitations in Projectable expression bodies. Since ExpressiveSharp supports block bodies, switch expressions, pattern matching, and more, you likely don't need it. Remove any `UseMemberBody` assignments. If your use case still requires it, please [open an issue](https://github.com/koenbeuk/ExpressiveSharp/issues).
+5. **`UseMemberBody` property removed** — This was typically a workaround for syntax limitations in Projectable expression bodies. Since ExpressiveSharp supports block bodies, switch expressions, pattern matching, and more, you likely don't need it. Remove any `UseMemberBody` assignments. If your use case still requires it, please [open an issue](https://github.com/EFNext/ExpressiveSharp/issues).
 
 6. **`CompatibilityMode` removed** — ExpressiveSharp always uses the full query-compiler-decoration approach. The `Limited` compatibility mode does not exist.
 
