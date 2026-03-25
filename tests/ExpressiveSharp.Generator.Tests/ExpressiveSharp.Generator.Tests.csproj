@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ExpressiveSharp.CodeFixers\ExpressiveSharp.CodeFixers.csproj" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp.EntityFrameworkCore.CodeFixers\ExpressiveSharp.EntityFrameworkCore.CodeFixers.csproj" />
     <ProjectReference Include="..\..\src\ExpressiveSharp.Generator\ExpressiveSharp.Generator.csproj" />
     <ProjectReference Include="..\..\src\ExpressiveSharp\ExpressiveSharp.csproj" />
   </ItemGroup>

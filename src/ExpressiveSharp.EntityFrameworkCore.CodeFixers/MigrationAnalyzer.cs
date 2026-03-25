@@ -86,9 +86,12 @@ public sealed class MigrationAnalyzer : DiagnosticAnalyzer
             return;
         }
 
+        // UseProjectables() is defined in the Microsoft.EntityFrameworkCore namespace
+        // (following EF Core's extension method convention), so we can't verify via
+        // containing namespace. The method name is distinctive enough, and we still
+        // verify it's an actual method symbol (not just a similarly-named identifier).
         var symbolInfo = context.SemanticModel.GetSymbolInfo(invocation, context.CancellationToken);
-        if (symbolInfo.Symbol is IMethodSymbol method &&
-            method.ContainingNamespace.ToDisplayString().StartsWith("EntityFrameworkCore.Projectables"))
+        if (symbolInfo.Symbol is IMethodSymbol || symbolInfo.CandidateSymbols.Any(s => s is IMethodSymbol))
         {
             context.ReportDiagnostic(Diagnostic.Create(UseProjectablesCall, invocation.GetLocation()));
         }
