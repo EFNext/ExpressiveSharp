@@ -24,6 +24,9 @@ dotnet test -f net8.0 -c Release
 
 # Accept new Verify snapshots (for snapshot tests)
 VERIFY_AUTO_APPROVE=true dotnet test tests/ExpressiveSharp.Generator.Tests
+
+# Pack NuGet packages locally
+dotnet pack -c Release
 ```
 
 CI targets both .NET 8.0 and .NET 10.0 SDKs.
@@ -58,6 +61,10 @@ ExpressiveSharp.Generator (source generator, netstandard2.0)
 ExpressiveSharp.EntityFrameworkCore (net8.0;net10.0)
   ├── ExpressiveSharp
   └── EF Core 8.0.25 / 10.0.0
+
+ExpressiveSharp.EntityFrameworkCore.CodeFixers (Roslyn analyzer, netstandard2.0)
+  └── Microsoft.CodeAnalysis.CSharp.Workspaces 4.12.0
+  (packed into ExpressiveSharp.EntityFrameworkCore NuGet package)
 ```
 
 ### Diagnostics
@@ -99,6 +106,7 @@ Snapshot tests use `GeneratorTestBase.RunExpressiveGenerator()` to compile via R
 - **Generator targets netstandard2.0** — no modern C# APIs (no spans, no `Index`/`Range`, limited BCL). All generator code must compile against netstandard2.0 even though the rest of the solution uses C# 12+/14.
 - **Snapshot tests** — `*.verified.cs` files alongside tests in `tests/ExpressiveSharp.Generator.Tests/` are the expected output. Commit them. Use `VERIFY_AUTO_APPROVE=true` to accept new baselines.
 - **Incremental generator caching** — never store live Roslyn objects (symbols, syntax nodes) in cached pipeline state. Use immutable data snapshots with custom equality comparers.
+- **Central Package Management** — all package versions are pinned in `Directory.Packages.props`. When adding a new dependency, add its version there (not in the individual `.csproj`).
 
 ## MSBuild Properties
 
