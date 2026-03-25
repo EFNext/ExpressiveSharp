@@ -1,6 +1,6 @@
 # <img src="assets/icon.png" width="48" height="48" alt="ExpressiveSharp icon" style="vertical-align: middle"> ExpressiveSharp
 
-[![CI](https://github.com/EFNext/ExpressiveSharp/actions/workflows/ci.yml/badge.svg)](https://github.com/EFNext/ExpressiveSharp/actions/workflows/ci.yml)
+[![CI](https://github.com/koenbeuk/ExpressiveSharp/actions/workflows/ci.yml/badge.svg)](https://github.com/koenbeuk/ExpressiveSharp/actions/workflows/ci.yml)
 
 Source generator that enables modern C# syntax in LINQ expression trees. All expression trees are generated at compile time with minimal runtime overhead.
 

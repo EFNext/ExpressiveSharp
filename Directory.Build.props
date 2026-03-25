@@ -16,8 +16,8 @@
 	<Authors>Koen</Authors>
 	<Copyright>Copyright (c) Koen 2025</Copyright>
 	<PackageLicenseExpression>MIT</PackageLicenseExpression>
-	<PackageProjectUrl>https://github.com/EFNext/ExpressiveSharp</PackageProjectUrl>
-	<RepositoryUrl>https://github.com/EFNext/ExpressiveSharp.git</RepositoryUrl>
+	<PackageProjectUrl>https://github.com/koenbeuk/ExpressiveSharp</PackageProjectUrl>
+	<RepositoryUrl>https://github.com/koenbeuk/ExpressiveSharp.git</RepositoryUrl>
 	<RepositoryType>git</RepositoryType>
 	<Description>Source generator that polyfills modern C# syntax into expression trees</Description>
 	<PackageTags>expression-trees;source-generator;roslyn;linq;efcore;csharp</PackageTags>
