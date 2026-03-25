@@ -3,8 +3,8 @@ using Microsoft.EntityFrameworkCore;
 
 public class SampleDbContext : DbContext
 {
-    public ExpressiveDbSet<Order> Orders => Set<Order>().AsExpressiveDbSet();
-    public ExpressiveDbSet<Customer> Customers => Set<Customer>().AsExpressiveDbSet();
+    public ExpressiveDbSet<Order> Orders => this.ExpressiveSet<Order>();
+    public ExpressiveDbSet<Customer> Customers => this.ExpressiveSet<Customer>();
 
     public SampleDbContext(DbContextOptions<SampleDbContext> options) : base(options) { }
 

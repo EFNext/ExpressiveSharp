@@ -1,36 +1,8 @@
-using System.ComponentModel;
-using System.Linq.Expressions;
 using ExpressiveSharp;
 
-// ── Enums ────────────────────────────────────────────────────────────────────
-
-public enum OrderStatus
-{
-    [Description("Awaiting processing")]
-    Pending,
-
-    [Description("Order approved")]
-    Approved,
-
-    [Description("Order rejected")]
-    Rejected,
-}
-
-public static class OrderStatusExtensions
-{
-    public static string GetDescription(this OrderStatus value)
-    {
-        return value switch
-        {
-            OrderStatus.Pending => "Awaiting processing",
-            OrderStatus.Approved => "Order approved",
-            OrderStatus.Rejected => "Order rejected",
-            _ => value.ToString(),
-        };
-    }
-}
-
 // ── Domain models ────────────────────────────────────────────────────────────
+
+public enum OrderStatus { Pending, Approved, Rejected }
 
 public class Customer
 {
@@ -47,29 +19,15 @@ public class Order
     public OrderStatus Status { get; set; }
     public Customer? Customer { get; set; }
 
-    // ── [Expressive] properties ──────────────────────────────────────────
-
-    /// Basic computed property — generates a companion expression tree.
+    /// Computed total — usable in LINQ-to-SQL queries, not just in-memory code.
     [Expressive]
     public double Total => Price * Quantity;
 
-    /// Null-conditional: Customer?.Name → (Customer != null ? Customer.Name : null)
+    /// Null-conditional access — normally illegal in expression trees (CS8072).
     [Expressive]
     public string? CustomerName => Customer?.Name;
 
-    /// Same expression, but without the null-check pattern.
-    /// When consumed by a LINQ provider that registers RemoveNullConditionalPatterns globally
-    /// (e.g. EF Core via UseExpressives()), the null check is stripped: Customer?.Name → Customer.Name
-    [Expressive]
-    public string? CustomerNameUnsafe => Customer?.Name;
-
-    /// Enum method expansion: expands GetDescription() into a ternary chain per enum value.
-    [Expressive]
-    public string StatusDescription => Status.GetDescription();
-
-    // ── [Expressive] methods ─────────────────────────────────────────────
-
-    /// Switch expression with relational patterns.
+    /// Switch expression with relational patterns — translates to CASE WHEN in SQL.
     [Expressive]
     public string GetGrade() => Price switch
     {
@@ -78,7 +36,7 @@ public class Order
         _ => "Budget",
     };
 
-    /// Block body with if/else and local variables.
+    /// Block body with local variables and if/else — requires AllowBlockBody opt-in.
     [Expressive(AllowBlockBody = true)]
     public string GetCategory()
     {
@@ -92,10 +50,9 @@ public class Order
             return "Regular";
         }
     }
-
 }
 
-// ── Constructor projection ───────────────────────────────────────────────────
+// ── DTO with projectable constructor ─────────────────────────────────────────
 
 public class OrderDto
 {
@@ -105,7 +62,8 @@ public class OrderDto
 
     public OrderDto() { }
 
-    /// Projectable constructor — generates a MemberInit expression tree.
+    /// Projectable constructor — expands to MemberInit so LINQ providers
+    /// can translate the projection to SQL instead of loading entire entities.
     [Expressive]
     public OrderDto(int id, string description, double total)
     {
@@ -135,7 +93,7 @@ public class Rectangle : Shape
 
 public static class ShapeExtensions
 {
-    /// Extension method with type-pattern switch expression.
+    /// Extension method with type-pattern switch — works with [Expressive] too.
     [Expressive]
     public static double GetArea(this Shape shape) => shape switch
     {
