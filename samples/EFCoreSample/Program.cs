@@ -2,6 +2,11 @@ using ExpressiveSharp.Extensions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
+// Two ways to query:
+//   db.Set<Order>()  — standard DbSet; UseExpressives() auto-expands [Expressive] members
+//   db.Orders         — ExpressiveDbSet; also rewrites ?. and other modern syntax in lambdas
+// Use db.Orders when you need ?. in Where/GroupBy delegates.
+
 // ── Setup ────────────────────────────────────────────────────────────────────
 
 var connection = new SqliteConnection("Data Source=:memory:");
