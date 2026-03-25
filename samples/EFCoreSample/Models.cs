@@ -17,6 +17,7 @@ public enum OrderStatus
 
 public static class OrderStatusExtensions
 {
+    [Expressive]
     public static string GetDescription(this OrderStatus value) => value switch
     {
         OrderStatus.Pending => "Awaiting processing",
@@ -53,7 +54,7 @@ public class Order
     /// Null-conditional navigation — UseExpressives() strips the null check
     /// automatically so EF Core can translate it to a JOIN.
     [Expressive]
-    public string? CustomerEmail => Customer?.Email;
+    public string? CustomerEmail => Total >= 0 ?  Customer?.Email : "";
 
     /// Enum method expansion — each enum value is evaluated at compile time,
     /// producing a CASE WHEN chain that translates directly to SQL.
