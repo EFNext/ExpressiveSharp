@@ -394,7 +394,7 @@ public class LoopTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.AreEqual(0, result.Diagnostics.Length,
+        Assert.IsTrue(result.Diagnostics.All(d => d.Id == "EXP0013"),
             string.Join("\n", result.Diagnostics.Select(d => d.ToString())));
         Assert.AreEqual(1, result.GeneratedTrees.Length);
 

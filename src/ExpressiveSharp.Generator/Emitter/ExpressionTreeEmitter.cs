@@ -507,6 +507,8 @@ internal sealed class ExpressionTreeEmitter
 
     private string EmitPropertyReference(IPropertyReferenceOperation propRef)
     {
+        WarnIfMissingExpressive(propRef.Property, propRef.Syntax?.GetLocation() ?? Location.None);
+
         var resultVar = NextVar();
         var fieldName = _fieldCache.EnsurePropertyInfo(propRef.Property);
 
@@ -678,6 +680,9 @@ internal sealed class ExpressionTreeEmitter
 
         var resultVar = NextVar();
         var method = invocation.TargetMethod;
+
+        WarnIfMissingExpressive(method, invocation.Syntax?.GetLocation() ?? Location.None);
+
         var methodFieldName = _fieldCache.EnsureMethodInfo(method);
 
         var argVars = new List<string>();
@@ -2753,6 +2758,74 @@ internal sealed class ExpressionTreeEmitter
             sb.AppendLine(line);
         }
         return new EmitResult(sb.ToString(), _fieldCache.GetDeclarations());
+    }
+
+    private void WarnIfMissingExpressive(ISymbol symbol, Location location)
+    {
+        if (_context is null)
+            return;
+
+        if (symbol.DeclaringSyntaxReferences.Length == 0)
+            return;
+
+        if (symbol.IsAbstract || symbol.IsExtern)
+            return;
+
+        if (HasExpressiveAttribute(symbol))
+            return;
+
+        if (!HasExpandableBody(symbol))
+            return;
+
+        ReportDiagnostic(
+            Diagnostics.MemberCouldBeExpressive,
+            location,
+            symbol.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat));
+    }
+
+    private static bool HasExpressiveAttribute(ISymbol symbol)
+    {
+        foreach (var attr in symbol.GetAttributes())
+        {
+            var attrClass = attr.AttributeClass;
+            if (attrClass is null)
+                continue;
+            if (attrClass.Name == "ExpressiveAttribute" &&
+                attrClass.ContainingNamespace is not null &&
+                attrClass.ContainingNamespace.ToDisplayString() == "ExpressiveSharp")
+                return true;
+        }
+        return false;
+    }
+
+    private static bool HasExpandableBody(ISymbol symbol)
+    {
+        foreach (var syntaxRef in symbol.DeclaringSyntaxReferences)
+        {
+            var syntax = syntaxRef.GetSyntax();
+
+            if (syntax is MethodDeclarationSyntax methodDecl)
+            {
+                if (methodDecl.ExpressionBody is not null || methodDecl.Body is not null)
+                    return true;
+            }
+            else if (syntax is PropertyDeclarationSyntax propDecl)
+            {
+                if (propDecl.ExpressionBody is not null)
+                    return true;
+
+                if (propDecl.AccessorList is not null)
+                {
+                    foreach (var accessor in propDecl.AccessorList.Accessors)
+                    {
+                        if (accessor.IsKind(SyntaxKind.GetAccessorDeclaration) &&
+                            (accessor.ExpressionBody is not null || accessor.Body is not null))
+                            return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private void ReportDiagnostic(DiagnosticDescriptor descriptor, Location location, params object[] messageArgs)
