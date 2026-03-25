@@ -1,4 +1,4 @@
-# <img src="assets/icon.png" width="48" height="48" alt="ExpressiveSharp icon" style="vertical-align: middle"> ExpressiveSharp
+# <img src="assets/icon.png" width="32" height="32" alt="ExpressiveSharp icon" style="vertical-align: middle"> ExpressiveSharp
 
 [![CI](https://github.com/koenbeuk/ExpressiveSharp/actions/workflows/ci.yml/badge.svg)](https://github.com/koenbeuk/ExpressiveSharp/actions/workflows/ci.yml)
 
