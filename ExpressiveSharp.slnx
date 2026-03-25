@@ -4,6 +4,7 @@
     <Project Path="samples/EFCoreSample/EFCoreSample.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/ExpressiveSharp.EntityFrameworkCore.CodeFixers/ExpressiveSharp.EntityFrameworkCore.CodeFixers.csproj" />
     <Project Path="src/ExpressiveSharp.EntityFrameworkCore/ExpressiveSharp.EntityFrameworkCore.csproj" />
     <Project Path="src/ExpressiveSharp.Generator/ExpressiveSharp.Generator.csproj" />
     <Project Path="src/ExpressiveSharp/ExpressiveSharp.csproj" />
