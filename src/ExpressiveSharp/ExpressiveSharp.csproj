@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <IsPackable>false</IsPackable>
+    <Description>Source generator that polyfills modern C# syntax (?., switch expressions, pattern matching) into LINQ expression trees</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -10,6 +10,20 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ExpressiveSharp.Generator\ExpressiveSharp.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <!-- Pack the source generator into analyzers/dotnet/cs/ so NuGet consumers get it -->
+  <ItemGroup>
+    <None Include="..\ExpressiveSharp.Generator\bin\$(Configuration)\netstandard2.0\ExpressiveSharp.Generator.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs/" Visible="false" />
+  </ItemGroup>
+
+  <!-- Pack build props so consumers get interceptor namespace + compiler-visible properties -->
+  <ItemGroup>
+    <None Include="..\ExpressiveSharp.Generator\build\ExpressiveSharp.Generator.props"
+          Pack="true" PackagePath="build/ExpressiveSharp.props" Visible="false" />
+    <None Include="..\ExpressiveSharp.Generator\build\ExpressiveSharp.Generator.props"
+          Pack="true" PackagePath="buildTransitive/ExpressiveSharp.props" Visible="false" />
   </ItemGroup>
 
 </Project>
