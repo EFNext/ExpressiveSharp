@@ -2,11 +2,6 @@ using ExpressiveSharp.Extensions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
-// Two ways to query:
-//   db.Set<Order>()  — standard DbSet; UseExpressives() auto-expands [Expressive] members
-//   db.Orders         — ExpressiveDbSet; also rewrites ?. and other modern syntax in lambdas
-// Use db.Orders when you need ?. in Where/GroupBy delegates.
-
 // ── Setup ────────────────────────────────────────────────────────────────────
 
 var connection = new SqliteConnection("Data Source=:memory:");
@@ -25,7 +20,7 @@ SeedData(db);
 // Total => Price * Quantity becomes a SQL expression, not a client-side eval.
 Section("Computed Properties in SQL");
 
-var totalsQuery = db.Set<Order>().Select(o => new { o.Id, o.Total });
+var totalsQuery = db.Orders.AsQueryable().Select(o => new { o.Id, o.Total });
 PrintSql(totalsQuery);
 foreach (var r in totalsQuery) Console.WriteLine($"  Order #{r.Id}: Total = {r.Total}");
 
@@ -40,7 +35,7 @@ PrintSql(emailFilter);
 foreach (var o in emailFilter) Console.WriteLine($"  Order #{o.Id}: {o.Customer.Name} <{o.Customer.Email}>");
 
 // Switch expression in Select — becomes CASE WHEN in SQL
-var gradesQuery = db.Set<Order>().Select(o => new { o.Id, o.Price, Grade = o.GetGrade() });
+var gradesQuery = db.Orders.AsQueryable().Select(o => new { o.Id, o.Price, Grade = o.GetGrade() });
 PrintSql(gradesQuery);
 foreach (var r in gradesQuery) Console.WriteLine($"  Order #{r.Id} (${r.Price}): {r.Grade}");
 
@@ -56,12 +51,12 @@ foreach (var g in groupQuery)
 Section("Block Bodies and Enum Expansion");
 
 // GetCategory() — block body with local variable + if/else → CASE WHEN
-var catsQuery = db.Set<Order>().Select(o => new { o.Id, o.Quantity, Category = o.GetCategory() });
+var catsQuery = db.Orders.AsQueryable().Select(o => new { o.Id, o.Quantity, Category = o.GetCategory() });
 PrintSql(catsQuery);
 foreach (var r in catsQuery) Console.WriteLine($"  Order #{r.Id} (qty={r.Quantity}): {r.Category}");
 
 // StatusDescription — enum method expansion → ternary chain in SQL
-var statusQuery = db.Set<Order>().Select(o => new { o.Id, o.Status, Desc = o.StatusDescription });
+var statusQuery = db.Orders.AsQueryable().Select(o => new { o.Id, o.Status, Desc = o.StatusDescription });
 PrintSql(statusQuery);
 foreach (var r in statusQuery) Console.WriteLine($"  Order #{r.Id} ({r.Status}): \"{r.Desc}\"");
 
@@ -70,7 +65,7 @@ foreach (var r in statusQuery) Console.WriteLine($"  Order #{r.Id} ({r.Status}):
 // projection to a clean SQL SELECT instead of loading entire entities.
 Section("Constructor Projection");
 
-var dtoQuery = db.Set<Order>().Select(o => new OrderSummaryDto(o.Id, o.Tag ?? "N/A", o.Total));
+var dtoQuery = db.Orders.AsQueryable().Select(o => new OrderSummaryDto(o.Id, o.Tag ?? "N/A", o.Total));
 PrintSql(dtoQuery);
 foreach (var dto in dtoQuery) Console.WriteLine($"  {{ Id={dto.Id}, Desc=\"{dto.Description}\", Total={dto.Total} }}");
 
