@@ -7,12 +7,14 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
     <PackageReference Include="Verify.MSTest" />
     <PackageReference Include="Basic.Reference.Assemblies.Net80"  Condition="'$(TargetFramework)' == 'net8.0'" />
     <PackageReference Include="Basic.Reference.Assemblies.Net100" Condition="'$(TargetFramework)' == 'net10.0'" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\ExpressiveSharp.CodeFixers\ExpressiveSharp.CodeFixers.csproj" />
     <ProjectReference Include="..\..\src\ExpressiveSharp.Generator\ExpressiveSharp.Generator.csproj" />
     <ProjectReference Include="..\..\src\ExpressiveSharp\ExpressiveSharp.csproj" />
   </ItemGroup>

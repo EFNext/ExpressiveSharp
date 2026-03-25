@@ -2777,10 +2777,14 @@ internal sealed class ExpressionTreeEmitter
         if (!HasExpandableBody(symbol))
             return;
 
-        ReportDiagnostic(
+        var declLocation = symbol.DeclaringSyntaxReferences[0].GetSyntax().GetLocation();
+
+        _context?.ReportDiagnostic(Diagnostic.Create(
             Diagnostics.MemberCouldBeExpressive,
             location,
-            symbol.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat));
+            additionalLocations: new[] { declLocation },
+            properties: null,
+            symbol.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat)));
     }
 
     private static bool HasExpressiveAttribute(ISymbol symbol)

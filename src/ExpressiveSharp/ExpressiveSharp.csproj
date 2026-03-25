@@ -10,11 +10,14 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ExpressiveSharp.Generator\ExpressiveSharp.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\ExpressiveSharp.CodeFixers\ExpressiveSharp.CodeFixers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
-  <!-- Pack the source generator into analyzers/dotnet/cs/ so NuGet consumers get it -->
+  <!-- Pack the source generator and code fixers into analyzers/dotnet/cs/ so NuGet consumers get them -->
   <ItemGroup>
     <None Include="..\ExpressiveSharp.Generator\bin\$(Configuration)\netstandard2.0\ExpressiveSharp.Generator.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs/" Visible="false" />
+    <None Include="..\ExpressiveSharp.CodeFixers\bin\$(Configuration)\netstandard2.0\ExpressiveSharp.CodeFixers.dll"
           Pack="true" PackagePath="analyzers/dotnet/cs/" Visible="false" />
   </ItemGroup>
 
