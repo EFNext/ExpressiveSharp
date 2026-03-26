@@ -167,11 +167,16 @@ static internal class ExpressiveForInterpreter
             if (member is not IPropertySymbol property)
                 continue;
 
-            // Instance property: stub should have 1 param (the instance)
+            // Exclude indexers (they have parameters)
+            if (property.Parameters.Length > 0)
+                continue;
+
+            // Instance property: stub should have 1 param (the instance) whose type matches targetType
             // Static property: stub should have 0 params
             if (property.IsStatic && stubSymbol.Parameters.Length == 0)
                 return property;
-            if (!property.IsStatic && stubSymbol.Parameters.Length == 1)
+            if (!property.IsStatic && stubSymbol.Parameters.Length == 1 &&
+                SymbolEqualityComparer.Default.Equals(stubSymbol.Parameters[0].Type, targetType))
                 return property;
         }
         return null;
@@ -193,6 +198,11 @@ static internal class ExpressiveForInterpreter
                 : method.Parameters.Length + 1;
 
             if (stubSymbol.Parameters.Length != expectedStubParamCount)
+                continue;
+
+            // For instance methods, validate that the stub's first parameter matches the target type
+            if (!method.IsStatic &&
+                !SymbolEqualityComparer.Default.Equals(stubSymbol.Parameters[0].Type, targetType))
                 continue;
 
             // Check parameter types match

@@ -86,7 +86,7 @@ readonly internal record struct ExpressiveForAttributeData
         }
 
         AllowBlockBody = allowBlockBody;
-        TransformerTypeNames = transformerTypeNames;
+        TransformerTypeNames = transformerTypeNames.ToArray();
     }
 
     private static string? GetMetadataName(INamedTypeSymbol symbol)

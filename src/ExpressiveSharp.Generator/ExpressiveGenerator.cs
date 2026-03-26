@@ -502,6 +502,11 @@ public class ExpressiveGenerator : IIncrementalGenerator
                         if (stubSymbol.Parameters.Length != expectedParamCount)
                             return false;
 
+                        // For instance methods, validate that the stub's first parameter matches the target type
+                        if (!m.IsStatic &&
+                            !SymbolEqualityComparer.Default.Equals(stubSymbol.Parameters[0].Type, targetType))
+                            return false;
+
                         var offset = m.IsStatic ? 0 : 1;
                         for (var i = 0; i < m.Parameters.Length; i++)
                         {

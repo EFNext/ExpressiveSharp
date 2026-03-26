@@ -151,11 +151,4 @@ static internal class Diagnostics
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public readonly static DiagnosticDescriptor ExpressiveForDuplicateMapping = new DiagnosticDescriptor(
-        id: "EXP0020",
-        title: "Duplicate [ExpressiveFor] mapping",
-        messageFormat: "Duplicate [ExpressiveFor] mapping for member '{0}' on type '{1}'; only one stub per target member is allowed",
-        category: "Design",
-        DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
 }

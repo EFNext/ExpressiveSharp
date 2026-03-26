@@ -114,6 +114,7 @@ namespace ExpressiveSharp.Services
         }
 
         private static volatile bool _allRegistriesScanned;
+        private static readonly object _scanLock = new();
 
         /// <summary>
         /// Scans all loaded assemblies once to discover expression registries.
@@ -122,21 +123,20 @@ namespace ExpressiveSharp.Services
         private static void EnsureAllRegistriesLoaded()
         {
             if (_allRegistriesScanned) return;
-            _allRegistriesScanned = true;
 
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            lock (_scanLock)
             {
-                // Skip system/framework assemblies for performance
-                var name = assembly.GetName().Name;
-                if (name is null ||
-                    name.StartsWith("System", StringComparison.Ordinal) ||
-                    name.StartsWith("Microsoft", StringComparison.Ordinal) ||
-                    name.StartsWith("mscorlib", StringComparison.Ordinal) ||
-                    name.StartsWith("netstandard", StringComparison.Ordinal) ||
-                    assembly.IsDynamic)
-                    continue;
+                if (_allRegistriesScanned) return;
 
-                GetAssemblyRegistry(assembly);
+                foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    if (assembly.IsDynamic)
+                        continue;
+
+                    GetAssemblyRegistry(assembly);
+                }
+
+                _allRegistriesScanned = true;
             }
         }
 

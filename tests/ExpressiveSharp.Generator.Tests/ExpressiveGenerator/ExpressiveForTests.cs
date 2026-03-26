@@ -175,7 +175,7 @@ public class ExpressiveForTests : GeneratorTestBase
     // ── Diagnostic Tests ────────────────────────────────────────────────────
 
     [TestMethod]
-    public void TargetTypeNotFound_EXP0014()
+    public void MemberNotFound_EXP0015()
     {
         var compilation = CreateCompilation(
             """
