@@ -10,6 +10,7 @@ namespace ExpressiveSharp.Generated
     {
         private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.PersonDto).GetConstructor(new global::System.Type[] {  });
         private static readonly global::System.Reflection.FieldInfo _f0 = typeof(global::Foo.PersonDto).GetField("Separator", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static);
+        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null);
         private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.PersonDto).GetProperty("FullName");
 
         // [Expressive]
@@ -23,8 +24,8 @@ namespace ExpressiveSharp.Generated
             var p_last = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "last");
             var expr_0 = global::System.Linq.Expressions.Expression.New(_c0);
             var expr_3 = global::System.Linq.Expressions.Expression.Field(null, _f0); // Separator
-            var expr_2 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, p_first, expr_3);
-            var expr_1 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_2, p_last);
+            var expr_2 = global::System.Linq.Expressions.Expression.Call(_m0, p_first, expr_3);
+            var expr_1 = global::System.Linq.Expressions.Expression.Call(_m0, expr_2, p_last);
             var expr_4 = global::System.Linq.Expressions.Expression.Bind(_p0, expr_1);
             var expr_5 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_4);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<string, string, global::Foo.PersonDto>>(expr_5, p_first, p_last);

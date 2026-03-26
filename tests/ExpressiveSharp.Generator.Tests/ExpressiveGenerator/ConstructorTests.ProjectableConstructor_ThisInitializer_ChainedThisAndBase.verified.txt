@@ -10,6 +10,7 @@ namespace ExpressiveSharp.Generated
     {
         private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.Child).GetConstructor(new global::System.Type[] {  });
         private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.Child).GetProperty("Name");
+        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null);
 
         // [Expressive]
         // public Child(int id, string name, string suffix) : this(id, name)
@@ -24,7 +25,7 @@ namespace ExpressiveSharp.Generated
             var expr_0 = global::System.Linq.Expressions.Expression.New(_c0);
             var p___this = global::System.Linq.Expressions.Expression.Parameter(typeof(object), "@this"); // Name
             var expr_2 = global::System.Linq.Expressions.Expression.Property(p___this, _p0);
-            var expr_1 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_2, p_suffix);
+            var expr_1 = global::System.Linq.Expressions.Expression.Call(_m0, expr_2, p_suffix);
             var expr_3 = global::System.Linq.Expressions.Expression.Bind(_p0, expr_1);
             var expr_4 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_3);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<int, string, string, global::Foo.Child>>(expr_4, p_id, p_name, p_suffix);

@@ -731,6 +731,15 @@ internal sealed class ExpressionTreeEmitter
             return EmitUnsupported(binary);
         }
 
+        // String concatenation via + uses string.Concat, not Expression.Add.
+        // Only matches the built-in compiler intrinsic (OperatorMethod is null).
+        // User-defined operator+ that returns string will have OperatorMethod set
+        // and is correctly handled by the existing MakeBinary path below.
+        if (binary.OperatorKind == BinaryOperatorKind.Add
+            && binary.OperatorMethod is null
+            && binary.Type?.SpecialType == SpecialType.System_String)
+            return EmitStringConcatenation(binary);
+
         // Use checked variants when in a checked context
         if (binary.IsChecked)
         {
@@ -757,6 +766,26 @@ internal sealed class ExpressionTreeEmitter
             AppendLine($"var {resultVar} = {Expr}.MakeBinary(global::System.Linq.Expressions.ExpressionType.{exprType}, {leftVar}, {rightVar});");
         }
 
+        return resultVar;
+    }
+
+    private string EmitStringConcatenation(IBinaryOperation binary)
+    {
+        var resultVar = NextVar();
+        var leftVar = EmitOperation(binary.LeftOperand);
+        var rightVar = EmitOperation(binary.RightOperand);
+
+        // Choose the correct Concat overload based on operand types.
+        // If both operands are string, use Concat(string, string).
+        // Otherwise (e.g. object + string from implicit boxing), use Concat(object, object).
+        var bothString = binary.LeftOperand.Type?.SpecialType == SpecialType.System_String
+                      && binary.RightOperand.Type?.SpecialType == SpecialType.System_String;
+
+        var concatMethod = bothString
+            ? EnsureStringConcatMethod()
+            : EnsureStringConcatObjectMethod();
+
+        AppendLine($"var {resultVar} = {Expr}.Call({concatMethod}, {leftVar}, {rightVar});");
         return resultVar;
     }
 
@@ -2096,18 +2125,29 @@ internal sealed class ExpressionTreeEmitter
                 && m.Parameters[0].Type.SpecialType == SpecialType.System_String
                 && m.Parameters[1].Type.SpecialType == SpecialType.System_String);
 
-        if (concatMethod is not null)
-        {
-            _concatMethodField = _fieldCache.EnsureMethodInfo(concatMethod);
-        }
-        else
-        {
-            // Fallback: emit inline reflection
-            _concatMethodField = "_stringConcat";
-            _fieldCache.GetDeclarations(); // ensure we can add to it
-        }
-
+        _concatMethodField = _fieldCache.EnsureMethodInfo(concatMethod
+            ?? throw new InvalidOperationException("string.Concat(string, string) not found in compilation"));
         return _concatMethodField;
+    }
+
+    private string? _concatObjectMethodField;
+
+    private string EnsureStringConcatObjectMethod()
+    {
+        if (_concatObjectMethodField is not null)
+            return _concatObjectMethodField;
+
+        var stringType = _semanticModel.Compilation.GetSpecialType(SpecialType.System_String);
+        var concatMethod = stringType.GetMembers("Concat")
+            .OfType<IMethodSymbol>()
+            .FirstOrDefault(m => m.IsStatic
+                && m.Parameters.Length == 2
+                && m.Parameters[0].Type.SpecialType == SpecialType.System_Object
+                && m.Parameters[1].Type.SpecialType == SpecialType.System_Object);
+
+        _concatObjectMethodField = _fieldCache.EnsureMethodInfo(concatMethod
+            ?? throw new InvalidOperationException("string.Concat(object, object) not found in compilation"));
+        return _concatObjectMethodField;
     }
 
     private INamedTypeSymbol? _enumerableType;
@@ -2458,6 +2498,22 @@ internal sealed class ExpressionTreeEmitter
                 compoundAssign.Syntax?.GetLocation() ?? Location.None,
                 compoundAssign.OperatorKind.ToString());
             return EmitUnsupported(compoundAssign);
+        }
+
+        // String += uses string.Concat, not Expression.Add
+        if (compoundAssign.OperatorKind == BinaryOperatorKind.Add
+            && compoundAssign.OperatorMethod is null
+            && compoundAssign.Type?.SpecialType == SpecialType.System_String)
+        {
+            var bothString = compoundAssign.Target.Type?.SpecialType == SpecialType.System_String
+                          && compoundAssign.Value.Type?.SpecialType == SpecialType.System_String;
+            var concatMethod = bothString
+                ? EnsureStringConcatMethod()
+                : EnsureStringConcatObjectMethod();
+            var concatVar = NextVar();
+            AppendLine($"var {concatVar} = {Expr}.Call({concatMethod}, {targetVar}, {valueVar});");
+            AppendLine($"var {resultVar} = {Expr}.Assign({targetVar}, {concatVar});");
+            return resultVar;
         }
 
         if (compoundAssign.IsChecked)

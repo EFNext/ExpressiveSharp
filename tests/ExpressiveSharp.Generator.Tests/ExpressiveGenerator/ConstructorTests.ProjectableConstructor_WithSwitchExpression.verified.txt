@@ -9,6 +9,7 @@ namespace ExpressiveSharp.Generated
     static class Foo_SeasonDto__ctor_P0_int 
     {
         private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.SeasonDto).GetConstructor(new global::System.Type[] {  });
+        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(object), typeof(object) }, null);
         private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.SeasonDto).GetProperty("Name");
         private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.SeasonDto).GetProperty("Description");
 
@@ -61,7 +62,7 @@ namespace ExpressiveSharp.Generated
             var expr_31 = global::System.Linq.Expressions.Expression.Condition(expr_22, expr_30, expr_21, typeof(string));
             var expr_33 = global::System.Linq.Expressions.Expression.Constant("Month: ", typeof(string)); // "Month: "
             var expr_34 = global::System.Linq.Expressions.Expression.Convert(p_month, typeof(object)); // month
-            var expr_32 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_33, expr_34);
+            var expr_32 = global::System.Linq.Expressions.Expression.Call(_m0, expr_33, expr_34);
             var expr_35 = global::System.Linq.Expressions.Expression.Bind(_p0, expr_31);
             var expr_36 = global::System.Linq.Expressions.Expression.Bind(_p1, expr_32);
             var expr_37 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_35, expr_36);

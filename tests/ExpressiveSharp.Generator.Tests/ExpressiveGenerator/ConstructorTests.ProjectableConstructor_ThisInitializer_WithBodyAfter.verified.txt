@@ -11,6 +11,7 @@ namespace ExpressiveSharp.Generated
         private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.PersonDto).GetConstructor(new global::System.Type[] {  });
         private static readonly global::System.Reflection.MethodInfo _m0 = typeof(string).GetMethod("ToUpper", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null);
         private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.PersonDto).GetProperty("FirstName");
+        private static readonly global::System.Reflection.MethodInfo _m1 = typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null);
         private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.PersonDto).GetProperty("LastName");
         private static readonly global::System.Reflection.PropertyInfo _p2 = typeof(global::Foo.PersonDto).GetProperty("FullName");
 
@@ -28,15 +29,15 @@ namespace ExpressiveSharp.Generated
             var p___this = global::System.Linq.Expressions.Expression.Parameter(typeof(object), "@this"); // FirstName
             var expr_5 = global::System.Linq.Expressions.Expression.Property(p___this, _p0);
             var expr_6 = global::System.Linq.Expressions.Expression.Constant(" ", typeof(string)); // " "
-            var expr_4 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_5, expr_6);
+            var expr_4 = global::System.Linq.Expressions.Expression.Call(_m1, expr_5, expr_6);
             var expr_7 = global::System.Linq.Expressions.Expression.Property(p___this, _p1); // LastName
-            var expr_3 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_4, expr_7);
+            var expr_3 = global::System.Linq.Expressions.Expression.Call(_m1, expr_4, expr_7);
             var expr_2 = global::System.Linq.Expressions.Expression.Call(expr_3, _m0, global::System.Array.Empty<global::System.Linq.Expressions.Expression>());
             var expr_10 = global::System.Linq.Expressions.Expression.Property(p___this, _p0); // FirstName
             var expr_11 = global::System.Linq.Expressions.Expression.Constant(" ", typeof(string)); // " "
-            var expr_9 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_10, expr_11);
+            var expr_9 = global::System.Linq.Expressions.Expression.Call(_m1, expr_10, expr_11);
             var expr_12 = global::System.Linq.Expressions.Expression.Property(p___this, _p1); // LastName
-            var expr_8 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_9, expr_12);
+            var expr_8 = global::System.Linq.Expressions.Expression.Call(_m1, expr_9, expr_12);
             var expr_1 = global::System.Linq.Expressions.Expression.Condition(p_upper, expr_2, expr_8, typeof(string));
             var expr_13 = global::System.Linq.Expressions.Expression.Bind(_p2, expr_1);
             var expr_14 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_13);

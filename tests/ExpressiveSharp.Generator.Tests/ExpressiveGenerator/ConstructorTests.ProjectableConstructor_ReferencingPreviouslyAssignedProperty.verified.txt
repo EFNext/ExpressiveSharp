@@ -10,6 +10,7 @@ namespace ExpressiveSharp.Generated
     {
         private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.PersonDto).GetConstructor(new global::System.Type[] {  });
         private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.PersonDto).GetProperty("FirstName");
+        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null);
         private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.PersonDto).GetProperty("LastName");
         private static readonly global::System.Reflection.PropertyInfo _p2 = typeof(global::Foo.PersonDto).GetProperty("FullName");
 
@@ -28,9 +29,9 @@ namespace ExpressiveSharp.Generated
             var p___this = global::System.Linq.Expressions.Expression.Parameter(typeof(object), "@this"); // FirstName
             var expr_3 = global::System.Linq.Expressions.Expression.Property(p___this, _p0);
             var expr_4 = global::System.Linq.Expressions.Expression.Constant(" ", typeof(string)); // " "
-            var expr_2 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_3, expr_4);
+            var expr_2 = global::System.Linq.Expressions.Expression.Call(_m0, expr_3, expr_4);
             var expr_5 = global::System.Linq.Expressions.Expression.Property(p___this, _p1); // LastName
-            var expr_1 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_2, expr_5);
+            var expr_1 = global::System.Linq.Expressions.Expression.Call(_m0, expr_2, expr_5);
             var expr_6 = global::System.Linq.Expressions.Expression.Bind(_p0, p_firstName);
             var expr_7 = global::System.Linq.Expressions.Expression.Bind(_p1, p_lastName);
             var expr_8 = global::System.Linq.Expressions.Expression.Bind(_p2, expr_1);
