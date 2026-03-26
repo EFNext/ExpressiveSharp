@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/ExpressiveSharp.Benchmarks/ExpressiveSharp.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/BasicSample/BasicSample.csproj" />
     <Project Path="samples/EFCoreSample/EFCoreSample.csproj" />

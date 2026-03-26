@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" VersionOverride="10.0.5" />
+    <PackageReference Include="Basic.Reference.Assemblies.Net100" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ExpressiveSharp\ExpressiveSharp.csproj" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp.EntityFrameworkCore\ExpressiveSharp.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp.Generator\ExpressiveSharp.Generator.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
+  </ItemGroup>
+
+</Project>

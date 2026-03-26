@@ -89,6 +89,40 @@ When implementing a new `EmitOperation` case:
    compatibility, add tests in `ExpressiveSharp.Tests/Transformers/` that build expression
    trees manually and verify the transformer rewrites them correctly.
 
+## Performance Benchmarks
+
+Beyond correctness testing, the project includes BenchmarkDotNet benchmarks in
+`benchmarks/ExpressiveSharp.Benchmarks/` that track performance across key hot paths:
+
+| Benchmark class | What it measures |
+|-----------------|-----------------|
+| `GeneratorBenchmarks` | Cold and incremental `ExpressiveGenerator` runs (parameterized by member count) |
+| `PolyfillGeneratorBenchmarks` | Cold and incremental `PolyfillInterceptorGenerator` runs |
+| `ExpressionResolverBenchmarks` | Registry vs. reflection lookup for properties, methods, constructors |
+| `ExpressionReplacerBenchmarks` | `ExpressiveReplacer.Replace` on various expression tree shapes |
+| `TransformerBenchmarks` | Each transformer in isolation + full `ExpandExpressives` pipeline |
+| `EFCoreQueryOverheadBenchmarks` | End-to-end EF Core `ToQueryString()` overhead + cold-start cost |
+
+### CI Regression Detection
+
+A separate GitHub Actions workflow (`.github/workflows/benchmarks.yml`) runs benchmarks on every
+push to `main` and on pull requests. Results are stored on the `gh-pages` branch and compared
+against the last `main` baseline using `benchmark-action/github-action-benchmark`. PRs that
+regress beyond 20% receive an automated comment.
+
+### Running Benchmarks Locally
+
+```bash
+# Run all benchmarks (full BenchmarkDotNet defaults)
+dotnet run -c Release --project benchmarks/ExpressiveSharp.Benchmarks/ExpressiveSharp.Benchmarks.csproj -- --filter "*"
+
+# Run a specific class
+dotnet run -c Release --project benchmarks/ExpressiveSharp.Benchmarks/ExpressiveSharp.Benchmarks.csproj -- --filter "*GeneratorBenchmarks*"
+
+# Quick run (CI-style, fewer iterations)
+dotnet run -c Release --project benchmarks/ExpressiveSharp.Benchmarks/ExpressiveSharp.Benchmarks.csproj -- --filter "*" --job short --iterationCount 3 --warmupCount 1
+```
+
 ## Running Tests
 
 ```bash
