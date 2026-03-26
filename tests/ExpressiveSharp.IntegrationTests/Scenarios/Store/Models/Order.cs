@@ -58,6 +58,10 @@ public class Order
     [Expressive]
     public string Summary => $"Order #{Id}: {Tag ?? "N/A"}";
 
+    // String concatenation via + operator (tests Expression.Call(string.Concat) emission)
+    [Expressive]
+    public string SummaryConcat => "Order #" + Id + ": " + (Tag ?? "N/A");
+
     // Loop-based computed members (foreach → Expression.Loop)
     [Expressive(AllowBlockBody = true)]
     public int ItemCount()

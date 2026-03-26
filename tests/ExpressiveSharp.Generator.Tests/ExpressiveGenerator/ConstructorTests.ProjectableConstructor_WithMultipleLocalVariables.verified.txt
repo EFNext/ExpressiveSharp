@@ -10,6 +10,7 @@ namespace ExpressiveSharp.Generated
     {
         private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.AddressDto).GetConstructor(new global::System.Type[] {  });
         private static readonly global::System.Reflection.MethodInfo _m0 = typeof(string).GetMethod("Trim", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null);
+        private static readonly global::System.Reflection.MethodInfo _m1 = typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null);
         private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.AddressDto).GetProperty("Street");
         private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.AddressDto).GetProperty("City");
         private static readonly global::System.Reflection.PropertyInfo _p2 = typeof(global::Foo.AddressDto).GetProperty("Full");
@@ -36,11 +37,11 @@ namespace ExpressiveSharp.Generated
             var expr_5 = global::System.Linq.Expressions.Expression.Call(p_city, _m0, global::System.Array.Empty<global::System.Linq.Expressions.Expression>()); // city.Trim()
             var expr_6 = global::System.Linq.Expressions.Expression.Assign(expr_4, expr_5);
             var expr_11 = global::System.Linq.Expressions.Expression.Constant(", ", typeof(string)); // ", "
-            var expr_10 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_1, expr_11);
-            var expr_9 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_10, expr_4);
+            var expr_10 = global::System.Linq.Expressions.Expression.Call(_m1, expr_1, expr_11);
+            var expr_9 = global::System.Linq.Expressions.Expression.Call(_m1, expr_10, expr_4);
             var expr_12 = global::System.Linq.Expressions.Expression.Constant(", ", typeof(string)); // ", "
-            var expr_8 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_9, expr_12);
-            var expr_7 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_8, p_country);
+            var expr_8 = global::System.Linq.Expressions.Expression.Call(_m1, expr_9, expr_12);
+            var expr_7 = global::System.Linq.Expressions.Expression.Call(_m1, expr_8, p_country);
             var expr_13 = global::System.Linq.Expressions.Expression.Bind(_p0, expr_1);
             var expr_14 = global::System.Linq.Expressions.Expression.Bind(_p1, expr_4);
             var expr_15 = global::System.Linq.Expressions.Expression.Bind(_p2, expr_7);

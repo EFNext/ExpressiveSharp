@@ -10,6 +10,8 @@ namespace ExpressiveSharp.Generated
     {
         private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.ShapeDto).GetConstructor(new global::System.Type[] {  });
         private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.ShapeDto).GetProperty("ShapeType");
+        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null);
+        private static readonly global::System.Reflection.MethodInfo _m1 = typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(object), typeof(object) }, null);
         private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.ShapeDto).GetProperty("Sides");
         private static readonly global::System.Reflection.PropertyInfo _p2 = typeof(global::Foo.ShapeDto).GetProperty("Description");
 
@@ -46,11 +48,11 @@ namespace ExpressiveSharp.Generated
             var p___this = global::System.Linq.Expressions.Expression.Parameter(typeof(object), "@this"); // ShapeType
             var expr_17 = global::System.Linq.Expressions.Expression.Property(p___this, _p0);
             var expr_18 = global::System.Linq.Expressions.Expression.Constant(" with ", typeof(string)); // " with "
-            var expr_16 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_17, expr_18);
+            var expr_16 = global::System.Linq.Expressions.Expression.Call(_m0, expr_17, expr_18);
             var expr_19 = global::System.Linq.Expressions.Expression.Convert(p_sides, typeof(object)); // sides
-            var expr_15 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_16, expr_19);
+            var expr_15 = global::System.Linq.Expressions.Expression.Call(_m1, expr_16, expr_19);
             var expr_20 = global::System.Linq.Expressions.Expression.Constant(" sides", typeof(string)); // " sides"
-            var expr_14 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_15, expr_20);
+            var expr_14 = global::System.Linq.Expressions.Expression.Call(_m0, expr_15, expr_20);
             var expr_21 = global::System.Linq.Expressions.Expression.Bind(_p1, p_sides);
             var expr_22 = global::System.Linq.Expressions.Expression.Bind(_p0, expr_13);
             var expr_23 = global::System.Linq.Expressions.Expression.Bind(_p2, expr_14);

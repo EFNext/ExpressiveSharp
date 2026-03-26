@@ -26,4 +26,23 @@ public abstract class StringOperationTests : StoreTestBase
             },
             results);
     }
+
+    [TestMethod]
+    public async Task Select_SummaryConcat_ReturnsCorrectValues()
+    {
+        Expression<Func<Order, string>> expr = o => o.SummaryConcat;
+        var expanded = (Expression<Func<Order, string>>)expr.ExpandExpressives();
+
+        var results = await Runner.SelectAsync<Order, string>(expanded);
+
+        CollectionAssert.AreEquivalent(
+            new[]
+            {
+                "Order #1: RUSH",
+                "Order #2: STD",
+                "Order #3: N/A",
+                "Order #4: SPECIAL",
+            },
+            results);
+    }
 }
