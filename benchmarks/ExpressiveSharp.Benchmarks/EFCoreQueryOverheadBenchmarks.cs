@@ -41,10 +41,6 @@ public class EFCoreQueryOverheadBenchmarks
         => _expressiveCtx.Entities.Select(x => x.EmailLength).ToQueryString();
 
     [Benchmark]
-    public string WithExpressives_BlockBody()
-        => _expressiveCtx.Entities.Select(x => x.GetCategory()).ToQueryString();
-
-    [Benchmark]
     public string ColdStart_WithExpressives()
     {
         using var ctx = new TestDbContext(useExpressives: true);
