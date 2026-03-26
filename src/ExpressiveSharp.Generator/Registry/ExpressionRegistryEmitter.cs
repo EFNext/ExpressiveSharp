@@ -189,7 +189,7 @@ static internal class ExpressionRegistryEmitter
         writer.WriteLine("{");
         writer.Indent++;
         writer.WriteLine("if (m is null) return;");
-        writer.WriteLine("var exprType = m.DeclaringType?.Assembly.GetType(exprClass);");
+        writer.WriteLine("var exprType = m.DeclaringType?.Assembly.GetType(exprClass) ?? typeof(ExpressionRegistry).Assembly.GetType(exprClass);");
         writer.WriteLine(@"var exprMethod = exprType?.GetMethod(exprMethodName, BindingFlags.Static | BindingFlags.NonPublic);");
         writer.WriteLine("if (exprMethod is null) return;");
         writer.WriteLine("var expr = (LambdaExpression)exprMethod.Invoke(null, null)!;");

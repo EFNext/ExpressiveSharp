@@ -81,6 +81,75 @@ namespace ExpressiveSharp.Services
             => _expressionCache.GetOrAdd(expressiveMemberInfo, static (mi, _) => ResolveExpressionCore(mi),
                 (object?)null);
 
+        /// <inheritdoc/>
+        public LambdaExpression? FindExternalExpression(MemberInfo memberInfo)
+        {
+            // Ensure all loaded assemblies with registries have been discovered.
+            // This handles the edge case where only [ExpressiveFor] is used (no [Expressive] members)
+            // and no assembly registry has been lazily loaded yet.
+            EnsureAllRegistriesLoaded();
+
+            LambdaExpression? found = null;
+            Assembly? foundAssembly = null;
+
+            foreach (var kvp in _assemblyRegistries)
+            {
+                if (ReferenceEquals(kvp.Value, _nullRegistry))
+                    continue;
+
+                var result = kvp.Value(memberInfo);
+                if (result is null)
+                    continue;
+
+                if (found is not null)
+                    throw new InvalidOperationException(
+                        $"Multiple [ExpressiveFor] mappings found for '{memberInfo}' " +
+                        $"in assemblies '{foundAssembly!.GetName().Name}' and '{kvp.Key.GetName().Name}'.");
+
+                found = result;
+                foundAssembly = kvp.Key;
+            }
+
+            return found;
+        }
+
+        private static volatile bool _allRegistriesScanned;
+
+        /// <summary>
+        /// Scans all loaded assemblies once to discover expression registries.
+        /// This is a one-time cost on the first <see cref="FindExternalExpression"/> call.
+        /// </summary>
+        private static void EnsureAllRegistriesLoaded()
+        {
+            if (_allRegistriesScanned) return;
+            _allRegistriesScanned = true;
+
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                // Skip system/framework assemblies for performance
+                var name = assembly.GetName().Name;
+                if (name is null ||
+                    name.StartsWith("System", StringComparison.Ordinal) ||
+                    name.StartsWith("Microsoft", StringComparison.Ordinal) ||
+                    name.StartsWith("mscorlib", StringComparison.Ordinal) ||
+                    name.StartsWith("netstandard", StringComparison.Ordinal) ||
+                    assembly.IsDynamic)
+                    continue;
+
+                GetAssemblyRegistry(assembly);
+            }
+        }
+
+        /// <summary>
+        /// Ensures the registry for the given assembly is loaded into <see cref="_assemblyRegistries"/>.
+        /// Call this for assemblies that may contain [ExpressiveFor] stubs but no [Expressive] members
+        /// (which would otherwise trigger lazy loading).
+        /// </summary>
+        public static void EnsureRegistryLoaded(Assembly assembly)
+        {
+            GetAssemblyRegistry(assembly);
+        }
+
         private static LambdaExpression ResolveExpressionCore(MemberInfo expressiveMemberInfo)
         {
             var expression = GetExpressionFromGeneratedType(expressiveMemberInfo);

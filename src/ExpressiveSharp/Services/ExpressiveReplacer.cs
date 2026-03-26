@@ -34,7 +34,7 @@ public class ExpressiveReplacer : ExpressionVisitor
 
             reflectedExpression = attribute is not null
                 ? _resolver.FindGeneratedExpression(memberInfo, attribute)
-                : null;
+                : _resolver.FindExternalExpression(memberInfo);
 
             _memberCache.Add(memberInfo, reflectedExpression);
         }

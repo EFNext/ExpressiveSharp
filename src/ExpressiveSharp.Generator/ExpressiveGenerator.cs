@@ -16,12 +16,16 @@ namespace ExpressiveSharp.Generator;
 public class ExpressiveGenerator : IIncrementalGenerator
 {
     private const string ExpressiveAttributeName = "ExpressiveSharp.ExpressiveAttribute";
+    private const string ExpressiveForAttributeName = "ExpressiveSharp.Mapping.ExpressiveForAttribute";
+    private const string ExpressiveForConstructorAttributeName = "ExpressiveSharp.Mapping.ExpressiveForConstructorAttribute";
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         // Snapshot global MSBuild defaults once per generator run.
         var globalOptions = context.AnalyzerConfigOptionsProvider
             .Select(static (opts, _) => new ExpressiveGlobalOptions(opts.GlobalOptions));
+
+        // ── [Expressive] pipeline ──────────────────────────────────────────────
 
         // Extract only pure stable data from the attribute in the transform.
         // No live Roslyn objects (no AttributeData, SemanticModel, Compilation, ISymbol) —
@@ -79,11 +83,92 @@ public class ExpressiveGenerator : IIncrementalGenerator
                 return ExtractRegistryEntry(memberSymbol);
             });
 
+        // ── [ExpressiveFor] / [ExpressiveForConstructor] pipelines ──────────────
+
+        var expressiveForDeclarations = CreateExpressiveForPipeline(
+            context, globalOptions, ExpressiveForAttributeName, ExpressiveForMemberKind.MethodOrProperty);
+
+        var expressiveForConstructorDeclarations = CreateExpressiveForPipeline(
+            context, globalOptions, ExpressiveForConstructorAttributeName, ExpressiveForMemberKind.Constructor);
+
+        // Collect registry entries from [ExpressiveFor] pipelines
+        var expressiveForRegistryEntries = expressiveForDeclarations.Select(
+            static (source, _) => ExtractRegistryEntryForExternal(source));
+        var expressiveForConstructorRegistryEntries = expressiveForConstructorDeclarations.Select(
+            static (source, _) => ExtractRegistryEntryForExternal(source));
+
+        // ── Merged registry ─────────────────────────────────────────────────────
+
+        var allRegistryEntries = registryEntries.Collect()
+            .Combine(expressiveForRegistryEntries.Collect())
+            .Combine(expressiveForConstructorRegistryEntries.Collect())
+            .Select(static (pair, _) =>
+            {
+                var ((expressiveEntries, forEntries), forCtorEntries) = pair;
+                var builder = ImmutableArray.CreateBuilder<ExpressionRegistryEntry?>(
+                    expressiveEntries.Length + forEntries.Length + forCtorEntries.Length);
+                builder.AddRange(expressiveEntries);
+                builder.AddRange(forEntries);
+                builder.AddRange(forCtorEntries);
+                return builder.ToImmutable();
+            });
+
         // Delegate registry file emission to the dedicated ExpressionRegistryEmitter,
         // which uses a string-based CodeWriter instead of SyntaxFactory.
         context.RegisterImplementationSourceOutput(
-            registryEntries.Collect(),
+            allRegistryEntries,
             static (spc, entries) => ExpressionRegistryEmitter.Emit(entries, spc));
+    }
+
+    /// <summary>
+    /// Creates the incremental pipeline for an [ExpressiveFor*] attribute type.
+    /// Discovers, interprets, emits expression factory source, and returns the pipeline
+    /// for registry entry extraction.
+    /// </summary>
+    private static IncrementalValuesProvider<((MethodDeclarationSyntax Method, ExpressiveForAttributeData Attribute, ExpressiveGlobalOptions GlobalOptions), Compilation)>
+        CreateExpressiveForPipeline(
+            IncrementalGeneratorInitializationContext context,
+            IncrementalValueProvider<ExpressiveGlobalOptions> globalOptions,
+            string attributeFullName,
+            ExpressiveForMemberKind memberKind)
+    {
+        var declarations = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                attributeFullName,
+                predicate: static (s, _) => s is MethodDeclarationSyntax,
+                transform: (c, _) => (
+                    Method: (MethodDeclarationSyntax)c.TargetNode,
+                    Attribute: new ExpressiveForAttributeData(c.Attributes[0], memberKind)
+                ));
+
+        var declarationsWithGlobalOptions = declarations
+            .Combine(globalOptions)
+            .Select(static (pair, _) => (
+                Method: pair.Left.Method,
+                Attribute: pair.Left.Attribute,
+                GlobalOptions: pair.Right
+            ));
+
+        var compilationAndPairs = declarationsWithGlobalOptions
+            .Combine(context.CompilationProvider)
+            .WithComparer(new ExpressiveForMemberCompilationEqualityComparer());
+
+        context.RegisterSourceOutput(compilationAndPairs,
+            static (spc, source) =>
+            {
+                var ((method, attribute, globalOptions), compilation) = source;
+                var semanticModel = compilation.GetSemanticModel(method.SyntaxTree);
+                var stubSymbol = semanticModel.GetDeclaredSymbol(method) as IMethodSymbol;
+
+                if (stubSymbol is null)
+                {
+                    return;
+                }
+
+                ExecuteFor(method, semanticModel, stubSymbol, attribute, globalOptions, compilation, spc);
+            });
+
+        return compilationAndPairs;
     }
 
     private static void Execute(
@@ -312,6 +397,150 @@ public class ExpressiveGenerator : IIncrementalGenerator
             ParameterTypeNames: parameterTypeNames,
             IsMetadataOnly: isMetadataOnly,
             ClassTypeParameters: classTypeParameters);
+    }
+
+    /// <summary>
+    /// Processes an [ExpressiveFor] / [ExpressiveForConstructor] stub: resolves the target member,
+    /// validates the stub, and emits the expression tree factory source file.
+    /// </summary>
+    private static void ExecuteFor(
+        MethodDeclarationSyntax stubMethod,
+        SemanticModel semanticModel,
+        IMethodSymbol stubSymbol,
+        ExpressiveForAttributeData attributeData,
+        ExpressiveGlobalOptions globalOptions,
+        Compilation compilation,
+        SourceProductionContext context)
+    {
+        var descriptor = ExpressiveForInterpreter.GetDescriptor(
+            semanticModel, stubMethod, stubSymbol, attributeData, globalOptions, context, compilation);
+
+        if (descriptor is null)
+            return;
+
+        if (descriptor.MemberName is null)
+            throw new InvalidOperationException("Expected a memberName here");
+
+        var generatedClassName = ExpressionClassNameGenerator.GenerateName(
+            descriptor.ClassNamespace, descriptor.NestedInClassNames,
+            descriptor.MemberName, descriptor.ParameterTypeNames);
+        var generatedFileName = $"{generatedClassName}.g.cs";
+
+        if (descriptor.ExpressionTreeEmission is null)
+            throw new InvalidOperationException("ExpressionTreeEmission must be set");
+
+        EmitExpressionTreeSource(descriptor, generatedClassName, generatedFileName, stubMethod, compilation, context);
+    }
+
+    /// <summary>
+    /// Extracts a <see cref="ExpressionRegistryEntry"/> for an [ExpressiveFor] stub.
+    /// The entry points to the external target member, not the stub itself.
+    /// </summary>
+    private static ExpressionRegistryEntry? ExtractRegistryEntryForExternal(
+        ((MethodDeclarationSyntax Method, ExpressiveForAttributeData Attribute, ExpressiveGlobalOptions GlobalOptions), Compilation) source)
+    {
+        var ((method, attribute, globalOptions), compilation) = source;
+        var semanticModel = compilation.GetSemanticModel(method.SyntaxTree);
+        var stubSymbol = semanticModel.GetDeclaredSymbol(method) as IMethodSymbol;
+
+        if (stubSymbol is null)
+            return null;
+
+        // Resolve target type
+        var targetType = attribute.TargetTypeMetadataName is not null
+            ? compilation.GetTypeByMetadataName(attribute.TargetTypeMetadataName)
+            : null;
+
+        if (targetType is null)
+            return null;
+
+        // Skip generic target types (registry only supports closed constructed types)
+        if (targetType.TypeParameters.Length > 0)
+            return null;
+
+        var targetTypeFullName = targetType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+        ExpressionRegistryMemberType memberKind;
+        string memberLookupName;
+        var parameterTypeNames = ImmutableArray<string>.Empty;
+
+        if (attribute.MemberKind == ExpressiveForMemberKind.Constructor)
+        {
+            memberKind = ExpressionRegistryMemberType.Constructor;
+            memberLookupName = "_ctor";
+
+            // Constructor params match stub params directly
+            parameterTypeNames = [
+                ..stubSymbol.Parameters.Select(p => p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
+            ];
+        }
+        else
+        {
+            var memberName = attribute.MemberName;
+            if (memberName is null)
+                return null;
+
+            // Determine if this maps to a property or method
+            var isProperty = targetType.GetMembers(memberName).OfType<IPropertySymbol>().Any();
+            if (isProperty)
+            {
+                memberKind = ExpressionRegistryMemberType.Property;
+                memberLookupName = memberName;
+                // Properties have no parameter types in the registry
+            }
+            else
+            {
+                memberKind = ExpressionRegistryMemberType.Method;
+                memberLookupName = memberName;
+
+                // Find the matching target method to get its parameter types (not the stub's)
+                var targetMethod = targetType.GetMembers(memberName).OfType<IMethodSymbol>()
+                    .Where(m => m.MethodKind is not (MethodKind.PropertyGet or MethodKind.PropertySet))
+                    .FirstOrDefault(m =>
+                    {
+                        var expectedParamCount = m.IsStatic ? m.Parameters.Length : m.Parameters.Length + 1;
+                        if (stubSymbol.Parameters.Length != expectedParamCount)
+                            return false;
+
+                        var offset = m.IsStatic ? 0 : 1;
+                        for (var i = 0; i < m.Parameters.Length; i++)
+                        {
+                            if (!SymbolEqualityComparer.Default.Equals(
+                                m.Parameters[i].Type, stubSymbol.Parameters[i + offset].Type))
+                                return false;
+                        }
+                        return true;
+                    });
+
+                if (targetMethod is null)
+                    return null;
+
+                // Use the TARGET method's parameter types (not the stub's)
+                parameterTypeNames = [
+                    ..targetMethod.Parameters.Select(p => p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
+                ];
+            }
+        }
+
+        // Build generated class name using the target type's path
+        var classNamespace = targetType.ContainingNamespace.IsGlobalNamespace
+            ? null
+            : targetType.ContainingNamespace.ToDisplayString();
+
+        var nestedTypePath = GetRegistryNestedTypePath(targetType);
+
+        var generatedClassName = ExpressionClassNameGenerator.GenerateName(
+            classNamespace, nestedTypePath, memberLookupName,
+            parameterTypeNames.IsEmpty ? null : parameterTypeNames);
+
+        var generatedClassFullName = "ExpressiveSharp.Generated." + generatedClassName;
+
+        return new ExpressionRegistryEntry(
+            DeclaringTypeFullName: targetTypeFullName,
+            MemberKind: memberKind,
+            MemberLookupName: memberLookupName,
+            GeneratedClassFullName: generatedClassFullName,
+            ParameterTypeNames: parameterTypeNames);
     }
 
     private static IEnumerable<string> GetRegistryNestedTypePath(INamedTypeSymbol typeSymbol)

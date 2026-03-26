@@ -155,5 +155,8 @@ public class ExpressiveReplacerTests
             => _expressions.TryGetValue(expressiveMemberInfo, out var expr)
                 ? expr
                 : throw new InvalidOperationException("Not registered");
+
+        public LambdaExpression? FindExternalExpression(MemberInfo memberInfo)
+            => _expressions.TryGetValue(memberInfo, out var expr) ? expr : null;
     }
 }
