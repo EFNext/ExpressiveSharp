@@ -112,10 +112,74 @@ public string? CustomerName => Customer?.Name;
 
 | Old Property | Migration |
 |---|---|
-| `UseMemberBody = "SomeMethod"` | Remove — no longer supported. This was typically used to work around syntax limitations in Projectable expression bodies (e.g., pointing to a simpler method when block bodies weren't allowed). Since ExpressiveSharp supports block bodies, switch expressions, pattern matching, and more, you likely don't need it. If you do, please open an issue. |
+| `UseMemberBody = "SomeMethod"` | Replace with `[ExpressiveFor]`. See [Migrating `UseMemberBody`](#migrating-usememberbody) below. |
 | `AllowBlockBody = true` | Remove — block bodies work automatically. `UseExpressives()` registers `FlattenBlockExpressions` globally for EF Core. |
 | `ExpandEnumMethods = true` | Remove — enum method expansion is enabled by default |
 | `CompatibilityMode.Full / .Limited` | Remove — only the full approach exists (query compiler decoration) |
+
+### Migrating `UseMemberBody`
+
+In Projectables, `UseMemberBody` let you point one member's expression body at another member — typically to work around syntax limitations or to provide an expression-tree-friendly alternative for a member whose actual body couldn't be projected.
+
+ExpressiveSharp replaces this with `[ExpressiveFor]` (in the `ExpressiveSharp.Mapping` namespace), which is more explicit and works for external types too.
+
+**Scenario 1: Same-type member with an alternative body**
+
+```csharp
+// Before (Projectables) — FullName body can't be projected, so use a helper
+public string FullName => $"{FirstName} {LastName}".Trim().ToUpper();
+
+[Projectable(UseMemberBody = nameof(FullNameProjection))]
+public string FullName => ...;
+private string FullNameProjection => FirstName + " " + LastName;
+
+// After (ExpressiveSharp) — [ExpressiveFor] provides the expression body
+using ExpressiveSharp.Mapping;
+
+public string FullName => $"{FirstName} {LastName}".Trim().ToUpper();
+
+// Stub provides the expression-tree-friendly equivalent
+[ExpressiveFor(typeof(MyEntity), nameof(MyEntity.FullName))]
+static string FullNameExpr(MyEntity e) => e.FirstName + " " + e.LastName;
+```
+
+**Scenario 2: External/third-party type methods**
+
+`[ExpressiveFor]` also enables a use case that Projectables' `UseMemberBody` never supported — providing expression tree bodies for methods on types you don't own:
+
+```csharp
+using ExpressiveSharp.Mapping;
+
+// Make Math.Clamp usable in EF Core queries
+[ExpressiveFor(typeof(Math), nameof(Math.Clamp))]
+static double Clamp(double value, double min, double max)
+    => value < min ? min : (value > max ? max : value);
+
+// Now this translates to SQL instead of throwing:
+db.Orders.Where(o => Math.Clamp(o.Price, 20, 100) > 50)
+```
+
+**Scenario 3: Constructors**
+
+```csharp
+using ExpressiveSharp.Mapping;
+
+[ExpressiveForConstructor(typeof(OrderDto))]
+static OrderDto CreateDto(int id, string name)
+    => new OrderDto { Id = id, Name = name };
+```
+
+**Key differences from `UseMemberBody`:**
+
+| | `UseMemberBody` (Projectables) | `[ExpressiveFor]` (ExpressiveSharp) |
+|---|---|---|
+| Scope | Same type only | Any type (including external/third-party) |
+| Syntax | Property on `[Projectable]` | Separate attribute on a stub method |
+| Target member | Must be in the same class | Any accessible type |
+| Namespace | `EntityFrameworkCore.Projectables` | `ExpressiveSharp.Mapping` |
+| Constructors | Not supported | `[ExpressiveForConstructor]` |
+
+> **Note:** Many `UseMemberBody` use cases in Projectables existed because of syntax limitations — the projected member's body couldn't use switch expressions, pattern matching, or block bodies. Since ExpressiveSharp supports all of these, you may be able to simply put `[Expressive]` directly on the member and delete the helper entirely.
 
 ### MSBuild Properties
 
@@ -137,7 +201,7 @@ The `InterceptorsNamespaces` MSBuild property needed for method interceptors is 
 
 4. **`ProjectableOptionsBuilder` callback removed** — `UseProjectables(opts => { ... })` becomes `UseExpressives()` with no parameters. Global transformer configuration is done via `ExpressiveOptions.Default` if needed.
 
-5. **`UseMemberBody` property removed** — This was typically a workaround for syntax limitations in Projectable expression bodies. Since ExpressiveSharp supports block bodies, switch expressions, pattern matching, and more, you likely don't need it. Remove any `UseMemberBody` assignments. If your use case still requires it, please [open an issue](https://github.com/EFNext/ExpressiveSharp/issues).
+5. **`UseMemberBody` property removed** — Replaced by `[ExpressiveFor]` from the `ExpressiveSharp.Mapping` namespace. See [Migrating `UseMemberBody`](#migrating-usememberbody).
 
 6. **`CompatibilityMode` removed** — ExpressiveSharp always uses the full query-compiler-decoration approach. The `Limited` compatibility mode does not exist.
 
@@ -166,6 +230,7 @@ The `InterceptorsNamespaces` MSBuild property needed for method interceptors is 
 | Modern syntax in LINQ chains | No | Yes (`IRewritableQueryable<T>`) |
 | Custom transformers | No | `IExpressionTreeTransformer` interface |
 | `ExpressiveDbSet<T>` | No | Yes |
+| External member mapping | `UseMemberBody` (same type only) | `[ExpressiveFor]` (any type, including third-party) |
 | EF Core specific | Yes | No — works standalone |
 | Compatibility modes | Full / Limited | Full only (simpler) |
 | Code generation approach | Syntax tree rewriting | Semantic (IOperation) analysis |
@@ -271,6 +336,25 @@ public class MyTransformer : IExpressionTreeTransformer
 public double AdjustedTotal => Price * Quantity * 1.1;
 ```
 
+### External Member Mapping (`[ExpressiveFor]`)
+
+Provide expression-tree bodies for methods on types you don't own. This enables using BCL or third-party utility methods in EF Core queries that would otherwise fail with "could not be translated":
+
+```csharp
+using ExpressiveSharp.Mapping;
+
+static class MathMappings
+{
+    [ExpressiveFor(typeof(Math), nameof(Math.Abs))]
+    static int Abs(int value) => value < 0 ? -value : value;
+}
+
+// Math.Abs is now translatable to SQL:
+db.Orders.Where(o => Math.Abs(o.Discount) > 10).ToList();
+```
+
+This also replaces Projectables' `UseMemberBody` — see [Migrating `UseMemberBody`](#migrating-usememberbody) for details.
+
 ## Quick Migration Checklist
 
 1. Remove all `EntityFrameworkCore.Projectables*` NuGet packages
@@ -278,5 +362,6 @@ public double AdjustedTotal => Price * Quantity * 1.1;
 3. Build — the built-in migration analyzers will flag all Projectables API usage
 4. Use **Fix All in Solution** for each diagnostic (`EXP1001`, `EXP1002`, `EXP1003`) to auto-fix
 5. Remove any `Projectables_*` MSBuild properties from `.csproj` / `Directory.Build.props`
-6. Build again and fix any remaining compilation errors
-7. Run your test suite to verify query behavior is unchanged
+6. Replace any `UseMemberBody` usage with `[ExpressiveFor]` (see [Migrating `UseMemberBody`](#migrating-usememberbody))
+7. Build again and fix any remaining compilation errors
+8. Run your test suite to verify query behavior is unchanged

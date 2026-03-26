@@ -90,6 +90,7 @@ Mark computed properties and methods with [`[Expressive]`](#expressive-attribute
 | **Any `IQueryable`** — modern syntax + `[Expressive]` expansion | [`.WithExpressionRewrite()`](#irewritablequeryt) |
 | **Advanced** — build an `Expression<T>` inline, no attribute needed | [`ExpressionPolyfill.Create`](#expressionpolyfillcreate) |
 | **Advanced** — expand `[Expressive]` members in an existing expression tree | [`.ExpandExpressives()`](#expressive-attribute) |
+| **Advanced** — make third-party/BCL members expressable | [`[ExpressiveFor]`](#expressivefor--external-member-mapping) |
 
 ## Usage
 
@@ -327,11 +328,63 @@ public double Total => Price * Quantity;
 expr.ExpandExpressives(new MyTransformer());
 ```
 
+## `[ExpressiveFor]` — External Member Mapping
+
+Provide expression-tree bodies for members on types you don't own — BCL methods, third-party libraries, or your own members that can't use `[Expressive]` directly. This lets you use those members in EF Core queries that would otherwise fail with "could not be translated".
+
+```csharp
+using ExpressiveSharp.Mapping;
+
+// Static method — params match the target signature
+static class MathMappings
+{
+    [ExpressiveFor(typeof(Math), nameof(Math.Clamp))]
+    static double Clamp(double value, double min, double max)
+        => value < min ? min : (value > max ? max : value);
+}
+
+// Instance method — first param is the receiver
+static class StringMappings
+{
+    [ExpressiveFor(typeof(string), nameof(string.IsNullOrWhiteSpace))]
+    static bool IsNullOrWhiteSpace(string? s)
+        => s == null || s.Trim().Length == 0;
+}
+
+// Instance property on your own type
+static class EntityMappings
+{
+    [ExpressiveFor(typeof(MyType), nameof(MyType.FullName))]
+    static string FullName(MyType obj)
+        => obj.FirstName + " " + obj.LastName;
+}
+```
+
+Call sites are unchanged — the replacer substitutes the mapping automatically:
+
+```csharp
+// Without [ExpressiveFor]: throws "could not be translated"
+// With [ExpressiveFor]:    Math.Clamp → ternary expression → translated to SQL
+var results = db.Orders
+    .AsExpressiveDbSet()
+    .Where(o => Math.Clamp(o.Price, 20, 100) > 50)
+    .ToList();
+```
+
+Use `[ExpressiveForConstructor]` for constructors:
+
+```csharp
+[ExpressiveForConstructor(typeof(MyDto))]
+static MyDto Create(int id, string name) => new MyDto { Id = id, Name = name };
+```
+
+> **Note:** If a member already has `[Expressive]`, adding `[ExpressiveFor]` targeting it is a compile error (EXP0019). `[ExpressiveFor]` is for members that *don't* have `[Expressive]`.
+
 ## How It Works
 
 ExpressiveSharp uses two Roslyn source generators:
 
-1. **`ExpressiveGenerator`** — Finds `[Expressive]` members, analyzes them at the semantic level (IOperation), and generates `Expression<Func<...>>` factory code using `Expression.*` calls. Registers them in a per-assembly expression registry for runtime lookup.
+1. **`ExpressiveGenerator`** — Finds `[Expressive]` and `[ExpressiveFor]` members, analyzes them at the semantic level (IOperation), and generates `Expression<Func<...>>` factory code using `Expression.*` calls. Registers them in a per-assembly expression registry for runtime lookup.
 
 2. **`PolyfillInterceptorGenerator`** — Uses C# 13 method interceptors to replace `ExpressionPolyfill.Create` calls and `IRewritableQueryable<T>` LINQ methods at their call sites, converting lambdas to expression trees at compile time.
 
