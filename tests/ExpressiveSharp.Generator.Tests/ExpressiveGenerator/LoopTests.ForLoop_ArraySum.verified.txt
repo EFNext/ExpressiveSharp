@@ -5,11 +5,8 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_Sum_P0_int__ 
+    static partial class Foo_C 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::System.Array).GetProperty("Length");
-
         // [Expressive(AllowBlockBody = true)]
         // public int Sum(int[] arr)
         // {
@@ -21,7 +18,7 @@ namespace ExpressiveSharp.Generated
         // 
         //     return sum;
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int[], int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int[], int>> Sum_P0_int___Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
             var p_arr = global::System.Linq.Expressions.Expression.Parameter(typeof(int[]), "arr");
@@ -32,7 +29,7 @@ namespace ExpressiveSharp.Generated
             var expr_5 = global::System.Linq.Expressions.Expression.Constant(0, typeof(int)); // 0
             var expr_6 = global::System.Linq.Expressions.Expression.Assign(expr_4, expr_5);
             var expr_7 = global::System.Linq.Expressions.Expression.Label("break");
-            var expr_9 = global::System.Linq.Expressions.Expression.Property(p_arr, _p0); // arr.Length
+            var expr_9 = global::System.Linq.Expressions.Expression.Property(p_arr, typeof(global::System.Array).GetProperty("Length")); // arr.Length
             var expr_8 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.LessThan, expr_4, expr_9);
             var expr_11 = global::System.Linq.Expressions.Expression.ArrayIndex(p_arr, expr_4); // arr[i]
             var expr_12 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_0, expr_11);

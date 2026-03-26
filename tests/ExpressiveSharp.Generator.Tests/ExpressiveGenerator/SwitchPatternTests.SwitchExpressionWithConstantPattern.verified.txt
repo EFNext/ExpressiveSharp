@@ -4,11 +4,8 @@
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class _Foo_SomeNumber_P0_int 
+    static partial class _Foo 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo).GetProperty("FancyNumber");
-
         // [Expressive]
         // public int SomeNumber(int input) => input switch
         // {
@@ -17,14 +14,14 @@ namespace ExpressiveSharp.Generated
         //     4 when FancyNumber == 12 => 48,
         //     _ => 1000,
         // };
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo, int, int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo, int, int>> SomeNumber_P0_int_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo), "@this");
             var p_input = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "input");
             var expr_0 = global::System.Linq.Expressions.Expression.Constant(1000, typeof(int)); // 1000
             var expr_2 = global::System.Linq.Expressions.Expression.Constant(4, typeof(int)); // 4
             var expr_1 = global::System.Linq.Expressions.Expression.Equal(p_input, expr_2);
-            var expr_4 = global::System.Linq.Expressions.Expression.Property(p__this, _p0); // FancyNumber
+            var expr_4 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo).GetProperty("FancyNumber")); // FancyNumber
             var expr_6 = global::System.Linq.Expressions.Expression.Constant(12, typeof(int)); // 12
             var expr_5 = global::System.Linq.Expressions.Expression.Convert(expr_6, typeof(int?));
             var expr_3 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Equal, expr_4, expr_5);

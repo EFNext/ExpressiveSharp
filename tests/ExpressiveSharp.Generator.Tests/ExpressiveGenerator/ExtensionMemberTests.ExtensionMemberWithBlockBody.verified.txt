@@ -5,12 +5,8 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_EntityExtensions_GetStatus_P0_Foo_Entity 
+    static partial class Foo_EntityExtensions 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.Entity).GetProperty("IsActive");
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.Entity).GetProperty("Value");
-
         // [Expressive(AllowBlockBody = true)]
         // public string GetStatus()
         // {
@@ -21,12 +17,12 @@ namespace ExpressiveSharp.Generated
         // 
         //     return "Inactive";
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Entity, string>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Entity, string>> GetStatus_P0_Foo_Entity_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Entity), "@this");
             var expr_3 = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Entity), "e"); // e
-            var expr_2 = global::System.Linq.Expressions.Expression.Property(expr_3, _p0);
-            var expr_5 = global::System.Linq.Expressions.Expression.Property(expr_3, _p1); // e.Value
+            var expr_2 = global::System.Linq.Expressions.Expression.Property(expr_3, typeof(global::Foo.Entity).GetProperty("IsActive"));
+            var expr_5 = global::System.Linq.Expressions.Expression.Property(expr_3, typeof(global::Foo.Entity).GetProperty("Value")); // e.Value
             var expr_6 = global::System.Linq.Expressions.Expression.Constant(0, typeof(int)); // 0
             var expr_4 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.GreaterThan, expr_5, expr_6);
             var expr_1 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.AndAlso, expr_2, expr_4);

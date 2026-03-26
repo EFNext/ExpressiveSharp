@@ -5,14 +5,8 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_SeasonDto__ctor_P0_int 
+    static partial class Foo_SeasonDto 
     {
-        private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.SeasonDto).GetConstructor(new global::System.Type[] {  });
-        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(object), typeof(object) }, null);
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.SeasonDto).GetProperty("Name");
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.SeasonDto).GetProperty("Description");
-
         // [Expressive]
         // public SeasonDto(int month)
         // {
@@ -25,10 +19,10 @@ namespace ExpressiveSharp.Generated
         //     };
         //     Description = "Month: " + month;
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<int, global::Foo.SeasonDto>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<int, global::Foo.SeasonDto>> _ctor_P0_int_Expression() 
         {
             var p_month = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "month");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(_c0);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.SeasonDto).GetConstructor(new global::System.Type[] {  }));
             var expr_1 = global::System.Linq.Expressions.Expression.Constant("Autumn", typeof(string)); // "Autumn"
             var expr_5 = global::System.Linq.Expressions.Expression.Constant(6, typeof(int)); // 6
             var expr_4 = global::System.Linq.Expressions.Expression.Equal(p_month, expr_5);
@@ -62,9 +56,9 @@ namespace ExpressiveSharp.Generated
             var expr_31 = global::System.Linq.Expressions.Expression.Condition(expr_22, expr_30, expr_21, typeof(string));
             var expr_33 = global::System.Linq.Expressions.Expression.Constant("Month: ", typeof(string)); // "Month: "
             var expr_34 = global::System.Linq.Expressions.Expression.Convert(p_month, typeof(object)); // month
-            var expr_32 = global::System.Linq.Expressions.Expression.Call(_m0, expr_33, expr_34);
-            var expr_35 = global::System.Linq.Expressions.Expression.Bind(_p0, expr_31);
-            var expr_36 = global::System.Linq.Expressions.Expression.Bind(_p1, expr_32);
+            var expr_32 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(object), typeof(object) }, null), expr_33, expr_34);
+            var expr_35 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.SeasonDto).GetProperty("Name"), expr_31);
+            var expr_36 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.SeasonDto).GetProperty("Description"), expr_32);
             var expr_37 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_35, expr_36);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<int, global::Foo.SeasonDto>>(expr_37, p_month);
         }

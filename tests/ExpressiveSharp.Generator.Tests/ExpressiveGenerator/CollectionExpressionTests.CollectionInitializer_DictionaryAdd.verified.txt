@@ -5,12 +5,8 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_Map 
+    static partial class Foo_C 
     {
-        private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::System.Collections.Generic.Dictionary<string, int>).GetConstructor(new global::System.Type[] {  });
-        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(global::System.Collections.Generic.Dictionary<string, int>).GetMethod("Add", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] { typeof(string), typeof(int) }, null);
-
         // [Expressive]
         // public Dictionary<string, int> Map => new Dictionary<string, int>
         // {
@@ -23,16 +19,16 @@ namespace ExpressiveSharp.Generated
         //         2
         //     }
         // };
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, global::System.Collections.Generic.Dictionary<string, int>>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, global::System.Collections.Generic.Dictionary<string, int>>> Map_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
-            var expr_1 = global::System.Linq.Expressions.Expression.New(_c0); // new Dictionary<string, int> { { "a", 1 }, { "b", 2 } }
+            var expr_1 = global::System.Linq.Expressions.Expression.New(typeof(global::System.Collections.Generic.Dictionary<string, int>).GetConstructor(new global::System.Type[] {  })); // new Dictionary<string, int> { { "a", 1 }, { "b", 2 } }
             var expr_2 = global::System.Linq.Expressions.Expression.Constant("a", typeof(string)); // "a"
             var expr_3 = global::System.Linq.Expressions.Expression.Constant(1, typeof(int)); // 1
-            var expr_4 = global::System.Linq.Expressions.Expression.ElementInit(_m0, expr_2, expr_3);
+            var expr_4 = global::System.Linq.Expressions.Expression.ElementInit(typeof(global::System.Collections.Generic.Dictionary<string, int>).GetMethod("Add", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] { typeof(string), typeof(int) }, null), expr_2, expr_3);
             var expr_5 = global::System.Linq.Expressions.Expression.Constant("b", typeof(string)); // "b"
             var expr_6 = global::System.Linq.Expressions.Expression.Constant(2, typeof(int)); // 2
-            var expr_7 = global::System.Linq.Expressions.Expression.ElementInit(_m0, expr_5, expr_6);
+            var expr_7 = global::System.Linq.Expressions.Expression.ElementInit(typeof(global::System.Collections.Generic.Dictionary<string, int>).GetMethod("Add", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] { typeof(string), typeof(int) }, null), expr_5, expr_6);
             var expr_0 = global::System.Linq.Expressions.Expression.ListInit(expr_1, expr_4, expr_7);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, global::System.Collections.Generic.Dictionary<string, int>>>(expr_0, p__this);
         }

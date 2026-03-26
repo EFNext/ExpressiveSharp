@@ -5,16 +5,8 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_ShapeDto__ctor_P0_int 
+    static partial class Foo_ShapeDto 
     {
-        private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.ShapeDto).GetConstructor(new global::System.Type[] {  });
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.ShapeDto).GetProperty("ShapeType");
-        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null);
-        private static readonly global::System.Reflection.MethodInfo _m1 = typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(object), typeof(object) }, null);
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.ShapeDto).GetProperty("Sides");
-        private static readonly global::System.Reflection.PropertyInfo _p2 = typeof(global::Foo.ShapeDto).GetProperty("Description");
-
         // [Expressive]
         // public ShapeDto(int sides)
         // {
@@ -28,10 +20,10 @@ namespace ExpressiveSharp.Generated
         //     };
         //     Description = ShapeType + " with " + sides + " sides";
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<int, global::Foo.ShapeDto>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<int, global::Foo.ShapeDto>> _ctor_P0_int_Expression() 
         {
             var p_sides = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "sides");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(_c0);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.ShapeDto).GetConstructor(new global::System.Type[] {  }));
             var expr_1 = global::System.Linq.Expressions.Expression.Constant("Polygon", typeof(string)); // "Polygon"
             var expr_3 = global::System.Linq.Expressions.Expression.Constant(5, typeof(int)); // 5
             var expr_2 = global::System.Linq.Expressions.Expression.Equal(p_sides, expr_3);
@@ -46,16 +38,16 @@ namespace ExpressiveSharp.Generated
             var expr_12 = global::System.Linq.Expressions.Expression.Constant("Triangle", typeof(string)); // "Triangle"
             var expr_13 = global::System.Linq.Expressions.Expression.Condition(expr_10, expr_12, expr_9, typeof(string));
             var p___this = global::System.Linq.Expressions.Expression.Parameter(typeof(object), "@this"); // ShapeType
-            var expr_17 = global::System.Linq.Expressions.Expression.Property(p___this, _p0);
+            var expr_17 = global::System.Linq.Expressions.Expression.Property(p___this, typeof(global::Foo.ShapeDto).GetProperty("ShapeType"));
             var expr_18 = global::System.Linq.Expressions.Expression.Constant(" with ", typeof(string)); // " with "
-            var expr_16 = global::System.Linq.Expressions.Expression.Call(_m0, expr_17, expr_18);
+            var expr_16 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_17, expr_18);
             var expr_19 = global::System.Linq.Expressions.Expression.Convert(p_sides, typeof(object)); // sides
-            var expr_15 = global::System.Linq.Expressions.Expression.Call(_m1, expr_16, expr_19);
+            var expr_15 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(object), typeof(object) }, null), expr_16, expr_19);
             var expr_20 = global::System.Linq.Expressions.Expression.Constant(" sides", typeof(string)); // " sides"
-            var expr_14 = global::System.Linq.Expressions.Expression.Call(_m0, expr_15, expr_20);
-            var expr_21 = global::System.Linq.Expressions.Expression.Bind(_p1, p_sides);
-            var expr_22 = global::System.Linq.Expressions.Expression.Bind(_p0, expr_13);
-            var expr_23 = global::System.Linq.Expressions.Expression.Bind(_p2, expr_14);
+            var expr_14 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_15, expr_20);
+            var expr_21 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.ShapeDto).GetProperty("Sides"), p_sides);
+            var expr_22 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.ShapeDto).GetProperty("ShapeType"), expr_13);
+            var expr_23 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.ShapeDto).GetProperty("Description"), expr_14);
             var expr_24 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_21, expr_22, expr_23);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<int, global::Foo.ShapeDto>>(expr_24, p_sides);
         }

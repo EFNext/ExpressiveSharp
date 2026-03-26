@@ -4,17 +4,14 @@
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class _Foo_SomeNumber_P0_Foo 
+    static partial class _Foo 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo).GetProperty("FancyNumber");
-
         // [Expressive]
         // public static int SomeNumber(Foo fancyClass) => fancyClass?.FancyNumber ?? 3;
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo, int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo, int>> SomeNumber_P0_Foo_Expression() 
         {
             var p_fancyClass = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo), "fancyClass");
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p_fancyClass, _p0); // .FancyNumber
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p_fancyClass, typeof(global::Foo).GetProperty("FancyNumber")); // .FancyNumber
             var expr_3 = global::System.Linq.Expressions.Expression.Constant(null, typeof(global::Foo));
             var expr_4 = global::System.Linq.Expressions.Expression.NotEqual(p_fancyClass, expr_3);
             var expr_5 = global::System.Linq.Expressions.Expression.Default(typeof(int?));

@@ -5,19 +5,15 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_Foo_IdWithBar 
+    static partial class Foo_Foo 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.Foo).GetProperty("Id");
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.Foo).GetProperty("Bar");
-
         // [Expressive]
         // public int IdWithBar() => Id + Bar;
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Foo, int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Foo, int>> IdWithBar_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Foo), "@this");
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, _p0); // Id
-            var expr_2 = global::System.Linq.Expressions.Expression.Property(null, _p1); // Bar
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Foo).GetProperty("Id")); // Id
+            var expr_2 = global::System.Linq.Expressions.Expression.Property(null, typeof(global::Foo.Foo).GetProperty("Bar")); // Bar
             var expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_1, expr_2);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.Foo, int>>(expr_0, p__this);
         }

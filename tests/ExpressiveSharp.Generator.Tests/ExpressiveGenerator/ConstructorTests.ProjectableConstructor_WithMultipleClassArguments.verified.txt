@@ -5,29 +5,23 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_PersonDto__ctor_P0_Foo_NamePart_P1_Foo_NamePart 
+    static partial class Foo_PersonDto 
     {
-        private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.PersonDto).GetConstructor(new global::System.Type[] {  });
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.NamePart).GetProperty("Value");
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.PersonDto).GetProperty("FirstName");
-        private static readonly global::System.Reflection.PropertyInfo _p2 = typeof(global::Foo.PersonDto).GetProperty("LastName");
-
         // [Expressive]
         // public PersonDto(NamePart first, NamePart last)
         // {
         //     FirstName = first.Value;
         //     LastName = last.Value;
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.NamePart, global::Foo.NamePart, global::Foo.PersonDto>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.NamePart, global::Foo.NamePart, global::Foo.PersonDto>> _ctor_P0_Foo_NamePart_P1_Foo_NamePart_Expression() 
         {
             var p_first = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.NamePart), "first");
             var p_last = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.NamePart), "last");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(_c0);
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p_first, _p0); // first.Value
-            var expr_2 = global::System.Linq.Expressions.Expression.Property(p_last, _p0); // last.Value
-            var expr_3 = global::System.Linq.Expressions.Expression.Bind(_p1, expr_1);
-            var expr_4 = global::System.Linq.Expressions.Expression.Bind(_p2, expr_2);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PersonDto).GetConstructor(new global::System.Type[] {  }));
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p_first, typeof(global::Foo.NamePart).GetProperty("Value")); // first.Value
+            var expr_2 = global::System.Linq.Expressions.Expression.Property(p_last, typeof(global::Foo.NamePart).GetProperty("Value")); // last.Value
+            var expr_3 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("FirstName"), expr_1);
+            var expr_4 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("LastName"), expr_2);
             var expr_5 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_3, expr_4);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.NamePart, global::Foo.NamePart, global::Foo.PersonDto>>(expr_5, p_first, p_last);
         }

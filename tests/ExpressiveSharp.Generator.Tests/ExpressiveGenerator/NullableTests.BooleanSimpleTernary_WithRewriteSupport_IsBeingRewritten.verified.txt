@@ -5,19 +5,16 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_Test_P0_object 
+    static partial class Foo_C 
     {
-        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(object).GetMethod("Equals", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] { typeof(object) }, null);
-
         // [Expressive]
         // public static bool Test(this object? x) => x?.Equals(4) == false;
-        static global::System.Linq.Expressions.Expression<global::System.Func<object, bool>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<object, bool>> Test_P0_object_Expression() 
         {
             var p_x = global::System.Linq.Expressions.Expression.Parameter(typeof(object), "x");
             var expr_3 = global::System.Linq.Expressions.Expression.Constant(4, typeof(int)); // 4
             var expr_2 = global::System.Linq.Expressions.Expression.Convert(expr_3, typeof(object));
-            var expr_1 = global::System.Linq.Expressions.Expression.Call(p_x, _m0, new global::System.Linq.Expressions.Expression[] { expr_2 });
+            var expr_1 = global::System.Linq.Expressions.Expression.Call(p_x, typeof(object).GetMethod("Equals", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] { typeof(object) }, null), new global::System.Linq.Expressions.Expression[] { expr_2 });
             var expr_4 = global::System.Linq.Expressions.Expression.Convert(expr_1, typeof(bool?));
             var expr_6 = global::System.Linq.Expressions.Expression.Constant(null, typeof(object));
             var expr_7 = global::System.Linq.Expressions.Expression.NotEqual(p_x, expr_6);

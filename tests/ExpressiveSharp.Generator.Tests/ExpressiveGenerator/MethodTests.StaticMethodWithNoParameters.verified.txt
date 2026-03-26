@@ -4,12 +4,11 @@
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class _Foo_Zero 
+    static partial class _Foo 
     {
         // [Expressive]
         // public static int Zero() => 0;
-        static global::System.Linq.Expressions.Expression<global::System.Func<int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<int>> Zero_Expression() 
         {
             var expr_0 = global::System.Linq.Expressions.Expression.Constant(0, typeof(int)); // 0
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<int>>(expr_0, global::System.Array.Empty<global::System.Linq.Expressions.ParameterExpression>());

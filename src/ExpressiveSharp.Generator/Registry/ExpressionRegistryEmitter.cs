@@ -126,7 +126,7 @@ static internal class ExpressionRegistryEmitter
 
         if (memberCallExpr is not null)
         {
-            writer.WriteLine($"Register(map, {memberCallExpr}, \"{entry.GeneratedClassFullName}\");");
+            writer.WriteLine($"Register(map, {memberCallExpr}, \"{entry.GeneratedClassFullName}\", \"{entry.ExpressionMethodName}\");");
         }
     }
 
@@ -174,17 +174,18 @@ static internal class ExpressionRegistryEmitter
     /// </summary>
     private static void EmitRegisterHelper(IndentedTextWriter writer)
     {
-        writer.WriteLine("private static void Register(Dictionary<nint, LambdaExpression> map, MethodBase m, string exprClass)");
+        writer.WriteLine("private static void Register(Dictionary<nint, LambdaExpression> map, MethodBase m, string exprClass, string exprMethodName)");
         writer.WriteLine("{");
         writer.Indent++;
         writer.WriteLine("if (m is null) return;");
         writer.WriteLine("var exprType = m.DeclaringType?.Assembly.GetType(exprClass);");
-        writer.WriteLine(@"var exprMethod = exprType?.GetMethod(""Expression"", BindingFlags.Static | BindingFlags.NonPublic);");
+        writer.WriteLine(@"var exprMethod = exprType?.GetMethod(exprMethodName, BindingFlags.Static | BindingFlags.NonPublic);");
         writer.WriteLine("if (exprMethod is null) return;");
         writer.WriteLine("var expr = (LambdaExpression)exprMethod.Invoke(null, null)!;");
         writer.WriteLine();
         writer.WriteLine("// Apply declared transformers from the generated class (if any)");
-        writer.WriteLine(@"var transformersMethod = exprType.GetMethod(""Transformers"", BindingFlags.Static | BindingFlags.NonPublic);");
+        writer.WriteLine(@"var transformersSuffix = exprMethodName.Substring(0, exprMethodName.Length - ""_Expression"".Length) + ""_Transformers"";");
+        writer.WriteLine(@"var transformersMethod = exprType.GetMethod(transformersSuffix, BindingFlags.Static | BindingFlags.NonPublic);");
         writer.WriteLine(@"if (transformersMethod?.Invoke(null, null) is global::ExpressiveSharp.IExpressionTreeTransformer[] transformers)");
         writer.WriteLine("{");
         writer.Indent++;

@@ -4,12 +4,11 @@
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class _Foo_First_P0_int__ 
+    static partial class _Foo 
     {
         // [Expressive]
         // public int First(params int[] all) => all[0];
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo, int[], int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo, int[], int>> First_P0_int___Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo), "@this");
             var p_all = global::System.Linq.Expressions.Expression.Parameter(typeof(int[]), "all");

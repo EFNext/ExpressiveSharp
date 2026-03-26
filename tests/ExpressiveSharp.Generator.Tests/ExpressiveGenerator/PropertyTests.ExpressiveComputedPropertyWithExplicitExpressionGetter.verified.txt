@@ -5,17 +5,14 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_Foo 
+    static partial class Foo_C 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.C).GetProperty("Bar");
-
         // [Expressive]
         // public int Foo { get => Bar + 1; }
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int>> Foo_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, _p0); // Bar
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Bar")); // Bar
             var expr_2 = global::System.Linq.Expressions.Expression.Constant(1, typeof(int)); // 1
             var expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_1, expr_2);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, int>>(expr_0, p__this);

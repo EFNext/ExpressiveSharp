@@ -5,20 +5,16 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_FormattedPrice 
+    static partial class Foo_C 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.C).GetProperty("Price");
-        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(double).GetMethod("ToString", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] { typeof(string) }, null);
-
         // [Expressive]
         // public string FormattedPrice => $"{Price:F2}";
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, string>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, string>> FormattedPrice_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, _p0); // Price
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Price")); // Price
             var expr_1 = global::System.Linq.Expressions.Expression.Constant("F2", typeof(string));
-            var expr_2 = global::System.Linq.Expressions.Expression.Call(expr_0, _m0, expr_1);
+            var expr_2 = global::System.Linq.Expressions.Expression.Call(expr_0, typeof(double).GetMethod("ToString", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] { typeof(string) }, null), expr_1);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, string>>(expr_2, p__this);
         }
     }

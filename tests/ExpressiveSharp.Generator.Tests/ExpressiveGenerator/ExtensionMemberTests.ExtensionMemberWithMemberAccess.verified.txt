@@ -5,26 +5,20 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_EntityExtensions_IdAndName 
+    static partial class Foo_EntityExtensions 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.Entity).GetProperty("Id");
-        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(object), typeof(object) }, null);
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.Entity).GetProperty("Name");
-        private static readonly global::System.Reflection.MethodInfo _m1 = typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null);
-
         // [Expressive]
         // public string IdAndName => e.Id + ": " + e.Name;
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Entity, string>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Entity, string>> IdAndName_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Entity), "@this");
             var expr_4 = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Entity), "e"); // e
-            var expr_3 = global::System.Linq.Expressions.Expression.Property(expr_4, _p0);
+            var expr_3 = global::System.Linq.Expressions.Expression.Property(expr_4, typeof(global::Foo.Entity).GetProperty("Id"));
             var expr_2 = global::System.Linq.Expressions.Expression.Convert(expr_3, typeof(object));
             var expr_5 = global::System.Linq.Expressions.Expression.Constant(": ", typeof(string)); // ": "
-            var expr_1 = global::System.Linq.Expressions.Expression.Call(_m0, expr_2, expr_5);
-            var expr_6 = global::System.Linq.Expressions.Expression.Property(expr_4, _p1); // e.Name
-            var expr_0 = global::System.Linq.Expressions.Expression.Call(_m1, expr_1, expr_6);
+            var expr_1 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(object), typeof(object) }, null), expr_2, expr_5);
+            var expr_6 = global::System.Linq.Expressions.Expression.Property(expr_4, typeof(global::Foo.Entity).GetProperty("Name")); // e.Name
+            var expr_0 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_1, expr_6);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.Entity, string>>(expr_0, p__this);
         }
     }

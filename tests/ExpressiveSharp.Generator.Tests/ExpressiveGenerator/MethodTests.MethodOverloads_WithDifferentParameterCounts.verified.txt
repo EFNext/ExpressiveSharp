@@ -6,12 +6,11 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_Method_P0_int 
+    static partial class Foo_C 
     {
         // [Expressive]
         // public int Method(int x) => x;
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int, int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int, int>> Method_P0_int_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
             var p_x = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "x");
@@ -28,12 +27,11 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_Method_P0_int_P1_int 
+    static partial class Foo_C 
     {
         // [Expressive]
         // public int Method(int x, int y) => x + y;
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int, int, int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int, int, int>> Method_P0_int_P1_int_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
             var p_x = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "x");

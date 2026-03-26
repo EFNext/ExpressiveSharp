@@ -5,26 +5,21 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_Combined 
+    static partial class Foo_C 
     {
-        private static readonly global::System.Reflection.MethodInfo _m0 = global::System.Linq.Enumerable.First(global::System.Linq.Enumerable.Where(typeof(global::System.Linq.Enumerable).GetMethods(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static), m => m.Name == "ToList" && m.IsGenericMethodDefinition && m.GetGenericArguments().Length == 1 && m.GetParameters().Length == 1)).MakeGenericMethod(typeof(int));
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.C).GetProperty("Items");
-        private static readonly global::System.Reflection.MethodInfo _m1 = global::System.Linq.Enumerable.First(global::System.Linq.Enumerable.Where(typeof(global::System.Linq.Enumerable).GetMethods(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static), m => m.Name == "Concat" && m.IsGenericMethodDefinition && m.GetGenericArguments().Length == 1 && m.GetParameters().Length == 2)).MakeGenericMethod(typeof(int));
-
         // [Expressive]
         // public List<int> Combined => [1, ..Items, 2];
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, global::System.Collections.Generic.List<int>>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, global::System.Collections.Generic.List<int>>> Combined_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
             var expr_1 = global::System.Linq.Expressions.Expression.Constant(1, typeof(int)); // 1
             var expr_2 = global::System.Linq.Expressions.Expression.NewArrayInit(typeof(int), expr_1);
-            var expr_3 = global::System.Linq.Expressions.Expression.Property(p__this, _p0); // Items
+            var expr_3 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Items")); // Items
             var expr_4 = global::System.Linq.Expressions.Expression.Constant(2, typeof(int)); // 2
             var expr_5 = global::System.Linq.Expressions.Expression.NewArrayInit(typeof(int), expr_4);
-            var expr_6 = global::System.Linq.Expressions.Expression.Call(_m1, expr_2, expr_3);
-            var expr_7 = global::System.Linq.Expressions.Expression.Call(_m1, expr_6, expr_5);
-            var expr_0 = global::System.Linq.Expressions.Expression.Call(_m0, expr_7);
+            var expr_6 = global::System.Linq.Expressions.Expression.Call(global::System.Linq.Enumerable.First(global::System.Linq.Enumerable.Where(typeof(global::System.Linq.Enumerable).GetMethods(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static), m => m.Name == "Concat" && m.IsGenericMethodDefinition && m.GetGenericArguments().Length == 1 && m.GetParameters().Length == 2)).MakeGenericMethod(typeof(int)), expr_2, expr_3);
+            var expr_7 = global::System.Linq.Expressions.Expression.Call(global::System.Linq.Enumerable.First(global::System.Linq.Enumerable.Where(typeof(global::System.Linq.Enumerable).GetMethods(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static), m => m.Name == "Concat" && m.IsGenericMethodDefinition && m.GetGenericArguments().Length == 1 && m.GetParameters().Length == 2)).MakeGenericMethod(typeof(int)), expr_6, expr_5);
+            var expr_0 = global::System.Linq.Expressions.Expression.Call(global::System.Linq.Enumerable.First(global::System.Linq.Enumerable.Where(typeof(global::System.Linq.Enumerable).GetMethods(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static), m => m.Name == "ToList" && m.IsGenericMethodDefinition && m.GetGenericArguments().Length == 1 && m.GetParameters().Length == 1)).MakeGenericMethod(typeof(int)), expr_7);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, global::System.Collections.Generic.List<int>>>(expr_0, p__this);
         }
     }

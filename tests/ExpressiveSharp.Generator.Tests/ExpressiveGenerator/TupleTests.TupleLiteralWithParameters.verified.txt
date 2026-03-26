@@ -5,19 +5,16 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_MakeTuple_P0_int_P1_string 
+    static partial class Foo_C 
     {
-        private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof((int, string)).GetConstructor(new global::System.Type[] { typeof(int), typeof(string) });
-
         // [Expressive]
         // public (int, string) MakeTuple(int id, string name) => (id, name);
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int, string, global::System.ValueTuple<int, string>>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int, string, global::System.ValueTuple<int, string>>> MakeTuple_P0_int_P1_string_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
             var p_id = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "id");
             var p_name = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "name");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(_c0, p_id, p_name); // (id, name)
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof((int, string)).GetConstructor(new global::System.Type[] { typeof(int), typeof(string) }), p_id, p_name); // (id, name)
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, int, string, global::System.ValueTuple<int, string>>>(expr_0, p__this, p_id, p_name);
         }
     }

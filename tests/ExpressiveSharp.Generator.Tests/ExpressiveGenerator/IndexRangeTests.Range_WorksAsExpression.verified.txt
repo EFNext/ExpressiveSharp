@@ -5,22 +5,17 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_Slice 
+    static partial class Foo_C 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.C).GetProperty("Start");
-        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(global::System.Index).GetMethod("op_Implicit", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(int) }, null);
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.C).GetProperty("End");
-
         // [Expressive]
         // public Range Slice => Start..End;
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, global::System.Range>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, global::System.Range>> Slice_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
-            var expr_2 = global::System.Linq.Expressions.Expression.Property(p__this, _p0); // Start
-            var expr_1 = global::System.Linq.Expressions.Expression.Convert(expr_2, typeof(global::System.Index), _m0);
-            var expr_4 = global::System.Linq.Expressions.Expression.Property(p__this, _p1); // End
-            var expr_3 = global::System.Linq.Expressions.Expression.Convert(expr_4, typeof(global::System.Index), _m0);
+            var expr_2 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Start")); // Start
+            var expr_1 = global::System.Linq.Expressions.Expression.Convert(expr_2, typeof(global::System.Index), typeof(global::System.Index).GetMethod("op_Implicit", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(int) }, null));
+            var expr_4 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("End")); // End
+            var expr_3 = global::System.Linq.Expressions.Expression.Convert(expr_4, typeof(global::System.Index), typeof(global::System.Index).GetMethod("op_Implicit", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(int) }, null));
             var expr_5 = typeof(global::System.Range).GetConstructor(new global::System.Type[] { typeof(global::System.Index), typeof(global::System.Index) });
             var expr_0 = global::System.Linq.Expressions.Expression.New(expr_5, expr_1, expr_3);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, global::System.Range>>(expr_0, p__this);

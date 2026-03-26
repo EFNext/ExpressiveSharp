@@ -5,12 +5,11 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_NextFoo_P0_object_P1_int_ 
+    static partial class Foo_C 
     {
         // [Expressive]
         // public static object? NextFoo(this object? unusedArgument, int? nullablePrimitiveArgument) => null;
-        static global::System.Linq.Expressions.Expression<global::System.Func<object, int?, object>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<object, int?, object>> NextFoo_P0_object_P1_int__Expression() 
         {
             var p_unusedArgument = global::System.Linq.Expressions.Expression.Parameter(typeof(object), "unusedArgument");
             var p_nullablePrimitiveArgument = global::System.Linq.Expressions.Expression.Parameter(typeof(int?), "nullablePrimitiveArgument");

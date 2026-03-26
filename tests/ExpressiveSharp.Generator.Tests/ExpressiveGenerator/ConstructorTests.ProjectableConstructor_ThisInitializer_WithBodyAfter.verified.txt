@@ -5,41 +5,33 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_PersonDto__ctor_P0_string_P1_string_P2_bool 
+    static partial class Foo_PersonDto 
     {
-        private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.PersonDto).GetConstructor(new global::System.Type[] {  });
-        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(string).GetMethod("ToUpper", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null);
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.PersonDto).GetProperty("FirstName");
-        private static readonly global::System.Reflection.MethodInfo _m1 = typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null);
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.PersonDto).GetProperty("LastName");
-        private static readonly global::System.Reflection.PropertyInfo _p2 = typeof(global::Foo.PersonDto).GetProperty("FullName");
-
         // [Expressive]
         // public PersonDto(string fn, string ln, bool upper) : this(fn, ln)
         // {
         //     FullName = upper ? (FirstName + " " + LastName).ToUpper() : FirstName + " " + LastName;
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<string, string, bool, global::Foo.PersonDto>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<string, string, bool, global::Foo.PersonDto>> _ctor_P0_string_P1_string_P2_bool_Expression() 
         {
             var p_fn = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "fn");
             var p_ln = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "ln");
             var p_upper = global::System.Linq.Expressions.Expression.Parameter(typeof(bool), "upper");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(_c0);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PersonDto).GetConstructor(new global::System.Type[] {  }));
             var p___this = global::System.Linq.Expressions.Expression.Parameter(typeof(object), "@this"); // FirstName
-            var expr_5 = global::System.Linq.Expressions.Expression.Property(p___this, _p0);
+            var expr_5 = global::System.Linq.Expressions.Expression.Property(p___this, typeof(global::Foo.PersonDto).GetProperty("FirstName"));
             var expr_6 = global::System.Linq.Expressions.Expression.Constant(" ", typeof(string)); // " "
-            var expr_4 = global::System.Linq.Expressions.Expression.Call(_m1, expr_5, expr_6);
-            var expr_7 = global::System.Linq.Expressions.Expression.Property(p___this, _p1); // LastName
-            var expr_3 = global::System.Linq.Expressions.Expression.Call(_m1, expr_4, expr_7);
-            var expr_2 = global::System.Linq.Expressions.Expression.Call(expr_3, _m0, global::System.Array.Empty<global::System.Linq.Expressions.Expression>());
-            var expr_10 = global::System.Linq.Expressions.Expression.Property(p___this, _p0); // FirstName
+            var expr_4 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_5, expr_6);
+            var expr_7 = global::System.Linq.Expressions.Expression.Property(p___this, typeof(global::Foo.PersonDto).GetProperty("LastName")); // LastName
+            var expr_3 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_4, expr_7);
+            var expr_2 = global::System.Linq.Expressions.Expression.Call(expr_3, typeof(string).GetMethod("ToUpper", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null), global::System.Array.Empty<global::System.Linq.Expressions.Expression>());
+            var expr_10 = global::System.Linq.Expressions.Expression.Property(p___this, typeof(global::Foo.PersonDto).GetProperty("FirstName")); // FirstName
             var expr_11 = global::System.Linq.Expressions.Expression.Constant(" ", typeof(string)); // " "
-            var expr_9 = global::System.Linq.Expressions.Expression.Call(_m1, expr_10, expr_11);
-            var expr_12 = global::System.Linq.Expressions.Expression.Property(p___this, _p1); // LastName
-            var expr_8 = global::System.Linq.Expressions.Expression.Call(_m1, expr_9, expr_12);
+            var expr_9 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_10, expr_11);
+            var expr_12 = global::System.Linq.Expressions.Expression.Property(p___this, typeof(global::Foo.PersonDto).GetProperty("LastName")); // LastName
+            var expr_8 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_9, expr_12);
             var expr_1 = global::System.Linq.Expressions.Expression.Condition(p_upper, expr_2, expr_8, typeof(string));
-            var expr_13 = global::System.Linq.Expressions.Expression.Bind(_p2, expr_1);
+            var expr_13 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("FullName"), expr_1);
             var expr_14 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_13);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<string, string, bool, global::Foo.PersonDto>>(expr_14, p_fn, p_ln, p_upper);
         }

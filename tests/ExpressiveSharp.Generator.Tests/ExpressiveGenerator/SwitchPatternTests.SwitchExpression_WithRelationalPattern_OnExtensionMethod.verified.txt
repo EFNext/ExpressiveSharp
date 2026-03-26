@@ -5,11 +5,8 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_OrderExtensions_GetTier_P0_Foo_Order 
+    static partial class Foo_OrderExtensions 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.Order).GetProperty("Amount");
-
         // [Expressive]
         // public static string GetTier(this Order order) => order.Amount switch
         // {
@@ -18,10 +15,10 @@ namespace ExpressiveSharp.Generated
         //     >= 100 => "Silver",
         //     _ => "Bronze",
         // };
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Order, string>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Order, string>> GetTier_P0_Foo_Order_Expression() 
         {
             var p_order = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Order), "order");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_order, _p0); // order.Amount
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_order, typeof(global::Foo.Order).GetProperty("Amount")); // order.Amount
             var expr_1 = global::System.Linq.Expressions.Expression.Constant("Bronze", typeof(string)); // "Bronze"
             var expr_4 = global::System.Linq.Expressions.Expression.Constant(100, typeof(int)); // 100
             var expr_3 = global::System.Linq.Expressions.Expression.Convert(expr_4, typeof(decimal));

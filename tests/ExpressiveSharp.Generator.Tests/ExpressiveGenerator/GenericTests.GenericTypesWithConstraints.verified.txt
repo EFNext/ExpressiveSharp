@@ -4,12 +4,11 @@
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class _EntityBase_GetId<TId> where TId : global::System.ICloneable, new()
+    static partial class _EntityBase<TId> where TId : global::System.ICloneable, new()
     {
         // [Expressive]
         // public static TId GetId() => default;
-        static global::System.Linq.Expressions.Expression<global::System.Func<TId>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<TId>> GetId_Expression() 
         {
             var expr_0 = global::System.Linq.Expressions.Expression.Default(typeof(TId)); // default
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<TId>>(expr_0, global::System.Array.Empty<global::System.Linq.Expressions.ParameterExpression>());

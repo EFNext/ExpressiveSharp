@@ -5,29 +5,23 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_Child__ctor_P0_int_P1_int 
+    static partial class Foo_Child 
     {
-        private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.Child).GetConstructor(new global::System.Type[] {  });
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.Base).GetProperty("X");
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.Base).GetProperty("Y");
-        private static readonly global::System.Reflection.PropertyInfo _p2 = typeof(global::Foo.Child).GetProperty("Sum");
-
         // [Expressive]
         // public Child(int a, int b) : base(a, b)
         // {
         //     Sum = X + Y;
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<int, int, global::Foo.Child>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<int, int, global::Foo.Child>> _ctor_P0_int_P1_int_Expression() 
         {
             var p_a = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "a");
             var p_b = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "b");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(_c0);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.Child).GetConstructor(new global::System.Type[] {  }));
             var p___this = global::System.Linq.Expressions.Expression.Parameter(typeof(object), "@this"); // X
-            var expr_2 = global::System.Linq.Expressions.Expression.Property(p___this, _p0);
-            var expr_3 = global::System.Linq.Expressions.Expression.Property(p___this, _p1); // Y
+            var expr_2 = global::System.Linq.Expressions.Expression.Property(p___this, typeof(global::Foo.Base).GetProperty("X"));
+            var expr_3 = global::System.Linq.Expressions.Expression.Property(p___this, typeof(global::Foo.Base).GetProperty("Y")); // Y
             var expr_1 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_2, expr_3);
-            var expr_4 = global::System.Linq.Expressions.Expression.Bind(_p2, expr_1);
+            var expr_4 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.Child).GetProperty("Sum"), expr_1);
             var expr_5 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_4);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<int, int, global::Foo.Child>>(expr_5, p_a, p_b);
         }

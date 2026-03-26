@@ -4,17 +4,14 @@
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class _IDefaultBase_Default 
+    static partial class _IDefaultBase 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::IBase).GetProperty("ComputedProperty");
-
         // [Expressive]
         // int Default => ComputedProperty * 2;
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::IDefaultBase, int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::IDefaultBase, int>> Default_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::IDefaultBase), "@this");
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, _p0); // ComputedProperty
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::IBase).GetProperty("ComputedProperty")); // ComputedProperty
             var expr_2 = global::System.Linq.Expressions.Expression.Constant(2, typeof(int)); // 2
             var expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Multiply, expr_1, expr_2);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::IDefaultBase, int>>(expr_0, p__this);

@@ -5,11 +5,8 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_Entity_GetGrade 
+    static partial class Foo_Entity 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.Entity).GetProperty("Score");
-
         // [Expressive]
         // public string GetGrade() => Score switch
         // {
@@ -18,10 +15,10 @@ namespace ExpressiveSharp.Generated
         //     >= 70 => "C",
         //     _ => "F",
         // };
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Entity, string>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Entity, string>> GetGrade_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Entity), "@this");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, _p0); // Score
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Entity).GetProperty("Score")); // Score
             var expr_1 = global::System.Linq.Expressions.Expression.Constant("F", typeof(string)); // "F"
             var expr_3 = global::System.Linq.Expressions.Expression.Constant(70, typeof(int)); // 70
             var expr_2 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.GreaterThanOrEqual, expr_0, expr_3);

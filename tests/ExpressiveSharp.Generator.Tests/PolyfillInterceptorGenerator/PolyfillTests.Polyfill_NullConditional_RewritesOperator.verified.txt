@@ -5,17 +5,14 @@ namespace ExpressiveSharp.Generated.Interceptors
 {
     internal static class PolyfillInterceptors
     {
-        private static readonly global::System.Reflection.PropertyInfo _i0_p0 = typeof(global::TestNs.Order).GetProperty("Tag");
-        private static readonly global::System.Reflection.PropertyInfo _i0_p1 = typeof(string).GetProperty("Length");
-
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
         internal static global::System.Linq.Expressions.Expression<global::System.Func<global::TestNs.Order, int?>> __Polyfill_Create_0(
             global::System.Func<global::TestNs.Order, int?> _)
         {
             // Source: o => o.Tag?.Length
             var p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_o, _i0_p0); // o.Tag
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(expr_0, _i0_p1); // .Length
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_o, typeof(global::TestNs.Order).GetProperty("Tag")); // o.Tag
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(expr_0, typeof(string).GetProperty("Length")); // .Length
             var expr_2 = global::System.Linq.Expressions.Expression.Convert(expr_1, typeof(int?));
             var expr_4 = global::System.Linq.Expressions.Expression.Constant(null, typeof(string));
             var expr_5 = global::System.Linq.Expressions.Expression.NotEqual(expr_0, expr_4);

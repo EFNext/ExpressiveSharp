@@ -5,31 +5,24 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_Status 
+    static partial class Foo_C 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.C).GetProperty("ValidationDate");
-        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(global::System.DateTime).GetMethod("op_Inequality", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(global::System.DateTime), typeof(global::System.DateTime) }, null);
-        private static readonly global::System.Reflection.MethodInfo _m1 = typeof(global::Foo.MyExtensions).GetMethod("ToDateString", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(global::System.DateTime) }, null);
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::System.DateTime?).GetProperty("Value");
-        private static readonly global::System.Reflection.MethodInfo _m2 = typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null);
-
         // [Expressive]
         // public string Status => ValidationDate != null ? $"Validation date : ({ValidationDate.Value.ToDateString()})" : "";
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, string>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, string>> Status_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
-            var expr_2 = global::System.Linq.Expressions.Expression.Property(p__this, _p0); // ValidationDate
+            var expr_2 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("ValidationDate")); // ValidationDate
             var expr_4 = global::System.Linq.Expressions.Expression.Constant(null, typeof(object)); // null
             var expr_3 = global::System.Linq.Expressions.Expression.Convert(expr_4, typeof(global::System.DateTime?));
-            var expr_1 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.NotEqual, expr_2, expr_3, false, _m0);
+            var expr_1 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.NotEqual, expr_2, expr_3, false, typeof(global::System.DateTime).GetMethod("op_Inequality", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(global::System.DateTime), typeof(global::System.DateTime) }, null));
             var expr_5 = global::System.Linq.Expressions.Expression.Constant("Validation date : (", typeof(string)); // $"Validation date : ({ValidationDate.Value.ToDateString()})"
-            var expr_8 = global::System.Linq.Expressions.Expression.Property(p__this, _p0); // ValidationDate
-            var expr_7 = global::System.Linq.Expressions.Expression.Property(expr_8, _p1);
-            var expr_6 = global::System.Linq.Expressions.Expression.Call(_m1, new global::System.Linq.Expressions.Expression[] { expr_7 });
+            var expr_8 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("ValidationDate")); // ValidationDate
+            var expr_7 = global::System.Linq.Expressions.Expression.Property(expr_8, typeof(global::System.DateTime?).GetProperty("Value"));
+            var expr_6 = global::System.Linq.Expressions.Expression.Call(typeof(global::Foo.MyExtensions).GetMethod("ToDateString", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(global::System.DateTime) }, null), new global::System.Linq.Expressions.Expression[] { expr_7 });
             var expr_9 = global::System.Linq.Expressions.Expression.Constant(")", typeof(string));
-            var expr_10 = global::System.Linq.Expressions.Expression.Call(_m2, expr_5, expr_6);
-            var expr_11 = global::System.Linq.Expressions.Expression.Call(_m2, expr_10, expr_9);
+            var expr_10 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_5, expr_6);
+            var expr_11 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_10, expr_9);
             var expr_12 = global::System.Linq.Expressions.Expression.Constant("", typeof(string)); // ""
             var expr_0 = global::System.Linq.Expressions.Expression.Condition(expr_1, expr_11, expr_12, typeof(string));
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, string>>(expr_0, p__this);

@@ -12,6 +12,7 @@ sealed internal record ExpressionRegistryEntry(
     ExpressionRegistryMemberType MemberKind,
     string MemberLookupName,
     string GeneratedClassFullName,
+    string ExpressionMethodName,
     EquatableImmutableArray ParameterTypeNames
 );
 

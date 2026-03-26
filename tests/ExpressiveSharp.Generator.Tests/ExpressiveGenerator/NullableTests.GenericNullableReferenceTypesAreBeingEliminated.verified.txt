@@ -5,12 +5,11 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_NextFoo_P0_System_Collections_Generic_List_object__P1_System_Collections_Generic_List_int__ 
+    static partial class Foo_C 
     {
         // [Expressive]
         // public static List<object?> NextFoo(this List<object?> input, List<int?> nullablePrimitiveArgument) => input;
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::System.Collections.Generic.List<object>, global::System.Collections.Generic.List<int?>, global::System.Collections.Generic.List<object>>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::System.Collections.Generic.List<object>, global::System.Collections.Generic.List<int?>, global::System.Collections.Generic.List<object>>> NextFoo_P0_System_Collections_Generic_List_object__P1_System_Collections_Generic_List_int___Expression() 
         {
             var p_input = global::System.Linq.Expressions.Expression.Parameter(typeof(global::System.Collections.Generic.List<object>), "input");
             var p_nullablePrimitiveArgument = global::System.Linq.Expressions.Expression.Parameter(typeof(global::System.Collections.Generic.List<int?>), "nullablePrimitiveArgument");

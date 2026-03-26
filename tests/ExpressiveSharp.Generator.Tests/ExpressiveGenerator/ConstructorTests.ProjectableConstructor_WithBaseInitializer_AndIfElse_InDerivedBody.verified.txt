@@ -5,15 +5,8 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_Pet__ctor_P0_string_P1_string_P2_bool 
+    static partial class Foo_Pet 
     {
-        private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.Pet).GetConstructor(new global::System.Type[] {  });
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(string).GetProperty("Length");
-        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(string).GetMethod("Substring", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] { typeof(int), typeof(int) }, null);
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.Pet).GetProperty("Name");
-        private static readonly global::System.Reflection.PropertyInfo _p2 = typeof(global::Foo.Pet).GetProperty("Nickname");
-
         // [Expressive]
         // public Pet(string species, string name, bool useShortName) : base(species)
         // {
@@ -27,22 +20,22 @@ namespace ExpressiveSharp.Generated
         //         Nickname = name;
         //     }
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<string, string, bool, global::Foo.Pet>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<string, string, bool, global::Foo.Pet>> _ctor_P0_string_P1_string_P2_bool_Expression() 
         {
             var p_species = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "species");
             var p_name = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "name");
             var p_useShortName = global::System.Linq.Expressions.Expression.Parameter(typeof(bool), "useShortName");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(_c0);
-            var expr_3 = global::System.Linq.Expressions.Expression.Property(p_name, _p0); // name.Length
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.Pet).GetConstructor(new global::System.Type[] {  }));
+            var expr_3 = global::System.Linq.Expressions.Expression.Property(p_name, typeof(string).GetProperty("Length")); // name.Length
             var expr_4 = global::System.Linq.Expressions.Expression.Constant(3, typeof(int)); // 3
             var expr_2 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.GreaterThan, expr_3, expr_4);
             var expr_6 = global::System.Linq.Expressions.Expression.Constant(0, typeof(int)); // 0
             var expr_7 = global::System.Linq.Expressions.Expression.Constant(3, typeof(int)); // 3
-            var expr_5 = global::System.Linq.Expressions.Expression.Call(p_name, _m0, new global::System.Linq.Expressions.Expression[] { expr_6, expr_7 });
+            var expr_5 = global::System.Linq.Expressions.Expression.Call(p_name, typeof(string).GetMethod("Substring", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] { typeof(int), typeof(int) }, null), new global::System.Linq.Expressions.Expression[] { expr_6, expr_7 });
             var expr_1 = global::System.Linq.Expressions.Expression.Condition(expr_2, expr_5, p_name, typeof(string));
             var expr_8 = global::System.Linq.Expressions.Expression.Condition(p_useShortName, expr_1, p_name, typeof(string));
-            var expr_9 = global::System.Linq.Expressions.Expression.Bind(_p1, p_name);
-            var expr_10 = global::System.Linq.Expressions.Expression.Bind(_p2, expr_8);
+            var expr_9 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.Pet).GetProperty("Name"), p_name);
+            var expr_10 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.Pet).GetProperty("Nickname"), expr_8);
             var expr_11 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_9, expr_10);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<string, string, bool, global::Foo.Pet>>(expr_11, p_species, p_name, p_useShortName);
         }

@@ -216,12 +216,16 @@ namespace ExpressiveSharp.Services
                 }
             }
 
-            // GetNestedTypePath() returns a Type[] — project to string[] with a direct loop, no LINQ Select.
-            var generatedContainingTypeName = ExpressionClassNameGenerator.GenerateFullName(
+            // Build the generated class name (without member) and method suffix separately.
+            var nestedTypeNames = NestedTypePathToNames(declaringType.GetNestedTypePath());
+            var generatedContainingTypeName = ExpressionClassNameGenerator.GenerateClassFullName(
                 declaringType.Namespace,
-                NestedTypePathToNames(declaringType.GetNestedTypePath()),
+                nestedTypeNames);
+
+            var methodSuffix = ExpressionClassNameGenerator.GenerateMethodSuffix(
                 memberLookupName,
                 parameterTypeNames);
+            var expressionMethodName = methodSuffix + "_Expression";
 
             var expressionFactoryType = declaringType.Assembly.GetType(generatedContainingTypeName);
 
@@ -235,7 +239,7 @@ namespace ExpressiveSharp.Services
                 expressionFactoryType = expressionFactoryType.MakeGenericType(originalDeclaringType.GenericTypeArguments);
             }
 
-            var expressionFactoryMethod = expressionFactoryType.GetMethod("Expression", BindingFlags.Static | BindingFlags.NonPublic);
+            var expressionFactoryMethod = expressionFactoryType.GetMethod(expressionMethodName, BindingFlags.Static | BindingFlags.NonPublic);
 
             if (expressionFactoryMethod is null)
             {
@@ -252,7 +256,8 @@ namespace ExpressiveSharp.Services
                 return null;
 
             // Apply declared transformers from the generated class (if any)
-            var transformersMethod = expressionFactoryType.GetMethod("Transformers", BindingFlags.Static | BindingFlags.NonPublic);
+            var transformerMethodName = methodSuffix + "_Transformers";
+            var transformersMethod = expressionFactoryType.GetMethod(transformerMethodName, BindingFlags.Static | BindingFlags.NonPublic);
             if (transformersMethod?.Invoke(null, null) is IExpressionTreeTransformer[] transformers)
             {
                 Expression result = expression;

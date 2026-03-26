@@ -5,8 +5,6 @@ namespace ExpressiveSharp.Generated.Interceptors
 {
     internal static class PolyfillInterceptors
     {
-        private static readonly global::System.Reflection.PropertyInfo _i0_p0 = typeof(global::TestNs.Order).GetProperty("Priority");
-
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
         internal static global::ExpressiveSharp.IRewritableQueryable<global::TestNs.Order> __Polyfill_OrderBy_0(
             this global::ExpressiveSharp.IRewritableQueryable<global::TestNs.Order> source,
@@ -14,7 +12,7 @@ namespace ExpressiveSharp.Generated.Interceptors
         {
             // Source: o => o.Priority
             var p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_o, _i0_p0); // o.Priority
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_o, typeof(global::TestNs.Order).GetProperty("Priority")); // o.Priority
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, int>>(expr_0, p_o);
             return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
                 global::System.Linq.Queryable.OrderBy(

@@ -6,30 +6,24 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_Entity_MyEnumName 
+    static partial class Foo_Entity 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.CustomEnum?).GetProperty("HasValue");
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.Entity).GetProperty("MyValue");
-        private static readonly global::System.Reflection.PropertyInfo _p2 = typeof(global::Foo.CustomEnum?).GetProperty("Value");
-        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(global::Foo.EnumExtensions).GetMethod("GetDisplayName", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(global::Foo.CustomEnum) }, null);
-
         // [Expressive]
         // public string MyEnumName => MyValue.HasValue ? MyValue.Value.GetDisplayName() : null;
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Entity, string>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Entity, string>> MyEnumName_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Entity), "@this");
-            var expr_2 = global::System.Linq.Expressions.Expression.Property(p__this, _p1); // MyValue
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(expr_2, _p0);
-            var expr_4 = global::System.Linq.Expressions.Expression.Property(p__this, _p1); // MyValue
-            var expr_3 = global::System.Linq.Expressions.Expression.Property(expr_4, _p2);
+            var expr_2 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Entity).GetProperty("MyValue")); // MyValue
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(expr_2, typeof(global::Foo.CustomEnum?).GetProperty("HasValue"));
+            var expr_4 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Entity).GetProperty("MyValue")); // MyValue
+            var expr_3 = global::System.Linq.Expressions.Expression.Property(expr_4, typeof(global::Foo.CustomEnum?).GetProperty("Value"));
             var expr_5 = global::System.Linq.Expressions.Expression.Constant(null, typeof(string));
             var expr_6 = global::System.Linq.Expressions.Expression.Constant(global::Foo.CustomEnum.Second, typeof(global::Foo.CustomEnum));
-            var expr_7 = global::System.Linq.Expressions.Expression.Call(_m0, new global::System.Linq.Expressions.Expression[] { expr_6 });
+            var expr_7 = global::System.Linq.Expressions.Expression.Call(typeof(global::Foo.EnumExtensions).GetMethod("GetDisplayName", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(global::Foo.CustomEnum) }, null), new global::System.Linq.Expressions.Expression[] { expr_6 });
             var expr_8 = global::System.Linq.Expressions.Expression.Equal(expr_3, expr_6);
             var expr_9 = global::System.Linq.Expressions.Expression.Condition(expr_8, expr_7, expr_5, typeof(string));
             var expr_10 = global::System.Linq.Expressions.Expression.Constant(global::Foo.CustomEnum.First, typeof(global::Foo.CustomEnum));
-            var expr_11 = global::System.Linq.Expressions.Expression.Call(_m0, new global::System.Linq.Expressions.Expression[] { expr_10 });
+            var expr_11 = global::System.Linq.Expressions.Expression.Call(typeof(global::Foo.EnumExtensions).GetMethod("GetDisplayName", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(global::Foo.CustomEnum) }, null), new global::System.Linq.Expressions.Expression[] { expr_10 });
             var expr_12 = global::System.Linq.Expressions.Expression.Equal(expr_3, expr_10);
             var expr_13 = global::System.Linq.Expressions.Expression.Condition(expr_12, expr_11, expr_9, typeof(string));
             var expr_15 = global::System.Linq.Expressions.Expression.Constant(null, typeof(object)); // null

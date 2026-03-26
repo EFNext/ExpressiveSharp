@@ -5,9 +5,6 @@ namespace ExpressiveSharp.Generated.Interceptors
 {
     internal static class PolyfillInterceptors
     {
-        private static readonly global::System.Reflection.PropertyInfo _i0_p0 = typeof(global::TestNs.Order).GetProperty("Id");
-        private static readonly global::System.Reflection.PropertyInfo _i0_p1 = typeof(global::TestNs.Order).GetProperty("Name");
-
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
         internal static global::ExpressiveSharp.IRewritableQueryable<TResult> __Polyfill_Select_0<TElem, TResult>(
             this global::ExpressiveSharp.IRewritableQueryable<TElem> source,
@@ -15,8 +12,8 @@ namespace ExpressiveSharp.Generated.Interceptors
         {
             // Source: o => new { o.Id, o.Name }
             var p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p_o, _i0_p0); // o.Id
-            var expr_2 = global::System.Linq.Expressions.Expression.Property(p_o, _i0_p1); // o.Name
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p_o, typeof(global::TestNs.Order).GetProperty("Id")); // o.Id
+            var expr_2 = global::System.Linq.Expressions.Expression.Property(p_o, typeof(global::TestNs.Order).GetProperty("Name")); // o.Name
             var expr_3 = typeof(TResult).GetConstructors()[0];
             var expr_0 = global::System.Linq.Expressions.Expression.New(expr_3, new global::System.Linq.Expressions.Expression[] { expr_1, expr_2 }, new global::System.Reflection.MemberInfo[] { typeof(TResult).GetProperty("Id"), typeof(TResult).GetProperty("Name") });
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, TResult>>(expr_0, p_o);

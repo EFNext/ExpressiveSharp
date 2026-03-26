@@ -5,19 +5,15 @@ using Foos;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foos_Bar_FooId 
+    static partial class Foos_Bar 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foos.Foo).GetProperty("Id");
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foos.Bar).GetProperty("Foo");
-
         // [Expressive]
         // public int FooId => Foo.Id;
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foos.Bar, int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foos.Bar, int>> FooId_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foos.Bar), "@this");
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, _p1); // Foo
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(expr_1, _p0);
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foos.Bar).GetProperty("Foo")); // Foo
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(expr_1, typeof(global::Foos.Foo).GetProperty("Id"));
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foos.Bar, int>>(expr_0, p__this);
         }
     }
