@@ -2125,17 +2125,8 @@ internal sealed class ExpressionTreeEmitter
                 && m.Parameters[0].Type.SpecialType == SpecialType.System_String
                 && m.Parameters[1].Type.SpecialType == SpecialType.System_String);
 
-        if (concatMethod is not null)
-        {
-            _concatMethodField = _fieldCache.EnsureMethodInfo(concatMethod);
-        }
-        else
-        {
-            // Fallback: emit inline reflection
-            _concatMethodField = "_stringConcat";
-            _fieldCache.GetDeclarations(); // ensure we can add to it
-        }
-
+        _concatMethodField = _fieldCache.EnsureMethodInfo(concatMethod
+            ?? throw new InvalidOperationException("string.Concat(string, string) not found in compilation"));
         return _concatMethodField;
     }
 
@@ -2154,17 +2145,8 @@ internal sealed class ExpressionTreeEmitter
                 && m.Parameters[0].Type.SpecialType == SpecialType.System_Object
                 && m.Parameters[1].Type.SpecialType == SpecialType.System_Object);
 
-        if (concatMethod is not null)
-        {
-            _concatObjectMethodField = _fieldCache.EnsureMethodInfo(concatMethod);
-        }
-        else
-        {
-            // Fallback: emit inline reflection
-            _concatObjectMethodField = "_stringConcatObj";
-            _fieldCache.GetDeclarations(); // ensure we can add to it
-        }
-
+        _concatObjectMethodField = _fieldCache.EnsureMethodInfo(concatMethod
+            ?? throw new InvalidOperationException("string.Concat(object, object) not found in compilation"));
         return _concatObjectMethodField;
     }
 
