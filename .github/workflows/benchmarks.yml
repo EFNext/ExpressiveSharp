@@ -49,13 +49,20 @@ jobs:
           --
           --filter "*"
           --exporters json
+          --join
           --job short
           --iterationCount 3
           --warmupCount 1
 
       - name: Find benchmark result
         id: find-result
-        run: echo "file=$(find BenchmarkDotNet.Artifacts -name '*-report-full.json' | head -1)" >> $GITHUB_OUTPUT
+        run: |
+          file=$(find BenchmarkDotNet.Artifacts -name '*-report-full-compressed.json' | head -1)
+          if [ -z "$file" ]; then
+            echo "No benchmark result file found" >&2
+            exit 1
+          fi
+          echo "file=$file" >> "$GITHUB_OUTPUT"
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
