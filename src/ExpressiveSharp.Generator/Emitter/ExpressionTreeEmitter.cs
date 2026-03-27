@@ -641,18 +641,34 @@ internal sealed class ExpressionTreeEmitter
             var enumValueVar = NextVar();
             AppendLine($"var {enumValueVar} = {Expr}.Constant({enumTypeFqn}.{member.Name}, typeof({enumTypeFqn}));");
 
-            // Method call: ExtensionClass.Method(EnumType.Value, ...additionalArgs)
-            var callArgVars = new List<string> { enumValueVar };
-            // Add any additional arguments (skip first arg for extension methods since it's the receiver)
-            var argOffset = method.IsExtensionMethod ? 1 : 0;
-            for (var i = argOffset; i < invocation.Arguments.Length; i++)
+            // Method call: static methods pass enum value as first arg,
+            // instance methods use enum value as the receiver
+            string callVar;
+            if (originalMethod.IsStatic)
             {
-                callArgVars.Add(EmitOperation(invocation.Arguments[i].Value));
+                var callArgVars = new List<string> { enumValueVar };
+                var argOffset = method.IsExtensionMethod ? 1 : 0;
+                for (var i = argOffset; i < invocation.Arguments.Length; i++)
+                {
+                    callArgVars.Add(EmitOperation(invocation.Arguments[i].Value));
+                }
+                var callArgsExpr = $"new global::System.Linq.Expressions.Expression[] {{ {string.Join(", ", callArgVars)} }}";
+                callVar = NextVar();
+                AppendLine($"var {callVar} = {Expr}.Call({methodField}, {callArgsExpr});");
             }
-            var callArgsExpr = $"new global::System.Linq.Expressions.Expression[] {{ {string.Join(", ", callArgVars)} }}";
-
-            var callVar = NextVar();
-            AppendLine($"var {callVar} = {Expr}.Call({methodField}, {callArgsExpr});");
+            else
+            {
+                var callArgVars = new List<string>();
+                for (var i = 0; i < invocation.Arguments.Length; i++)
+                {
+                    callArgVars.Add(EmitOperation(invocation.Arguments[i].Value));
+                }
+                var callArgsExpr = callArgVars.Count > 0
+                    ? $"new global::System.Linq.Expressions.Expression[] {{ {string.Join(", ", callArgVars)} }}"
+                    : "global::System.Array.Empty<global::System.Linq.Expressions.Expression>()";
+                callVar = NextVar();
+                AppendLine($"var {callVar} = {Expr}.Call({enumValueVar}, {methodField}, {callArgsExpr});");
+            }
 
             // Condition: receiver == enumValue
             var condVar = NextVar();
