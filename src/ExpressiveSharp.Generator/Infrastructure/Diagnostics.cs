@@ -108,4 +108,54 @@ static internal class Diagnostics
         category: "Design",
         DiagnosticSeverity.Info,
         isEnabledByDefault: true);
+
+    // ── [ExpressiveFor] Diagnostics ─────────────────────────────────────────
+
+    public readonly static DiagnosticDescriptor ExpressiveForTargetTypeNotFound = new DiagnosticDescriptor(
+        id: "EXP0014",
+        title: "[ExpressiveFor] target type not found",
+        messageFormat: "[ExpressiveFor] target type '{0}' could not be resolved",
+        category: "Design",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public readonly static DiagnosticDescriptor ExpressiveForMemberNotFound = new DiagnosticDescriptor(
+        id: "EXP0015",
+        title: "[ExpressiveFor] target member not found",
+        messageFormat: "No member '{0}' found on type '{1}' matching the stub's parameter signature",
+        category: "Design",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public readonly static DiagnosticDescriptor ExpressiveForStubMustBeStatic = new DiagnosticDescriptor(
+        id: "EXP0016",
+        title: "[ExpressiveFor] stub must be static",
+        messageFormat: "[ExpressiveFor] stub method '{0}' must be static",
+        category: "Design",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public readonly static DiagnosticDescriptor ExpressiveForReturnTypeMismatch = new DiagnosticDescriptor(
+        id: "EXP0017",
+        title: "[ExpressiveFor] return type mismatch",
+        messageFormat: "[ExpressiveFor] return type mismatch for '{0}': target returns '{1}' but stub returns '{2}'",
+        category: "Design",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public readonly static DiagnosticDescriptor ExpressiveForConflictsWithExpressive = new DiagnosticDescriptor(
+        id: "EXP0019",
+        title: "[ExpressiveFor] conflicts with [Expressive]",
+        messageFormat: "Target member '{0}' on type '{1}' already has [Expressive]; remove [ExpressiveFor] or [Expressive]",
+        category: "Design",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public readonly static DiagnosticDescriptor ExpressiveForDuplicateMapping = new DiagnosticDescriptor(
+        id: "EXP0020",
+        title: "Duplicate [ExpressiveFor] mapping",
+        messageFormat: "Duplicate [ExpressiveFor] mapping for member '{0}' on type '{1}'; only one stub per target member is allowed",
+        category: "Design",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }

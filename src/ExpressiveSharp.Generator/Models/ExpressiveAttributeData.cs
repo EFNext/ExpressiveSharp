@@ -43,6 +43,6 @@ readonly internal record struct ExpressiveAttributeData
         }
 
         AllowBlockBody = allowBlockBody;
-        TransformerTypeNames = transformerTypeNames;
+        TransformerTypeNames = transformerTypeNames.ToArray();
     }
 }

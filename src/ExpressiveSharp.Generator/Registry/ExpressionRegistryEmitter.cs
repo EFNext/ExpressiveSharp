@@ -35,6 +35,9 @@ static internal class ExpressionRegistryEmitter
             return;
         }
 
+        // Report EXP0020 for duplicate [ExpressiveFor] mappings targeting the same member
+        ReportDuplicateMappings(allEntries, context);
+
         // Emit [EditorBrowsable] attribute-only partial files for each unique generated class.
         EmitEditorBrowsablePartialFiles(allEntries, context);
 
@@ -189,7 +192,7 @@ static internal class ExpressionRegistryEmitter
         writer.WriteLine("{");
         writer.Indent++;
         writer.WriteLine("if (m is null) return;");
-        writer.WriteLine("var exprType = m.DeclaringType?.Assembly.GetType(exprClass);");
+        writer.WriteLine("var exprType = m.DeclaringType?.Assembly.GetType(exprClass) ?? typeof(ExpressionRegistry).Assembly.GetType(exprClass);");
         writer.WriteLine(@"var exprMethod = exprType?.GetMethod(exprMethodName, BindingFlags.Static | BindingFlags.NonPublic);");
         writer.WriteLine("if (exprMethod is null) return;");
         writer.WriteLine("var expr = (LambdaExpression)exprMethod.Invoke(null, null)!;");
@@ -276,6 +279,30 @@ static internal class ExpressionRegistryEmitter
 
             context.AddSource($"{className}.Attributes.g.cs",
                 SourceText.From(sb.ToString(), Encoding.UTF8));
+        }
+    }
+
+    /// <summary>
+    /// Reports EXP0020 on each stub when multiple [ExpressiveFor] stubs in the same project
+    /// target the same member (same <see cref="ExpressionRegistryEntry.GeneratedClassFullName"/>).
+    /// </summary>
+    private static void ReportDuplicateMappings(List<ExpressionRegistryEntry> entries, SourceProductionContext context)
+    {
+        var duplicateGroups = entries
+            .Where(e => e.StubLocation is not null)
+            .GroupBy(e => e.GeneratedClassFullName + "." + e.ExpressionMethodName)
+            .Where(g => g.Count() > 1);
+
+        foreach (var group in duplicateGroups)
+        {
+            foreach (var entry in group)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Infrastructure.Diagnostics.ExpressiveForDuplicateMapping,
+                    entry.StubLocation!.Value.ToLocation(),
+                    entry.MemberLookupName,
+                    entry.DeclaringTypeFullName));
+            }
         }
     }
 }

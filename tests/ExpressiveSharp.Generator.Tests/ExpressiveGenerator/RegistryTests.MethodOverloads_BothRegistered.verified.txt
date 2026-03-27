@@ -40,7 +40,7 @@ namespace ExpressiveSharp.Generated
         private static void Register(Dictionary<nint, LambdaExpression> map, MethodBase m, string exprClass, string exprMethodName)
         {
             if (m is null) return;
-            var exprType = m.DeclaringType?.Assembly.GetType(exprClass);
+            var exprType = m.DeclaringType?.Assembly.GetType(exprClass) ?? typeof(ExpressionRegistry).Assembly.GetType(exprClass);
             var exprMethod = exprType?.GetMethod(exprMethodName, BindingFlags.Static | BindingFlags.NonPublic);
             if (exprMethod is null) return;
             var expr = (LambdaExpression)exprMethod.Invoke(null, null)!;

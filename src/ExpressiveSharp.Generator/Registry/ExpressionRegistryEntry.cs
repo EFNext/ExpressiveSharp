@@ -1,4 +1,6 @@
 using System.Collections.Immutable;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Text;
 
 namespace ExpressiveSharp.Generator.Registry;
 
@@ -15,8 +17,18 @@ sealed internal record ExpressionRegistryEntry(
     string ExpressionMethodName,
     EquatableImmutableArray ParameterTypeNames,
     bool IsMetadataOnly = false,
-    string? ClassTypeParameters = null
+    string? ClassTypeParameters = null,
+    /// <summary>Source location of the [ExpressiveFor] stub, or null for [Expressive] entries.</summary>
+    SourceLocation? StubLocation = null
 );
+
+/// <summary>
+/// Serialized source location using only value types — safe for incremental generator caching.
+/// </summary>
+readonly internal record struct SourceLocation(string FilePath, TextSpan TextSpan, LinePositionSpan LineSpan)
+{
+    public Location ToLocation() => Location.Create(FilePath, TextSpan, LineSpan);
+}
 
 /// <summary>
 /// A structural-equality wrapper around <see cref="ImmutableArray{T}"/> of strings.
