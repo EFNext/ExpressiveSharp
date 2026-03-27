@@ -153,19 +153,26 @@ public class ExpressiveGenerator : IIncrementalGenerator
             .Combine(context.CompilationProvider)
             .WithComparer(new ExpressiveForMemberCompilationEqualityComparer());
 
-        context.RegisterSourceOutput(compilationAndPairs,
-            static (spc, source) =>
+        // Collect all items and emit in a single batch to detect duplicates before AddSource.
+        // Per-item emission would crash the generator on duplicate hint names (Roslyn deduplicates
+        // after all per-item callbacks, not at the AddSource call site).
+        context.RegisterSourceOutput(compilationAndPairs.Collect(),
+            static (spc, items) =>
             {
-                var ((method, attribute, globalOptions), compilation) = source;
-                var semanticModel = compilation.GetSemanticModel(method.SyntaxTree);
-                var stubSymbol = semanticModel.GetDeclaredSymbol(method) as IMethodSymbol;
+                var emittedFileNames = new HashSet<string>();
 
-                if (stubSymbol is null)
+                foreach (var source in items)
                 {
-                    return;
-                }
+                    var ((method, attribute, globalOptions), compilation) = source;
+                    var semanticModel = compilation.GetSemanticModel(method.SyntaxTree);
+                    var stubSymbol = semanticModel.GetDeclaredSymbol(method) as IMethodSymbol;
 
-                ExecuteFor(method, semanticModel, stubSymbol, attribute, globalOptions, compilation, spc);
+                    if (stubSymbol is null)
+                        continue;
+
+                    ExecuteFor(method, semanticModel, stubSymbol, attribute, globalOptions,
+                        compilation, spc, emittedFileNames);
+                }
             });
 
         return compilationAndPairs;
@@ -410,7 +417,8 @@ public class ExpressiveGenerator : IIncrementalGenerator
         ExpressiveForAttributeData attributeData,
         ExpressiveGlobalOptions globalOptions,
         Compilation compilation,
-        SourceProductionContext context)
+        SourceProductionContext context,
+        HashSet<string>? emittedFileNames = null)
     {
         var descriptor = ExpressiveForInterpreter.GetDescriptor(
             semanticModel, stubMethod, stubSymbol, attributeData, globalOptions, context, compilation);
@@ -421,15 +429,20 @@ public class ExpressiveGenerator : IIncrementalGenerator
         if (descriptor.MemberName is null)
             throw new InvalidOperationException("Expected a memberName here");
 
-        var generatedClassName = ExpressionClassNameGenerator.GenerateName(
-            descriptor.ClassNamespace, descriptor.NestedInClassNames,
+        var generatedClassName = ExpressionClassNameGenerator.GenerateClassName(
+            descriptor.ClassNamespace, descriptor.NestedInClassNames);
+        var methodSuffix = ExpressionClassNameGenerator.GenerateMethodSuffix(
             descriptor.MemberName, descriptor.ParameterTypeNames);
-        var generatedFileName = $"{generatedClassName}.g.cs";
+        var generatedFileName = $"{generatedClassName}.{methodSuffix}.g.cs";
+
+        // Skip duplicate emissions — EXP0020 is reported via the registry duplicate check
+        if (emittedFileNames is not null && !emittedFileNames.Add(generatedFileName))
+            return;
 
         if (descriptor.ExpressionTreeEmission is null)
             throw new InvalidOperationException("ExpressionTreeEmission must be set");
 
-        EmitExpressionTreeSource(descriptor, generatedClassName, generatedFileName, stubMethod, compilation, context);
+        EmitExpressionTreeSource(descriptor, generatedClassName, methodSuffix, generatedFileName, stubMethod, compilation, context);
     }
 
     /// <summary>
@@ -527,25 +540,34 @@ public class ExpressiveGenerator : IIncrementalGenerator
             }
         }
 
-        // Build generated class name using the target type's path
+        // Build generated class name using the target type's path (matching main's new API)
         var classNamespace = targetType.ContainingNamespace.IsGlobalNamespace
             ? null
             : targetType.ContainingNamespace.ToDisplayString();
 
         var nestedTypePath = GetRegistryNestedTypePath(targetType);
 
-        var generatedClassName = ExpressionClassNameGenerator.GenerateName(
-            classNamespace, nestedTypePath, memberLookupName,
+        var generatedClassFullName = ExpressionClassNameGenerator.GenerateClassFullName(
+            classNamespace, nestedTypePath);
+
+        var methodSuffix = ExpressionClassNameGenerator.GenerateMethodSuffix(
+            memberLookupName,
             parameterTypeNames.IsEmpty ? null : parameterTypeNames);
 
-        var generatedClassFullName = "ExpressiveSharp.Generated." + generatedClassName;
+        var expressionMethodName = methodSuffix + "_Expression";
+
+        // Capture stub location for duplicate detection diagnostics
+        var stubLocation = method.Identifier.GetLocation();
+        var stubLineSpan = stubLocation.GetLineSpan();
 
         return new ExpressionRegistryEntry(
             DeclaringTypeFullName: targetTypeFullName,
             MemberKind: memberKind,
             MemberLookupName: memberLookupName,
             GeneratedClassFullName: generatedClassFullName,
-            ParameterTypeNames: parameterTypeNames);
+            ExpressionMethodName: expressionMethodName,
+            ParameterTypeNames: parameterTypeNames,
+            StubLocation: new SourceLocation(stubLineSpan.Path, stubLocation.SourceSpan, stubLineSpan.Span));
     }
 
     private static IEnumerable<string> GetRegistryNestedTypePath(INamedTypeSymbol typeSymbol)

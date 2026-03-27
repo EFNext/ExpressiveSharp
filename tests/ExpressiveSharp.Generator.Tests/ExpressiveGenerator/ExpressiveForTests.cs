@@ -261,4 +261,30 @@ public class ExpressiveForTests : GeneratorTestBase
         var exp0019 = result.Diagnostics.Where(d => d.Id == "EXP0019").ToArray();
         Assert.AreEqual(1, exp0019.Length);
     }
+
+    [TestMethod]
+    public void DuplicateMapping_EXP0020()
+    {
+        var compilation = CreateCompilation(
+            """
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                static class Mappings1 {
+                    [ExpressiveFor(typeof(System.Math), "Abs")]
+                    static int Abs(int value) => value < 0 ? -value : value;
+                }
+
+                static class Mappings2 {
+                    [ExpressiveFor(typeof(System.Math), "Abs")]
+                    static int Abs(int value) => value >= 0 ? value : -value;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        // EXP0020 reported on each duplicate stub
+        var exp0020 = result.Diagnostics.Where(d => d.Id == "EXP0020").ToArray();
+        Assert.AreEqual(2, exp0020.Length);
+    }
 }
