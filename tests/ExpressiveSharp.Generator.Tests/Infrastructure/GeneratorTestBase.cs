@@ -28,10 +28,11 @@ public abstract partial class GeneratorTestBase
 
         public ImmutableArray<Diagnostic> Diagnostics => _inner.Diagnostics;
 
-        /// <summary>Generated trees excluding <c>ExpressionRegistry.g.cs</c>.</summary>
+        /// <summary>Generated trees excluding <c>ExpressionRegistry.g.cs</c> and <c>*.Attributes.g.cs</c>.</summary>
         public ImmutableArray<SyntaxTree> GeneratedTrees =>
             _inner.GeneratedTrees
-                .Where(t => !t.FilePath.EndsWith("ExpressionRegistry.g.cs", StringComparison.Ordinal))
+                .Where(t => !t.FilePath.EndsWith("ExpressionRegistry.g.cs", StringComparison.Ordinal)
+                    && !t.FilePath.EndsWith(".Attributes.g.cs", StringComparison.Ordinal))
                 .ToImmutableArray();
 
         /// <summary>All generated trees including <c>ExpressionRegistry.g.cs</c>.</summary>

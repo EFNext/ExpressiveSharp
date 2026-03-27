@@ -13,7 +13,9 @@ sealed internal record ExpressionRegistryEntry(
     string MemberLookupName,
     string GeneratedClassFullName,
     string ExpressionMethodName,
-    EquatableImmutableArray ParameterTypeNames
+    EquatableImmutableArray ParameterTypeNames,
+    bool IsMetadataOnly = false,
+    string? ClassTypeParameters = null
 );
 
 /// <summary>

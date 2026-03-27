@@ -45,13 +45,17 @@ namespace ExpressiveSharp.Generated
             var expr = (LambdaExpression)exprMethod.Invoke(null, null)!;
             
             // Apply declared transformers from the generated class (if any)
-            var transformersSuffix = exprMethodName.Substring(0, exprMethodName.Length - "_Expression".Length) + "_Transformers";
-            var transformersMethod = exprType.GetMethod(transformersSuffix, BindingFlags.Static | BindingFlags.NonPublic);
-            if (transformersMethod?.Invoke(null, null) is global::ExpressiveSharp.IExpressionTreeTransformer[] transformers)
+            const string expressionSuffix = "_Expression";
+            if (exprMethodName.EndsWith(expressionSuffix, StringComparison.Ordinal))
             {
-                Expression transformed = expr;
-                foreach (var t in transformers) transformed = t.Transform(transformed);
-                if (transformed is LambdaExpression lambdaResult) expr = lambdaResult;
+                var transformersSuffix = exprMethodName.Substring(0, exprMethodName.Length - expressionSuffix.Length) + "_Transformers";
+                var transformersMethod = exprType.GetMethod(transformersSuffix, BindingFlags.Static | BindingFlags.NonPublic);
+                if (transformersMethod?.Invoke(null, null) is global::ExpressiveSharp.IExpressionTreeTransformer[] transformers)
+                {
+                    Expression transformed = expr;
+                    foreach (var t in transformers) transformed = t.Transform(transformed);
+                    if (transformed is LambdaExpression lambdaResult) expr = lambdaResult;
+                }
             }
             
             map[m.MethodHandle.Value] = expr;

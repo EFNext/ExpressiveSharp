@@ -232,16 +232,22 @@ public class ExpressiveGenerator : IIncrementalGenerator
     {
         var containingType = memberSymbol.ContainingType;
 
-        // Skip C# 14 extension type members — they require special handling (fall back to reflection)
+        // Determine whether this entry is metadata-only (excluded from runtime registry
+        // but still used for [EditorBrowsable] attribute-only partial file emission).
+        var isMetadataOnly = false;
+        string? classTypeParameters = null;
+
+        // C# 14 extension type members — metadata-only (fall back to reflection at runtime)
         if (containingType is { IsExtension: true })
         {
-            return null;
+            isMetadataOnly = true;
         }
 
-        // Skip generic classes: the registry only supports closed constructed types.
+        // Generic classes — metadata-only (registry can't represent open generic types)
         if (containingType.TypeParameters.Length > 0)
         {
-            return null;
+            isMetadataOnly = true;
+            classTypeParameters = "<" + string.Join(", ", containingType.TypeParameters.Select(tp => tp.Name)) + ">";
         }
 
         // Determine member kind and lookup name
@@ -251,10 +257,10 @@ public class ExpressiveGenerator : IIncrementalGenerator
 
         if (memberSymbol is IMethodSymbol methodSymbol)
         {
-            // Skip generic methods for the same reason as generic classes
+            // Generic methods — metadata-only (same reason as generic classes)
             if (methodSymbol.TypeParameters.Length > 0)
             {
-                return null;
+                isMetadataOnly = true;
             }
 
             if (methodSymbol.MethodKind is MethodKind.Constructor or MethodKind.StaticConstructor)
@@ -303,7 +309,9 @@ public class ExpressiveGenerator : IIncrementalGenerator
             MemberLookupName: memberLookupName,
             GeneratedClassFullName: generatedClassFullName,
             ExpressionMethodName: expressionMethodName,
-            ParameterTypeNames: parameterTypeNames);
+            ParameterTypeNames: parameterTypeNames,
+            IsMetadataOnly: isMetadataOnly,
+            ClassTypeParameters: classTypeParameters);
     }
 
     private static IEnumerable<string> GetRegistryNestedTypePath(INamedTypeSymbol typeSymbol)
