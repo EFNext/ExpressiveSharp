@@ -5,12 +5,12 @@ using ExpressiveSharp.Generator.Tests.Infrastructure;
 namespace ExpressiveSharp.Generator.Tests.PolyfillInterceptorGenerator;
 
 [TestClass]
-public class GroupByTests : GeneratorTestBase
+public class SetOperationTests : GeneratorTestBase
 {
     [TestMethod]
-    public Task GroupBy_GeneratesGroupingReturnType()
+    public Task ExceptBy_GeneratesInterceptor()
     {
-        var source = 
+        var source =
             """
             using ExpressiveSharp.Extensions;
 
@@ -19,36 +19,10 @@ public class GroupByTests : GeneratorTestBase
                 class Order { public string Tag { get; set; } }
                 class TestClass
                 {
-                    public void Run(System.Linq.IQueryable<Order> query)
-                    {
-                        query.WithExpressionRewrite().GroupBy(o => o.Tag).ToList();
-                    }
-                }
-            }
-            """;
-        var result = RunPolyfillInterceptorGenerator(CreateCompilation(source));
-
-        Assert.AreEqual(1, result.GeneratedTrees.Length);
-
-        return Verifier.Verify(result.GeneratedTrees[0].GetText().ToString());
-    }
-
-    [TestMethod]
-    public Task GroupBy_WithElementSelector_GeneratesInterceptor()
-    {
-        var source =
-            """
-            using ExpressiveSharp.Extensions;
-
-            namespace TestNs
-            {
-                class Order { public string Tag { get; set; } public string Name { get; set; } }
-                class TestClass
-                {
-                    public void Run(System.Linq.IQueryable<Order> query)
+                    public void Run(System.Linq.IQueryable<Order> query, System.Collections.Generic.IEnumerable<string> excluded)
                     {
                         query.WithExpressionRewrite()
-                             .GroupBy(o => o.Tag, o => o.Name)
+                             .ExceptBy(excluded, o => o.Tag)
                              .ToList();
                     }
                 }
@@ -62,7 +36,7 @@ public class GroupByTests : GeneratorTestBase
     }
 
     [TestMethod]
-    public Task GroupBy_WithResultSelector_GeneratesInterceptor()
+    public Task IntersectBy_GeneratesInterceptor()
     {
         var source =
             """
@@ -73,10 +47,10 @@ public class GroupByTests : GeneratorTestBase
                 class Order { public string Tag { get; set; } }
                 class TestClass
                 {
-                    public void Run(System.Linq.IQueryable<Order> query)
+                    public void Run(System.Linq.IQueryable<Order> query, System.Collections.Generic.IEnumerable<string> included)
                     {
                         query.WithExpressionRewrite()
-                             .GroupBy(o => o.Tag, (key, orders) => key)
+                             .IntersectBy(included, o => o.Tag)
                              .ToList();
                     }
                 }
@@ -90,7 +64,7 @@ public class GroupByTests : GeneratorTestBase
     }
 
     [TestMethod]
-    public Task GroupBy_WithElementAndResultSelector_GeneratesInterceptor()
+    public Task UnionBy_GeneratesInterceptor()
     {
         var source =
             """
@@ -98,13 +72,13 @@ public class GroupByTests : GeneratorTestBase
 
             namespace TestNs
             {
-                class Order { public string Tag { get; set; } public string Name { get; set; } }
+                class Order { public string Tag { get; set; } }
                 class TestClass
                 {
-                    public void Run(System.Linq.IQueryable<Order> query)
+                    public void Run(System.Linq.IQueryable<Order> query, System.Collections.Generic.IEnumerable<string> extra)
                     {
                         query.WithExpressionRewrite()
-                             .GroupBy(o => o.Tag, o => o.Name, (key, names) => key)
+                             .UnionBy(extra, o => o.Tag)
                              .ToList();
                     }
                 }
