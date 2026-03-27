@@ -6,12 +6,11 @@ using System;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class System_Math_Abs_P0_int 
+    static partial class System_Math 
     {
         // [ExpressiveFor(typeof(System.Math), "Abs")]
         // static int Abs(int value) => value < 0 ? -value : value;
-        static global::System.Linq.Expressions.Expression<global::System.Func<int, int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<int, int>> Abs_P0_int_Expression() 
         {
             var p_value = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "value");
             var expr_2 = global::System.Linq.Expressions.Expression.Constant(0, typeof(int)); // 0

@@ -290,7 +290,7 @@ static internal class ExpressionRegistryEmitter
     {
         var duplicateGroups = entries
             .Where(e => e.StubLocation is not null)
-            .GroupBy(e => e.GeneratedClassFullName)
+            .GroupBy(e => e.GeneratedClassFullName + "." + e.ExpressionMethodName)
             .Where(g => g.Count() > 1);
 
         foreach (var group in duplicateGroups)

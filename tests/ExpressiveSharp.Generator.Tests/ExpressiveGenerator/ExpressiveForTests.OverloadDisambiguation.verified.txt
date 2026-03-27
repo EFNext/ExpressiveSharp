@@ -6,12 +6,11 @@ using System;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class System_Math_Max_P0_int_P1_int 
+    static partial class System_Math 
     {
         // [ExpressiveFor(typeof(System.Math), "Max")]
         // static int MaxInt(int a, int b) => a > b ? a : b;
-        static global::System.Linq.Expressions.Expression<global::System.Func<int, int, int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<int, int, int>> Max_P0_int_P1_int_Expression() 
         {
             var p_a = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "a");
             var p_b = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "b");
@@ -33,12 +32,11 @@ using System;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class System_Math_Max_P0_double_P1_double 
+    static partial class System_Math 
     {
         // [ExpressiveFor(typeof(System.Math), "Max")]
         // static double MaxDouble(double a, double b) => a > b ? a : b;
-        static global::System.Linq.Expressions.Expression<global::System.Func<double, double, double>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<double, double, double>> Max_P0_double_P1_double_Expression() 
         {
             var p_a = global::System.Linq.Expressions.Expression.Parameter(typeof(double), "a");
             var p_b = global::System.Linq.Expressions.Expression.Parameter(typeof(double), "b");

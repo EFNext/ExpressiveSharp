@@ -6,23 +6,18 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_MyType_GetFullName 
+    static partial class Foo_MyType 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.MyType).GetProperty("FirstName");
-        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null);
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.MyType).GetProperty("LastName");
-
         // [ExpressiveFor(typeof(MyType), "GetFullName")]
         // static string GetFullName(MyType obj) => obj.FirstName + " " + obj.LastName;
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.MyType, string>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.MyType, string>> GetFullName_Expression() 
         {
             var p_obj = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.MyType), "obj");
-            var expr_2 = global::System.Linq.Expressions.Expression.Property(p_obj, _p0); // obj.FirstName
+            var expr_2 = global::System.Linq.Expressions.Expression.Property(p_obj, typeof(global::Foo.MyType).GetProperty("FirstName")); // obj.FirstName
             var expr_3 = global::System.Linq.Expressions.Expression.Constant(" ", typeof(string)); // " "
-            var expr_1 = global::System.Linq.Expressions.Expression.Call(_m0, expr_2, expr_3);
-            var expr_4 = global::System.Linq.Expressions.Expression.Property(p_obj, _p1); // obj.LastName
-            var expr_0 = global::System.Linq.Expressions.Expression.Call(_m0, expr_1, expr_4);
+            var expr_1 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_2, expr_3);
+            var expr_4 = global::System.Linq.Expressions.Expression.Property(p_obj, typeof(global::Foo.MyType).GetProperty("LastName")); // obj.LastName
+            var expr_0 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_1, expr_4);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.MyType, string>>(expr_0, p_obj);
         }
     }
