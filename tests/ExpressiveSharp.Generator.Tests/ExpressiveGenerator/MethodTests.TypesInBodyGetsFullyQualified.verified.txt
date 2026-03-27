@@ -5,22 +5,17 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_Foo 
+    static partial class Foo_C 
     {
-        private static readonly global::System.Reflection.MethodInfo _m0 = global::System.Linq.Enumerable.First(global::System.Linq.Enumerable.Where(typeof(global::System.Linq.Enumerable).GetMethods(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static), m => m.Name == "Count" && m.IsGenericMethodDefinition && m.GetGenericArguments().Length == 1 && m.GetParameters().Length == 1)).MakeGenericMethod(typeof(global::Foo.D));
-        private static readonly global::System.Reflection.MethodInfo _m1 = global::System.Linq.Enumerable.First(global::System.Linq.Enumerable.Where(typeof(global::System.Linq.Enumerable).GetMethods(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static), m => m.Name == "OfType" && m.IsGenericMethodDefinition && m.GetGenericArguments().Length == 1 && m.GetParameters().Length == 1)).MakeGenericMethod(typeof(global::Foo.D));
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.C).GetProperty("Dees");
-
         // [Expressive]
         // public int Foo => Dees.OfType<D>().Count();
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int>> Foo_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
-            var expr_3 = global::System.Linq.Expressions.Expression.Property(p__this, _p0); // Dees
+            var expr_3 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Dees")); // Dees
             var expr_2 = global::System.Linq.Expressions.Expression.Convert(expr_3, typeof(global::System.Collections.IEnumerable));
-            var expr_1 = global::System.Linq.Expressions.Expression.Call(_m1, new global::System.Linq.Expressions.Expression[] { expr_2 });
-            var expr_0 = global::System.Linq.Expressions.Expression.Call(_m0, new global::System.Linq.Expressions.Expression[] { expr_1 });
+            var expr_1 = global::System.Linq.Expressions.Expression.Call(global::System.Linq.Enumerable.First(global::System.Linq.Enumerable.Where(typeof(global::System.Linq.Enumerable).GetMethods(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static), m => m.Name == "OfType" && m.IsGenericMethodDefinition && m.GetGenericArguments().Length == 1 && m.GetParameters().Length == 1)).MakeGenericMethod(typeof(global::Foo.D)), new global::System.Linq.Expressions.Expression[] { expr_2 });
+            var expr_0 = global::System.Linq.Expressions.Expression.Call(global::System.Linq.Enumerable.First(global::System.Linq.Enumerable.Where(typeof(global::System.Linq.Enumerable).GetMethods(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static), m => m.Name == "Count" && m.IsGenericMethodDefinition && m.GetGenericArguments().Length == 1 && m.GetParameters().Length == 1)).MakeGenericMethod(typeof(global::Foo.D)), new global::System.Linq.Expressions.Expression[] { expr_1 });
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, int>>(expr_0, p__this);
         }
     }

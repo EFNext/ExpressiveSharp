@@ -5,9 +5,6 @@ namespace ExpressiveSharp.Generated.Interceptors
 {
     internal static class PolyfillInterceptors
     {
-        private static readonly global::System.Reflection.PropertyInfo _i0_p0 = typeof(global::TestNs.Order).GetProperty("Customer");
-        private static readonly global::System.Reflection.PropertyInfo _i0_p1 = typeof(global::TestNs.Customer).GetProperty("Name");
-
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
         internal static global::ExpressiveSharp.IRewritableQueryable<global::TestNs.Order> __Polyfill_Where_0(
             this global::ExpressiveSharp.IRewritableQueryable<global::TestNs.Order> source,
@@ -15,8 +12,8 @@ namespace ExpressiveSharp.Generated.Interceptors
         {
             // Source: o => o.Customer?.Name == "Alice"
             var p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p_o, _i0_p0); // o.Customer
-            var expr_2 = global::System.Linq.Expressions.Expression.Property(expr_1, _i0_p1); // .Name
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p_o, typeof(global::TestNs.Order).GetProperty("Customer")); // o.Customer
+            var expr_2 = global::System.Linq.Expressions.Expression.Property(expr_1, typeof(global::TestNs.Customer).GetProperty("Name")); // .Name
             var expr_4 = global::System.Linq.Expressions.Expression.Constant(null, typeof(global::TestNs.Customer));
             var expr_5 = global::System.Linq.Expressions.Expression.NotEqual(expr_1, expr_4);
             var expr_6 = global::System.Linq.Expressions.Expression.Default(typeof(string));

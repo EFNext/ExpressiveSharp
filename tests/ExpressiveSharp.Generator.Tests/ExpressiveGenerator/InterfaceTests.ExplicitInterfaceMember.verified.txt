@@ -4,17 +4,14 @@
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class _Concrete_IBase__ComputedProperty 
+    static partial class _Concrete 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Concrete).GetProperty("Id");
-
         // [Expressive]
         // int IBase.ComputedProperty => Id + 1;
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Concrete, int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Concrete, int>> IBase__ComputedProperty_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Concrete), "@this");
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, _p0); // Id
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Concrete).GetProperty("Id")); // Id
             var expr_2 = global::System.Linq.Expressions.Expression.Constant(1, typeof(int)); // 1
             var expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_1, expr_2);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Concrete, int>>(expr_0, p__this);

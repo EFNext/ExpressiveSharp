@@ -5,19 +5,15 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_EntityExtensions_GetFirstRelatedIgnoreNulls_P0_Foo_EntityExtensions_Entity 
+    static partial class Foo_EntityExtensions 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.EntityExtensions.Entity).GetProperty("RelatedEntities");
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::System.Collections.Generic.List<global::Foo.EntityExtensions.Entity>).GetProperty("this[]");
-
         // [Expressive]
         // public static Entity GetFirstRelatedIgnoreNulls(this Entity entity) => entity?.RelatedEntities?[0];
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.EntityExtensions.Entity, global::Foo.EntityExtensions.Entity>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.EntityExtensions.Entity, global::Foo.EntityExtensions.Entity>> GetFirstRelatedIgnoreNulls_P0_Foo_EntityExtensions_Entity_Expression() 
         {
             var p_entity = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.EntityExtensions.Entity), "entity");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_entity, _p0); // .RelatedEntities
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(expr_0, _p1); // [0]
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_entity, typeof(global::Foo.EntityExtensions.Entity).GetProperty("RelatedEntities")); // .RelatedEntities
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(expr_0, typeof(global::System.Collections.Generic.List<global::Foo.EntityExtensions.Entity>).GetProperty("this[]")); // [0]
             var expr_3 = global::System.Linq.Expressions.Expression.Constant(null, typeof(global::System.Collections.Generic.List<global::Foo.EntityExtensions.Entity>));
             var expr_4 = global::System.Linq.Expressions.Expression.NotEqual(expr_0, expr_3);
             var expr_5 = global::System.Linq.Expressions.Expression.Default(typeof(global::Foo.EntityExtensions.Entity));

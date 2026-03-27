@@ -5,14 +5,8 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_FlagDto__ctor_P0_string_P1_bool 
+    static partial class Foo_FlagDto 
     {
-        private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.FlagDto).GetConstructor(new global::System.Type[] {  });
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.FlagDto).GetProperty("Tag");
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.FlagDto).GetProperty("IsVerified");
-        private static readonly global::System.Reflection.PropertyInfo _p2 = typeof(global::Foo.FlagDto).GetProperty("IsAdmin");
-
         // [Expressive]
         // public FlagDto(string role, bool verified)
         // {
@@ -27,11 +21,11 @@ namespace ExpressiveSharp.Generated
         //         IsAdmin = true;
         //     }
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<string, bool, global::Foo.FlagDto>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<string, bool, global::Foo.FlagDto>> _ctor_P0_string_P1_bool_Expression() 
         {
             var p_role = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "role");
             var p_verified = global::System.Linq.Expressions.Expression.Parameter(typeof(bool), "verified");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(_c0);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.FlagDto).GetConstructor(new global::System.Type[] {  }));
             var expr_1 = global::System.Linq.Expressions.Expression.Constant(true, typeof(bool)); // true
             var expr_2 = global::System.Linq.Expressions.Expression.Default(typeof(bool));
             var expr_3 = global::System.Linq.Expressions.Expression.Condition(p_verified, expr_1, expr_2, typeof(bool));
@@ -40,9 +34,9 @@ namespace ExpressiveSharp.Generated
             var expr_5 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Equal, p_role, expr_6);
             var expr_7 = global::System.Linq.Expressions.Expression.Default(typeof(bool));
             var expr_8 = global::System.Linq.Expressions.Expression.Condition(expr_5, expr_4, expr_7, typeof(bool));
-            var expr_9 = global::System.Linq.Expressions.Expression.Bind(_p0, p_role);
-            var expr_10 = global::System.Linq.Expressions.Expression.Bind(_p1, expr_3);
-            var expr_11 = global::System.Linq.Expressions.Expression.Bind(_p2, expr_8);
+            var expr_9 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.FlagDto).GetProperty("Tag"), p_role);
+            var expr_10 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.FlagDto).GetProperty("IsVerified"), expr_3);
+            var expr_11 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.FlagDto).GetProperty("IsAdmin"), expr_8);
             var expr_12 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_9, expr_10, expr_11);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<string, bool, global::Foo.FlagDto>>(expr_12, p_role, p_verified);
         }

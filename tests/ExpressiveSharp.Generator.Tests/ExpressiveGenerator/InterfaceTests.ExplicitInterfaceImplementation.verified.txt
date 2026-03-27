@@ -5,18 +5,15 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_Item_FormattedId 
+    static partial class Foo_Item 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.IStringId).GetProperty("Id");
-
         // [Expressive]
         // public string FormattedId => ((IStringId)this).Id;
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Item, string>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Item, string>> FormattedId_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Item), "@this");
             var expr_1 = global::System.Linq.Expressions.Expression.Convert(p__this, typeof(global::Foo.IStringId)); // (IStringId)this
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(expr_1, _p0);
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(expr_1, typeof(global::Foo.IStringId).GetProperty("Id"));
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.Item, string>>(expr_0, p__this);
         }
     }

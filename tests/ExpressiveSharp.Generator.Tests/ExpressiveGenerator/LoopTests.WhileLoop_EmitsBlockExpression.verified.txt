@@ -5,8 +5,7 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_Countdown_P0_int 
+    static partial class Foo_C 
     {
         // [Expressive(AllowBlockBody = true)]
         // public int Countdown(int n)
@@ -20,7 +19,7 @@ namespace ExpressiveSharp.Generated
         // 
         //     return result;
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int, int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int, int>> Countdown_P0_int_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
             var p_n = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "n");

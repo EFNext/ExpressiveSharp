@@ -5,17 +5,14 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_Entity_IsInRange 
+    static partial class Foo_Entity 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.Entity).GetProperty("Value");
-
         // [Expressive]
         // public bool IsInRange => Value is >= 1 and <= 100;
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Entity, bool>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Entity, bool>> IsInRange_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Entity), "@this");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, _p0); // Value
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Entity).GetProperty("Value")); // Value
             var expr_3 = global::System.Linq.Expressions.Expression.Constant(1, typeof(int)); // 1
             var expr_2 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.GreaterThanOrEqual, expr_0, expr_3);
             var expr_5 = global::System.Linq.Expressions.Expression.Constant(100, typeof(int)); // 100

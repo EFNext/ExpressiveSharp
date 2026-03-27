@@ -5,15 +5,8 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_OrderDto__ctor_P0_int_P1_bool 
+    static partial class Foo_OrderDto 
     {
-        private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.OrderDto).GetConstructor(new global::System.Type[] {  });
-        private static readonly global::System.Reflection.FieldInfo _f0 = typeof(string).GetField("Empty", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static);
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.OrderDto).GetProperty("Status");
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.OrderDto).GetProperty("Note");
-        private static readonly global::System.Reflection.PropertyInfo _p2 = typeof(global::Foo.OrderDto).GetProperty("NeedsReview");
-
         // [Expressive]
         // public OrderDto(int amount, bool flagged)
         // {
@@ -30,11 +23,11 @@ namespace ExpressiveSharp.Generated
         //         NeedsReview = false;
         //     }
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<int, bool, global::Foo.OrderDto>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<int, bool, global::Foo.OrderDto>> _ctor_P0_int_P1_bool_Expression() 
         {
             var p_amount = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "amount");
             var p_flagged = global::System.Linq.Expressions.Expression.Parameter(typeof(bool), "flagged");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(_c0);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.OrderDto).GetConstructor(new global::System.Type[] {  }));
             var expr_1 = global::System.Linq.Expressions.Expression.Constant("Flagged", typeof(string)); // "Flagged"
             var expr_2 = global::System.Linq.Expressions.Expression.Constant("Requires manual review", typeof(string)); // "Requires manual review"
             var expr_3 = global::System.Linq.Expressions.Expression.Constant(true, typeof(bool)); // true
@@ -43,14 +36,14 @@ namespace ExpressiveSharp.Generated
             var expr_7 = global::System.Linq.Expressions.Expression.Constant("Large", typeof(string)); // "Large"
             var expr_8 = global::System.Linq.Expressions.Expression.Constant("Normal", typeof(string)); // "Normal"
             var expr_4 = global::System.Linq.Expressions.Expression.Condition(expr_5, expr_7, expr_8, typeof(string));
-            var expr_9 = global::System.Linq.Expressions.Expression.Field(null, _f0); // string.Empty
+            var expr_9 = global::System.Linq.Expressions.Expression.Field(null, typeof(string).GetField("Empty", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static)); // string.Empty
             var expr_10 = global::System.Linq.Expressions.Expression.Constant(false, typeof(bool)); // false
             var expr_11 = global::System.Linq.Expressions.Expression.Condition(p_flagged, expr_1, expr_4, typeof(string));
             var expr_12 = global::System.Linq.Expressions.Expression.Condition(p_flagged, expr_2, expr_9, typeof(string));
             var expr_13 = global::System.Linq.Expressions.Expression.Condition(p_flagged, expr_3, expr_10, typeof(bool));
-            var expr_14 = global::System.Linq.Expressions.Expression.Bind(_p0, expr_11);
-            var expr_15 = global::System.Linq.Expressions.Expression.Bind(_p1, expr_12);
-            var expr_16 = global::System.Linq.Expressions.Expression.Bind(_p2, expr_13);
+            var expr_14 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.OrderDto).GetProperty("Status"), expr_11);
+            var expr_15 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.OrderDto).GetProperty("Note"), expr_12);
+            var expr_16 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.OrderDto).GetProperty("NeedsReview"), expr_13);
             var expr_17 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_14, expr_15, expr_16);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<int, bool, global::Foo.OrderDto>>(expr_17, p_amount, p_flagged);
         }

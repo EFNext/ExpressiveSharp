@@ -5,14 +5,8 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_RangeDto__ctor_P0_int_P1_int 
+    static partial class Foo_RangeDto 
     {
-        private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.RangeDto).GetConstructor(new global::System.Type[] {  });
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.RangeDto).GetProperty("Min");
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.RangeDto).GetProperty("Max");
-        private static readonly global::System.Reflection.PropertyInfo _p2 = typeof(global::Foo.RangeDto).GetProperty("IsValid");
-
         // [Expressive]
         // public RangeDto(int a, int b)
         // {
@@ -29,11 +23,11 @@ namespace ExpressiveSharp.Generated
         //         IsValid = false;
         //     }
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<int, int, global::Foo.RangeDto>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<int, int, global::Foo.RangeDto>> _ctor_P0_int_P1_int_Expression() 
         {
             var p_a = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "a");
             var p_b = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "b");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(_c0);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.RangeDto).GetConstructor(new global::System.Type[] {  }));
             var expr_1 = global::System.Linq.Expressions.Expression.Variable(typeof(int), "lo");
             var expr_3 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.LessThan, p_a, p_b); // a < b
             var expr_2 = global::System.Linq.Expressions.Expression.Condition(expr_3, p_a, p_b, typeof(int));
@@ -48,9 +42,9 @@ namespace ExpressiveSharp.Generated
             var expr_13 = global::System.Linq.Expressions.Expression.Constant(0, typeof(int)); // 0
             var expr_11 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.GreaterThan, expr_12, expr_13);
             var expr_14 = global::System.Linq.Expressions.Expression.Condition(expr_11, expr_9, expr_10, typeof(bool));
-            var expr_15 = global::System.Linq.Expressions.Expression.Bind(_p0, expr_1);
-            var expr_16 = global::System.Linq.Expressions.Expression.Bind(_p1, expr_5);
-            var expr_17 = global::System.Linq.Expressions.Expression.Bind(_p2, expr_14);
+            var expr_15 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.RangeDto).GetProperty("Min"), expr_1);
+            var expr_16 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.RangeDto).GetProperty("Max"), expr_5);
+            var expr_17 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.RangeDto).GetProperty("IsValid"), expr_14);
             var expr_18 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_15, expr_16, expr_17);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<int, int, global::Foo.RangeDto>>(expr_18, p_a, p_b);
         }

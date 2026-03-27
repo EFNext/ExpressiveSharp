@@ -16,7 +16,7 @@ namespace ExpressiveSharp.Generated
             const BindingFlags allFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
             var map = new Dictionary<nint, LambdaExpression>();
             
-            Register(map, typeof(global::Foo.C).GetMethod("AddDelta", allFlags, null, new global::System.Type[] { typeof(int) }, null), "ExpressiveSharp.Generated.Foo_C_AddDelta_P0_int");
+            Register(map, typeof(global::Foo.C).GetMethod("AddDelta", allFlags, null, new global::System.Type[] { typeof(int) }, null), "ExpressiveSharp.Generated.Foo_C", "AddDelta_P0_int_Expression");
             
             return map;
         }
@@ -36,21 +36,26 @@ namespace ExpressiveSharp.Generated
             return handle.HasValue && _map.TryGetValue(handle.Value, out var expr) ? expr : null;
         }
         
-        private static void Register(Dictionary<nint, LambdaExpression> map, MethodBase m, string exprClass)
+        private static void Register(Dictionary<nint, LambdaExpression> map, MethodBase m, string exprClass, string exprMethodName)
         {
             if (m is null) return;
             var exprType = m.DeclaringType?.Assembly.GetType(exprClass);
-            var exprMethod = exprType?.GetMethod("Expression", BindingFlags.Static | BindingFlags.NonPublic);
+            var exprMethod = exprType?.GetMethod(exprMethodName, BindingFlags.Static | BindingFlags.NonPublic);
             if (exprMethod is null) return;
             var expr = (LambdaExpression)exprMethod.Invoke(null, null)!;
             
             // Apply declared transformers from the generated class (if any)
-            var transformersMethod = exprType.GetMethod("Transformers", BindingFlags.Static | BindingFlags.NonPublic);
-            if (transformersMethod?.Invoke(null, null) is global::ExpressiveSharp.IExpressionTreeTransformer[] transformers)
+            const string expressionSuffix = "_Expression";
+            if (exprMethodName.EndsWith(expressionSuffix, StringComparison.Ordinal))
             {
-                Expression transformed = expr;
-                foreach (var t in transformers) transformed = t.Transform(transformed);
-                if (transformed is LambdaExpression lambdaResult) expr = lambdaResult;
+                var transformersSuffix = exprMethodName.Substring(0, exprMethodName.Length - expressionSuffix.Length) + "_Transformers";
+                var transformersMethod = exprType.GetMethod(transformersSuffix, BindingFlags.Static | BindingFlags.NonPublic);
+                if (transformersMethod?.Invoke(null, null) is global::ExpressiveSharp.IExpressionTreeTransformer[] transformers)
+                {
+                    Expression transformed = expr;
+                    foreach (var t in transformers) transformed = t.Transform(transformed);
+                    if (transformed is LambdaExpression lambdaResult) expr = lambdaResult;
+                }
             }
             
             map[m.MethodHandle.Value] = expr;

@@ -5,12 +5,8 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_AccessDto__ctor_P0_bool_P1_bool_P2_bool 
+    static partial class Foo_AccessDto 
     {
-        private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.AccessDto).GetConstructor(new global::System.Type[] {  });
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.AccessDto).GetProperty("Access");
-
         // [Expressive]
         // public AccessDto(bool isLoggedIn, bool isVerified, bool isAdmin)
         // {
@@ -37,12 +33,12 @@ namespace ExpressiveSharp.Generated
         //         Access = "Guest";
         //     }
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<bool, bool, bool, global::Foo.AccessDto>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<bool, bool, bool, global::Foo.AccessDto>> _ctor_P0_bool_P1_bool_P2_bool_Expression() 
         {
             var p_isLoggedIn = global::System.Linq.Expressions.Expression.Parameter(typeof(bool), "isLoggedIn");
             var p_isVerified = global::System.Linq.Expressions.Expression.Parameter(typeof(bool), "isVerified");
             var p_isAdmin = global::System.Linq.Expressions.Expression.Parameter(typeof(bool), "isAdmin");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(_c0);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.AccessDto).GetConstructor(new global::System.Type[] {  }));
             var expr_1 = global::System.Linq.Expressions.Expression.Constant("Full", typeof(string)); // "Full"
             var expr_2 = global::System.Linq.Expressions.Expression.Constant("Verified", typeof(string)); // "Verified"
             var expr_3 = global::System.Linq.Expressions.Expression.Condition(p_isAdmin, expr_1, expr_2, typeof(string));
@@ -50,7 +46,7 @@ namespace ExpressiveSharp.Generated
             var expr_5 = global::System.Linq.Expressions.Expression.Condition(p_isVerified, expr_3, expr_4, typeof(string));
             var expr_6 = global::System.Linq.Expressions.Expression.Constant("Guest", typeof(string)); // "Guest"
             var expr_7 = global::System.Linq.Expressions.Expression.Condition(p_isLoggedIn, expr_5, expr_6, typeof(string));
-            var expr_8 = global::System.Linq.Expressions.Expression.Bind(_p0, expr_7);
+            var expr_8 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.AccessDto).GetProperty("Access"), expr_7);
             var expr_9 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_8);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<bool, bool, bool, global::Foo.AccessDto>>(expr_9, p_isLoggedIn, p_isVerified, p_isAdmin);
         }

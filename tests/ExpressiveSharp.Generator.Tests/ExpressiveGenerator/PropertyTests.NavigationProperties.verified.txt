@@ -5,26 +5,21 @@ using Projectables.Repro;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Projectables_Repro_SomeEntity_RootChildren 
+    static partial class Projectables_Repro_SomeEntity 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Projectables.Repro.SomeEntity).GetProperty("Parent");
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Projectables.Repro.SomeEntity).GetProperty("RootChildren");
-        private static readonly global::System.Reflection.PropertyInfo _p2 = typeof(global::Projectables.Repro.SomeEntity).GetProperty("Children");
-
         // [Expressive]
         // public ICollection<SomeEntity> RootChildren => Parent != null ? Parent.RootChildren : Children;
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Projectables.Repro.SomeEntity, global::System.Collections.Generic.ICollection<global::Projectables.Repro.SomeEntity>>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Projectables.Repro.SomeEntity, global::System.Collections.Generic.ICollection<global::Projectables.Repro.SomeEntity>>> RootChildren_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Projectables.Repro.SomeEntity), "@this");
-            var expr_3 = global::System.Linq.Expressions.Expression.Property(p__this, _p0); // Parent
+            var expr_3 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Projectables.Repro.SomeEntity).GetProperty("Parent")); // Parent
             var expr_2 = global::System.Linq.Expressions.Expression.Convert(expr_3, typeof(object));
             var expr_5 = global::System.Linq.Expressions.Expression.Constant(null, typeof(object)); // null
             var expr_4 = global::System.Linq.Expressions.Expression.Convert(expr_5, typeof(object));
             var expr_1 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.NotEqual, expr_2, expr_4);
-            var expr_7 = global::System.Linq.Expressions.Expression.Property(p__this, _p0); // Parent
-            var expr_6 = global::System.Linq.Expressions.Expression.Property(expr_7, _p1);
-            var expr_8 = global::System.Linq.Expressions.Expression.Property(p__this, _p2); // Children
+            var expr_7 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Projectables.Repro.SomeEntity).GetProperty("Parent")); // Parent
+            var expr_6 = global::System.Linq.Expressions.Expression.Property(expr_7, typeof(global::Projectables.Repro.SomeEntity).GetProperty("RootChildren"));
+            var expr_8 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Projectables.Repro.SomeEntity).GetProperty("Children")); // Children
             var expr_0 = global::System.Linq.Expressions.Expression.Condition(expr_1, expr_6, expr_8, typeof(global::System.Collections.Generic.ICollection<global::Projectables.Repro.SomeEntity>));
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Projectables.Repro.SomeEntity, global::System.Collections.Generic.ICollection<global::Projectables.Repro.SomeEntity>>>(expr_0, p__this);
         }

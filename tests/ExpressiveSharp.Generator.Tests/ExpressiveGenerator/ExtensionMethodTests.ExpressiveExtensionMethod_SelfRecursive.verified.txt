@@ -5,17 +5,14 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_Foo1_P0_object 
+    static partial class Foo_C 
     {
-        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(global::Foo.C).GetMethod("Foo1", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(object) }, null);
-
         // [Expressive]
         // public static object Foo1(this object i) => i.Foo1();
-        static global::System.Linq.Expressions.Expression<global::System.Func<object, object>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<object, object>> Foo1_P0_object_Expression() 
         {
             var p_i = global::System.Linq.Expressions.Expression.Parameter(typeof(object), "i");
-            var expr_0 = global::System.Linq.Expressions.Expression.Call(_m0, new global::System.Linq.Expressions.Expression[] { p_i }); // i.Foo1()
+            var expr_0 = global::System.Linq.Expressions.Expression.Call(typeof(global::Foo.C).GetMethod("Foo1", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(object) }, null), new global::System.Linq.Expressions.Expression[] { p_i }); // i.Foo1()
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<object, object>>(expr_0, p_i);
         }
     }

@@ -34,6 +34,112 @@ namespace ExpressiveSharp.Services
             return GenerateNameImpl(stringBuilder, namespaceName, nestedInClassNames, memberName, parameterTypeNames);
         }
 
+        /// <summary>
+        /// Generates the class-level name (without member or parameter suffixes) for the
+        /// consolidated partial class that holds all expression methods for a given type.
+        /// </summary>
+        public static string GenerateClassName(string? namespaceName, IEnumerable<string>? nestedInClassNames)
+        {
+            var sb = new StringBuilder();
+            return GenerateClassNameImpl(sb, namespaceName, nestedInClassNames);
+        }
+
+        /// <summary>
+        /// Generates the fully-qualified class name (with <see cref="Namespace"/> prefix)
+        /// for the consolidated partial class.
+        /// </summary>
+        public static string GenerateClassFullName(string? namespaceName, IEnumerable<string>? nestedInClassNames)
+        {
+            var sb = new StringBuilder(Namespace);
+            sb.Append('.');
+            return GenerateClassNameImpl(sb, namespaceName, nestedInClassNames);
+        }
+
+        /// <summary>
+        /// Generates the method suffix that encodes a member name and its parameter types.
+        /// The result is used as a method name prefix (e.g. "Add_P0_int") within the
+        /// consolidated partial class.
+        /// </summary>
+        public static string GenerateMethodSuffix(string memberName, IEnumerable<string>? parameterTypeNames)
+        {
+            var sb = new StringBuilder();
+
+            if (memberName.IndexOf('.') >= 0)
+            {
+                sb.Append(memberName.Replace(".", "__"));
+            }
+            else
+            {
+                sb.Append(memberName);
+            }
+
+            if (parameterTypeNames is not null)
+            {
+                var parameterIndex = 0;
+                foreach (var parameterTypeName in parameterTypeNames)
+                {
+                    sb.Append("_P");
+                    sb.Append(parameterIndex);
+                    sb.Append('_');
+                    AppendSanitizedTypeName(sb, parameterTypeName);
+                    parameterIndex++;
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        static string GenerateClassNameImpl(StringBuilder stringBuilder, string? namespaceName, IEnumerable<string>? nestedInClassNames)
+        {
+            if (namespaceName is not null)
+            {
+                foreach (var c in namespaceName)
+                {
+                    stringBuilder.Append(c == '.' ? '_' : c);
+                }
+            }
+
+            stringBuilder.Append('_');
+            var arity = 0;
+
+            if (nestedInClassNames is not null)
+            {
+                foreach (var className in nestedInClassNames)
+                {
+                    var arityCharacterIndex = className.IndexOf('`');
+                    if (arityCharacterIndex is -1)
+                    {
+                        stringBuilder.Append(className);
+                    }
+                    else
+                    {
+#if NETSTANDARD2_0
+                        arity += int.Parse(className.Substring(arityCharacterIndex + 1));
+#else
+                        arity += int.Parse(className.AsSpan().Slice(arityCharacterIndex + 1));
+#endif
+                        stringBuilder.Append(className, 0, arityCharacterIndex);
+                    }
+
+                    stringBuilder.Append('_');
+                }
+            }
+
+            // Remove trailing '_' from class names (the member name used to follow)
+            if (stringBuilder.Length > 0 && stringBuilder[stringBuilder.Length - 1] == '_')
+            {
+                stringBuilder.Length--;
+            }
+
+            if (arity > 0)
+            {
+                stringBuilder.Append('`');
+                stringBuilder.Append(arity);
+            }
+
+            return stringBuilder.ToString();
+        }
+
         static string GenerateNameImpl(StringBuilder stringBuilder, string? namespaceName, IEnumerable<string>? nestedInClassNames, string memberName, IEnumerable<string>? parameterTypeNames)
         {
             // Append namespace, replacing '.' separators with '_' in a single pass (no intermediate string).

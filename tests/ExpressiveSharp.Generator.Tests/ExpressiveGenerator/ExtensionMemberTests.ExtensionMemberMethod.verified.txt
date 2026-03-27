@@ -5,18 +5,15 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_EntityExtensions_TripleId_P0_Foo_Entity 
+    static partial class Foo_EntityExtensions 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.Entity).GetProperty("Id");
-
         // [Expressive]
         // public int TripleId() => e.Id * 3;
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Entity, int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Entity, int>> TripleId_P0_Foo_Entity_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Entity), "@this");
             var expr_2 = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Entity), "e"); // e
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(expr_2, _p0);
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(expr_2, typeof(global::Foo.Entity).GetProperty("Id"));
             var expr_3 = global::System.Linq.Expressions.Expression.Constant(3, typeof(int)); // 3
             var expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Multiply, expr_1, expr_3);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.Entity, int>>(expr_0, p__this);

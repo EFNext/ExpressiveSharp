@@ -5,12 +5,11 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_A_IsB 
+    static partial class Foo_A 
     {
         // [Expressive]
         // public bool IsB => this is B;
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.A, bool>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.A, bool>> IsB_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.A), "@this");
             var expr_0 = global::System.Linq.Expressions.Expression.TypeIs(p__this, typeof(global::Foo.B)); // this is B

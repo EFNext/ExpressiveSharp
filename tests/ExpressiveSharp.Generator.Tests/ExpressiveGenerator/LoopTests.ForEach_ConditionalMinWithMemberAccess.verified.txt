@@ -5,16 +5,8 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_MinPositive_P0_System_Collections_Generic_List_global__Foo_Item_ 
+    static partial class Foo_C 
     {
-        private static readonly global::System.Reflection.FieldInfo _f0 = typeof(int).GetField("MaxValue", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static);
-        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(global::System.Collections.Generic.IEnumerable<global::Foo.Item>).GetMethod("GetEnumerator", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null);
-        private static readonly global::System.Reflection.MethodInfo _m1 = typeof(global::System.Collections.IEnumerator).GetMethod("MoveNext", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null);
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::System.Collections.Generic.IEnumerator<global::Foo.Item>).GetProperty("Current");
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.Item).GetProperty("Value");
-        private static readonly global::System.Reflection.MethodInfo _m2 = typeof(global::System.Math).GetMethod("Min", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(int), typeof(int) }, null);
-
         // [Expressive(AllowBlockBody = true)]
         // public int MinPositive(List<Item> items)
         // {
@@ -27,29 +19,29 @@ namespace ExpressiveSharp.Generated
         // 
         //     return min;
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, global::System.Collections.Generic.List<global::Foo.Item>, int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, global::System.Collections.Generic.List<global::Foo.Item>, int>> MinPositive_P0_System_Collections_Generic_List_global__Foo_Item__Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
             var p_items = global::System.Linq.Expressions.Expression.Parameter(typeof(global::System.Collections.Generic.List<global::Foo.Item>), "items");
             var expr_0 = global::System.Linq.Expressions.Expression.Variable(typeof(int), "min"); // {             var min = int.MaxValue;             foreach...
-            var expr_1 = global::System.Linq.Expressions.Expression.Field(null, _f0); // int.MaxValue
+            var expr_1 = global::System.Linq.Expressions.Expression.Field(null, typeof(int).GetField("MaxValue", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static)); // int.MaxValue
             var expr_2 = global::System.Linq.Expressions.Expression.Assign(expr_0, expr_1);
             var expr_4 = global::System.Linq.Expressions.Expression.Variable(typeof(global::Foo.Item), "x"); // foreach (var x in items) { if (x.Value > 0) min = Math.Mi...
             var expr_5 = global::System.Linq.Expressions.Expression.Variable(typeof(global::System.Collections.Generic.IEnumerator<global::Foo.Item>), "enumerator");
-            var expr_6 = global::System.Linq.Expressions.Expression.Call(p_items, _m0);
+            var expr_6 = global::System.Linq.Expressions.Expression.Call(p_items, typeof(global::System.Collections.Generic.IEnumerable<global::Foo.Item>).GetMethod("GetEnumerator", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null));
             var expr_7 = global::System.Linq.Expressions.Expression.Assign(expr_5, expr_6);
             var expr_8 = global::System.Linq.Expressions.Expression.Label("break");
-            var expr_9 = global::System.Linq.Expressions.Expression.Property(expr_5, _p0);
+            var expr_9 = global::System.Linq.Expressions.Expression.Property(expr_5, typeof(global::System.Collections.Generic.IEnumerator<global::Foo.Item>).GetProperty("Current"));
             var expr_10 = global::System.Linq.Expressions.Expression.Assign(expr_4, expr_9);
-            var expr_13 = global::System.Linq.Expressions.Expression.Property(expr_4, _p1); // x.Value
+            var expr_13 = global::System.Linq.Expressions.Expression.Property(expr_4, typeof(global::Foo.Item).GetProperty("Value")); // x.Value
             var expr_14 = global::System.Linq.Expressions.Expression.Constant(0, typeof(int)); // 0
             var expr_12 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.GreaterThan, expr_13, expr_14);
-            var expr_17 = global::System.Linq.Expressions.Expression.Property(expr_4, _p1); // x.Value
-            var expr_16 = global::System.Linq.Expressions.Expression.Call(_m2, new global::System.Linq.Expressions.Expression[] { expr_0, expr_17 });
+            var expr_17 = global::System.Linq.Expressions.Expression.Property(expr_4, typeof(global::Foo.Item).GetProperty("Value")); // x.Value
+            var expr_16 = global::System.Linq.Expressions.Expression.Call(typeof(global::System.Math).GetMethod("Min", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(int), typeof(int) }, null), new global::System.Linq.Expressions.Expression[] { expr_0, expr_17 });
             var expr_15 = global::System.Linq.Expressions.Expression.Assign(expr_0, expr_16);
             var expr_11 = global::System.Linq.Expressions.Expression.IfThen(expr_12, expr_15);
             var expr_18 = global::System.Linq.Expressions.Expression.Block(expr_10, expr_11);
-            var expr_19 = global::System.Linq.Expressions.Expression.Call(expr_5, _m1);
+            var expr_19 = global::System.Linq.Expressions.Expression.Call(expr_5, typeof(global::System.Collections.IEnumerator).GetMethod("MoveNext", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null));
             var expr_20 = global::System.Linq.Expressions.Expression.Break(expr_8);
             var expr_21 = global::System.Linq.Expressions.Expression.IfThenElse(expr_19, expr_18, expr_20);
             var expr_22 = global::System.Linq.Expressions.Expression.Loop(expr_21, expr_8);

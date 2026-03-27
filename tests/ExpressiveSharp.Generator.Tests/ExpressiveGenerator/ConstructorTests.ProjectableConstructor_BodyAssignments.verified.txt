@@ -5,26 +5,21 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_PointDto__ctor_P0_int_P1_int 
+    static partial class Foo_PointDto 
     {
-        private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.PointDto).GetConstructor(new global::System.Type[] {  });
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.PointDto).GetProperty("X");
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.PointDto).GetProperty("Y");
-
         // [Expressive]
         // public PointDto(int x, int y)
         // {
         //     X = x;
         //     Y = y;
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<int, int, global::Foo.PointDto>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<int, int, global::Foo.PointDto>> _ctor_P0_int_P1_int_Expression() 
         {
             var p_x = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "x");
             var p_y = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "y");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(_c0);
-            var expr_1 = global::System.Linq.Expressions.Expression.Bind(_p0, p_x);
-            var expr_2 = global::System.Linq.Expressions.Expression.Bind(_p1, p_y);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PointDto).GetConstructor(new global::System.Type[] {  }));
+            var expr_1 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PointDto).GetProperty("X"), p_x);
+            var expr_2 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PointDto).GetProperty("Y"), p_y);
             var expr_3 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_1, expr_2);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<int, int, global::Foo.PointDto>>(expr_3, p_x, p_y);
         }

@@ -5,12 +5,8 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_EventDto__ctor_P0_string_P1_string_P2_int 
+    static partial class Foo_EventDto 
     {
-        private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.EventDto).GetConstructor(new global::System.Type[] {  });
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.EventDto).GetProperty("Priority");
-
         // [Expressive]
         // public EventDto(string title, string tag, int urgency) : this(title, tag)
         // {
@@ -27,12 +23,12 @@ namespace ExpressiveSharp.Generated
         //         Priority = "Normal";
         //     }
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<string, string, int, global::Foo.EventDto>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<string, string, int, global::Foo.EventDto>> _ctor_P0_string_P1_string_P2_int_Expression() 
         {
             var p_title = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "title");
             var p_tag = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "tag");
             var p_urgency = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "urgency");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(_c0);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.EventDto).GetConstructor(new global::System.Type[] {  }));
             var expr_1 = global::System.Linq.Expressions.Expression.Constant("Critical", typeof(string)); // "Critical"
             var expr_2 = global::System.Linq.Expressions.Expression.Constant("High", typeof(string)); // "High"
             var expr_3 = global::System.Linq.Expressions.Expression.Constant("Normal", typeof(string)); // "Normal"
@@ -42,7 +38,7 @@ namespace ExpressiveSharp.Generated
             var expr_8 = global::System.Linq.Expressions.Expression.Constant(10, typeof(int)); // 10
             var expr_7 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.GreaterThanOrEqual, p_urgency, expr_8);
             var expr_9 = global::System.Linq.Expressions.Expression.Condition(expr_7, expr_1, expr_6, typeof(string));
-            var expr_10 = global::System.Linq.Expressions.Expression.Bind(_p0, expr_9);
+            var expr_10 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.EventDto).GetProperty("Priority"), expr_9);
             var expr_11 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_10);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<string, string, int, global::Foo.EventDto>>(expr_11, p_title, p_tag, p_urgency);
         }

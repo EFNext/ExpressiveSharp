@@ -5,22 +5,8 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_CustomerDto__ctor_P0_Foo_Customer 
+    static partial class Foo_CustomerDto 
     {
-        private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.CustomerDto).GetConstructor(new global::System.Type[] {  });
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.Customer).GetProperty("Id");
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.Customer).GetProperty("FirstName");
-        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null);
-        private static readonly global::System.Reflection.PropertyInfo _p2 = typeof(global::Foo.Customer).GetProperty("LastName");
-        private static readonly global::System.Reflection.PropertyInfo _p3 = typeof(global::Foo.Customer).GetProperty("IsActive");
-        private static readonly global::System.Reflection.MethodInfo _m1 = global::System.Linq.Enumerable.First(global::System.Linq.Enumerable.Where(typeof(global::System.Linq.Enumerable).GetMethods(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static), m => m.Name == "Count" && m.IsGenericMethodDefinition && m.GetGenericArguments().Length == 1 && m.GetParameters().Length == 1)).MakeGenericMethod(typeof(global::Foo.Order));
-        private static readonly global::System.Reflection.PropertyInfo _p4 = typeof(global::Foo.Customer).GetProperty("Orders");
-        private static readonly global::System.Reflection.PropertyInfo _p5 = typeof(global::Foo.CustomerDto).GetProperty("Id");
-        private static readonly global::System.Reflection.PropertyInfo _p6 = typeof(global::Foo.CustomerDto).GetProperty("FullName");
-        private static readonly global::System.Reflection.PropertyInfo _p7 = typeof(global::Foo.CustomerDto).GetProperty("IsActive");
-        private static readonly global::System.Reflection.PropertyInfo _p8 = typeof(global::Foo.CustomerDto).GetProperty("OrderCount");
-
         // [Expressive]
         // public CustomerDto(Customer customer)
         // {
@@ -29,24 +15,24 @@ namespace ExpressiveSharp.Generated
         //     IsActive = customer.IsActive;
         //     OrderCount = customer.Orders.Count();
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Customer, global::Foo.CustomerDto>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Customer, global::Foo.CustomerDto>> _ctor_P0_Foo_Customer_Expression() 
         {
             var p_customer = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Customer), "customer");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(_c0);
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p_customer, _p0); // customer.Id
-            var expr_4 = global::System.Linq.Expressions.Expression.Property(p_customer, _p1); // customer.FirstName
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.CustomerDto).GetConstructor(new global::System.Type[] {  }));
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p_customer, typeof(global::Foo.Customer).GetProperty("Id")); // customer.Id
+            var expr_4 = global::System.Linq.Expressions.Expression.Property(p_customer, typeof(global::Foo.Customer).GetProperty("FirstName")); // customer.FirstName
             var expr_5 = global::System.Linq.Expressions.Expression.Constant(" ", typeof(string)); // " "
-            var expr_3 = global::System.Linq.Expressions.Expression.Call(_m0, expr_4, expr_5);
-            var expr_6 = global::System.Linq.Expressions.Expression.Property(p_customer, _p2); // customer.LastName
-            var expr_2 = global::System.Linq.Expressions.Expression.Call(_m0, expr_3, expr_6);
-            var expr_7 = global::System.Linq.Expressions.Expression.Property(p_customer, _p3); // customer.IsActive
-            var expr_10 = global::System.Linq.Expressions.Expression.Property(p_customer, _p4); // customer.Orders
+            var expr_3 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_4, expr_5);
+            var expr_6 = global::System.Linq.Expressions.Expression.Property(p_customer, typeof(global::Foo.Customer).GetProperty("LastName")); // customer.LastName
+            var expr_2 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_3, expr_6);
+            var expr_7 = global::System.Linq.Expressions.Expression.Property(p_customer, typeof(global::Foo.Customer).GetProperty("IsActive")); // customer.IsActive
+            var expr_10 = global::System.Linq.Expressions.Expression.Property(p_customer, typeof(global::Foo.Customer).GetProperty("Orders")); // customer.Orders
             var expr_9 = global::System.Linq.Expressions.Expression.Convert(expr_10, typeof(global::System.Collections.Generic.IEnumerable<global::Foo.Order>));
-            var expr_8 = global::System.Linq.Expressions.Expression.Call(_m1, new global::System.Linq.Expressions.Expression[] { expr_9 });
-            var expr_11 = global::System.Linq.Expressions.Expression.Bind(_p5, expr_1);
-            var expr_12 = global::System.Linq.Expressions.Expression.Bind(_p6, expr_2);
-            var expr_13 = global::System.Linq.Expressions.Expression.Bind(_p7, expr_7);
-            var expr_14 = global::System.Linq.Expressions.Expression.Bind(_p8, expr_8);
+            var expr_8 = global::System.Linq.Expressions.Expression.Call(global::System.Linq.Enumerable.First(global::System.Linq.Enumerable.Where(typeof(global::System.Linq.Enumerable).GetMethods(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static), m => m.Name == "Count" && m.IsGenericMethodDefinition && m.GetGenericArguments().Length == 1 && m.GetParameters().Length == 1)).MakeGenericMethod(typeof(global::Foo.Order)), new global::System.Linq.Expressions.Expression[] { expr_9 });
+            var expr_11 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.CustomerDto).GetProperty("Id"), expr_1);
+            var expr_12 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.CustomerDto).GetProperty("FullName"), expr_2);
+            var expr_13 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.CustomerDto).GetProperty("IsActive"), expr_7);
+            var expr_14 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.CustomerDto).GetProperty("OrderCount"), expr_8);
             var expr_15 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_11, expr_12, expr_13, expr_14);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.Customer, global::Foo.CustomerDto>>(expr_15, p_customer);
         }

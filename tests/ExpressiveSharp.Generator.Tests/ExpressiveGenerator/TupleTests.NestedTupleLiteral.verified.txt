@@ -5,22 +5,18 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_GetNested_P0_int_P1_string_P2_bool 
+    static partial class Foo_C 
     {
-        private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof((string, bool)).GetConstructor(new global::System.Type[] { typeof(string), typeof(bool) });
-        private static readonly global::System.Reflection.ConstructorInfo _c1 = typeof((int, (string b, bool c))).GetConstructor(new global::System.Type[] { typeof(int), typeof((string b, bool c)) });
-
         // [Expressive]
         // public (int, (string, bool)) GetNested(int a, string b, bool c) => (a, (b, c));
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int, string, bool, global::System.ValueTuple<int, global::System.ValueTuple<string, bool>>>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int, string, bool, global::System.ValueTuple<int, global::System.ValueTuple<string, bool>>>> GetNested_P0_int_P1_string_P2_bool_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
             var p_a = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "a");
             var p_b = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "b");
             var p_c = global::System.Linq.Expressions.Expression.Parameter(typeof(bool), "c");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(_c0, p_b, p_c); // (b, c)
-            var expr_1 = global::System.Linq.Expressions.Expression.New(_c1, p_a, expr_0);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof((string, bool)).GetConstructor(new global::System.Type[] { typeof(string), typeof(bool) }), p_b, p_c); // (b, c)
+            var expr_1 = global::System.Linq.Expressions.Expression.New(typeof((int, (string b, bool c))).GetConstructor(new global::System.Type[] { typeof(int), typeof((string b, bool c)) }), p_a, expr_0);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, int, string, bool, global::System.ValueTuple<int, global::System.ValueTuple<string, bool>>>>(expr_1, p__this, p_a, p_b, p_c);
         }
     }

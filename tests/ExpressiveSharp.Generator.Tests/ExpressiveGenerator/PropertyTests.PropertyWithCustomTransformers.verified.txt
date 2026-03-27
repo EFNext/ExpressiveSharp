@@ -5,19 +5,15 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_Foo 
+    static partial class Foo_C 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.C).GetProperty("Bar");
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(string).GetProperty("Length");
-
         // [Expressive(Transformers = [typeof(ExpressiveSharp.Transformers.RemoveNullConditionalPatterns)])]
         // public int? Foo => Bar?.Length;
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int?>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int?>> Foo_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, _p0); // Bar
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(expr_0, _p1); // .Length
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Bar")); // Bar
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(expr_0, typeof(string).GetProperty("Length")); // .Length
             var expr_2 = global::System.Linq.Expressions.Expression.Convert(expr_1, typeof(int?));
             var expr_4 = global::System.Linq.Expressions.Expression.Constant(null, typeof(string));
             var expr_5 = global::System.Linq.Expressions.Expression.NotEqual(expr_0, expr_4);
@@ -26,6 +22,6 @@ namespace ExpressiveSharp.Generated
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, int?>>(expr_3, p__this);
         }
 
-        static global::ExpressiveSharp.IExpressionTreeTransformer[] Transformers() => [new global::ExpressiveSharp.Transformers.RemoveNullConditionalPatterns()];
+        static global::ExpressiveSharp.IExpressionTreeTransformer[] Foo_Transformers() => [new global::ExpressiveSharp.Transformers.RemoveNullConditionalPatterns()];
     }
 }

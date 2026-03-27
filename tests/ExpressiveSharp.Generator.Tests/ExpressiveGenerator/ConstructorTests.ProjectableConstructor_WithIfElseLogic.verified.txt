@@ -5,13 +5,8 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_PersonDto__ctor_P0_int 
+    static partial class Foo_PersonDto 
     {
-        private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.PersonDto).GetConstructor(new global::System.Type[] {  });
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.PersonDto).GetProperty("Score");
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.PersonDto).GetProperty("Label");
-
         // [Expressive]
         // public PersonDto(int score)
         // {
@@ -25,17 +20,17 @@ namespace ExpressiveSharp.Generated
         //         Label = "B";
         //     }
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<int, global::Foo.PersonDto>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<int, global::Foo.PersonDto>> _ctor_P0_int_Expression() 
         {
             var p_score = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "score");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(_c0);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PersonDto).GetConstructor(new global::System.Type[] {  }));
             var expr_1 = global::System.Linq.Expressions.Expression.Constant("A", typeof(string)); // "A"
             var expr_2 = global::System.Linq.Expressions.Expression.Constant("B", typeof(string)); // "B"
             var expr_4 = global::System.Linq.Expressions.Expression.Constant(90, typeof(int)); // 90
             var expr_3 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.GreaterThanOrEqual, p_score, expr_4);
             var expr_5 = global::System.Linq.Expressions.Expression.Condition(expr_3, expr_1, expr_2, typeof(string));
-            var expr_6 = global::System.Linq.Expressions.Expression.Bind(_p0, p_score);
-            var expr_7 = global::System.Linq.Expressions.Expression.Bind(_p1, expr_5);
+            var expr_6 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("Score"), p_score);
+            var expr_7 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("Label"), expr_5);
             var expr_8 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_6, expr_7);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<int, global::Foo.PersonDto>>(expr_8, p_score);
         }

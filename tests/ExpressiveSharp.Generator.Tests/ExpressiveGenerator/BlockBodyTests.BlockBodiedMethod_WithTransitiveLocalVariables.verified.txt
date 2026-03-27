@@ -5,11 +5,8 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_Foo 
+    static partial class Foo_C 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.C).GetProperty("Bar");
-
         // [Expressive(AllowBlockBody = true)]
         // public int Foo()
         // {
@@ -17,11 +14,11 @@ namespace ExpressiveSharp.Generated
         //     var b = a + 5;
         //     return b + 10;
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int>> Foo_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
             var expr_0 = global::System.Linq.Expressions.Expression.Variable(typeof(int), "a"); // {             var a = Bar * 2;             var b = a + 5;...
-            var expr_2 = global::System.Linq.Expressions.Expression.Property(p__this, _p0); // Bar
+            var expr_2 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Bar")); // Bar
             var expr_3 = global::System.Linq.Expressions.Expression.Constant(2, typeof(int)); // 2
             var expr_1 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Multiply, expr_2, expr_3);
             var expr_4 = global::System.Linq.Expressions.Expression.Assign(expr_0, expr_1);

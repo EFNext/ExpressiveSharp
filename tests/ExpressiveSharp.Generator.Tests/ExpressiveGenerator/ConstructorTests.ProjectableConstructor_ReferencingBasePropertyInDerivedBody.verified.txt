@@ -5,30 +5,24 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_Child__ctor_P0_string 
+    static partial class Foo_Child 
     {
-        private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.Child).GetConstructor(new global::System.Type[] {  });
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.Base).GetProperty("Code");
-        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null);
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Foo.Child).GetProperty("Label");
-
         // [Expressive]
         // public Child(string code) : base(code)
         // {
         //     Label = "[" + Code + "]";
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<string, global::Foo.Child>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<string, global::Foo.Child>> _ctor_P0_string_Expression() 
         {
             var p_code = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "code");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(_c0);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.Child).GetConstructor(new global::System.Type[] {  }));
             var expr_3 = global::System.Linq.Expressions.Expression.Constant("[", typeof(string)); // "["
             var p___this = global::System.Linq.Expressions.Expression.Parameter(typeof(object), "@this"); // Code
-            var expr_4 = global::System.Linq.Expressions.Expression.Property(p___this, _p0);
-            var expr_2 = global::System.Linq.Expressions.Expression.Call(_m0, expr_3, expr_4);
+            var expr_4 = global::System.Linq.Expressions.Expression.Property(p___this, typeof(global::Foo.Base).GetProperty("Code"));
+            var expr_2 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_3, expr_4);
             var expr_5 = global::System.Linq.Expressions.Expression.Constant("]", typeof(string)); // "]"
-            var expr_1 = global::System.Linq.Expressions.Expression.Call(_m0, expr_2, expr_5);
-            var expr_6 = global::System.Linq.Expressions.Expression.Bind(_p1, expr_1);
+            var expr_1 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_2, expr_5);
+            var expr_6 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.Child).GetProperty("Label"), expr_1);
             var expr_7 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_6);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<string, global::Foo.Child>>(expr_7, p_code);
         }

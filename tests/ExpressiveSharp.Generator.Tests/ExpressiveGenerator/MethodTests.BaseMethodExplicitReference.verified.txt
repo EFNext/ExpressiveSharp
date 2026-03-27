@@ -5,17 +5,14 @@ using Projectables.Repro;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Projectables_Repro_Derived_Bar 
+    static partial class Projectables_Repro_Derived 
     {
-        private static readonly global::System.Reflection.MethodInfo _m0 = typeof(global::Projectables.Repro.Base).GetMethod("Foo", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null);
-
         // [Expressive]
         // public string Bar => base.Foo();
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Projectables.Repro.Derived, string>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Projectables.Repro.Derived, string>> Bar_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Projectables.Repro.Derived), "@this");
-            var expr_0 = global::System.Linq.Expressions.Expression.Call(p__this, _m0, global::System.Array.Empty<global::System.Linq.Expressions.Expression>()); // base.Foo()
+            var expr_0 = global::System.Linq.Expressions.Expression.Call(p__this, typeof(global::Projectables.Repro.Base).GetMethod("Foo", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null), global::System.Array.Empty<global::System.Linq.Expressions.Expression>()); // base.Foo()
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Projectables.Repro.Derived, string>>(expr_0, p__this);
         }
     }

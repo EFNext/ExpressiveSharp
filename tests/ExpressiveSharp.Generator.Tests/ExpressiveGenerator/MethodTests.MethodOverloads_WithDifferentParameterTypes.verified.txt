@@ -6,12 +6,11 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_Method_P0_int 
+    static partial class Foo_C 
     {
         // [Expressive]
         // public int Method(int x) => x;
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int, int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int, int>> Method_P0_int_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
             var p_x = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "x");
@@ -28,18 +27,15 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_C_Method_P0_string 
+    static partial class Foo_C 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(string).GetProperty("Length");
-
         // [Expressive]
         // public int Method(string s) => s.Length;
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, string, int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, string, int>> Method_P0_string_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
             var p_s = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "s");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_s, _p0); // s.Length
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_s, typeof(string).GetProperty("Length")); // s.Length
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, string, int>>(expr_0, p__this, p_s);
         }
     }

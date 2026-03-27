@@ -4,12 +4,11 @@
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class _IntExtensions_Squared 
+    static partial class _IntExtensions 
     {
         // [Expressive]
         // public int Squared => i * i;
-        static global::System.Linq.Expressions.Expression<global::System.Func<int, int>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<int, int>> Squared_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "@this");
             var expr_1 = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "i"); // i

@@ -4,22 +4,18 @@
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class _Foo_IsOrigin_P0_Point 
+    static partial class _Foo 
     {
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Point).GetProperty("X");
-        private static readonly global::System.Reflection.PropertyInfo _p1 = typeof(global::Point).GetProperty("Y");
-
         // [Expressive]
         // public bool IsOrigin(Point point) => point is Point (0, 0);
-        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo, global::Point, bool>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo, global::Point, bool>> IsOrigin_P0_Point_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo), "@this");
             var p_point = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Point), "point");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_point, _p0); // point is Point(0, 0)
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_point, typeof(global::Point).GetProperty("X")); // point is Point(0, 0)
             var expr_2 = global::System.Linq.Expressions.Expression.Constant(0, typeof(int)); // 0
             var expr_1 = global::System.Linq.Expressions.Expression.Equal(expr_0, expr_2);
-            var expr_3 = global::System.Linq.Expressions.Expression.Property(p_point, _p1);
+            var expr_3 = global::System.Linq.Expressions.Expression.Property(p_point, typeof(global::Point).GetProperty("Y"));
             var expr_5 = global::System.Linq.Expressions.Expression.Constant(0, typeof(int)); // 0
             var expr_4 = global::System.Linq.Expressions.Expression.Equal(expr_3, expr_5);
             var expr_6 = global::System.Linq.Expressions.Expression.AndAlso(expr_1, expr_4);

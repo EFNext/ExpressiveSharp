@@ -5,12 +5,8 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_PriorityDto__ctor_P0_int 
+    static partial class Foo_PriorityDto 
     {
-        private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.PriorityDto).GetConstructor(new global::System.Type[] {  });
-        private static readonly global::System.Reflection.PropertyInfo _p0 = typeof(global::Foo.PriorityDto).GetProperty("Level");
-
         // [Expressive]
         // public PriorityDto(int value)
         // {
@@ -34,10 +30,10 @@ namespace ExpressiveSharp.Generated
         // 
         //     Level = "High";
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<int, global::Foo.PriorityDto>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<int, global::Foo.PriorityDto>> _ctor_P0_int_Expression() 
         {
             var p_value = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "value");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(_c0);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PriorityDto).GetConstructor(new global::System.Type[] {  }));
             var expr_1 = global::System.Linq.Expressions.Expression.Constant("Invalid", typeof(string)); // "Invalid"
             var expr_3 = global::System.Linq.Expressions.Expression.Constant(0, typeof(int)); // 0
             var expr_2 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.LessThan, p_value, expr_3);
@@ -52,7 +48,7 @@ namespace ExpressiveSharp.Generated
             var expr_11 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.LessThanOrEqual, p_value, expr_12);
             var expr_13 = global::System.Linq.Expressions.Expression.Condition(expr_11, expr_10, expr_9, typeof(string));
             var expr_14 = global::System.Linq.Expressions.Expression.Constant("High", typeof(string)); // "High"
-            var expr_15 = global::System.Linq.Expressions.Expression.Bind(_p0, expr_14);
+            var expr_15 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PriorityDto).GetProperty("Level"), expr_14);
             var expr_16 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_15);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<int, global::Foo.PriorityDto>>(expr_16, p_value);
         }

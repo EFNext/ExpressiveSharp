@@ -5,19 +5,16 @@ using Foo;
 
 namespace ExpressiveSharp.Generated
 {
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    static class Foo_PersonDto__ctor_P0_string 
+    static partial class Foo_PersonDto 
     {
-        private static readonly global::System.Reflection.ConstructorInfo _c0 = typeof(global::Foo.PersonDto).GetConstructor(new global::System.Type[] {  });
-
         // [Expressive]
         // public PersonDto(string firstName) : this(firstName, "Doe")
         // {
         // }
-        static global::System.Linq.Expressions.Expression<global::System.Func<string, global::Foo.PersonDto>> Expression() 
+        static global::System.Linq.Expressions.Expression<global::System.Func<string, global::Foo.PersonDto>> _ctor_P0_string_Expression() 
         {
             var p_firstName = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "firstName");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(_c0);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PersonDto).GetConstructor(new global::System.Type[] {  }));
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<string, global::Foo.PersonDto>>(expr_0, p_firstName);
         }
     }

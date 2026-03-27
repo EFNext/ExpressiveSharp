@@ -117,24 +117,29 @@ public class ExpressiveGenerator : IIncrementalGenerator
                 factoryCandidate.Identifier.Text));
         }
 
-        var generatedClassName = ExpressionClassNameGenerator.GenerateName(expressive.ClassNamespace, expressive.NestedInClassNames, expressive.MemberName, expressive.ParameterTypeNames);
-        var generatedFileName = expressive.ClassTypeParameterList is not null ? $"{generatedClassName}-{expressive.ClassTypeParameterList.Parameters.Count}.g.cs" : $"{generatedClassName}.g.cs";
+        var generatedClassName = ExpressionClassNameGenerator.GenerateClassName(expressive.ClassNamespace, expressive.NestedInClassNames);
+        var methodSuffix = ExpressionClassNameGenerator.GenerateMethodSuffix(expressive.MemberName, expressive.ParameterTypeNames);
+        var generatedFileName = expressive.ClassTypeParameterList is not null
+            ? $"{generatedClassName}-{expressive.ClassTypeParameterList.Parameters.Count}.{methodSuffix}.g.cs"
+            : $"{generatedClassName}.{methodSuffix}.g.cs";
 
         if (expressive.ExpressionTreeEmission is null)
         {
             throw new InvalidOperationException("ExpressionTreeEmission must be set");
         }
 
-        EmitExpressionTreeSource(expressive, generatedClassName, generatedFileName, member, compilation, context);
+        EmitExpressionTreeSource(expressive, generatedClassName, methodSuffix, generatedFileName, member, compilation, context);
     }
 
     /// <summary>
     /// Emits the generated source file using raw text when <see cref="Emitter.EmitResult"/> is available.
-    /// This path generates imperative <c>Expression.*</c> factory calls instead of a lambda return.
+    /// Each file declares the same <c>static partial class</c> — one per declaring type — and adds
+    /// a uniquely-named <c>{methodSuffix}_Expression()</c> method for this member.
     /// </summary>
     private static void EmitExpressionTreeSource(
         ExpressiveDescriptor expressive,
         string generatedClassName,
+        string methodSuffix,
         string generatedFileName,
         MemberDeclarationSyntax member,
         Compilation? compilation,
@@ -186,20 +191,8 @@ public class ExpressiveGenerator : IIncrementalGenerator
             ? string.Join(" ", expressive.ConstraintClauses.Value.Select(c => c.NormalizeWhitespace().ToFullString()))
             : "";
 
-        sb.AppendLine($"    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
-        sb.AppendLine($"    static class {generatedClassName}{typeParamList} {constraintClauses}");
+        sb.AppendLine($"    static partial class {generatedClassName}{typeParamList} {constraintClauses}");
         sb.AppendLine("    {");
-
-        // Static fields for cached reflection info
-        foreach (var field in emission.StaticFields)
-        {
-            sb.AppendLine($"        {field}");
-        }
-
-        if (emission.StaticFields.Count > 0)
-        {
-            sb.AppendLine();
-        }
 
         // Source comment showing the original C# member
         var sourceText = member.NormalizeWhitespace().ToFullString();
@@ -209,19 +202,19 @@ public class ExpressiveGenerator : IIncrementalGenerator
             sb.AppendLine($"        // {trimmed}");
         }
 
-        // Expression() method
-        sb.AppendLine($"        static {returnType} Expression{methodTypeParamList}() {methodConstraintClauses}");
+        // {methodSuffix}_Expression() method
+        sb.AppendLine($"        static {returnType} {methodSuffix}_Expression{methodTypeParamList}() {methodConstraintClauses}");
         sb.AppendLine("        {");
         sb.Append(emission.Body);
         sb.AppendLine("        }");
 
-        // Transformers property (when declared via attribute)
+        // Transformers (when declared via attribute)
         if (expressive.DeclaredTransformerTypeNames.Count > 0)
         {
             sb.AppendLine();
             var transformerInstances = string.Join(", ",
                 expressive.DeclaredTransformerTypeNames.Select(t => $"new {t}()"));
-            sb.AppendLine($"        static global::ExpressiveSharp.IExpressionTreeTransformer[] Transformers() => [{transformerInstances}];");
+            sb.AppendLine($"        static global::ExpressiveSharp.IExpressionTreeTransformer[] {methodSuffix}_Transformers() => [{transformerInstances}];");
         }
 
         sb.AppendLine("    }");
@@ -239,16 +232,22 @@ public class ExpressiveGenerator : IIncrementalGenerator
     {
         var containingType = memberSymbol.ContainingType;
 
-        // Skip C# 14 extension type members — they require special handling (fall back to reflection)
+        // Determine whether this entry is metadata-only (excluded from runtime registry
+        // but still used for [EditorBrowsable] attribute-only partial file emission).
+        var isMetadataOnly = false;
+        string? classTypeParameters = null;
+
+        // C# 14 extension type members — metadata-only (fall back to reflection at runtime)
         if (containingType is { IsExtension: true })
         {
-            return null;
+            isMetadataOnly = true;
         }
 
-        // Skip generic classes: the registry only supports closed constructed types.
+        // Generic classes — metadata-only (registry can't represent open generic types)
         if (containingType.TypeParameters.Length > 0)
         {
-            return null;
+            isMetadataOnly = true;
+            classTypeParameters = "<" + string.Join(", ", containingType.TypeParameters.Select(tp => tp.Name)) + ">";
         }
 
         // Determine member kind and lookup name
@@ -258,10 +257,10 @@ public class ExpressiveGenerator : IIncrementalGenerator
 
         if (memberSymbol is IMethodSymbol methodSymbol)
         {
-            // Skip generic methods for the same reason as generic classes
+            // Generic methods — metadata-only (same reason as generic classes)
             if (methodSymbol.TypeParameters.Length > 0)
             {
-                return null;
+                isMetadataOnly = true;
             }
 
             if (methodSymbol.MethodKind is MethodKind.Constructor or MethodKind.StaticConstructor)
@@ -285,20 +284,22 @@ public class ExpressiveGenerator : IIncrementalGenerator
             memberLookupName = memberSymbol.Name;
         }
 
-        // Build the generated class name using the same logic as Execute
+        // Build the generated class name and method name using the same logic as Execute
         var classNamespace = containingType.ContainingNamespace.IsGlobalNamespace
             ? null
             : containingType.ContainingNamespace.ToDisplayString();
 
         var nestedTypePath = GetRegistryNestedTypePath(containingType);
 
-        var generatedClassName = ExpressionClassNameGenerator.GenerateName(
+        var generatedClassFullName = ExpressionClassNameGenerator.GenerateClassFullName(
             classNamespace,
-            nestedTypePath,
+            nestedTypePath);
+
+        var methodSuffix = ExpressionClassNameGenerator.GenerateMethodSuffix(
             memberLookupName,
             parameterTypeNames.IsEmpty ? null : parameterTypeNames);
 
-        var generatedClassFullName = "ExpressiveSharp.Generated." + generatedClassName;
+        var expressionMethodName = methodSuffix + "_Expression";
 
         var declaringTypeFullName = containingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
@@ -307,7 +308,10 @@ public class ExpressiveGenerator : IIncrementalGenerator
             MemberKind: memberKind,
             MemberLookupName: memberLookupName,
             GeneratedClassFullName: generatedClassFullName,
-            ParameterTypeNames: parameterTypeNames);
+            ExpressionMethodName: expressionMethodName,
+            ParameterTypeNames: parameterTypeNames,
+            IsMetadataOnly: isMetadataOnly,
+            ClassTypeParameters: classTypeParameters);
     }
 
     private static IEnumerable<string> GetRegistryNestedTypePath(INamedTypeSymbol typeSymbol)

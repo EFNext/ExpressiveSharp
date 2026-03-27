@@ -91,6 +91,29 @@ public class RegistryTests : GeneratorTestBase
     }
 
     [TestMethod]
+    public Task GenericClass_GetsEditorBrowsableAttribute()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C<T> {
+                    public int Id { get; set; }
+                    [Expressive]
+                    public int IdPlus1 => Id + 1;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        var attributeTree = result.AllGeneratedTrees
+            .FirstOrDefault(t => t.FilePath.EndsWith(".Attributes.g.cs", StringComparison.Ordinal));
+
+        Assert.IsNotNull(attributeTree);
+
+        return Verifier.Verify(attributeTree!.GetText().ToString());
+    }
+
+    [TestMethod]
     public Task MethodOverloads_BothRegistered()
     {
         var compilation = CreateCompilation(
