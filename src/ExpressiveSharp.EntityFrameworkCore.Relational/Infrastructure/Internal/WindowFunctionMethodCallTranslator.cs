@@ -50,13 +50,13 @@ internal sealed class WindowFunctionMethodCallTranslator : IMethodCallTranslator
                         ascending: true)],
                     longTypeMapping),
 
-            nameof(WindowFunction.Rank) when arguments[0] is WindowSpecSqlExpression spec
+            nameof(WindowFunction.Rank) when arguments.Count >= 1 && arguments[0] is WindowSpecSqlExpression spec
                 => new WindowFunctionSqlExpression("RANK", [], spec.Partitions, spec.Orderings, typeof(long), longTypeMapping),
 
-            nameof(WindowFunction.DenseRank) when arguments[0] is WindowSpecSqlExpression spec
+            nameof(WindowFunction.DenseRank) when arguments.Count >= 1 && arguments[0] is WindowSpecSqlExpression spec
                 => new WindowFunctionSqlExpression("DENSE_RANK", [], spec.Partitions, spec.Orderings, typeof(long), longTypeMapping),
 
-            nameof(WindowFunction.Ntile) when arguments[1] is WindowSpecSqlExpression spec
+            nameof(WindowFunction.Ntile) when arguments.Count >= 2 && arguments[1] is WindowSpecSqlExpression spec
                 => new WindowFunctionSqlExpression("NTILE",
                     [_sqlExpressionFactory.ApplyDefaultTypeMapping(arguments[0])],
                     spec.Partitions, spec.Orderings, typeof(long), longTypeMapping),

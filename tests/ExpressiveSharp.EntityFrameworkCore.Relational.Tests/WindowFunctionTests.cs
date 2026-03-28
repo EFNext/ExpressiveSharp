@@ -2,7 +2,6 @@ using ExpressiveSharp.EntityFrameworkCore.Relational.Tests.Models;
 using ExpressiveSharp.EntityFrameworkCore.Relational.WindowFunctions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace ExpressiveSharp.EntityFrameworkCore.Relational.Tests;
 
@@ -42,7 +41,7 @@ public class WindowFunctionTests
             new Customer { Id = 2, Name = "Bob" });
         ctx.SaveChanges();
 
-        // Prices: 10, 20, 20, 30, 50 (note duplicates for tie-testing)
+        // Prices: 50, 20, 10, 30, 20, 40, 15, 25, 35, 45 (note duplicates for tie-testing)
         ctx.Orders.AddRange(
             new Order { Id = 1, Price = 50, Quantity = 1, CustomerId = 1 },
             new Order { Id = 2, Price = 20, Quantity = 2, CustomerId = 1 },
@@ -272,9 +271,13 @@ public class WindowFunctionTests
         // NTILE(4) with 10 rows: buckets of 3,3,2,2
         Assert.IsTrue(results.All(r => r.Quartile >= 1 && r.Quartile <= 4),
             "All quartile values should be between 1 and 4");
-        // Count per bucket
+        // Count per bucket — NTILE(4) over 10 rows gives 3, 3, 2, 2
         var bucketCounts = results.GroupBy(r => r.Quartile).OrderBy(g => g.Key).Select(g => g.Count()).ToList();
         Assert.AreEqual(4, bucketCounts.Count, "Should have exactly 4 buckets");
+        Assert.AreEqual(3, bucketCounts[0], "Bucket 1 should have 3 rows");
+        Assert.AreEqual(3, bucketCounts[1], "Bucket 2 should have 3 rows");
+        Assert.AreEqual(2, bucketCounts[2], "Bucket 3 should have 2 rows");
+        Assert.AreEqual(2, bucketCounts[3], "Bucket 4 should have 2 rows");
     }
 
     [TestMethod]
