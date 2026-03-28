@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Relational database extensions for ExpressiveSharp EF Core — window functions (ROW_NUMBER, RANK, DENSE_RANK, NTILE) and indexed Select</Description>
+  </PropertyGroup>
+
+  <!-- EF Core Relational major version must match the target framework (8.x for net8.0, 10.x for net10.0).
+       Do NOT merge these into a single unconditional reference. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"
+                      Condition="'$(TargetFramework)' == 'net8.0'"
+                      VersionOverride="8.0.25" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"
+                      Condition="'$(TargetFramework)' == 'net10.0'"
+                      VersionOverride="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ExpressiveSharp.EntityFrameworkCore\ExpressiveSharp.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\ExpressiveSharp\ExpressiveSharp.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using ExpressiveSharp.Services;
 using ExpressiveSharp.Transformers;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -55,6 +56,32 @@ public class ExpressiveOptionsExtension : IDbContextOptionsExtension
                 new FlattenBlockExpressions());
             return options;
         });
+
+        // Discover and activate plugins from referenced assemblies
+        DiscoverAndApplyPlugins(services);
+    }
+
+    private static void DiscoverAndApplyPlugins(IServiceCollection services)
+    {
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            ExpressivePluginAttribute[] attrs;
+            try
+            {
+                attrs = assembly.GetCustomAttributes<ExpressivePluginAttribute>().ToArray();
+            }
+            catch
+            {
+                // Skip assemblies that fail reflection (e.g. dynamic assemblies)
+                continue;
+            }
+
+            foreach (var attr in attrs)
+            {
+                if (Activator.CreateInstance(attr.PluginType) is IExpressivePlugin plugin)
+                    plugin.ApplyServices(services);
+            }
+        }
     }
 
     public void Validate(IDbContextOptions options)
