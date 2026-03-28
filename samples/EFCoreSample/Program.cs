@@ -1,100 +1,63 @@
+// A small order-management tool that queries an SQLite database.
+// ExpressiveSharp lets us write natural C# (null-conditional ?., switch expressions,
+// computed properties) and have it all translate to SQL instead of evaluating client-side.
+
 using ExpressiveSharp.Extensions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-
-// ── Setup ────────────────────────────────────────────────────────────────────
 
 var connection = new SqliteConnection("Data Source=:memory:");
 connection.Open();
 
 var options = new DbContextOptionsBuilder<SampleDbContext>()
     .UseSqlite(connection)
-    .UseExpressives()      // ← this one line enables everything below
+    .UseExpressives()
     .Options;
 
 using var db = new SampleDbContext(options);
 db.Database.EnsureCreated();
 SeedData(db);
 
-// ── 1. Computed properties in SQL ────────────────────────────────────────────
-// Total => Price * Quantity becomes a SQL expression, not a client-side eval.
-Section("Computed Properties in SQL");
+Console.WriteLine();
 
-var totalsQuery = db.Orders.AsQueryable().Select(o => new { o.Id, o.Total });
-PrintSql(totalsQuery);
-foreach (var r in totalsQuery) Console.WriteLine($"  Order #{r.Id}: Total = {r.Total}");
+// Find all orders where the customer has an email on file.
+// The ?. operator works directly in the lambda — the source generator
+// rewrites it to an expression tree that EF Core translates to SQL.
+var contactableOrders = db.Orders
+    .Where(o => o.Customer?.Email != null)
+    .Select(o => new OrderSummaryDto(o.Id, o.Customer.Name, o.Total, o.Grade, o.StatusDescription))
+    .ToList();
 
-// ── 2. Modern syntax in queries ──────────────────────────────────────────────
-// ExpressiveDbSet lets you use ?. directly in delegate lambdas.
-// The source generator rewrites them to expression trees at compile time.
-Section("Modern Syntax in Queries");
+Console.WriteLine("Orders with customer email on file:");
+foreach (var dto in contactableOrders)
+    Console.WriteLine($"  #{dto.OrderId} {dto.CustomerName} — ${dto.Total:N2} ({dto.Grade}, {dto.Status})");
 
-// Where with null-conditional ?.
-var emailFilter = db.Orders.Where(o => o.Customer?.Email != null);
-PrintSql(emailFilter);
-foreach (var o in emailFilter) Console.WriteLine($"  Order #{o.Id}: {o.Customer.Name} <{o.Customer.Email}>");
+Console.WriteLine();
 
-// Switch expression in Select — becomes CASE WHEN in SQL
-var gradesQuery = db.Orders.AsQueryable().Select(o => new { o.Id, o.Price, Grade = o.GetGrade() });
-PrintSql(gradesQuery);
-foreach (var r in gradesQuery) Console.WriteLine($"  Order #{r.Id} (${r.Price}): {r.Grade}");
+// Premium approved orders — filter on [Expressive] computed properties.
+var premiumApproved = db.Orders
+    .Where(o => o.Total >= 200 && o.Status == OrderStatus.Approved)
+    .Select(o => new { o.Id, o.Total, o.Grade })
+    .ToList();
 
-// GroupBy with ?.
-var groupQuery = db.Orders.GroupBy(o => o.Customer?.Email);
-PrintSql(groupQuery);
-foreach (var g in groupQuery)
-    Console.WriteLine($"  Email={g.Key ?? "(null)"}: [{string.Join(", ", g.Select(o => $"#{o.Id}"))}]");
+Console.WriteLine("Premium approved orders (total >= $200):");
+foreach (var o in premiumApproved)
+    Console.WriteLine($"  #{o.Id} — ${o.Total:N2} ({o.Grade})");
 
-// ── 3. Block bodies and enum expansion ───────────────────────────────────────
-// Block-bodied methods and enum method calls are flattened into SQL-translatable
-// expressions automatically.
-Section("Block Bodies and Enum Expansion");
+Console.WriteLine();
 
-// GetCategory() — block body with local variable + if/else → CASE WHEN
-var catsQuery = db.Orders.AsQueryable().Select(o => new { o.Id, o.Quantity, Category = o.GetCategory() });
-PrintSql(catsQuery);
-foreach (var r in catsQuery) Console.WriteLine($"  Order #{r.Id} (qty={r.Quantity}): {r.Category}");
+// Revenue by status — the [Expressive] StatusDescription property expands to a
+// CASE WHEN chain in SQL via UseExpressives(), no special queryable needed.
+var revenueByStatus = db.Orders.AsQueryable()
+    .GroupBy(o => o.StatusDescription)
+    .Select(g => new { Status = g.Key, Revenue = g.Sum(o => o.Total) })
+    .ToList();
 
-// StatusDescription — enum method expansion → ternary chain in SQL
-var statusQuery = db.Orders.AsQueryable().Select(o => new { o.Id, o.Status, Desc = o.StatusDescription });
-PrintSql(statusQuery);
-foreach (var r in statusQuery) Console.WriteLine($"  Order #{r.Id} ({r.Status}): \"{r.Desc}\"");
-
-// ── 4. Constructor projection ────────────────────────────────────────────────
-// [Expressive] constructors expand to MemberInit, so EF Core translates the
-// projection to a clean SQL SELECT instead of loading entire entities.
-Section("Constructor Projection");
-
-var dtoQuery = db.Orders.AsQueryable().Select(o => new OrderSummaryDto(o.Id, o.Tag ?? "N/A", o.Total));
-PrintSql(dtoQuery);
-foreach (var dto in dtoQuery) Console.WriteLine($"  {{ Id={dto.Id}, Desc=\"{dto.Description}\", Total={dto.Total} }}");
-
-// ── 5. Combining everything ──────────────────────────────────────────────────
-// One query: ?. filter + [Expressive] property + switch expression.
-Section("Combining Everything");
-
-// ExpressiveDbSet handles the ?. in Where; UseExpressives() expands
-// [Expressive] members when they appear elsewhere in the query pipeline.
-var combined = db.Orders.Where(o => o.Customer?.Name == "Alice");
-PrintSql(combined);
-foreach (var o in combined) Console.WriteLine($"  Order #{o.Id}: Total={o.Total}, Grade={o.GetGrade()}");
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
+Console.WriteLine("Revenue by status:");
+foreach (var row in revenueByStatus)
+    Console.WriteLine($"  {row.Status}: ${row.Revenue:N2}");
 
 connection.Close();
-
-static void Section(string title)
-{
-    Console.WriteLine();
-    Console.WriteLine($"--- {title} ---");
-    Console.WriteLine();
-}
-
-static void PrintSql<T>(IQueryable<T> query)
-{
-    Console.WriteLine($"  SQL: {query.ToQueryString()}");
-    Console.WriteLine();
-}
 
 static void SeedData(SampleDbContext db)
 {

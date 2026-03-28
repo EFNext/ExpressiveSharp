@@ -1,8 +1,6 @@
 using System.ComponentModel;
 using ExpressiveSharp;
 
-// ── Enums ────────────────────────────────────────────────────────────────────
-
 public enum OrderStatus
 {
     [Description("Awaiting processing")]
@@ -27,8 +25,6 @@ public static class OrderStatusExtensions
     };
 }
 
-// ── Domain models ────────────────────────────────────────────────────────────
-
 public class Customer
 {
     public int Id { get; set; }
@@ -47,59 +43,19 @@ public class Order
     public int CustomerId { get; set; }
     public Customer Customer { get; set; } = null!;
 
-    /// Price * Quantity — becomes a SQL expression, not a client-side property.
     [Expressive]
     public double Total => Price * Quantity;
 
-    /// Null-conditional navigation — UseExpressives() strips the null check
-    /// automatically so EF Core can translate it to a JOIN.
-    [Expressive]
-    public string? CustomerEmail => Total >= 0 ?  Customer?.Email : "";
-
-    /// Enum method expansion — each enum value is evaluated at compile time,
-    /// producing a CASE WHEN chain that translates directly to SQL.
     [Expressive]
     public string StatusDescription => Status.GetDescription();
 
-    /// Switch expression with relational patterns — becomes SQL CASE WHEN.
     [Expressive]
-    public string GetGrade() => Price switch
+    public string Grade => Price switch
     {
         >= 100 => "Premium",
         >= 50 => "Standard",
         _ => "Budget",
     };
-
-    /// Block body with local variable + if/else — requires AllowBlockBody opt-in.
-    /// The FlattenBlockExpressions transformer inlines locals for SQL translation.
-    [Expressive(AllowBlockBody = true)]
-    public string GetCategory()
-    {
-        var threshold = Quantity * 10;
-        if (threshold > 100)
-            return "Bulk";
-        else
-            return "Regular";
-    }
 }
 
-// ── DTO for constructor projection ───────────────────────────────────────────
-
-public class OrderSummaryDto
-{
-    public int Id { get; set; }
-    public string Description { get; set; } = "";
-    public double Total { get; set; }
-
-    public OrderSummaryDto() { }
-
-    /// Expands to MemberInit so EF Core translates this projection to a clean
-    /// SQL SELECT instead of loading entire Order entities.
-    [Expressive]
-    public OrderSummaryDto(int id, string description, double total)
-    {
-        Id = id;
-        Description = description;
-        Total = total;
-    }
-}
+public record OrderSummaryDto(int OrderId, string CustomerName, double Total, string Grade, string Status);
