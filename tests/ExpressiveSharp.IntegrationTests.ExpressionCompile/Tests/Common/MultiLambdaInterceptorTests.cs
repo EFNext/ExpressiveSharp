@@ -74,4 +74,34 @@ public class MultiLambdaInterceptorTests
         CollectionAssert.Contains(results, "A: Widget");
         CollectionAssert.Contains(results, "B: Gadget");
     }
+
+    /// <summary>
+    /// Join where the outer key is nullable (int?) but the inner key is non-nullable (int).
+    /// The emitter must insert an implicit conversion so the expression tree compiles.
+    /// </summary>
+    [TestMethod]
+    public void Join_NullableOuterKey_NonNullableInnerKey_CompilesAndRuns()
+    {
+        var orders = _orders.AsQueryable();
+        var customers = new List<Customer>
+        {
+            new() { Id = 1, Name = "Alice" },
+            new() { Id = 2, Name = "Bob" },
+        };
+
+        // Order.CustomerId is int? — Customer.Id is int — TKey resolves to int?
+        _orders[0].CustomerId = 1;
+        _orders[1].CustomerId = 2;
+
+        var results = orders.WithExpressionRewrite()
+            .Join(customers,
+                  o => o.CustomerId,
+                  c => c.Id,
+                  (o, c) => c.Name)
+            .ToList();
+
+        Assert.AreEqual(2, results.Count);
+        CollectionAssert.Contains(results, "Alice");
+        CollectionAssert.Contains(results, "Bob");
+    }
 }

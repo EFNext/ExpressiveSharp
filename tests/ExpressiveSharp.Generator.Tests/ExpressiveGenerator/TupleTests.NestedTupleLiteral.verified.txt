@@ -17,7 +17,8 @@ namespace ExpressiveSharp.Generated
             var p_c = global::System.Linq.Expressions.Expression.Parameter(typeof(bool), "c");
             var expr_0 = global::System.Linq.Expressions.Expression.New(typeof((string, bool)).GetConstructor(new global::System.Type[] { typeof(string), typeof(bool) }), p_b, p_c); // (b, c)
             var expr_1 = global::System.Linq.Expressions.Expression.New(typeof((int, (string b, bool c))).GetConstructor(new global::System.Type[] { typeof(int), typeof((string b, bool c)) }), p_a, expr_0);
-            return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, int, string, bool, global::System.ValueTuple<int, global::System.ValueTuple<string, bool>>>>(expr_1, p__this, p_a, p_b, p_c);
+            var expr_2 = global::System.Linq.Expressions.Expression.Convert(expr_1, typeof(global::System.ValueTuple<int, global::System.ValueTuple<string, bool>>));
+            return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, int, string, bool, global::System.ValueTuple<int, global::System.ValueTuple<string, bool>>>>(expr_2, p__this, p_a, p_b, p_c);
         }
     }
 }

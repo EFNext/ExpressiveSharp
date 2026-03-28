@@ -129,6 +129,19 @@ internal sealed class ExpressionTreeEmitter
 
         var bodyVar = EmitOperation(operation);
 
+        // If the body's type doesn't match the delegate return type, insert an Expression.Convert.
+        // This handles cases like int → int? (Nullable<int>) in Join key selectors.
+        if (operation.Type is not null)
+        {
+            var bodyTypeFqn = ResolveTypeFqn(operation.Type);
+            if (bodyTypeFqn != returnTypeFqn)
+            {
+                var convertVar = NextVar();
+                AppendLine($"var {convertVar} = {Expr}.Convert({bodyVar}, typeof({returnTypeFqn}));");
+                bodyVar = convertVar;
+            }
+        }
+
         var paramsArg = paramVarNames.Count > 0
             ? string.Join(", ", paramVarNames)
             : $"global::System.Array.Empty<global::System.Linq.Expressions.ParameterExpression>()";

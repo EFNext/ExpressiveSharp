@@ -14,7 +14,8 @@ namespace ExpressiveSharp.Generated.Interceptors
             // Source: o => o.Tags
             var i0a_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
             var i0a_expr_0 = global::System.Linq.Expressions.Expression.Property(i0a_p_o, typeof(global::TestNs.Order).GetProperty("Tags")); // o.Tags
-            var __lambda1 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, global::System.Collections.Generic.IEnumerable<string>>>(i0a_expr_0, i0a_p_o);
+            var i0a_expr_1 = global::System.Linq.Expressions.Expression.Convert(i0a_expr_0, typeof(global::System.Collections.Generic.IEnumerable<string>));
+            var __lambda1 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, global::System.Collections.Generic.IEnumerable<string>>>(i0a_expr_1, i0a_p_o);
             // Source: (o, t) => o.Name + ": " + t
             var i0b_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
             var i0b_p_t = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "t");
