@@ -295,7 +295,17 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         var typeArgs = method.TypeArguments;
 
         // Per-call WithExpressionRewrite() → MSBuild global → hardcoded Ignore fallback.
-        
+
+        // Resolve the target type for the Queryable.* call. Defaults to System.Linq.Queryable
+        // unless overridden by [PolyfillTarget(typeof(...))] on the stub method.
+        var targetTypeFqn = "global::System.Linq.Queryable";
+        var polyfillAttr = method.GetAttributes()
+            .FirstOrDefault(a => a.AttributeClass?.Name == "PolyfillTargetAttribute");
+        if (polyfillAttr?.ConstructorArguments.Length > 0 &&
+            polyfillAttr.ConstructorArguments[0].Value is INamedTypeSymbol targetType)
+        {
+            targetTypeFqn = targetType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        }
 
         return methodName switch {
             "Where"
@@ -344,7 +354,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
             // Generic fallback: any user-defined or future single-lambda stub whose name
             // matches a Queryable.* method by convention.
-            _ => EmitGenericSingleLambda(inv, model, spc, interceptAttr, index, methodName, elementSymbol, elementFqn, method, funcParamIndex, globalOptions, allStaticFields),
+            _ => EmitGenericSingleLambda(inv, model, spc, interceptAttr, index, methodName, elementSymbol, elementFqn, method, funcParamIndex, targetTypeFqn, globalOptions, allStaticFields),
         };
     }
 
@@ -1030,7 +1040,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         InvocationExpressionSyntax inv, SemanticModel model,
         SourceProductionContext spc, string interceptAttr, int idx,
         string methodName, INamedTypeSymbol elemSym, string elemFqn,
-        IMethodSymbol method, int funcParamIndex,
+        IMethodSymbol method, int funcParamIndex, string targetTypeFqn,
         ExpressiveGlobalOptions globalOptions,
         List<string> allStaticFields)
     {
@@ -1107,7 +1117,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                             {{interceptorParamList}})
                         {
                 {{emitResult.Body}}            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
-                                global::System.Linq.Queryable.{{methodName}}(
+                                {{targetTypeFqn}}.{{methodName}}(
                                     ({{castFqn}})source,
                                     {{queryableArgList}}));
                         }
@@ -1115,14 +1125,14 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                 """;
             }
 
-            // Scalar return — call Queryable.Method directly without wrapping.
+            // Scalar return — call target type method directly without wrapping.
             return $$"""
                     {{interceptAttr}}
                     internal static {{scalarReturnFqn}} {{MethodId(methodName, idx)}}(
                         this global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> source,
                         {{interceptorParamList}})
                     {
-            {{emitResult.Body}}            return global::System.Linq.Queryable.{{methodName}}(
+            {{emitResult.Body}}            return {{targetTypeFqn}}.{{methodName}}(
                                 ({{castFqn}})source,
                                 {{queryableArgList}});
                     }
@@ -1194,7 +1204,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                     {
             {{anonEmitResult.Body}}            return (global::ExpressiveSharp.IRewritableQueryable<{{returnParamName}}>)(object)
                             global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
-                                global::System.Linq.Queryable.{{methodName}}(
+                                {{targetTypeFqn}}.{{methodName}}(
                                     ({{castFqn}})(object)source,
                                     {{anonQueryableArgList}}));
                     }
@@ -1209,7 +1219,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                     this global::ExpressiveSharp.IRewritableQueryable<T0> source,
                     {{anonInterceptorParamList}})
                 {
-        {{anonEmitResult.Body}}            return global::System.Linq.Queryable.{{methodName}}(
+        {{anonEmitResult.Body}}            return {{targetTypeFqn}}.{{methodName}}(
                             ({{castFqn}})(object)source,
                             {{anonQueryableArgList}});
                 }
