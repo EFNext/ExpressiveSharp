@@ -43,17 +43,21 @@ CI targets both .NET 8.0 and .NET 10.0 SDKs.
 
 1. **Compile-time (source generation):** Two incremental generators in `ExpressiveSharp.Generator` (targets netstandard2.0):
    - `ExpressiveGenerator` — finds `[Expressive]` members, validates them via `ExpressiveInterpreter`, emits expression trees via `ExpressionTreeEmitter`, and builds a runtime registry via `ExpressionRegistryEmitter`
-   - `PolyfillInterceptorGenerator` — uses C# 13 `[InterceptsLocation]` to rewrite `ExpressionPolyfill.Create()` and `IRewritableQueryable<T>` LINQ call sites from delegate form to expression tree form
+   - `PolyfillInterceptorGenerator` — uses C# 13 `[InterceptsLocation]` to rewrite `ExpressionPolyfill.Create()` and `IRewritableQueryable<T>` LINQ call sites from delegate form to expression tree form. Supports all standard `Queryable` methods, multi-lambda methods (Join, GroupJoin, GroupBy overloads), non-lambda-first methods (Zip, ExceptBy, etc.), and custom target types via `[PolyfillTarget]` (e.g., EF Core's `EntityFrameworkQueryableExtensions` for async methods)
 
 2. **Runtime:** `ExpressiveResolver` looks up generated expressions by (DeclaringType, MemberName, ParameterTypes). `ExpressiveReplacer` is an `ExpressionVisitor` that substitutes `[Expressive]` member accesses with the generated expression trees. Transformers (in `Transformers/`) post-process trees for provider compatibility.
 
 ### Key Source Files
 
 - `src/ExpressiveSharp.Generator/ExpressiveGenerator.cs` — main generator entry point
-- `src/ExpressiveSharp.Generator/Emitter/ExpressionTreeEmitter.cs` — maps IOperation nodes to `Expression.*` factory calls (the heart of code generation)
+- `src/ExpressiveSharp.Generator/Emitter/ExpressionTreeEmitter.cs` — maps IOperation nodes to `Expression.*` factory calls (the heart of code generation). Uses `varPrefix` to ensure unique local variable names across multi-lambda emitters
 - `src/ExpressiveSharp.Generator/Interpretation/ExpressiveInterpreter.cs` — validates and prepares `[Expressive]` members
-- `src/ExpressiveSharp.Generator/PolyfillInterceptorGenerator.cs` — interceptor generation
+- `src/ExpressiveSharp.Generator/PolyfillInterceptorGenerator.cs` — interceptor generation. Dedicated emitters for complex methods (Join, GroupJoin, GroupBy multi-lambda), enhanced generic fallback (`EmitGenericSingleLambda`) for single-lambda methods with non-lambda arg forwarding, `[PolyfillTarget]` support for custom target types
 - `src/ExpressiveSharp/Services/ExpressiveResolver.cs` — runtime expression registry lookup
+- `src/ExpressiveSharp/PolyfillTargetAttribute.cs` — specifies a non-`Queryable` target type for interceptor forwarding (e.g., `EntityFrameworkQueryableExtensions`)
+- `src/ExpressiveSharp/Extensions/RewritableQueryableLinqExtensions.cs` — delegate-based LINQ stubs on `IRewritableQueryable<T>` (~85 intercepted + ~15 passthrough methods)
+- `src/ExpressiveSharp.EntityFrameworkCore/Extensions/RewritableQueryableEfCoreExtensions.cs` — EF Core-specific stubs: chain-continuity (AsNoTracking, TagWith, etc.), Include/ThenInclude, and async lambda methods (AnyAsync, SumAsync, etc.)
+- `src/ExpressiveSharp.EntityFrameworkCore/IIncludableRewritableQueryable.cs` — hybrid interface bridging `IIncludableQueryable` and `IRewritableQueryable` for Include/ThenInclude chain continuity
 
 ### Project Dependencies
 
@@ -66,7 +70,9 @@ ExpressiveSharp.Generator (source generator, netstandard2.0)
 
 ExpressiveSharp.EntityFrameworkCore (net8.0;net10.0)
   ├── ExpressiveSharp
-  └── EF Core 8.0.25 / 10.0.0
+  ├── EF Core 8.0.25 / 10.0.0
+  └── Provides: ExpressiveDbSet<T>, IIncludableRewritableQueryable<T,P>,
+      chain-continuity stubs, async lambda stubs with [PolyfillTarget]
 
 ExpressiveSharp.EntityFrameworkCore.CodeFixers (Roslyn analyzer, netstandard2.0)
   └── Microsoft.CodeAnalysis.CSharp.Workspaces 4.12.0

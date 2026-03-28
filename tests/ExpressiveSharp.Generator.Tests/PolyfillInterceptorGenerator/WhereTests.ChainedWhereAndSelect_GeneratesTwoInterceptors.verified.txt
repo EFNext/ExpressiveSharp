@@ -11,9 +11,9 @@ namespace ExpressiveSharp.Generated.Interceptors
             global::System.Func<global::TestNs.Order, string> _)
         {
             // Source: o => o.Name
-            var p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_o, typeof(global::TestNs.Order).GetProperty("Name")); // o.Name
-            var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, string>>(expr_0, p_o);
+            var i0_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
+            var i0_expr_0 = global::System.Linq.Expressions.Expression.Property(i0_p_o, typeof(global::TestNs.Order).GetProperty("Name")); // o.Name
+            var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, string>>(i0_expr_0, i0_p_o);
             return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
                 global::System.Linq.Queryable.Select(
                     (global::System.Linq.IQueryable<global::TestNs.Order>)source,
@@ -25,11 +25,11 @@ namespace ExpressiveSharp.Generated.Interceptors
             global::System.Func<global::TestNs.Order, bool> _)
         {
             // Source: o => o.Tag == "urgent"
-            var p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p_o, typeof(global::TestNs.Order).GetProperty("Tag")); // o.Tag
-            var expr_2 = global::System.Linq.Expressions.Expression.Constant("urgent", typeof(string)); // "urgent"
-            var expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Equal, expr_1, expr_2);
-            var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, bool>>(expr_0, p_o);
+            var i1_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
+            var i1_expr_1 = global::System.Linq.Expressions.Expression.Property(i1_p_o, typeof(global::TestNs.Order).GetProperty("Tag")); // o.Tag
+            var i1_expr_2 = global::System.Linq.Expressions.Expression.Constant("urgent", typeof(string)); // "urgent"
+            var i1_expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Equal, i1_expr_1, i1_expr_2);
+            var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, bool>>(i1_expr_0, i1_p_o);
             return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
                 global::System.Linq.Queryable.Where(
                     (global::System.Linq.IQueryable<global::TestNs.Order>)source,

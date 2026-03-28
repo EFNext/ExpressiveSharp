@@ -162,7 +162,7 @@ var results = queryable
 
 The source generator intercepts these calls at compile time and rewrites them to use proper expression trees — no runtime overhead.
 
-Available LINQ methods: `Where`, `Select`, `SelectMany`, `OrderBy`, `OrderByDescending`, `ThenBy`, `ThenByDescending`, `GroupBy`.
+All standard `Queryable` methods are supported — filtering (`Where`, `Any`, `All`), projection (`Select`, `SelectMany`), ordering (`OrderBy`, `ThenBy`), grouping (`GroupBy`), joins (`Join`, `GroupJoin`, `Zip`), aggregation (`Sum`, `Average`, `Min`, `Max`, `Count`), element access (`First`, `Single`, `Last` and their `OrDefault` variants), set operations (`ExceptBy`, `IntersectBy`, `UnionBy`, `DistinctBy`), and more. Non-lambda operators like `Take`, `Skip`, `Distinct`, and `Reverse` preserve the `IRewritableQueryable<T>` chain. Comparer overloads (`IEqualityComparer<T>`, `IComparer<T>`) are also supported.
 
 ### `ExpressionPolyfill.Create`
 
@@ -211,6 +211,17 @@ public class MyDbContext : DbContext
 
 // Modern syntax works directly — no .WithExpressionRewrite() needed
 ctx.Orders.Where(o => o.Customer?.Name == "Alice");
+```
+
+`ExpressiveDbSet<T>` preserves chain continuity across EF Core operations — `Include`/`ThenInclude`, `AsNoTracking`, `IgnoreQueryFilters`, `TagWith`, and all async lambda methods (`AnyAsync`, `FirstAsync`, `SumAsync`, etc.) work seamlessly:
+
+```csharp
+var result = await ctx.Orders
+    .Include(o => o.Customer)
+    .ThenInclude(c => c.Address)
+    .AsNoTracking()
+    .Where(o => o.Customer?.Name == "Alice")
+    .FirstOrDefaultAsync(o => o.Total > 100);
 ```
 
 ## Supported C# Features

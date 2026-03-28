@@ -51,15 +51,18 @@ internal sealed class ExpressionTreeEmitter
     private int _lineCount;
     private readonly Stack<(string VarName, ITypeSymbol? Type)> _conditionalAccessReceiverStack = new();
     private readonly Dictionary<ITypeSymbol, string> _typeAliases = new(SymbolEqualityComparer.Default);
+    private readonly string _varPrefix;
 
     public ExpressionTreeEmitter(
         SemanticModel semanticModel,
         SourceProductionContext? context = null,
-        string fieldPrefix = "")
+        string fieldPrefix = "",
+        string varPrefix = "")
     {
         _semanticModel = semanticModel;
         _context = context;
         _fieldCache = new ReflectionFieldCache(fieldPrefix);
+        _varPrefix = varPrefix;
     }
 
     /// <summary>
@@ -90,7 +93,7 @@ internal sealed class ExpressionTreeEmitter
         var paramVarNames = new List<string>();
         foreach (var param in parameters)
         {
-            var varName = $"p_{SanitizeIdentifier(param.Name)}";
+            var varName = $"{_varPrefix}p_{SanitizeIdentifier(param.Name)}";
             paramVarNames.Add(varName);
             AppendLine($"var {varName} = {Expr}.Parameter(typeof({param.TypeFqn}), \"{param.Name}\");");
 
@@ -126,6 +129,19 @@ internal sealed class ExpressionTreeEmitter
 
         var bodyVar = EmitOperation(operation);
 
+        // If the body's type doesn't match the delegate return type, insert an Expression.Convert.
+        // This handles cases like int → int? (Nullable<int>) in Join key selectors.
+        if (operation.Type is not null)
+        {
+            var bodyTypeFqn = ResolveTypeFqn(operation.Type);
+            if (bodyTypeFqn != returnTypeFqn)
+            {
+                var convertVar = NextVar();
+                AppendLine($"var {convertVar} = {Expr}.Convert({bodyVar}, typeof({returnTypeFqn}));");
+                bodyVar = convertVar;
+            }
+        }
+
         var paramsArg = paramVarNames.Count > 0
             ? string.Join(", ", paramVarNames)
             : $"global::System.Array.Empty<global::System.Linq.Expressions.ParameterExpression>()";
@@ -154,7 +170,7 @@ internal sealed class ExpressionTreeEmitter
         var paramVarNames = new List<string>();
         foreach (var param in parameters)
         {
-            var varName = $"p_{SanitizeIdentifier(param.Name)}";
+            var varName = $"{_varPrefix}p_{SanitizeIdentifier(param.Name)}";
             paramVarNames.Add(varName);
             AppendLine($"var {varName} = {Expr}.Parameter(typeof({param.TypeFqn}), \"{param.Name}\");");
 
@@ -2852,7 +2868,7 @@ internal sealed class ExpressionTreeEmitter
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    private string NextVar() => $"expr_{_varCounter++}";
+    private string NextVar() => $"{_varPrefix}expr_{_varCounter++}";
 
     private void AppendLine(string line)
     {

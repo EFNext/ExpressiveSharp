@@ -249,14 +249,26 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         if (model.GetSymbolInfo(inv).Symbol is not IMethodSymbol method)
             return null;
 
-        // The stub convention: the first non-receiver parameter must be a Func<> delegate,
+        // The stub convention: at least one non-receiver parameter must be a Func<> delegate,
         // not an Expression<Func<>>. This distinguishes user/library IRewritableQueryable<T> stubs
         // from regular IQueryable<T> extension methods.
+        // For most methods, Func<> is Parameters[0]. For Join/GroupJoin/Zip/ExceptBy etc.,
+        // it may be at a later position (e.g., Parameters[1]) after an IEnumerable<> arg.
         if (method.Parameters.IsEmpty) return null;
-        if (method.Parameters[0].Type is not INamedTypeSymbol firstParamType) return null;
-        if (firstParamType.ConstructedFrom.Name != "Func" ||
-            firstParamType.ConstructedFrom.ContainingNamespace?.ToDisplayString() != "System")
-            return null;
+        int funcParamIndex = -1;
+        int funcParamCount = 0;
+        for (int i = 0; i < method.Parameters.Length; i++)
+        {
+            if (method.Parameters[i].Type is INamedTypeSymbol pt &&
+                pt.ConstructedFrom.Name == "Func" &&
+                pt.ConstructedFrom.ContainingNamespace?.ToDisplayString() == "System")
+            {
+                funcParamCount++;
+                if (funcParamIndex < 0)
+                    funcParamIndex = i;
+            }
+        }
+        if (funcParamIndex < 0) return null;
 
         // Get the interceptable location using the Roslyn 5.0+ API.
         // This produces the correct [InterceptsLocation(version, data)] attribute text.
@@ -285,7 +297,17 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         var typeArgs = method.TypeArguments;
 
         // Per-call WithExpressionRewrite() → MSBuild global → hardcoded Ignore fallback.
-        
+
+        // Resolve the target type for the Queryable.* call. Defaults to System.Linq.Queryable
+        // unless overridden by [PolyfillTarget(typeof(...))] on the stub method.
+        var targetTypeFqn = "global::System.Linq.Queryable";
+        var polyfillAttr = method.GetAttributes()
+            .FirstOrDefault(a => a.AttributeClass?.Name == "PolyfillTargetAttribute");
+        if (polyfillAttr?.ConstructorArguments.Length > 0 &&
+            polyfillAttr.ConstructorArguments[0].Value is INamedTypeSymbol targetType)
+        {
+            targetTypeFqn = targetType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        }
 
         return methodName switch {
             "Where"
@@ -305,20 +327,40 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                 => EmitSelectMany3(inv, model, spc, interceptAttr, index, elementSymbol, elementFqn, typeArgs[1], typeArgs[2], globalOptions, allStaticFields),
 
             "OrderBy" or "OrderByDescending"
-                when typeArgs.Length == 2
+                when typeArgs.Length == 2 && method.Parameters.Length == 1
                 => EmitOrdering(inv, model, spc, interceptAttr, index, methodName, elementSymbol, elementFqn, typeArgs[1], ordered: false, globalOptions, allStaticFields),
 
             "ThenBy" or "ThenByDescending"
-                when typeArgs.Length == 2
+                when typeArgs.Length == 2 && method.Parameters.Length == 1
                 => EmitOrdering(inv, model, spc, interceptAttr, index, methodName, elementSymbol, elementFqn, typeArgs[1], ordered: true, globalOptions, allStaticFields),
 
             "GroupBy"
-                when typeArgs.Length == 2
+                when typeArgs.Length == 2 && method.Parameters.Length == 1
                 => EmitGroupBy(inv, model, spc, interceptAttr, index, elementSymbol, elementFqn, typeArgs[1], globalOptions, allStaticFields),
 
-            // Generic fallback: any user-defined or future single-lambda stub whose name
-            // matches a Queryable.* method by convention.
-            _ => EmitGenericSingleLambda(inv, model, spc, interceptAttr, index, methodName, elementSymbol, elementFqn, method, globalOptions, allStaticFields),
+            "GroupBy"
+                when typeArgs.Length == 3
+                => EmitGroupByMulti(inv, model, spc, interceptAttr, index, elementSymbol, elementFqn, typeArgs, globalOptions, allStaticFields),
+
+            "GroupBy"
+                when typeArgs.Length == 4
+                => EmitGroupByMulti(inv, model, spc, interceptAttr, index, elementSymbol, elementFqn, typeArgs, globalOptions, allStaticFields),
+
+            "Join" or "LeftJoin" or "RightJoin"
+                when typeArgs.Length == 4
+                => EmitJoin(inv, model, spc, interceptAttr, index, methodName, elementSymbol, elementFqn, typeArgs, globalOptions, allStaticFields),
+
+            "GroupJoin"
+                when typeArgs.Length == 4
+                => EmitGroupJoin(inv, model, spc, interceptAttr, index, elementSymbol, elementFqn, typeArgs, globalOptions, allStaticFields),
+
+            // Generic fallback: single-lambda stubs only. Multi-Func stubs (e.g., AggregateBy)
+            // need dedicated emitters — the fallback would only rewrite the first Func<>,
+            // leaving the rest as raw delegates which won't match Expression<Func<>> parameters.
+            _ when funcParamCount == 1
+                => EmitGenericSingleLambda(inv, model, spc, interceptAttr, index, methodName, elementSymbol, elementFqn, method, funcParamIndex, targetTypeFqn, globalOptions, allStaticFields),
+
+            _ => null, // Unsupported multi-Func stub — interceptor not generated, stub throws at runtime
         };
     }
 
@@ -348,7 +390,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         var bodyNode = lambda.Body is ExpressionSyntax expr ? (SyntaxNode)expr : lambda.Body;
         if (bodyNode is null) return null;
 
-        var emitter = new Emitter.ExpressionTreeEmitter(model, spc, fieldPrefix);
+        var emitter = new Emitter.ExpressionTreeEmitter(model, spc, fieldPrefix, varPrefix: fieldPrefix);
 
         if (typeAliases is not null)
         {
@@ -779,29 +821,254 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     }
 
     /// <summary>
+    /// Multi-lambda emitter for GroupBy overloads with element/result selectors (arity 3 or 4).
+    /// </summary>
+    private static string? EmitGroupByMulti(
+        InvocationExpressionSyntax inv, SemanticModel model,
+        SourceProductionContext spc, string interceptAttr, int idx,
+        INamedTypeSymbol elemSym, string elemFqn,
+        ImmutableArray<ITypeSymbol> typeArgs,
+        ExpressiveGlobalOptions globalOptions,
+        List<string> allStaticFields)
+    {
+        // Arity 3: GroupBy<T, TKey, TElement>(keySelector, elementSelector) or
+        //          GroupBy<T, TKey, TResult>(keySelector, resultSelector)
+        // Arity 4: GroupBy<T, TKey, TElement, TResult>(keySelector, elementSelector, resultSelector)
+        if (inv.ArgumentList.Arguments.Count < 2) return null;
+        if (inv.ArgumentList.Arguments[0].Expression is not LambdaExpressionSyntax lam1) return null;
+        if (inv.ArgumentList.Arguments[1].Expression is not LambdaExpressionSyntax lam2) return null;
+
+        if (typeArgs.Length == 3)
+        {
+            // Two lambdas at [0] and [1]
+            var keyFqn = typeArgs[1].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            var thirdFqn = typeArgs[2].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+            // Determine if this is element-selector or result-selector by checking 2nd lambda arity.
+            var methodSym = (IMethodSymbol)model.GetSymbolInfo(inv).Symbol!;
+            var secondFuncType = (INamedTypeSymbol)methodSym.Parameters[1].Type;
+            var isElementSelector = secondFuncType.TypeArguments.Length == 2; // Func<T, TElement>
+
+            var delegateFqn1 = $"global::System.Func<{elemFqn}, {keyFqn}>";
+            var emitResult1 = EmitLambdaBody(lam1, elemSym, model, spc, globalOptions, delegateFqn1, "__lambda1", fieldPrefix: $"i{idx}a_");
+            if (emitResult1 is null) return null;
+            allStaticFields.AddRange(emitResult1.StaticFields);
+
+            string delegateFqn2;
+            if (isElementSelector)
+                delegateFqn2 = $"global::System.Func<{elemFqn}, {thirdFqn}>";
+            else
+                delegateFqn2 = $"global::System.Func<{keyFqn}, global::System.Collections.Generic.IEnumerable<{elemFqn}>, {thirdFqn}>";
+
+            var emitResult2 = EmitLambdaBody(lam2, elemSym, model, spc, globalOptions, delegateFqn2, "__lambda2", fieldPrefix: $"i{idx}b_");
+            if (emitResult2 is null) return null;
+            allStaticFields.AddRange(emitResult2.StaticFields);
+
+            if (isElementSelector)
+            {
+                return $$"""
+                        {{interceptAttr}}
+                        internal static global::ExpressiveSharp.IRewritableQueryable<global::System.Linq.IGrouping<{{keyFqn}}, {{thirdFqn}}>> {{MethodId("GroupBy", idx)}}(
+                            this global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> source,
+                            global::System.Func<{{elemFqn}}, {{keyFqn}}> _1,
+                            global::System.Func<{{elemFqn}}, {{thirdFqn}}> _2)
+                        {
+                {{emitResult1.Body}}{{emitResult2.Body}}            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+                                global::System.Linq.Queryable.GroupBy(
+                                    (global::System.Linq.IQueryable<{{elemFqn}}>)source,
+                                    __lambda1,
+                                    __lambda2));
+                        }
+
+                """;
+            }
+            else
+            {
+                return $$"""
+                        {{interceptAttr}}
+                        internal static global::ExpressiveSharp.IRewritableQueryable<{{thirdFqn}}> {{MethodId("GroupBy", idx)}}(
+                            this global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> source,
+                            global::System.Func<{{elemFqn}}, {{keyFqn}}> _1,
+                            global::System.Func<{{keyFqn}}, global::System.Collections.Generic.IEnumerable<{{elemFqn}}>, {{thirdFqn}}> _2)
+                        {
+                {{emitResult1.Body}}{{emitResult2.Body}}            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+                                global::System.Linq.Queryable.GroupBy(
+                                    (global::System.Linq.IQueryable<{{elemFqn}}>)source,
+                                    __lambda1,
+                                    __lambda2));
+                        }
+
+                """;
+            }
+        }
+
+        // Arity 4: GroupBy<T, TKey, TElement, TResult>(keySelector, elementSelector, resultSelector)
+        if (typeArgs.Length == 4)
+        {
+            if (inv.ArgumentList.Arguments.Count < 3) return null;
+            if (inv.ArgumentList.Arguments[2].Expression is not LambdaExpressionSyntax lam3) return null;
+
+            var keyFqn = typeArgs[1].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            var elemSelFqn = typeArgs[2].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            var resultFqn = typeArgs[3].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+            var delegateFqn1 = $"global::System.Func<{elemFqn}, {keyFqn}>";
+            var emitResult1 = EmitLambdaBody(lam1, elemSym, model, spc, globalOptions, delegateFqn1, "__lambda1", fieldPrefix: $"i{idx}a_");
+            if (emitResult1 is null) return null;
+            allStaticFields.AddRange(emitResult1.StaticFields);
+
+            var delegateFqn2 = $"global::System.Func<{elemFqn}, {elemSelFqn}>";
+            var emitResult2 = EmitLambdaBody(lam2, elemSym, model, spc, globalOptions, delegateFqn2, "__lambda2", fieldPrefix: $"i{idx}b_");
+            if (emitResult2 is null) return null;
+            allStaticFields.AddRange(emitResult2.StaticFields);
+
+            var delegateFqn3 = $"global::System.Func<{keyFqn}, global::System.Collections.Generic.IEnumerable<{elemSelFqn}>, {resultFqn}>";
+            var emitResult3 = EmitLambdaBody(lam3, elemSym, model, spc, globalOptions, delegateFqn3, "__lambda3", fieldPrefix: $"i{idx}c_");
+            if (emitResult3 is null) return null;
+            allStaticFields.AddRange(emitResult3.StaticFields);
+
+            return $$"""
+                    {{interceptAttr}}
+                    internal static global::ExpressiveSharp.IRewritableQueryable<{{resultFqn}}> {{MethodId("GroupBy", idx)}}(
+                        this global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> source,
+                        global::System.Func<{{elemFqn}}, {{keyFqn}}> _1,
+                        global::System.Func<{{elemFqn}}, {{elemSelFqn}}> _2,
+                        global::System.Func<{{keyFqn}}, global::System.Collections.Generic.IEnumerable<{{elemSelFqn}}>, {{resultFqn}}> _3)
+                    {
+            {{emitResult1.Body}}{{emitResult2.Body}}{{emitResult3.Body}}            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+                            global::System.Linq.Queryable.GroupBy(
+                                (global::System.Linq.IQueryable<{{elemFqn}}>)source,
+                                __lambda1,
+                                __lambda2,
+                                __lambda3));
+                    }
+
+            """;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Emitter for Join (and LeftJoin/RightJoin) with 3 lambdas and 1 forwarded IEnumerable argument.
+    /// </summary>
+    private static string? EmitJoin(
+        InvocationExpressionSyntax inv, SemanticModel model,
+        SourceProductionContext spc, string interceptAttr, int idx,
+        string methodName, INamedTypeSymbol elemSym, string elemFqn,
+        ImmutableArray<ITypeSymbol> typeArgs,
+        ExpressiveGlobalOptions globalOptions,
+        List<string> allStaticFields)
+    {
+        // Arguments: [0] inner, [1] outerKeySelector, [2] innerKeySelector, [3] resultSelector
+        if (inv.ArgumentList.Arguments.Count < 4) return null;
+        if (inv.ArgumentList.Arguments[1].Expression is not LambdaExpressionSyntax lam1) return null;
+        if (inv.ArgumentList.Arguments[2].Expression is not LambdaExpressionSyntax lam2) return null;
+        if (inv.ArgumentList.Arguments[3].Expression is not LambdaExpressionSyntax lam3) return null;
+
+        var innerType = typeArgs[1];
+        var keyType = typeArgs[2];
+        var resultType = typeArgs[3];
+        var innerFqn = innerType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var keyFqn = keyType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var resultFqn = resultType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+        // Lambda 1: outerKeySelector — Func<T, TKey>
+        var delegateFqn1 = $"global::System.Func<{elemFqn}, {keyFqn}>";
+        var emitResult1 = EmitLambdaBody(lam1, elemSym, model, spc, globalOptions, delegateFqn1, "__lambda1", fieldPrefix: $"i{idx}a_");
+        if (emitResult1 is null) return null;
+        allStaticFields.AddRange(emitResult1.StaticFields);
+
+        // Lambda 2: innerKeySelector — Func<TInner, TKey>
+        // Note: element type for this lambda is TInner, not T
+        if (innerType is not INamedTypeSymbol innerSym) return null;
+        var delegateFqn2 = $"global::System.Func<{innerFqn}, {keyFqn}>";
+        var emitResult2 = EmitLambdaBody(lam2, innerSym, model, spc, globalOptions, delegateFqn2, "__lambda2", fieldPrefix: $"i{idx}b_");
+        if (emitResult2 is null) return null;
+        allStaticFields.AddRange(emitResult2.StaticFields);
+
+        // Lambda 3: resultSelector — Func<T, TInner, TResult>
+        // Use the stub's parameter type for the result selector delegate FQN.
+        var resultSelectorParam = model.GetSymbolInfo(inv).Symbol is IMethodSymbol m && m.Parameters.Length > 3
+            ? m.Parameters[3].Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+            : $"global::System.Func<{elemFqn}, {innerFqn}, {resultFqn}>";
+        var emitResult3 = EmitLambdaBody(lam3, elemSym, model, spc, globalOptions, resultSelectorParam, "__lambda3", fieldPrefix: $"i{idx}c_");
+        if (emitResult3 is null) return null;
+        allStaticFields.AddRange(emitResult3.StaticFields);
+
+        return $$"""
+                {{interceptAttr}}
+                internal static global::ExpressiveSharp.IRewritableQueryable<{{resultFqn}}> {{MethodId(methodName, idx)}}(
+                    this global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> source,
+                    global::System.Collections.Generic.IEnumerable<{{innerFqn}}> inner,
+                    global::System.Func<{{elemFqn}}, {{keyFqn}}> _1,
+                    global::System.Func<{{innerFqn}}, {{keyFqn}}> _2,
+                    {{resultSelectorParam}} _3)
+                {
+        {{emitResult1.Body}}{{emitResult2.Body}}{{emitResult3.Body}}            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+                        global::System.Linq.Queryable.{{methodName}}(
+                            (global::System.Linq.IQueryable<{{elemFqn}}>)source,
+                            inner,
+                            __lambda1,
+                            __lambda2,
+                            __lambda3));
+                }
+
+        """;
+    }
+
+    /// <summary>
+    /// Emitter for GroupJoin with 3 lambdas and 1 forwarded IEnumerable argument.
+    /// Same as Join but resultSelector is Func&lt;T, IEnumerable&lt;TInner&gt;, TResult&gt;.
+    /// </summary>
+    private static string? EmitGroupJoin(
+        InvocationExpressionSyntax inv, SemanticModel model,
+        SourceProductionContext spc, string interceptAttr, int idx,
+        INamedTypeSymbol elemSym, string elemFqn,
+        ImmutableArray<ITypeSymbol> typeArgs,
+        ExpressiveGlobalOptions globalOptions,
+        List<string> allStaticFields)
+    {
+        // Delegate to EmitJoin — the method name is "GroupJoin" and the result selector shape
+        // differs, but the generated code structure is identical.
+        return EmitJoin(inv, model, spc, interceptAttr, idx, "GroupJoin", elemSym, elemFqn, typeArgs, globalOptions, allStaticFields);
+    }
+
+    /// <summary>
     /// Generic single-lambda emitter for user-defined stubs and future LINQ operators.
     /// Convention: the interceptor calls <c>Queryable.{methodName}</c> with the same name.
     /// The return type is taken from the stub's declared return type.
+    /// Supports methods where the Func&lt;&gt; parameter is not necessarily at position 0
+    /// (e.g., ExceptBy, Zip where the first parameter is IEnumerable&lt;T&gt;).
+    /// Non-lambda parameters are forwarded directly to the Queryable.* call.
     /// </summary>
     private static string? EmitGenericSingleLambda(
         InvocationExpressionSyntax inv, SemanticModel model,
         SourceProductionContext spc, string interceptAttr, int idx,
         string methodName, INamedTypeSymbol elemSym, string elemFqn,
-        IMethodSymbol method, 
+        IMethodSymbol method, int funcParamIndex, string targetTypeFqn,
         ExpressiveGlobalOptions globalOptions,
         List<string> allStaticFields)
     {
-        if (inv.ArgumentList.Arguments[0].Expression is not LambdaExpressionSyntax lam) return null;
+        if (inv.ArgumentList.Arguments[funcParamIndex].Expression is not LambdaExpressionSyntax lam) return null;
 
-        // Build the full Func<…> type string from the method's first parameter.
-        var funcTypeArgs = ((INamedTypeSymbol)method.Parameters[0].Type).TypeArguments;
+        // Build the full Func<…> type string from the Func<> parameter.
+        var funcTypeArgs = ((INamedTypeSymbol)method.Parameters[funcParamIndex].Type).TypeArguments;
         var hasAnyAnon = funcTypeArgs.Any(t => IsAnonymousType(t));
 
-        // Return type comes from the stub's declared return type (must be IRewritableQueryable<X>).
-        if (method.ReturnType is not INamedTypeSymbol returnType || returnType.TypeArguments.IsEmpty)
-            return null;
-        var returnElemType = returnType.TypeArguments[0];
-        hasAnyAnon = hasAnyAnon || IsAnonymousType(returnElemType);
+        // Determine if the stub returns IRewritableQueryable<X> (queryable) or a scalar type.
+        var isRewritableReturn = method.ReturnType is INamedTypeSymbol rqType
+            && rqType.ConstructedFrom.ToDisplayString() == IRewritableQueryableOpenTypeName;
+
+        ITypeSymbol? returnElemType = null;
+        if (isRewritableReturn)
+        {
+            returnElemType = ((INamedTypeSymbol)method.ReturnType).TypeArguments[0];
+            hasAnyAnon = hasAnyAnon || IsAnonymousType(returnElemType);
+        }
+
+        // For scalar returns, the FQN of the return type itself.
+        var scalarReturnFqn = method.ReturnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
         // ThenBy/ThenByDescending require IOrderedQueryable<T>.
         var isOrdered = methodName is "ThenBy" or "ThenByDescending";
@@ -809,27 +1076,71 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             ? $"global::System.Linq.IOrderedQueryable<{elemFqn}>"
             : $"global::System.Linq.IQueryable<{elemFqn}>";
 
+        // Build parameter list and Queryable argument list, forwarding non-lambda args.
+        // interceptorParams: the parameter declarations for the generated method
+        // queryableArgs: the arguments passed to Queryable.Method(source, ...)
+        var interceptorParams = new List<string>();
+        var queryableArgs = new List<string>();
+        for (int i = 0; i < method.Parameters.Length; i++)
+        {
+            var paramType = method.Parameters[i].Type;
+            var paramTypeFqn = paramType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            if (i == funcParamIndex)
+            {
+                // This is the Func<> parameter — will be rewritten to an expression tree.
+                // Use placeholder name "_" in the interceptor (it's unused at runtime).
+                interceptorParams.Add($"{paramTypeFqn} _");
+                queryableArgs.Add("__lambda");
+            }
+            else
+            {
+                // Non-lambda parameter — forward directly.
+                var paramName = method.Parameters[i].Name;
+                interceptorParams.Add($"{paramTypeFqn} {paramName}");
+                queryableArgs.Add(paramName);
+            }
+        }
+        var interceptorParamList = string.Join(",\n                    ", interceptorParams);
+        var queryableArgList = string.Join(",\n                        ", queryableArgs);
+
         if (!hasAnyAnon)
         {
             var funcFqn = "global::System.Func<" +
                 string.Join(", ", funcTypeArgs.Select(t =>
                     t.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))) + ">";
-            var returnElemFqn = returnElemType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             var delegateFqn = funcFqn;
             var emitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, delegateFqn, fieldPrefix: $"i{idx}_");
             if (emitResult is null) return null;
             allStaticFields.AddRange(emitResult.StaticFields);
 
+            if (isRewritableReturn)
+            {
+                var returnElemFqn = returnElemType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                return $$"""
+                        {{interceptAttr}}
+                        internal static global::ExpressiveSharp.IRewritableQueryable<{{returnElemFqn}}> {{MethodId(methodName, idx)}}(
+                            this global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> source,
+                            {{interceptorParamList}})
+                        {
+                {{emitResult.Body}}            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+                                {{targetTypeFqn}}.{{methodName}}(
+                                    ({{castFqn}})source,
+                                    {{queryableArgList}}));
+                        }
+
+                """;
+            }
+
+            // Scalar return — call target type method directly without wrapping.
             return $$"""
                     {{interceptAttr}}
-                    internal static global::ExpressiveSharp.IRewritableQueryable<{{returnElemFqn}}> {{MethodId(methodName, idx)}}(
+                    internal static {{scalarReturnFqn}} {{MethodId(methodName, idx)}}(
                         this global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> source,
-                        {{funcFqn}} _)
+                        {{interceptorParamList}})
                     {
-            {{emitResult.Body}}            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
-                            global::System.Linq.Queryable.{{methodName}}(
+            {{emitResult.Body}}            return {{targetTypeFqn}}.{{methodName}}(
                                 ({{castFqn}})source,
-                                __lambda));
+                                {{queryableArgList}});
                     }
 
             """;
@@ -867,17 +1178,56 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         if (anonEmitResult is null) return null;
         allStaticFields.AddRange(anonEmitResult.StaticFields);
 
+        // Build anonymous-branch parameter and argument lists with forwarding.
+        var anonInterceptorParams = new List<string>();
+        var anonQueryableArgs = new List<string>();
+        for (int i = 0; i < method.Parameters.Length; i++)
+        {
+            if (i == funcParamIndex)
+            {
+                anonInterceptorParams.Add($"{funcFqnGeneric} _");
+                anonQueryableArgs.Add("__lambda");
+            }
+            else
+            {
+                var paramType = method.Parameters[i].Type;
+                var paramTypeFqn = paramType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                var paramName = method.Parameters[i].Name;
+                anonInterceptorParams.Add($"{paramTypeFqn} {paramName}");
+                anonQueryableArgs.Add(paramName);
+            }
+        }
+        var anonInterceptorParamList = string.Join(",\n                    ", anonInterceptorParams);
+        var anonQueryableArgList = string.Join(",\n                        ", anonQueryableArgs);
+
+        if (isRewritableReturn)
+        {
+            return $$"""
+                    {{interceptAttr}}
+                    internal static global::ExpressiveSharp.IRewritableQueryable<{{returnParamName}}> {{MethodId(methodName, idx)}}{{typeParams}}(
+                        this global::ExpressiveSharp.IRewritableQueryable<T0> source,
+                        {{anonInterceptorParamList}})
+                    {
+            {{anonEmitResult.Body}}            return (global::ExpressiveSharp.IRewritableQueryable<{{returnParamName}}>)(object)
+                            global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+                                {{targetTypeFqn}}.{{methodName}}(
+                                    ({{castFqn}})(object)source,
+                                    {{anonQueryableArgList}}));
+                    }
+
+            """;
+        }
+
+        // Scalar return with anonymous types — return directly without wrapping.
         return $$"""
                 {{interceptAttr}}
-                internal static global::ExpressiveSharp.IRewritableQueryable<{{returnParamName}}> {{MethodId(methodName, idx)}}{{typeParams}}(
+                internal static {{returnParamName}} {{MethodId(methodName, idx)}}{{typeParams}}(
                     this global::ExpressiveSharp.IRewritableQueryable<T0> source,
-                    {{funcFqnGeneric}} _)
+                    {{anonInterceptorParamList}})
                 {
-        {{anonEmitResult.Body}}            return (global::ExpressiveSharp.IRewritableQueryable<{{returnParamName}}>)(object)
-                        global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
-                            global::System.Linq.Queryable.{{methodName}}(
-                                ({{castFqn}})(object)source,
-                                __lambda));
+        {{anonEmitResult.Body}}            return {{targetTypeFqn}}.{{methodName}}(
+                            ({{castFqn}})(object)source,
+                            {{anonQueryableArgList}});
                 }
 
         """;
