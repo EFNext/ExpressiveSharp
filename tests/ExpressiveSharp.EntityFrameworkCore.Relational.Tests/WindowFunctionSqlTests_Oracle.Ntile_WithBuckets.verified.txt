@@ -1,0 +1,2 @@
+﻿SELECT "o"."Id", NTILE(4) OVER(ORDER BY "o"."Price" ASC) "Quartile"
+FROM "Orders" "o"

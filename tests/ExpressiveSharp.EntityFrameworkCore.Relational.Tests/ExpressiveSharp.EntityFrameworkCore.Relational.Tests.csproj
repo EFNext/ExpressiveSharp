@@ -23,6 +23,14 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"
                       Condition="'$(TargetFramework)' == 'net10.0'"
                       VersionOverride="10.0.1" />
+    <!-- Pomelo has no EF Core 10 release yet — net8.0 only -->
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql"
+                      Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageReference Include="Oracle.EntityFrameworkCore"
+                      Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageReference Include="Oracle.EntityFrameworkCore"
+                      Condition="'$(TargetFramework)' == 'net10.0'"
+                      VersionOverride="10.23.26100" />
   </ItemGroup>
 
   <ItemGroup>

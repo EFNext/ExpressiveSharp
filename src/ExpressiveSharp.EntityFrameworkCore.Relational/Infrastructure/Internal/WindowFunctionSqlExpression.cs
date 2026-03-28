@@ -14,6 +14,14 @@ namespace ExpressiveSharp.EntityFrameworkCore.Relational.Infrastructure.Internal
 /// nodes with the actual column/ordering expressions. This makes it fully provider-agnostic —
 /// no custom QuerySqlGenerator replacement is needed.
 /// </para>
+/// <para>
+/// <b>SQL standard assumption:</b> The function names (RANK, DENSE_RANK, NTILE) and the
+/// OVER(PARTITION BY ... ORDER BY ...) clause syntax are hardcoded as literal SQL fragments.
+/// This relies on SQL:2003 window function syntax which is consistently implemented by all
+/// major databases (SQL Server 2005+, PostgreSQL 8.4+, SQLite 3.25+, MySQL 8.0+, Oracle 8i+,
+/// MariaDB 10.2+). If a provider deviates from this standard syntax, a provider-specific
+/// implementation would be needed.
+/// </para>
 /// </summary>
 internal sealed class WindowFunctionSqlExpression : SqlExpression
 {

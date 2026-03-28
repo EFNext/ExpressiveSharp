@@ -109,3 +109,19 @@ public class WindowFunctionSqlTests_Npgsql : WindowFunctionSqlTests
     protected override WindowTestDbContext CreateContext() =>
         TestProvider.CreateNpgsqlContext();
 }
+
+#if !NET10_0_OR_GREATER
+[TestClass]
+public class WindowFunctionSqlTests_MySql : WindowFunctionSqlTests
+{
+    protected override WindowTestDbContext CreateContext() =>
+        TestProvider.CreateMySqlContext();
+}
+#endif
+
+[TestClass]
+public class WindowFunctionSqlTests_Oracle : WindowFunctionSqlTests
+{
+    protected override WindowTestDbContext CreateContext() =>
+        TestProvider.CreateOracleContext();
+}

@@ -1,6 +1,9 @@
 using ExpressiveSharp.EntityFrameworkCore.Relational.Tests.Models;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+#if !NET10_0_OR_GREATER
+using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
+#endif
 
 namespace ExpressiveSharp.EntityFrameworkCore.Relational.Tests.Infrastructure;
 
@@ -38,6 +41,27 @@ internal static class TestProvider
     {
         var options = new DbContextOptionsBuilder<WindowTestDbContext>()
             .UseNpgsql("Host=dummy;Database=dummy")
+            .UseExpressives(o => o.UseRelationalExtensions())
+            .Options;
+        return new WindowTestDbContext(options);
+    }
+
+#if !NET10_0_OR_GREATER
+    // Pomelo has no EF Core 10 release yet — MySQL tests run on net8.0 only
+    public static WindowTestDbContext CreateMySqlContext()
+    {
+        var options = new DbContextOptionsBuilder<WindowTestDbContext>()
+            .UseMySql("Server=dummy;Database=dummy", MySqlServerVersion.LatestSupportedServerVersion)
+            .UseExpressives(o => o.UseRelationalExtensions())
+            .Options;
+        return new WindowTestDbContext(options);
+    }
+#endif
+
+    public static WindowTestDbContext CreateOracleContext()
+    {
+        var options = new DbContextOptionsBuilder<WindowTestDbContext>()
+            .UseOracle("Data Source=dummy;User Id=dummy;Password=dummy")
             .UseExpressives(o => o.UseRelationalExtensions())
             .Options;
         return new WindowTestDbContext(options);

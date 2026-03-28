@@ -1,0 +1,2 @@
+﻿SELECT "o"."Id", RANK() OVER(PARTITION BY "o"."CustomerId" ORDER BY "o"."Price" DESC) "PriceRank"
+FROM "Orders" "o"
