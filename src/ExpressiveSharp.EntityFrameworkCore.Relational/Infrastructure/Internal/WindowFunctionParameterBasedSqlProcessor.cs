@@ -4,6 +4,11 @@ using Microsoft.EntityFrameworkCore.Query;
 
 namespace ExpressiveSharp.EntityFrameworkCore.Relational.Infrastructure.Internal;
 
+/// <summary>
+/// Wraps <see cref="WindowFunctionSqlExpression"/> nodes in safe placeholders before
+/// nullability processing, then restores them afterward. This lets the provider's own
+/// <see cref="SqlNullabilityProcessor"/> handle all standard expressions normally.
+/// </summary>
 [SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required for custom SQL expression nullability processing")]
 internal sealed class WindowFunctionParameterBasedSqlProcessor : RelationalParameterBasedSqlProcessor
 {
@@ -19,8 +24,9 @@ internal sealed class WindowFunctionParameterBasedSqlProcessor : RelationalParam
         Expression queryExpression,
         ParametersCacheDecorator parametersDecorator)
     {
-        var processor = new WindowFunctionSqlNullabilityProcessor(Dependencies, Parameters);
-        return processor.Process(queryExpression, parametersDecorator);
+        var wrapped = WindowFunctionSqlExpressionWrapper.WrapAll(queryExpression, out var stash);
+        var processed = base.ProcessSqlNullability(wrapped, parametersDecorator);
+        return WindowFunctionSqlExpressionWrapper.UnwrapAll(processed, stash);
     }
 #else
     public WindowFunctionParameterBasedSqlProcessor(
@@ -35,8 +41,9 @@ internal sealed class WindowFunctionParameterBasedSqlProcessor : RelationalParam
         IReadOnlyDictionary<string, object?> parametersValues,
         out bool canCache)
     {
-        var processor = new WindowFunctionSqlNullabilityProcessor(Dependencies, UseRelationalNulls);
-        return processor.Process(queryExpression, parametersValues, out canCache);
+        var wrapped = WindowFunctionSqlExpressionWrapper.WrapAll(queryExpression, out var stash);
+        var processed = base.ProcessSqlNullability(wrapped, parametersValues, out canCache);
+        return WindowFunctionSqlExpressionWrapper.UnwrapAll(processed, stash);
     }
 #endif
 }

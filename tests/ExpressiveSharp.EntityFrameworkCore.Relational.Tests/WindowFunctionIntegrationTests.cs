@@ -5,8 +5,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ExpressiveSharp.EntityFrameworkCore.Relational.Tests;
 
+/// <summary>
+/// End-to-end integration tests that seed data into SQLite, execute window function
+/// queries, and verify actual result values. These require a real database connection.
+/// </summary>
 [TestClass]
-public class WindowFunctionTests
+public class WindowFunctionIntegrationTests
 {
     private SqliteConnection _connection = null!;
 
@@ -34,7 +38,7 @@ public class WindowFunctionTests
         return ctx;
     }
 
-    private void SeedTestData(WindowTestDbContext ctx)
+    private static void SeedTestData(WindowTestDbContext ctx)
     {
         ctx.Customers.AddRange(
             new Customer { Id = 1, Name = "Alice" },
@@ -56,107 +60,17 @@ public class WindowFunctionTests
         ctx.SaveChanges();
     }
 
-    // ── SQL translation tests ──────────────────────────────────────────
-    // Assert exact SQL output so the test is self-documenting and any
-    // change produces a clear diff.
-
-    private static void AssertSql(string expected, string actual)
+    private static void SeedTieData(WindowTestDbContext ctx)
     {
-        // Normalize whitespace for comparison — EF Core may use \r\n or \n
-        var normalizedExpected = expected.ReplaceLineEndings("\n").Trim();
-        var normalizedActual = actual.ReplaceLineEndings("\n").Trim();
-        Assert.AreEqual(normalizedExpected, normalizedActual);
+        ctx.Customers.Add(new Customer { Id = 1, Name = "Alice" });
+        ctx.SaveChanges();
+        ctx.Orders.AddRange(
+            new Order { Id = 1, Price = 10, Quantity = 1, CustomerId = 1 },
+            new Order { Id = 2, Price = 20, Quantity = 1, CustomerId = 1 },
+            new Order { Id = 3, Price = 20, Quantity = 1, CustomerId = 1 },
+            new Order { Id = 4, Price = 30, Quantity = 1, CustomerId = 1 });
+        ctx.SaveChanges();
     }
-
-    [TestMethod]
-    public void RowNumber_WithOrderBy_GeneratesCorrectSql()
-    {
-        using var ctx = CreateContext();
-
-        var sql = ctx.Orders.Select(o => new
-        {
-            o.Id,
-            RowNum = WindowFunction.RowNumber(Window.OrderBy(o.Price))
-        }).ToQueryString();
-
-        AssertSql("""
-            SELECT "o"."Id", ROW_NUMBER() OVER(ORDER BY "o"."Price") AS "RowNum"
-            FROM "Orders" AS "o"
-            """, sql);
-    }
-
-    [TestMethod]
-    public void Rank_WithPartitionAndOrder_GeneratesCorrectSql()
-    {
-        using var ctx = CreateContext();
-
-        var sql = ctx.Orders.Select(o => new
-        {
-            o.Id,
-            PriceRank = WindowFunction.Rank(
-                Window.PartitionBy(o.CustomerId).OrderByDescending(o.Price))
-        }).ToQueryString();
-
-        AssertSql("""
-            SELECT "o"."Id", RANK() OVER(PARTITION BY "o"."CustomerId" ORDER BY "o"."Price" DESC) AS "PriceRank"
-            FROM "Orders" AS "o"
-            """, sql);
-    }
-
-    [TestMethod]
-    public void DenseRank_GeneratesCorrectSql()
-    {
-        using var ctx = CreateContext();
-
-        var sql = ctx.Orders.Select(o => new
-        {
-            o.Id,
-            Dense = WindowFunction.DenseRank(Window.OrderBy(o.Price))
-        }).ToQueryString();
-
-        AssertSql("""
-            SELECT "o"."Id", DENSE_RANK() OVER(ORDER BY "o"."Price" ASC) AS "Dense"
-            FROM "Orders" AS "o"
-            """, sql);
-    }
-
-    [TestMethod]
-    public void Ntile_GeneratesCorrectSql()
-    {
-        using var ctx = CreateContext();
-
-        var sql = ctx.Orders.Select(o => new
-        {
-            o.Id,
-            Quartile = WindowFunction.Ntile(4, Window.OrderBy(o.Price))
-        }).ToQueryString();
-
-        AssertSql("""
-            SELECT "o"."Id", NTILE(4) OVER(ORDER BY "o"."Price" ASC) AS "Quartile"
-            FROM "Orders" AS "o"
-            """, sql);
-    }
-
-    [TestMethod]
-    public void MultipleWindowFunctions_InSameSelect_GeneratesCorrectSql()
-    {
-        using var ctx = CreateContext();
-
-        var sql = ctx.Orders.Select(o => new
-        {
-            o.Id,
-            RowNum = WindowFunction.RowNumber(Window.OrderBy(o.Price)),
-            PriceRank = WindowFunction.Rank(Window.OrderBy(o.Price)),
-            Dense = WindowFunction.DenseRank(Window.OrderBy(o.Price))
-        }).ToQueryString();
-
-        AssertSql("""
-            SELECT "o"."Id", ROW_NUMBER() OVER(ORDER BY "o"."Price") AS "RowNum", RANK() OVER(ORDER BY "o"."Price" ASC) AS "PriceRank", DENSE_RANK() OVER(ORDER BY "o"."Price" ASC) AS "Dense"
-            FROM "Orders" AS "o"
-            """, sql);
-    }
-
-    // ── Integration tests (seed data, execute, verify values) ────────
 
     [TestMethod]
     public async Task RowNumber_ReturnsCorrectSequentialNumbers()
@@ -175,14 +89,13 @@ public class WindowFunctionTests
             .ToListAsync();
 
         Assert.AreEqual(10, results.Count);
-        // ROW_NUMBER should assign 1-10 ordered by price
         for (var i = 0; i < results.Count; i++)
         {
             Assert.AreEqual(i + 1, results[i].RowNum,
-                $"Expected RowNum {i + 1} for result at index {i}, got {results[i].RowNum}");
+                $"Expected RowNum {i + 1} at index {i}, got {results[i].RowNum}");
         }
 
-        // Verify ordering: prices should be non-decreasing
+        // Prices should be non-decreasing
         for (var i = 1; i < results.Count; i++)
         {
             Assert.IsTrue(results[i].Price >= results[i - 1].Price,
@@ -191,18 +104,10 @@ public class WindowFunctionTests
     }
 
     [TestMethod]
-    public async Task Rank_WithTies_ReturnsCorrectRanks()
+    public async Task Rank_WithTies_ReturnsGaps()
     {
         using var ctx = CreateContext();
-        // Seed just a few orders with known tie prices
-        ctx.Customers.Add(new Customer { Id = 1, Name = "Alice" });
-        ctx.SaveChanges();
-        ctx.Orders.AddRange(
-            new Order { Id = 1, Price = 10, Quantity = 1, CustomerId = 1 },
-            new Order { Id = 2, Price = 20, Quantity = 1, CustomerId = 1 },
-            new Order { Id = 3, Price = 20, Quantity = 1, CustomerId = 1 },
-            new Order { Id = 4, Price = 30, Quantity = 1, CustomerId = 1 });
-        ctx.SaveChanges();
+        SeedTieData(ctx);
 
         var results = await ctx.Orders
             .Select(o => new
@@ -222,17 +127,10 @@ public class WindowFunctionTests
     }
 
     [TestMethod]
-    public async Task DenseRank_WithTies_ReturnsConsecutiveRanks()
+    public async Task DenseRank_WithTies_ReturnsNoGaps()
     {
         using var ctx = CreateContext();
-        ctx.Customers.Add(new Customer { Id = 1, Name = "Alice" });
-        ctx.SaveChanges();
-        ctx.Orders.AddRange(
-            new Order { Id = 1, Price = 10, Quantity = 1, CustomerId = 1 },
-            new Order { Id = 2, Price = 20, Quantity = 1, CustomerId = 1 },
-            new Order { Id = 3, Price = 20, Quantity = 1, CustomerId = 1 },
-            new Order { Id = 4, Price = 30, Quantity = 1, CustomerId = 1 });
-        ctx.SaveChanges();
+        SeedTieData(ctx);
 
         var results = await ctx.Orders
             .Select(o => new
@@ -268,10 +166,10 @@ public class WindowFunctionTests
             .ToListAsync();
 
         Assert.AreEqual(10, results.Count);
-        // NTILE(4) with 10 rows: buckets of 3,3,2,2
         Assert.IsTrue(results.All(r => r.Quartile >= 1 && r.Quartile <= 4),
             "All quartile values should be between 1 and 4");
-        // Count per bucket — NTILE(4) over 10 rows gives 3, 3, 2, 2
+
+        // NTILE(4) over 10 rows gives 3, 3, 2, 2
         var bucketCounts = results.GroupBy(r => r.Quartile).OrderBy(g => g.Key).Select(g => g.Count()).ToList();
         Assert.AreEqual(4, bucketCounts.Count, "Should have exactly 4 buckets");
         Assert.AreEqual(3, bucketCounts[0], "Bucket 1 should have 3 rows");
@@ -299,35 +197,16 @@ public class WindowFunctionTests
             .ThenBy(x => x.RowNum)
             .ToListAsync();
 
-        // Each customer partition should have row numbers starting from 1
         var customer1Rows = results.Where(r => r.CustomerId == 1).ToList();
         var customer2Rows = results.Where(r => r.CustomerId == 2).ToList();
 
         Assert.AreEqual(1, customer1Rows.First().RowNum, "Customer 1 should start at 1");
         Assert.AreEqual(1, customer2Rows.First().RowNum, "Customer 2 should start at 1");
 
-        // Row numbers should be sequential within each partition
         for (var i = 0; i < customer1Rows.Count; i++)
             Assert.AreEqual(i + 1, customer1Rows[i].RowNum);
         for (var i = 0; i < customer2Rows.Count; i++)
             Assert.AreEqual(i + 1, customer2Rows[i].RowNum);
-    }
-
-    // ── Indexed Select tests ─────────────────────────────────────────
-
-    [TestMethod]
-    public void IndexedSelect_GeneratesRowNumberSql()
-    {
-        using var ctx = CreateContext();
-
-        var sql = ctx.ExpressiveOrders
-            .Select((o, index) => new { o.Id, Position = index })
-            .ToQueryString();
-
-        AssertSql("""
-            SELECT "o"."Id", CAST(ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) - 1 AS INTEGER) AS "Position"
-            FROM "Orders" AS "o"
-            """, sql);
     }
 
     [TestMethod]
@@ -347,7 +226,6 @@ public class WindowFunctionTests
             .ToListAsync();
 
         Assert.AreEqual(3, results.Count);
-        // All positions should be 0, 1, or 2 (0-based)
         var positions = results.Select(r => r.Position).OrderBy(p => p).ToList();
         CollectionAssert.AreEqual(new[] { 0, 1, 2 }, positions);
     }

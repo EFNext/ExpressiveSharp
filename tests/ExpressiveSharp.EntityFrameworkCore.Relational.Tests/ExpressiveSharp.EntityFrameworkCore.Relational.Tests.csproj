@@ -6,11 +6,23 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Verify.MSTest" />
+    <!-- Providers for SQL shape snapshot testing (no real DB connections needed) -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"
                       Condition="'$(TargetFramework)' == 'net8.0'" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"
                       Condition="'$(TargetFramework)' == 'net10.0'"
                       VersionOverride="10.0.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer"
+                      Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer"
+                      Condition="'$(TargetFramework)' == 'net10.0'"
+                      VersionOverride="10.0.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"
+                      Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"
+                      Condition="'$(TargetFramework)' == 'net10.0'"
+                      VersionOverride="10.0.1" />
   </ItemGroup>
 
   <ItemGroup>

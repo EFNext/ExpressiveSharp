@@ -1,0 +1,2 @@
+﻿SELECT [o].[Id], CAST(ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) - CAST(1 AS bigint) AS int) AS [Position]
+FROM [Orders] AS [o]

@@ -44,76 +44,56 @@ internal sealed class WindowFunctionSqlExpression : SqlExpression
     /// </summary>
     protected override Expression VisitChildren(ExpressionVisitor visitor)
     {
-        // Emit: FUNC_NAME(
-        visitor.Visit(Fragment($"{FunctionName}("));
-        for (var i = 0; i < Arguments.Count; i++)
-        {
-            if (i > 0) visitor.Visit(Fragment(", "));
-            visitor.Visit(Arguments[i]);
-        }
-        visitor.Visit(Fragment(") OVER("));
-
-        if (Partitions.Count > 0)
-        {
-            visitor.Visit(Fragment("PARTITION BY "));
-            for (var i = 0; i < Partitions.Count; i++)
-            {
-                if (i > 0) visitor.Visit(Fragment(", "));
-                visitor.Visit(Partitions[i]);
-            }
-        }
-
-        if (Orderings.Count > 0)
-        {
-            if (Partitions.Count > 0) visitor.Visit(Fragment(" "));
-            visitor.Visit(Fragment("ORDER BY "));
-            for (var i = 0; i < Orderings.Count; i++)
-            {
-                if (i > 0) visitor.Visit(Fragment(", "));
-                visitor.Visit(Orderings[i].Expression);
-                visitor.Visit(Fragment(Orderings[i].IsAscending ? " ASC" : " DESC"));
-            }
-        }
-
-        visitor.Visit(Fragment(")"));
+        EmitWindowFunction(
+            text => visitor.Visit(new SqlFragmentExpression(text)),
+            expr => visitor.Visit(expr));
         return this;
     }
 
-    private static SqlFragmentExpression Fragment(string sql) => new(sql);
+    /// <summary>Diagnostic output for logging and ToString(). Not used for SQL generation.</summary>
+    protected override void Print(ExpressionPrinter expressionPrinter) =>
+        EmitWindowFunction(
+            text => expressionPrinter.Append(text),
+            expr => expressionPrinter.Visit(expr));
 
-    protected override void Print(ExpressionPrinter expressionPrinter)
+    /// <summary>
+    /// Shared rendering logic for both SQL generation (<see cref="VisitChildren"/>) and
+    /// diagnostic output (<see cref="Print"/>). Produces the
+    /// <c>FUNC(args) OVER(PARTITION BY ... ORDER BY ...)</c> structure.
+    /// </summary>
+    private void EmitWindowFunction(Action<string> appendText, Action<Expression> visitExpression)
     {
-        expressionPrinter.Append(FunctionName).Append("(");
+        appendText($"{FunctionName}(");
         for (var i = 0; i < Arguments.Count; i++)
         {
-            if (i > 0) expressionPrinter.Append(", ");
-            expressionPrinter.Visit(Arguments[i]);
+            if (i > 0) appendText(", ");
+            visitExpression(Arguments[i]);
         }
-        expressionPrinter.Append(") OVER(");
+        appendText(") OVER(");
 
         if (Partitions.Count > 0)
         {
-            expressionPrinter.Append("PARTITION BY ");
+            appendText("PARTITION BY ");
             for (var i = 0; i < Partitions.Count; i++)
             {
-                if (i > 0) expressionPrinter.Append(", ");
-                expressionPrinter.Visit(Partitions[i]);
+                if (i > 0) appendText(", ");
+                visitExpression(Partitions[i]);
             }
         }
 
         if (Orderings.Count > 0)
         {
-            if (Partitions.Count > 0) expressionPrinter.Append(" ");
-            expressionPrinter.Append("ORDER BY ");
+            if (Partitions.Count > 0) appendText(" ");
+            appendText("ORDER BY ");
             for (var i = 0; i < Orderings.Count; i++)
             {
-                if (i > 0) expressionPrinter.Append(", ");
-                expressionPrinter.Visit(Orderings[i].Expression);
-                expressionPrinter.Append(Orderings[i].IsAscending ? " ASC" : " DESC");
+                if (i > 0) appendText(", ");
+                visitExpression(Orderings[i].Expression);
+                appendText(Orderings[i].IsAscending ? " ASC" : " DESC");
             }
         }
 
-        expressionPrinter.Append(")");
+        appendText(")");
     }
 
 #if NET10_0_OR_GREATER
