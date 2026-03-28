@@ -1,0 +1,2 @@
+﻿SELECT o."Id", DENSE_RANK() OVER(ORDER BY o."Price" ASC) AS "Dense"
+FROM "Orders" AS o

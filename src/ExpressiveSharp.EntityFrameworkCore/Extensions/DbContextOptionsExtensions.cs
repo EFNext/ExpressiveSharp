@@ -1,3 +1,4 @@
+using ExpressiveSharp.EntityFrameworkCore;
 using ExpressiveSharp.EntityFrameworkCore.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 
@@ -16,9 +17,21 @@ public static class DbContextOptionsExtensions
     /// </list>
     /// </summary>
     public static DbContextOptionsBuilder UseExpressives(this DbContextOptionsBuilder optionsBuilder)
+        => optionsBuilder.UseExpressives(_ => { });
+
+    /// <summary>
+    /// Enables ExpressiveSharp integration with EF Core with additional plugin configuration.
+    /// </summary>
+    /// <param name="optionsBuilder">The EF Core options builder.</param>
+    /// <param name="configure">A callback to configure plugins (e.g., <c>options.UseRelationalExtensions()</c>).</param>
+    public static DbContextOptionsBuilder UseExpressives(
+        this DbContextOptionsBuilder optionsBuilder,
+        Action<ExpressiveOptionsBuilder> configure)
     {
-        var extension = optionsBuilder.Options.FindExtension<ExpressiveOptionsExtension>()
-            ?? new ExpressiveOptionsExtension();
+        var builder = new ExpressiveOptionsBuilder();
+        configure(builder);
+
+        var extension = new ExpressiveOptionsExtension(builder.Plugins);
 
         ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(extension);
 
@@ -33,6 +46,18 @@ public static class DbContextOptionsExtensions
         where TContext : DbContext
     {
         ((DbContextOptionsBuilder)optionsBuilder).UseExpressives();
+        return optionsBuilder;
+    }
+
+    /// <summary>
+    /// Enables ExpressiveSharp integration with EF Core with additional plugin configuration (generic overload).
+    /// </summary>
+    public static DbContextOptionsBuilder<TContext> UseExpressives<TContext>(
+        this DbContextOptionsBuilder<TContext> optionsBuilder,
+        Action<ExpressiveOptionsBuilder> configure)
+        where TContext : DbContext
+    {
+        ((DbContextOptionsBuilder)optionsBuilder).UseExpressives(configure);
         return optionsBuilder;
     }
 }

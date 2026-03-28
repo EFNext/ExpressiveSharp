@@ -17,8 +17,21 @@ namespace ExpressiveSharp.EntityFrameworkCore.Infrastructure.Internal;
 /// </summary>
 public class ExpressiveOptionsExtension : IDbContextOptionsExtension
 {
-    public ExpressiveOptionsExtension()
+    private readonly IReadOnlyList<IExpressivePlugin> _plugins;
+    private readonly int _pluginHash;
+
+    public ExpressiveOptionsExtension(IReadOnlyList<IExpressivePlugin> plugins)
     {
+        _plugins = plugins;
+
+        var hash = new HashCode();
+        foreach (var plugin in plugins)
+        {
+            hash.Add(plugin.GetType().FullName);
+            hash.Add(plugin.GetHashCode());
+        }
+        _pluginHash = hash.ToHashCode();
+
         Info = new ExtensionInfo(this);
     }
 
@@ -44,7 +57,17 @@ public class ExpressiveOptionsExtension : IDbContextOptionsExtension
             serviceProvider => decoratorFactory(serviceProvider, [CreateTargetInstance(serviceProvider, targetDescriptor)]),
             targetDescriptor.Lifetime));
 
+        // Apply plugin services
+        foreach (var plugin in _plugins)
+            plugin.ApplyServices(services);
+
+        // Collect plugin transformers (captured by value in the closure)
+        var extraTransformers = _plugins
+            .SelectMany(p => p.GetTransformers())
+            .ToArray();
+
         // Register a dedicated ExpressiveOptions instance with EF Core transformers
+        // plus any transformers contributed by plugins
         services.AddSingleton(sp =>
         {
             var options = new ExpressiveOptions();
@@ -53,6 +76,8 @@ public class ExpressiveOptionsExtension : IDbContextOptionsExtension
                 new RemoveNullConditionalPatterns(),
                 new FlattenTupleComparisons(),
                 new FlattenBlockExpressions());
+            if (extraTransformers.Length > 0)
+                options.AddTransformers(extraTransformers);
             return options;
         });
     }
@@ -80,10 +105,13 @@ public class ExpressiveOptionsExtension : IDbContextOptionsExtension
         public override bool IsDatabaseProvider => false;
         public override string LogFragment => "UseExpressives ";
 
-        public override int GetServiceProviderHashCode() => 0;
+        public override int GetServiceProviderHashCode()
+            => ((ExpressiveOptionsExtension)Extension)._pluginHash;
 
         public override bool ShouldUseSameServiceProvider(DbContextOptionsExtensionInfo other)
-            => other is ExtensionInfo;
+            => other is ExtensionInfo otherInfo
+               && ((ExpressiveOptionsExtension)otherInfo.Extension)._pluginHash
+                  == ((ExpressiveOptionsExtension)Extension)._pluginHash;
 
         public override void PopulateDebugInfo(IDictionary<string, string> debugInfo)
             => debugInfo["Expressives:Enabled"] = "true";

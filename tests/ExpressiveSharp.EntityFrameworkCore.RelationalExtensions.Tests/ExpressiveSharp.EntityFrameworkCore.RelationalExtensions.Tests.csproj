@@ -1,0 +1,43 @@
+<Project Sdk="MSTest.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Verify.MSTest" />
+    <!-- Providers for SQL shape snapshot testing (no real DB connections needed) -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"
+                      Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"
+                      Condition="'$(TargetFramework)' == 'net10.0'"
+                      VersionOverride="10.0.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer"
+                      Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer"
+                      Condition="'$(TargetFramework)' == 'net10.0'"
+                      VersionOverride="10.0.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"
+                      Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"
+                      Condition="'$(TargetFramework)' == 'net10.0'"
+                      VersionOverride="10.0.1" />
+    <!-- Pomelo has no EF Core 10 release yet — net8.0 only -->
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql"
+                      Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageReference Include="Oracle.EntityFrameworkCore"
+                      Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageReference Include="Oracle.EntityFrameworkCore"
+                      Condition="'$(TargetFramework)' == 'net10.0'"
+                      VersionOverride="10.23.26100" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.csproj" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp\ExpressiveSharp.csproj" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp.Generator\ExpressiveSharp.Generator.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

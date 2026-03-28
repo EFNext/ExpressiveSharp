@@ -88,6 +88,7 @@ Mark computed properties and methods with [`[Expressive]`](#expressive-attribute
 |---|---|
 | **EF Core** — modern syntax + `[Expressive]` expansion on `DbSet` | [`ExpressiveDbSet<T>`](#ef-core-integration) (or [`UseExpressives()`](#ef-core-integration) for global `[Expressive]` expansion) |
 | **Any `IQueryable`** — modern syntax + `[Expressive]` expansion | [`.WithExpressionRewrite()`](#irewritablequeryt) |
+| **EF Core** — SQL window functions (ROW_NUMBER, RANK, etc.) | [`WindowFunction.*`](#window-functions-sql) (install `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions`) |
 | **Advanced** — build an `Expression<T>` inline, no attribute needed | [`ExpressionPolyfill.Create`](#expressionpolyfillcreate) |
 | **Advanced** — expand `[Expressive]` members in an existing expression tree | [`.ExpandExpressives()`](#expressive-attribute) |
 | **Advanced** — make third-party/BCL members expressable | [`[ExpressiveFor]`](#expressivefor--external-member-mapping) |
@@ -223,6 +224,63 @@ var result = await ctx.Orders
     .Where(o => o.Customer?.Name == "Alice")
     .FirstOrDefaultAsync(o => o.Total > 100);
 ```
+
+### Window Functions (SQL) — Experimental
+
+Install `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` for SQL window function support (ROW_NUMBER, RANK, DENSE_RANK, NTILE):
+
+> **Note:** This package is experimental. EF Core has an [open issue](https://github.com/dotnet/efcore/issues/12747) for native window function support — this package may be superseded when that ships.
+
+```bash
+dotnet add package ExpressiveSharp.EntityFrameworkCore.RelationalExtensions
+```
+
+Enable it in your `DbContextOptionsBuilder`:
+
+```csharp
+var options = new DbContextOptionsBuilder<MyDbContext>()
+    .UseSqlite(connection)
+    .UseExpressives(o => o.UseRelationalExtensions())
+    .Options;
+```
+
+Then use window functions in your queries:
+
+```csharp
+using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.WindowFunctions;
+
+var ranked = db.Orders.Select(o => new
+{
+    o.Id,
+    o.Price,
+    RowNum = WindowFunction.RowNumber(
+        Window.OrderBy(o.Price)),
+    PriceRank = WindowFunction.Rank(
+        Window.PartitionBy(o.CustomerId)
+              .OrderByDescending(o.Price)),
+    Quartile = WindowFunction.Ntile(4,
+        Window.OrderBy(o.Id))
+});
+```
+
+Generated SQL:
+
+```sql
+SELECT "o"."Id", "o"."Price",
+    ROW_NUMBER() OVER(ORDER BY "o"."Price"),
+    RANK() OVER(PARTITION BY "o"."CustomerId" ORDER BY "o"."Price" DESC),
+    NTILE(4) OVER(ORDER BY "o"."Id")
+FROM "Orders" AS "o"
+```
+
+Build window specifications with the fluent API:
+
+| Method | SQL |
+|---|---|
+| `Window.OrderBy(expr)` | `ORDER BY expr ASC` |
+| `Window.OrderByDescending(expr)` | `ORDER BY expr DESC` |
+| `Window.PartitionBy(expr)` | `PARTITION BY expr` |
+| `.ThenBy(expr)` / `.ThenByDescending(expr)` | Additional ordering columns |
 
 ## Supported C# Features
 
@@ -435,6 +493,7 @@ Key improvements: broader C# syntax support (switch expressions, pattern matchin
 |---|---|---|
 | **ExpressiveSharp** | C# 12 | C# 14 |
 | **ExpressiveSharp.EntityFrameworkCore** | EF Core 8.x | EF Core 10.x |
+| **ExpressiveSharp.EntityFrameworkCore.RelationalExtensions** | EF Core 8.x | EF Core 10.x |
 
 ## Contributing
 
