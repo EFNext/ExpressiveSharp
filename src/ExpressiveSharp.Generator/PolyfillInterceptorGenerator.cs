@@ -384,7 +384,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         var bodyNode = lambda.Body is ExpressionSyntax expr ? (SyntaxNode)expr : lambda.Body;
         if (bodyNode is null) return null;
 
-        var emitter = new Emitter.ExpressionTreeEmitter(model, spc, fieldPrefix);
+        var emitter = new Emitter.ExpressionTreeEmitter(model, spc, fieldPrefix, varPrefix: fieldPrefix);
 
         if (typeAliases is not null)
         {

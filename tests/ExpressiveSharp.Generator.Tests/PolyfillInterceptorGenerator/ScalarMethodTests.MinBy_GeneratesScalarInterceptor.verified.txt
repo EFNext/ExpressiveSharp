@@ -11,9 +11,9 @@ namespace ExpressiveSharp.Generated.Interceptors
             global::System.Func<global::TestNs.Order, int> _)
         {
             // Source: o => o.Amount
-            var p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_o, typeof(global::TestNs.Order).GetProperty("Amount")); // o.Amount
-            var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, int>>(expr_0, p_o);
+            var i0_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
+            var i0_expr_0 = global::System.Linq.Expressions.Expression.Property(i0_p_o, typeof(global::TestNs.Order).GetProperty("Amount")); // o.Amount
+            var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, int>>(i0_expr_0, i0_p_o);
             return global::System.Linq.Queryable.MinBy(
                     (global::System.Linq.IQueryable<global::TestNs.Order>)source,
                     __lambda);

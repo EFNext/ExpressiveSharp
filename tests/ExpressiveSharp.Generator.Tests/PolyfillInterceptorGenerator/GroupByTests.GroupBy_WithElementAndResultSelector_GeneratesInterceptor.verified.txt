@@ -13,17 +13,17 @@ namespace ExpressiveSharp.Generated.Interceptors
             global::System.Func<string, global::System.Collections.Generic.IEnumerable<string>, string> _3)
         {
             // Source: o => o.Tag
-            var p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_o, typeof(global::TestNs.Order).GetProperty("Tag")); // o.Tag
-            var __lambda1 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, string>>(expr_0, p_o);
+            var i0a_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
+            var i0a_expr_0 = global::System.Linq.Expressions.Expression.Property(i0a_p_o, typeof(global::TestNs.Order).GetProperty("Tag")); // o.Tag
+            var __lambda1 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, string>>(i0a_expr_0, i0a_p_o);
             // Source: o => o.Name
-            var p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_o, typeof(global::TestNs.Order).GetProperty("Name")); // o.Name
-            var __lambda2 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, string>>(expr_0, p_o);
+            var i0b_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
+            var i0b_expr_0 = global::System.Linq.Expressions.Expression.Property(i0b_p_o, typeof(global::TestNs.Order).GetProperty("Name")); // o.Name
+            var __lambda2 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, string>>(i0b_expr_0, i0b_p_o);
             // Source: (key, names) => key
-            var p_key = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "key");
-            var p_names = global::System.Linq.Expressions.Expression.Parameter(typeof(global::System.Collections.Generic.IEnumerable<string>), "names");
-            var __lambda3 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<string, global::System.Collections.Generic.IEnumerable<string>, string>>(p_key, p_key, p_names);
+            var i0c_p_key = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "key");
+            var i0c_p_names = global::System.Linq.Expressions.Expression.Parameter(typeof(global::System.Collections.Generic.IEnumerable<string>), "names");
+            var __lambda3 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<string, global::System.Collections.Generic.IEnumerable<string>, string>>(i0c_p_key, i0c_p_key, i0c_p_names);
             return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
                 global::System.Linq.Queryable.GroupBy(
                     (global::System.Linq.IQueryable<global::TestNs.Order>)source,

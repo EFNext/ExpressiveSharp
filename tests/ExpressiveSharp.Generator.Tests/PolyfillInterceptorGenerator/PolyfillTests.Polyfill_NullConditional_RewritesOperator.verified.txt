@@ -10,15 +10,15 @@ namespace ExpressiveSharp.Generated.Interceptors
             global::System.Func<global::TestNs.Order, int?> _)
         {
             // Source: o => o.Tag?.Length
-            var p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_o, typeof(global::TestNs.Order).GetProperty("Tag")); // o.Tag
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(expr_0, typeof(string).GetProperty("Length")); // .Length
-            var expr_2 = global::System.Linq.Expressions.Expression.Convert(expr_1, typeof(int?));
-            var expr_4 = global::System.Linq.Expressions.Expression.Constant(null, typeof(string));
-            var expr_5 = global::System.Linq.Expressions.Expression.NotEqual(expr_0, expr_4);
-            var expr_6 = global::System.Linq.Expressions.Expression.Default(typeof(int?));
-            var expr_3 = global::System.Linq.Expressions.Expression.Condition(expr_5, expr_2, expr_6, typeof(int?));
-            var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, int?>>(expr_3, p_o);
+            var i0_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
+            var i0_expr_0 = global::System.Linq.Expressions.Expression.Property(i0_p_o, typeof(global::TestNs.Order).GetProperty("Tag")); // o.Tag
+            var i0_expr_1 = global::System.Linq.Expressions.Expression.Property(i0_expr_0, typeof(string).GetProperty("Length")); // .Length
+            var i0_expr_2 = global::System.Linq.Expressions.Expression.Convert(i0_expr_1, typeof(int?));
+            var i0_expr_4 = global::System.Linq.Expressions.Expression.Constant(null, typeof(string));
+            var i0_expr_5 = global::System.Linq.Expressions.Expression.NotEqual(i0_expr_0, i0_expr_4);
+            var i0_expr_6 = global::System.Linq.Expressions.Expression.Default(typeof(int?));
+            var i0_expr_3 = global::System.Linq.Expressions.Expression.Condition(i0_expr_5, i0_expr_2, i0_expr_6, typeof(int?));
+            var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, int?>>(i0_expr_3, i0_p_o);
             return __lambda;
         }
     }
