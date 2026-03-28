@@ -26,7 +26,10 @@ public class ExpressiveOptionsExtension : IDbContextOptionsExtension
 
         var hash = new HashCode();
         foreach (var plugin in plugins)
+        {
             hash.Add(plugin.GetType().FullName);
+            hash.Add(plugin.GetHashCode());
+        }
         _pluginHash = hash.ToHashCode();
 
         Info = new ExtensionInfo(this);

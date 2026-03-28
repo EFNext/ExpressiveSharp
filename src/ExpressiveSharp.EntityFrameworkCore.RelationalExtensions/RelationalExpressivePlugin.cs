@@ -14,6 +14,12 @@ namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions;
 /// </summary>
 public sealed class RelationalExpressivePlugin : IExpressivePlugin
 {
+    // Stable hash — this plugin is stateless, so all instances are equivalent.
+    // Used by ExpressiveOptionsExtension to compute the EF Core service provider cache key.
+    public override int GetHashCode() => typeof(RelationalExpressivePlugin).GetHashCode();
+
+    public override bool Equals(object? obj) => obj is RelationalExpressivePlugin;
+
     [SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required to decorate EF Core services")]
     public void ApplyServices(IServiceCollection services)
     {
