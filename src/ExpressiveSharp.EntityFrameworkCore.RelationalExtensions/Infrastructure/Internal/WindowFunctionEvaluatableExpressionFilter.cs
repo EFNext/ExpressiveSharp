@@ -5,9 +5,8 @@ using Microsoft.EntityFrameworkCore.Query;
 namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructure.Internal;
 
 /// <summary>
-/// Prevents <see cref="Window"/>, <see cref="WindowDefinition"/>, and <see cref="WindowFunction"/>
-/// method calls from being client-evaluated. These must remain as expression tree nodes
-/// for the method call translators to handle.
+/// Prevents window function marker method calls from being client-evaluated.
+/// These must remain as expression tree nodes for the method call translators to handle.
 /// </summary>
 internal sealed class WindowFunctionEvaluatableExpressionFilter : IEvaluatableExpressionFilterPlugin
 {
@@ -17,7 +16,8 @@ internal sealed class WindowFunctionEvaluatableExpressionFilter : IEvaluatableEx
         {
             var declaringType = methodCall.Method.DeclaringType;
             if (declaringType == typeof(Window)
-                || declaringType == typeof(WindowDefinition)
+                || declaringType == typeof(PartitionedWindowDefinition)
+                || declaringType == typeof(OrderedWindowDefinition)
                 || declaringType == typeof(WindowFunction))
             {
                 return false;

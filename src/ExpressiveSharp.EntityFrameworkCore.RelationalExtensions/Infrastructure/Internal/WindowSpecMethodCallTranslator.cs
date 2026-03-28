@@ -8,8 +8,8 @@ using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructure.Internal;
 
 /// <summary>
-/// Translates <see cref="Window"/> static methods and <see cref="WindowDefinition"/> instance methods
-/// into <see cref="WindowSpecSqlExpression"/> intermediate nodes.
+/// Translates <see cref="Window"/> static methods and <see cref="PartitionedWindowDefinition"/>/<see cref="OrderedWindowDefinition"/>
+/// instance methods into <see cref="WindowSpecSqlExpression"/> intermediate nodes.
 /// </summary>
 internal sealed class WindowSpecMethodCallTranslator : IMethodCallTranslator
 {
@@ -36,15 +36,16 @@ internal sealed class WindowSpecMethodCallTranslator : IMethodCallTranslator
             };
         }
 
-        // Instance methods on WindowDefinition
-        if (declaringType == typeof(WindowDefinition) && instance is WindowSpecSqlExpression spec)
+        // Instance methods on PartitionedWindowDefinition and OrderedWindowDefinition
+        if ((declaringType == typeof(PartitionedWindowDefinition) || declaringType == typeof(OrderedWindowDefinition))
+            && instance is WindowSpecSqlExpression spec)
         {
             return method.Name switch
             {
-                nameof(WindowDefinition.PartitionBy) => spec.WithPartition(arguments[0]),
-                nameof(WindowDefinition.OrderBy) or nameof(WindowDefinition.ThenBy) =>
+                nameof(PartitionedWindowDefinition.PartitionBy) => spec.WithPartition(arguments[0]),
+                nameof(PartitionedWindowDefinition.OrderBy) or nameof(OrderedWindowDefinition.ThenBy) =>
                     spec.WithOrdering(arguments[0], ascending: true),
-                nameof(WindowDefinition.OrderByDescending) or nameof(WindowDefinition.ThenByDescending) =>
+                nameof(PartitionedWindowDefinition.OrderByDescending) or nameof(OrderedWindowDefinition.ThenByDescending) =>
                     spec.WithOrdering(arguments[0], ascending: false),
                 _ => null
             };

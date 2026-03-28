@@ -7,15 +7,15 @@ namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.WindowFunctio
 /// </summary>
 public static class Window
 {
-    /// <summary>Creates a window specification with a PARTITION BY clause.</summary>
-    public static WindowDefinition PartitionBy<TKey>(TKey key) =>
+    /// <summary>Creates a window specification starting with a PARTITION BY clause.</summary>
+    public static PartitionedWindowDefinition PartitionBy<TKey>(TKey key) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
-    /// <summary>Creates a window specification with an ORDER BY ASC clause.</summary>
-    public static WindowDefinition OrderBy<TKey>(TKey key) =>
+    /// <summary>Creates a window specification starting with an ORDER BY ASC clause.</summary>
+    public static OrderedWindowDefinition OrderBy<TKey>(TKey key) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
-    /// <summary>Creates a window specification with an ORDER BY DESC clause.</summary>
-    public static WindowDefinition OrderByDescending<TKey>(TKey key) =>
+    /// <summary>Creates a window specification starting with an ORDER BY DESC clause.</summary>
+    public static OrderedWindowDefinition OrderByDescending<TKey>(TKey key) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 }

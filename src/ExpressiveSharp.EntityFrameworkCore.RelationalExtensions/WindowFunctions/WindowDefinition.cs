@@ -1,32 +1,42 @@
 namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.WindowFunctions;
 
 /// <summary>
-/// Represents a window specification (PARTITION BY + ORDER BY clauses) for SQL window functions.
-/// This type is a marker — instances are never created at runtime. The expression tree
-/// containing calls to its methods is translated by the EF Core method call translator.
+/// Represents a window specification after PARTITION BY — can add more partitions or start ordering.
+/// Returned by <see cref="Window.PartitionBy{TKey}"/>.
 /// </summary>
-public sealed class WindowDefinition
+public sealed class PartitionedWindowDefinition
 {
-    private WindowDefinition() =>
-        throw new InvalidOperationException("WindowDefinition is a marker type for expression trees and cannot be instantiated.");
+    private PartitionedWindowDefinition() =>
+        throw new InvalidOperationException("PartitionedWindowDefinition is a marker type for expression trees and cannot be instantiated.");
 
-    /// <summary>Adds an ORDER BY ASC clause to the window specification.</summary>
-    public WindowDefinition OrderBy<TKey>(TKey key) =>
+    /// <summary>Adds another PARTITION BY column.</summary>
+    public PartitionedWindowDefinition PartitionBy<TKey>(TKey key) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
-    /// <summary>Adds an ORDER BY DESC clause to the window specification.</summary>
-    public WindowDefinition OrderByDescending<TKey>(TKey key) =>
+    /// <summary>Starts the ORDER BY clause (ascending).</summary>
+    public OrderedWindowDefinition OrderBy<TKey>(TKey key) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
-    /// <summary>Adds a subsequent ORDER BY ASC clause to the window specification.</summary>
-    public WindowDefinition ThenBy<TKey>(TKey key) =>
+    /// <summary>Starts the ORDER BY clause (descending).</summary>
+    public OrderedWindowDefinition OrderByDescending<TKey>(TKey key) =>
+        throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
+}
+
+/// <summary>
+/// Represents a window specification after ORDER BY — can add more orderings via ThenBy.
+/// This is the type accepted by <see cref="WindowFunction"/> methods, ensuring at least one
+/// ORDER BY clause is present at compile time.
+/// </summary>
+public sealed class OrderedWindowDefinition
+{
+    private OrderedWindowDefinition() =>
+        throw new InvalidOperationException("OrderedWindowDefinition is a marker type for expression trees and cannot be instantiated.");
+
+    /// <summary>Adds a subsequent ORDER BY column (ascending).</summary>
+    public OrderedWindowDefinition ThenBy<TKey>(TKey key) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
-    /// <summary>Adds a subsequent ORDER BY DESC clause to the window specification.</summary>
-    public WindowDefinition ThenByDescending<TKey>(TKey key) =>
-        throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
-
-    /// <summary>Adds a PARTITION BY clause to the window specification.</summary>
-    public WindowDefinition PartitionBy<TKey>(TKey key) =>
+    /// <summary>Adds a subsequent ORDER BY column (descending).</summary>
+    public OrderedWindowDefinition ThenByDescending<TKey>(TKey key) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 }
