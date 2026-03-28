@@ -1,6 +1,9 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq.Expressions;
 using ExpressiveSharp;
+using ExpressiveSharp.EntityFrameworkCore;
+using ExpressiveSharp.EntityFrameworkCore.Infrastructure;
 using ExpressiveSharp.Extensions;
 
 // ReSharper disable once CheckNamespace — intentionally in Microsoft.EntityFrameworkCore for discoverability
@@ -68,6 +71,42 @@ public static class RewritableQueryableEfCoreExtensions
         [System.Runtime.CompilerServices.CallerLineNumber] int lineNumber = 0)
         where TEntity : class
         => EntityFrameworkQueryableExtensions.TagWithCallSite(source, filePath, lineNumber).WithExpressionRewrite();
+
+    // ── Include / ThenInclude (runtime, not intercepted) ───────────────
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static IIncludableRewritableQueryable<TEntity, TProperty> Include<TEntity, TProperty>(
+        this IRewritableQueryable<TEntity> source,
+        Expression<Func<TEntity, TProperty>> navigationPropertyPath)
+        where TEntity : class
+        => new IncludableRewritableQueryableWrapper<TEntity, TProperty>(
+            EntityFrameworkQueryableExtensions.Include(source, navigationPropertyPath));
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static IRewritableQueryable<TEntity> Include<TEntity>(
+        this IRewritableQueryable<TEntity> source,
+        string navigationPropertyPath)
+        where TEntity : class
+        => EntityFrameworkQueryableExtensions.Include(source, navigationPropertyPath)
+            .WithExpressionRewrite();
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static IIncludableRewritableQueryable<TEntity, TProperty>
+        ThenInclude<TEntity, TPreviousProperty, TProperty>(
+        this IIncludableRewritableQueryable<TEntity, TPreviousProperty> source,
+        Expression<Func<TPreviousProperty, TProperty>> navigationPropertyPath)
+        where TEntity : class
+        => new IncludableRewritableQueryableWrapper<TEntity, TProperty>(
+            EntityFrameworkQueryableExtensions.ThenInclude(source, navigationPropertyPath));
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static IIncludableRewritableQueryable<TEntity, TProperty>
+        ThenInclude<TEntity, TPreviousProperty, TProperty>(
+        this IIncludableRewritableQueryable<TEntity, IEnumerable<TPreviousProperty>> source,
+        Expression<Func<TPreviousProperty, TProperty>> navigationPropertyPath)
+        where TEntity : class
+        => new IncludableRewritableQueryableWrapper<TEntity, TProperty>(
+            EntityFrameworkQueryableExtensions.ThenInclude(source, navigationPropertyPath));
 
     // ── Async predicate methods (intercepted) ────────────────────────────
 
