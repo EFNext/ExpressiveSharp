@@ -8,6 +8,12 @@ namespace ExpressiveSharp.EntityFrameworkCore.Relational.Infrastructure.Internal
 /// <summary>
 /// SQL expression representing a window function call: FUNC_NAME(args) OVER(PARTITION BY ... ORDER BY ...).
 /// Used for RANK, DENSE_RANK, NTILE (ROW_NUMBER uses the built-in <see cref="RowNumberExpression"/>).
+/// <para>
+/// This expression is self-rendering: <see cref="VisitChildren"/> produces correct SQL through
+/// any provider's <see cref="QuerySqlGenerator"/> by interleaving <see cref="SqlFragmentExpression"/>
+/// nodes with the actual column/ordering expressions. This makes it fully provider-agnostic —
+/// no custom QuerySqlGenerator replacement is needed.
+/// </para>
 /// </summary>
 internal sealed class WindowFunctionSqlExpression : SqlExpression
 {
@@ -31,35 +37,49 @@ internal sealed class WindowFunctionSqlExpression : SqlExpression
         Orderings = orderings;
     }
 
+    /// <summary>
+    /// Self-rendering: when any QuerySqlGenerator visits this expression via VisitExtension,
+    /// it calls VisitChildren, which visits SqlFragmentExpression and child SqlExpression nodes
+    /// in the correct order to produce <c>FUNC(args) OVER(PARTITION BY ... ORDER BY ...)</c>.
+    /// </summary>
     protected override Expression VisitChildren(ExpressionVisitor visitor)
     {
-        var changed = false;
-
-        var newArguments = VisitList(visitor, Arguments, ref changed);
-        var newPartitions = VisitList(visitor, Partitions, ref changed);
-
-        var newOrderings = new OrderingExpression[Orderings.Count];
-        for (var i = 0; i < Orderings.Count; i++)
+        // Emit: FUNC_NAME(
+        visitor.Visit(Fragment($"{FunctionName}("));
+        for (var i = 0; i < Arguments.Count; i++)
         {
-            newOrderings[i] = (OrderingExpression)visitor.Visit(Orderings[i]);
-            changed |= newOrderings[i] != Orderings[i];
+            if (i > 0) visitor.Visit(Fragment(", "));
+            visitor.Visit(Arguments[i]);
+        }
+        visitor.Visit(Fragment(") OVER("));
+
+        if (Partitions.Count > 0)
+        {
+            visitor.Visit(Fragment("PARTITION BY "));
+            for (var i = 0; i < Partitions.Count; i++)
+            {
+                if (i > 0) visitor.Visit(Fragment(", "));
+                visitor.Visit(Partitions[i]);
+            }
         }
 
-        return changed
-            ? new WindowFunctionSqlExpression(FunctionName, newArguments, newPartitions, newOrderings, Type, TypeMapping)
-            : this;
+        if (Orderings.Count > 0)
+        {
+            if (Partitions.Count > 0) visitor.Visit(Fragment(" "));
+            visitor.Visit(Fragment("ORDER BY "));
+            for (var i = 0; i < Orderings.Count; i++)
+            {
+                if (i > 0) visitor.Visit(Fragment(", "));
+                visitor.Visit(Orderings[i].Expression);
+                visitor.Visit(Fragment(Orderings[i].IsAscending ? " ASC" : " DESC"));
+            }
+        }
+
+        visitor.Visit(Fragment(")"));
+        return this;
     }
 
-    private static SqlExpression[] VisitList(ExpressionVisitor visitor, IReadOnlyList<SqlExpression> list, ref bool changed)
-    {
-        var result = new SqlExpression[list.Count];
-        for (var i = 0; i < list.Count; i++)
-        {
-            result[i] = (SqlExpression)visitor.Visit(list[i]);
-            changed |= result[i] != list[i];
-        }
-        return result;
-    }
+    private static SqlFragmentExpression Fragment(string sql) => new(sql);
 
     protected override void Print(ExpressionPrinter expressionPrinter)
     {
