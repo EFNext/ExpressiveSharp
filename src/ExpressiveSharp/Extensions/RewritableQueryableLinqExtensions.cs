@@ -500,5 +500,102 @@ namespace ExpressiveSharp.Extensions
             Func<TAccumulate, T, TAccumulate> func)
             => throw new UnreachableException(InterceptedMessage);
 #endif
+
+        // ── IEqualityComparer / IComparer overloads (intercepted) ────────────
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static IRewritableQueryable<T> OrderBy<T, TKey>(
+            this IRewritableQueryable<T> source,
+            Func<T, TKey> keySelector,
+            IComparer<TKey>? comparer)
+            => throw new UnreachableException(InterceptedMessage);
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static IRewritableQueryable<T> OrderByDescending<T, TKey>(
+            this IRewritableQueryable<T> source,
+            Func<T, TKey> keySelector,
+            IComparer<TKey>? comparer)
+            => throw new UnreachableException(InterceptedMessage);
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static IRewritableQueryable<T> ThenBy<T, TKey>(
+            this IRewritableQueryable<T> source,
+            Func<T, TKey> keySelector,
+            IComparer<TKey>? comparer)
+            => throw new UnreachableException(InterceptedMessage);
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static IRewritableQueryable<T> ThenByDescending<T, TKey>(
+            this IRewritableQueryable<T> source,
+            Func<T, TKey> keySelector,
+            IComparer<TKey>? comparer)
+            => throw new UnreachableException(InterceptedMessage);
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static IRewritableQueryable<IGrouping<TKey, T>> GroupBy<T, TKey>(
+            this IRewritableQueryable<T> source,
+            Func<T, TKey> keySelector,
+            IEqualityComparer<TKey>? comparer)
+            => throw new UnreachableException(InterceptedMessage);
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static IRewritableQueryable<T> DistinctBy<T, TKey>(
+            this IRewritableQueryable<T> source,
+            Func<T, TKey> keySelector,
+            IEqualityComparer<TKey>? comparer)
+            => throw new UnreachableException(InterceptedMessage);
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static IRewritableQueryable<T> ExceptBy<T, TKey>(
+            this IRewritableQueryable<T> source,
+            IEnumerable<TKey> second,
+            Func<T, TKey> keySelector,
+            IEqualityComparer<TKey>? comparer)
+            => throw new UnreachableException(InterceptedMessage);
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static IRewritableQueryable<T> IntersectBy<T, TKey>(
+            this IRewritableQueryable<T> source,
+            IEnumerable<TKey> second,
+            Func<T, TKey> keySelector,
+            IEqualityComparer<TKey>? comparer)
+            => throw new UnreachableException(InterceptedMessage);
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static IRewritableQueryable<T> UnionBy<T, TKey>(
+            this IRewritableQueryable<T> source,
+            IEnumerable<TKey> second,
+            Func<T, TKey> keySelector,
+            IEqualityComparer<TKey>? comparer)
+            => throw new UnreachableException(InterceptedMessage);
+
+        // ── IEqualityComparer passthrough (no lambda, chain continuity) ──────
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static IRewritableQueryable<T> Distinct<T>(
+            this IRewritableQueryable<T> source,
+            IEqualityComparer<T>? comparer)
+            => Queryable.Distinct(source, comparer).WithExpressionRewrite();
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static IRewritableQueryable<T> Union<T>(
+            this IRewritableQueryable<T> source,
+            IEnumerable<T> other,
+            IEqualityComparer<T>? comparer)
+            => Queryable.Union(source, other, comparer).WithExpressionRewrite();
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static IRewritableQueryable<T> Intersect<T>(
+            this IRewritableQueryable<T> source,
+            IEnumerable<T> other,
+            IEqualityComparer<T>? comparer)
+            => Queryable.Intersect(source, other, comparer).WithExpressionRewrite();
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static IRewritableQueryable<T> Except<T>(
+            this IRewritableQueryable<T> source,
+            IEnumerable<T> other,
+            IEqualityComparer<T>? comparer)
+            => Queryable.Except(source, other, comparer).WithExpressionRewrite();
     }
 }

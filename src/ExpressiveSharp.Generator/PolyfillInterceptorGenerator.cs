@@ -325,15 +325,15 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                 => EmitSelectMany3(inv, model, spc, interceptAttr, index, elementSymbol, elementFqn, typeArgs[1], typeArgs[2], globalOptions, allStaticFields),
 
             "OrderBy" or "OrderByDescending"
-                when typeArgs.Length == 2
+                when typeArgs.Length == 2 && method.Parameters.Length == 1
                 => EmitOrdering(inv, model, spc, interceptAttr, index, methodName, elementSymbol, elementFqn, typeArgs[1], ordered: false, globalOptions, allStaticFields),
 
             "ThenBy" or "ThenByDescending"
-                when typeArgs.Length == 2
+                when typeArgs.Length == 2 && method.Parameters.Length == 1
                 => EmitOrdering(inv, model, spc, interceptAttr, index, methodName, elementSymbol, elementFqn, typeArgs[1], ordered: true, globalOptions, allStaticFields),
 
             "GroupBy"
-                when typeArgs.Length == 2
+                when typeArgs.Length == 2 && method.Parameters.Length == 1
                 => EmitGroupBy(inv, model, spc, interceptAttr, index, elementSymbol, elementFqn, typeArgs[1], globalOptions, allStaticFields),
 
             "GroupBy"
