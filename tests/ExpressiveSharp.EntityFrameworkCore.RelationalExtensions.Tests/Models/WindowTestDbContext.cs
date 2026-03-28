@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace ExpressiveSharp.EntityFrameworkCore.Relational.Tests.Models;
+namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Tests.Models;
 
 public class WindowTestDbContext : DbContext
 {

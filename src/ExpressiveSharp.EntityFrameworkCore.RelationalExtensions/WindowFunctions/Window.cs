@@ -1,4 +1,4 @@
-namespace ExpressiveSharp.EntityFrameworkCore.Relational.WindowFunctions;
+namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.WindowFunctions;
 
 /// <summary>
 /// Static entry point for building window specifications used in SQL window functions.

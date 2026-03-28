@@ -1,4 +1,4 @@
-namespace ExpressiveSharp.EntityFrameworkCore.Relational.WindowFunctions;
+namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.WindowFunctions;
 
 /// <summary>
 /// Represents a window specification (PARTITION BY + ORDER BY clauses) for SQL window functions.

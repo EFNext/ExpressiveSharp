@@ -1,12 +1,12 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using ExpressiveSharp.EntityFrameworkCore.Relational.Infrastructure.Internal;
-using ExpressiveSharp.EntityFrameworkCore.Relational.Transformers;
+using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructure.Internal;
+using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Transformers;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace ExpressiveSharp.EntityFrameworkCore.Relational;
+namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions;
 
 /// <summary>
 /// Plugin that registers window function services into the EF Core service provider.

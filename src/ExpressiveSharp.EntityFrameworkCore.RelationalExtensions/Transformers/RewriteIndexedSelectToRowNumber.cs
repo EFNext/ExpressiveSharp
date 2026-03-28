@@ -1,8 +1,8 @@
 using System.Linq.Expressions;
 using System.Reflection;
-using ExpressiveSharp.EntityFrameworkCore.Relational.WindowFunctions;
+using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.WindowFunctions;
 
-namespace ExpressiveSharp.EntityFrameworkCore.Relational.Transformers;
+namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Transformers;
 
 /// <summary>
 /// Rewrites <c>Queryable.Select(source, (elem, index) => body)</c> into

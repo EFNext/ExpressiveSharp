@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Storage;
 
-namespace ExpressiveSharp.EntityFrameworkCore.Relational.Infrastructure.Internal;
+namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructure.Internal;
 
 /// <summary>
 /// Registers window function method call translators with EF Core's query pipeline.

@@ -34,7 +34,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\ExpressiveSharp.EntityFrameworkCore.Relational\ExpressiveSharp.EntityFrameworkCore.Relational.csproj" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.csproj" />
     <ProjectReference Include="..\..\src\ExpressiveSharp\ExpressiveSharp.csproj" />
     <ProjectReference Include="..\..\src\ExpressiveSharp.Generator\ExpressiveSharp.Generator.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false" />

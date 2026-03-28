@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 
-namespace ExpressiveSharp.EntityFrameworkCore.Relational.Infrastructure.Internal;
+namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructure.Internal;
 
 /// <summary>
 /// Temporarily wraps <see cref="WindowFunctionSqlExpression"/> nodes in

@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore.Query;
 
-namespace ExpressiveSharp.EntityFrameworkCore.Relational.Infrastructure.Internal;
+namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructure.Internal;
 
 /// <summary>
 /// Decorates the existing <see cref="IRelationalParameterBasedSqlProcessorFactory"/> to wrap

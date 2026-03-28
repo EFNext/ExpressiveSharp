@@ -1,11 +1,11 @@
 using System.Reflection;
-using ExpressiveSharp.EntityFrameworkCore.Relational.WindowFunctions;
+using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.WindowFunctions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 
-namespace ExpressiveSharp.EntityFrameworkCore.Relational.Infrastructure.Internal;
+namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructure.Internal;
 
 /// <summary>
 /// Translates <see cref="Window"/> static methods and <see cref="WindowDefinition"/> instance methods

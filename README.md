@@ -88,7 +88,7 @@ Mark computed properties and methods with [`[Expressive]`](#expressive-attribute
 |---|---|
 | **EF Core** — modern syntax + `[Expressive]` expansion on `DbSet` | [`ExpressiveDbSet<T>`](#ef-core-integration) (or [`UseExpressives()`](#ef-core-integration) for global `[Expressive]` expansion) |
 | **Any `IQueryable`** — modern syntax + `[Expressive]` expansion | [`.WithExpressionRewrite()`](#irewritablequeryt) |
-| **EF Core** — SQL window functions (ROW_NUMBER, RANK, etc.) | [`WindowFunction.*`](#window-functions-sql) (install `ExpressiveSharp.EntityFrameworkCore.Relational`) |
+| **EF Core** — SQL window functions (ROW_NUMBER, RANK, etc.) | [`WindowFunction.*`](#window-functions-sql) (install `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions`) |
 | **Advanced** — build an `Expression<T>` inline, no attribute needed | [`ExpressionPolyfill.Create`](#expressionpolyfillcreate) |
 | **Advanced** — expand `[Expressive]` members in an existing expression tree | [`.ExpandExpressives()`](#expressive-attribute) |
 | **Advanced** — make third-party/BCL members expressable | [`[ExpressiveFor]`](#expressivefor--external-member-mapping) |
@@ -225,12 +225,14 @@ var result = await ctx.Orders
     .FirstOrDefaultAsync(o => o.Total > 100);
 ```
 
-### Window Functions (SQL)
+### Window Functions (SQL) — Experimental
 
-Install `ExpressiveSharp.EntityFrameworkCore.Relational` for SQL window function support (ROW_NUMBER, RANK, DENSE_RANK, NTILE):
+Install `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` for SQL window function support (ROW_NUMBER, RANK, DENSE_RANK, NTILE):
+
+> **Note:** This package is experimental. EF Core has an [open issue](https://github.com/dotnet/efcore/issues/12747) for native window function support — this package may be superseded when that ships.
 
 ```bash
-dotnet add package ExpressiveSharp.EntityFrameworkCore.Relational
+dotnet add package ExpressiveSharp.EntityFrameworkCore.RelationalExtensions
 ```
 
 Enable it in your `DbContextOptionsBuilder`:
@@ -245,7 +247,7 @@ var options = new DbContextOptionsBuilder<MyDbContext>()
 Then use window functions in your queries:
 
 ```csharp
-using ExpressiveSharp.EntityFrameworkCore.Relational.WindowFunctions;
+using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.WindowFunctions;
 
 var ranked = db.Orders.Select(o => new
 {
@@ -491,7 +493,7 @@ Key improvements: broader C# syntax support (switch expressions, pattern matchin
 |---|---|---|
 | **ExpressiveSharp** | C# 12 | C# 14 |
 | **ExpressiveSharp.EntityFrameworkCore** | EF Core 8.x | EF Core 10.x |
-| **ExpressiveSharp.EntityFrameworkCore.Relational** | EF Core 8.x | EF Core 10.x |
+| **ExpressiveSharp.EntityFrameworkCore.RelationalExtensions** | EF Core 8.x | EF Core 10.x |
 
 ## Contributing
 

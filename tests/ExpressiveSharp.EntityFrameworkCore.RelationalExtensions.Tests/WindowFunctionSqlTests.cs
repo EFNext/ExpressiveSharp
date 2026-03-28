@@ -1,10 +1,10 @@
-using ExpressiveSharp.EntityFrameworkCore.Relational.Tests.Infrastructure;
-using ExpressiveSharp.EntityFrameworkCore.Relational.Tests.Models;
-using ExpressiveSharp.EntityFrameworkCore.Relational.WindowFunctions;
+using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Tests.Infrastructure;
+using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Tests.Models;
+using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.WindowFunctions;
 using Microsoft.EntityFrameworkCore;
 using VerifyMSTest;
 
-namespace ExpressiveSharp.EntityFrameworkCore.Relational.Tests;
+namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Tests;
 
 /// <summary>
 /// Verifies the exact SQL generated for window functions across multiple database providers.

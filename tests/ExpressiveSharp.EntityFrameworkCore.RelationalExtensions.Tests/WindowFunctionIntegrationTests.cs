@@ -1,9 +1,9 @@
-using ExpressiveSharp.EntityFrameworkCore.Relational.Tests.Models;
-using ExpressiveSharp.EntityFrameworkCore.Relational.WindowFunctions;
+using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Tests.Models;
+using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.WindowFunctions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
-namespace ExpressiveSharp.EntityFrameworkCore.Relational.Tests;
+namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Tests;
 
 /// <summary>
 /// End-to-end integration tests that seed data into SQLite, execute window function

@@ -1,11 +1,11 @@
-using ExpressiveSharp.EntityFrameworkCore.Relational.Tests.Models;
+using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Tests.Models;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 #if !NET10_0_OR_GREATER
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 #endif
 
-namespace ExpressiveSharp.EntityFrameworkCore.Relational.Tests.Infrastructure;
+namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Tests.Infrastructure;
 
 /// <summary>
 /// Creates <see cref="WindowTestDbContext"/> instances configured for different database providers.

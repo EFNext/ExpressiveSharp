@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace ExpressiveSharp.EntityFrameworkCore.Relational.Tests;
+namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Tests;
 
 internal static class ModuleInitializer
 {

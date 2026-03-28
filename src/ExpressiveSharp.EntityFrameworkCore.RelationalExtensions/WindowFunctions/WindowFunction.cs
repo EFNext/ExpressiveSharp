@@ -1,4 +1,4 @@
-namespace ExpressiveSharp.EntityFrameworkCore.Relational.WindowFunctions;
+namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.WindowFunctions;
 
 /// <summary>
 /// Provides SQL window function stubs (ROW_NUMBER, RANK, DENSE_RANK, NTILE)

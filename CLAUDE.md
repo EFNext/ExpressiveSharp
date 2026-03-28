@@ -74,11 +74,11 @@ ExpressiveSharp.EntityFrameworkCore (net8.0;net10.0)
   └── Provides: ExpressiveDbSet<T>, IIncludableRewritableQueryable<T,P>,
       chain-continuity stubs, async lambda stubs with [PolyfillTarget]
 
-ExpressiveSharp.EntityFrameworkCore.Relational (net8.0;net10.0)
+ExpressiveSharp.EntityFrameworkCore.RelationalExtensions (net8.0;net10.0, experimental)
   ├── ExpressiveSharp.EntityFrameworkCore
   ├── EF Core Relational 8.0.25 / 10.0.0
   └── Provides: Window functions (ROW_NUMBER, RANK, DENSE_RANK, NTILE),
-      auto-discovered via IExpressivePlugin assembly attribute
+      indexed Select, activated via UseExpressives(o => o.UseRelationalExtensions())
 
 ExpressiveSharp.EntityFrameworkCore.CodeFixers (Roslyn analyzer, netstandard2.0)
   └── Microsoft.CodeAnalysis.CSharp.Workspaces 4.12.0
@@ -101,7 +101,7 @@ ExpressiveSharp.EntityFrameworkCore.CodeFixers (Roslyn analyzer, netstandard2.0)
 | `ExpressiveSharp.IntegrationTests.ExpressionCompile` | Compiles and invokes generated expression trees directly |
 | `ExpressiveSharp.IntegrationTests.EntityFrameworkCore` | EF Core query translation validation |
 | `ExpressiveSharp.EntityFrameworkCore.Tests` | EF Core integration-specific tests |
-| `ExpressiveSharp.EntityFrameworkCore.Relational.Tests` | Window function SQL shape + integration tests (SQLite) |
+| `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Tests` | Window function SQL shape + integration tests (SQLite) |
 | `ExpressiveSharp.Benchmarks` | BenchmarkDotNet performance benchmarks (generator, resolver, replacer, transformers, EF Core) |
 
 ### Three Verification Levels (see `docs/testing-strategy.md`)

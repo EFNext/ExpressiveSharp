@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Relational database extensions for ExpressiveSharp EF Core — window functions (ROW_NUMBER, RANK, DENSE_RANK, NTILE) and indexed Select</Description>
+    <Description>Experimental relational database extensions for ExpressiveSharp EF Core — window functions (ROW_NUMBER, RANK, DENSE_RANK, NTILE) and indexed Select. Note: EF Core has an open issue (dotnet/efcore#12747) for native window function support; this package may be superseded when that ships.</Description>
   </PropertyGroup>
 
   <!-- EF Core Relational major version must match the target framework (8.x for net8.0, 10.x for net10.0).

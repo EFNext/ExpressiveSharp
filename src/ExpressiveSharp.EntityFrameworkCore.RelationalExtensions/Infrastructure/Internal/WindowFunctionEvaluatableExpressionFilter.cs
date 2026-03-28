@@ -1,8 +1,8 @@
 using System.Linq.Expressions;
-using ExpressiveSharp.EntityFrameworkCore.Relational.WindowFunctions;
+using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.WindowFunctions;
 using Microsoft.EntityFrameworkCore.Query;
 
-namespace ExpressiveSharp.EntityFrameworkCore.Relational.Infrastructure.Internal;
+namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructure.Internal;
 
 /// <summary>
 /// Prevents <see cref="Window"/>, <see cref="WindowDefinition"/>, and <see cref="WindowFunction"/>

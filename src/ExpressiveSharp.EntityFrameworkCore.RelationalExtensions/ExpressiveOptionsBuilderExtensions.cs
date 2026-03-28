@@ -1,4 +1,4 @@
-using ExpressiveSharp.EntityFrameworkCore.Relational;
+using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions;
 
 // ReSharper disable once CheckNamespace — intentionally in parent namespace for discoverability
 namespace ExpressiveSharp.EntityFrameworkCore;
