@@ -162,7 +162,7 @@ var results = queryable
 
 The source generator intercepts these calls at compile time and rewrites them to use proper expression trees — no runtime overhead.
 
-All standard `Queryable` methods are supported — filtering (`Where`, `Any`, `All`), projection (`Select`, `SelectMany`), ordering (`OrderBy`, `ThenBy`), grouping (`GroupBy`), joins (`Join`, `GroupJoin`, `Zip`), aggregation (`Sum`, `Average`, `Min`, `Max`, `Count`), element access (`First`, `Single`, `Last` and their `OrDefault` variants), set operations (`ExceptBy`, `IntersectBy`, `UnionBy`, `DistinctBy`), and more. Non-lambda operators like `Take`, `Skip`, `Distinct`, and `Reverse` preserve the `IRewritableQueryable<T>` chain. Comparer overloads (`IEqualityComparer<T>`, `IComparer<T>`) are also supported.
+Most common `Queryable` methods are supported — filtering (`Where`, `Any`, `All`), projection (`Select`, `SelectMany`), ordering (`OrderBy`, `ThenBy`), grouping (`GroupBy`), joins (`Join`, `GroupJoin`, `Zip`), aggregation (`Sum`, `Average`, `Min`, `Max`, `Count`), element access (`First`, `Single`, `Last` and their `OrDefault` variants), set operations (`ExceptBy`, `IntersectBy`, `UnionBy`, `DistinctBy`), and more. Non-lambda operators like `Take`, `Skip`, `Distinct`, and `Reverse` preserve the `IRewritableQueryable<T>` chain. Comparer overloads (`IEqualityComparer<T>`, `IComparer<T>`) are also supported.
 
 ### `ExpressionPolyfill.Create`
 

@@ -1162,7 +1162,29 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         // Last func type arg might be the return position — map to corresponding method type param.
         var funcFqnGeneric = "global::System.Func<" + string.Join(", ", funcArgStrings) + ">";
 
-        var returnParamName = typeParamNames.Length > 1 ? typeParamNames[typeParamNames.Length - 1] : "T0";
+        // Derive the return type param name from the actual return type, not blindly the last type arg.
+        // For IRewritableQueryable<T> returns, find which type arg matches the return element type.
+        // For scalar returns, use the FQN directly (e.g., bool, int).
+        string returnParamName;
+        if (isRewritableReturn)
+        {
+            // Find which method type arg corresponds to the return element type.
+            var retElemIdx = -1;
+            for (int i = 0; i < methodTypeArgs.Length; i++)
+            {
+                if (SymbolEqualityComparer.Default.Equals(methodTypeArgs[i], returnElemType))
+                {
+                    retElemIdx = i;
+                    break;
+                }
+            }
+            returnParamName = retElemIdx >= 0 ? typeParamNames[retElemIdx] : "T0";
+        }
+        else
+        {
+            // Scalar return — use the concrete return type FQN.
+            returnParamName = scalarReturnFqn;
+        }
 
         // For the anon branch, build type aliases and delegate type using generic param names.
         var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default);
