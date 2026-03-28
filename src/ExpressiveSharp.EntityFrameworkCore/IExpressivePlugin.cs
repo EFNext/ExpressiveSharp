@@ -4,8 +4,8 @@ namespace ExpressiveSharp.EntityFrameworkCore;
 
 /// <summary>
 /// Interface for ExpressiveSharp plugins that register additional services into
-/// the EF Core service provider. Plugins are discovered automatically via
-/// <see cref="ExpressivePluginAttribute"/> on their containing assembly.
+/// the EF Core service provider. Plugins are registered via
+/// <see cref="ExpressiveOptionsBuilder.AddPlugin"/>.
 /// </summary>
 public interface IExpressivePlugin
 {
@@ -14,4 +14,11 @@ public interface IExpressivePlugin
     /// Called during <c>UseExpressives()</c> initialization.
     /// </summary>
     void ApplyServices(IServiceCollection services);
+
+    /// <summary>
+    /// Returns expression tree transformers to add to the EF Core transformer pipeline.
+    /// Called when building <see cref="Services.ExpressiveOptions"/>.
+    /// Default implementation returns an empty array.
+    /// </summary>
+    IExpressionTreeTransformer[] GetTransformers() => [];
 }

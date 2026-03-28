@@ -2,6 +2,7 @@ using ExpressiveSharp.EntityFrameworkCore.Relational.Tests.Models;
 using ExpressiveSharp.EntityFrameworkCore.Relational.WindowFunctions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ExpressiveSharp.EntityFrameworkCore.Relational.Tests;
 
@@ -27,7 +28,7 @@ public class WindowFunctionTests
     {
         var options = new DbContextOptionsBuilder<WindowTestDbContext>()
             .UseSqlite(_connection)
-            .UseExpressives()
+            .UseExpressives(o => o.UseRelationalExtensions())
             .Options;
         var ctx = new WindowTestDbContext(options);
         ctx.Database.EnsureCreated();
@@ -307,5 +308,44 @@ public class WindowFunctionTests
             Assert.AreEqual(i + 1, customer1Rows[i].RowNum);
         for (var i = 0; i < customer2Rows.Count; i++)
             Assert.AreEqual(i + 1, customer2Rows[i].RowNum);
+    }
+
+    // ── Indexed Select tests ─────────────────────────────────────────
+
+    [TestMethod]
+    public void IndexedSelect_GeneratesRowNumberSql()
+    {
+        using var ctx = CreateContext();
+
+        var sql = ctx.ExpressiveOrders
+            .Select((o, index) => new { o.Id, Position = index })
+            .ToQueryString();
+
+        AssertSql("""
+            SELECT "o"."Id", CAST(ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) - 1 AS INTEGER) AS "Position"
+            FROM "Orders" AS "o"
+            """, sql);
+    }
+
+    [TestMethod]
+    public async Task IndexedSelect_ReturnsZeroBasedIndices()
+    {
+        using var ctx = CreateContext();
+        ctx.Customers.Add(new Customer { Id = 1, Name = "Alice" });
+        ctx.SaveChanges();
+        ctx.Orders.AddRange(
+            new Order { Id = 1, Price = 10, Quantity = 1, CustomerId = 1 },
+            new Order { Id = 2, Price = 20, Quantity = 1, CustomerId = 1 },
+            new Order { Id = 3, Price = 30, Quantity = 1, CustomerId = 1 });
+        ctx.SaveChanges();
+
+        var results = await ctx.ExpressiveOrders
+            .Select((o, index) => new { o.Id, Position = index })
+            .ToListAsync();
+
+        Assert.AreEqual(3, results.Count);
+        // All positions should be 0, 1, or 2 (0-based)
+        var positions = results.Select(r => r.Position).OrderBy(p => p).ToList();
+        CollectionAssert.AreEqual(new[] { 0, 1, 2 }, positions);
     }
 }

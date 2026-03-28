@@ -5,6 +5,7 @@ namespace ExpressiveSharp.EntityFrameworkCore.Relational.Tests.Models;
 public class WindowTestDbContext : DbContext
 {
     public DbSet<Order> Orders => Set<Order>();
+    public ExpressiveDbSet<Order> ExpressiveOrders => this.ExpressiveSet<Order>();
     public DbSet<Customer> Customers => Set<Customer>();
 
     public WindowTestDbContext(DbContextOptions<WindowTestDbContext> options) : base(options)

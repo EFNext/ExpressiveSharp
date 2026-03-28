@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using ExpressiveSharp.EntityFrameworkCore.Relational.Infrastructure.Internal;
+using ExpressiveSharp.EntityFrameworkCore.Relational.Transformers;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -11,7 +12,11 @@ namespace ExpressiveSharp.EntityFrameworkCore.Relational;
 /// Plugin that registers window function services into the EF Core service provider.
 /// Auto-discovered via <see cref="ExpressivePluginAttribute"/> when the assembly is loaded.
 /// </summary>
-internal sealed class RelationalExpressivePlugin : IExpressivePlugin
+/// <summary>
+/// Plugin that registers window function services into the EF Core service provider.
+/// Activated via <c>.UseExpressives(o => o.UseRelationalExtensions())</c>.
+/// </summary>
+public sealed class RelationalExpressivePlugin : IExpressivePlugin
 {
     [SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required to decorate EF Core services")]
     public void ApplyServices(IServiceCollection services)
@@ -29,6 +34,9 @@ internal sealed class RelationalExpressivePlugin : IExpressivePlugin
         // Replace the SQL generator factory to render WindowFunctionSqlExpression
         DecorateQuerySqlGeneratorFactory(services);
     }
+
+    public IExpressionTreeTransformer[] GetTransformers() =>
+        [new RewriteIndexedSelectToRowNumber()];
 
     private static void DecorateQuerySqlGeneratorFactory(IServiceCollection services)
     {

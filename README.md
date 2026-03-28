@@ -233,7 +233,16 @@ Install `ExpressiveSharp.EntityFrameworkCore.Relational` for SQL window function
 dotnet add package ExpressiveSharp.EntityFrameworkCore.Relational
 ```
 
-No extra configuration needed — the plugin auto-activates when `UseExpressives()` is called:
+Enable it in your `DbContextOptionsBuilder`:
+
+```csharp
+var options = new DbContextOptionsBuilder<MyDbContext>()
+    .UseSqlite(connection)
+    .UseExpressives(o => o.UseRelationalExtensions())
+    .Options;
+```
+
+Then use window functions in your queries:
 
 ```csharp
 using ExpressiveSharp.EntityFrameworkCore.Relational.WindowFunctions;

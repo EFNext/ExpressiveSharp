@@ -39,8 +39,16 @@ internal sealed class WindowFunctionMethodCallTranslator : IMethodCallTranslator
 
         return method.Name switch
         {
-            nameof(WindowFunction.RowNumber) when arguments[0] is WindowSpecSqlExpression spec
+            nameof(WindowFunction.RowNumber) when arguments.Count == 1 && arguments[0] is WindowSpecSqlExpression spec
                 => new RowNumberExpression(spec.Partitions, spec.Orderings, longTypeMapping),
+
+            nameof(WindowFunction.RowNumber) when arguments.Count == 0
+                => new RowNumberExpression(
+                    [],
+                    [new OrderingExpression(
+                        _sqlExpressionFactory.Fragment("(SELECT NULL)"),
+                        ascending: true)],
+                    longTypeMapping),
 
             nameof(WindowFunction.Rank) when arguments[0] is WindowSpecSqlExpression spec
                 => new WindowFunctionSqlExpression("RANK", [], spec.Partitions, spec.Orderings, typeof(long), longTypeMapping),

@@ -315,6 +315,12 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                 => EmitWhere(inv, model, spc, interceptAttr, index, elementSymbol, elementFqn, globalOptions, allStaticFields),
 
             "Select"
+                when typeArgs.Length == 2 && method.Parameters.Length == 1
+                    && method.Parameters[0].Type is INamedTypeSymbol selFuncType
+                    && selFuncType.TypeArguments.Length == 3
+                => EmitSelectIndexed(inv, model, spc, interceptAttr, index, elementSymbol, elementFqn, typeArgs[1], globalOptions, allStaticFields),
+
+            "Select"
                 when typeArgs.Length == 2
                 => EmitSelect(inv, model, spc, interceptAttr, index, elementSymbol, elementFqn, typeArgs[1], globalOptions, allStaticFields),
 
@@ -491,6 +497,64 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                         global::System.Linq.Queryable.Where(
                             (global::System.Linq.IQueryable<{{elemFqn}}>)source,
                             __lambda));
+                }
+
+        """;
+    }
+
+    private static string? EmitSelectIndexed(
+        InvocationExpressionSyntax inv, SemanticModel model,
+        SourceProductionContext spc, string interceptAttr, int idx,
+        INamedTypeSymbol elemSym, string elemFqn, ITypeSymbol resultType,
+         ExpressiveGlobalOptions globalOptions,
+        List<string> allStaticFields)
+    {
+        if (inv.ArgumentList.Arguments[0].Expression is not LambdaExpressionSyntax lam) return null;
+
+        var isAnon = IsAnonymousType(resultType);
+        if (!isAnon)
+        {
+            var resultFqn = resultType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            var delegateFqn = $"global::System.Func<{elemFqn}, int, {resultFqn}>";
+            var emitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, delegateFqn, fieldPrefix: $"i{idx}_");
+            if (emitResult is null) return null;
+            allStaticFields.AddRange(emitResult.StaticFields);
+
+            return $$"""
+                    {{interceptAttr}}
+                    internal static global::ExpressiveSharp.IRewritableQueryable<{{resultFqn}}> {{MethodId("Select", idx)}}(
+                        this global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> source,
+                        global::System.Func<{{elemFqn}}, int, {{resultFqn}}> _)
+                    {
+            {{emitResult.Body}}            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+                            global::System.Linq.Queryable.Select(
+                                (global::System.Linq.IQueryable<{{elemFqn}}>)source,
+                                __lambda));
+                    }
+
+            """;
+        }
+
+        var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default)
+        {
+            { resultType, "TResult" }
+        };
+        var anonDelegateFqn = $"global::System.Func<{elemFqn}, int, TResult>";
+        var anonEmitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, anonDelegateFqn, fieldPrefix: $"i{idx}_", typeAliases: typeAliases);
+        if (anonEmitResult is null) return null;
+        allStaticFields.AddRange(anonEmitResult.StaticFields);
+
+        return $$"""
+                {{interceptAttr}}
+                internal static global::ExpressiveSharp.IRewritableQueryable<TResult> {{MethodId("Select", idx)}}<TElem, TResult>(
+                    this global::ExpressiveSharp.IRewritableQueryable<TElem> source,
+                    global::System.Func<TElem, int, TResult> _)
+                {
+        {{anonEmitResult.Body}}            return (global::ExpressiveSharp.IRewritableQueryable<TResult>)(object)
+                        global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+                            global::System.Linq.Queryable.Select(
+                                (global::System.Linq.IQueryable<{{elemFqn}}>)(object)source,
+                                __lambda));
                 }
 
         """;

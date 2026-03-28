@@ -15,6 +15,13 @@ public static class WindowFunction
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
     /// <summary>
+    /// Translates to <c>ROW_NUMBER() OVER()</c> with no ordering or partitioning.
+    /// Row numbering is non-deterministic. Used internally by the indexed Select transformer.
+    /// </summary>
+    public static long RowNumber() =>
+        throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
+
+    /// <summary>
     /// Translates to <c>RANK() OVER(...)</c>.
     /// Returns the rank of each row within the window partition, with gaps for ties.
     /// </summary>

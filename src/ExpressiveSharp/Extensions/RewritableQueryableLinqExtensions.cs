@@ -39,6 +39,12 @@ namespace ExpressiveSharp.Extensions
             => throw new UnreachableException(InterceptedMessage);
 
         [EditorBrowsable(EditorBrowsableState.Never)]
+        public static IRewritableQueryable<TResult> Select<T, TResult>(
+            this IRewritableQueryable<T> source,
+            Func<T, int, TResult> selector)
+            => throw new UnreachableException(InterceptedMessage);
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public static IRewritableQueryable<TResult> SelectMany<T, TResult>(
             this IRewritableQueryable<T> source,
             Func<T, IEnumerable<TResult>> selector)
