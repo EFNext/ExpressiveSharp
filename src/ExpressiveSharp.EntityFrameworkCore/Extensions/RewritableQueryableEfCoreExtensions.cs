@@ -20,7 +20,7 @@ public static class RewritableQueryableEfCoreExtensions
 {
     private const string InterceptedMessage =
         "This method must be intercepted by the ExpressiveSharp source generator. " +
-        "Ensure the generator package is installed and InterceptorsPreviewNamespaces is configured.";
+        "Ensure the generator package is installed and the InterceptorsNamespaces MSBuild property is configured.";
     // ── Tracking behavior ────────────────────────────────────────────────
 
     [EditorBrowsable(EditorBrowsableState.Never)]

@@ -256,14 +256,16 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         // it may be at a later position (e.g., Parameters[1]) after an IEnumerable<> arg.
         if (method.Parameters.IsEmpty) return null;
         int funcParamIndex = -1;
+        int funcParamCount = 0;
         for (int i = 0; i < method.Parameters.Length; i++)
         {
             if (method.Parameters[i].Type is INamedTypeSymbol pt &&
                 pt.ConstructedFrom.Name == "Func" &&
                 pt.ConstructedFrom.ContainingNamespace?.ToDisplayString() == "System")
             {
-                funcParamIndex = i;
-                break;
+                funcParamCount++;
+                if (funcParamIndex < 0)
+                    funcParamIndex = i;
             }
         }
         if (funcParamIndex < 0) return null;
@@ -352,9 +354,13 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                 when typeArgs.Length == 4
                 => EmitGroupJoin(inv, model, spc, interceptAttr, index, elementSymbol, elementFqn, typeArgs, globalOptions, allStaticFields),
 
-            // Generic fallback: any user-defined or future single-lambda stub whose name
-            // matches a Queryable.* method by convention.
-            _ => EmitGenericSingleLambda(inv, model, spc, interceptAttr, index, methodName, elementSymbol, elementFqn, method, funcParamIndex, targetTypeFqn, globalOptions, allStaticFields),
+            // Generic fallback: single-lambda stubs only. Multi-Func stubs (e.g., AggregateBy)
+            // need dedicated emitters — the fallback would only rewrite the first Func<>,
+            // leaving the rest as raw delegates which won't match Expression<Func<>> parameters.
+            _ when funcParamCount == 1
+                => EmitGenericSingleLambda(inv, model, spc, interceptAttr, index, methodName, elementSymbol, elementFqn, method, funcParamIndex, targetTypeFqn, globalOptions, allStaticFields),
+
+            _ => null, // Unsupported multi-Func stub — interceptor not generated, stub throws at runtime
         };
     }
 

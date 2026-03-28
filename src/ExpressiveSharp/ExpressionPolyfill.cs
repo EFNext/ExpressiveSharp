@@ -26,7 +26,7 @@ public static class ExpressionPolyfill
         TDelegate lambda) where TDelegate : Delegate
         => throw new UnreachableException(
             "Must be intercepted by the ExpressiveSharp source generator. " +
-            "Ensure the generator package is installed and InterceptorsPreviewNamespaces is configured.");
+            "Ensure the generator package is installed and the InterceptorsNamespaces MSBuild property is configured.");
 
     /// <summary>
     /// Converts a lambda that uses modern C# syntax (e.g., <c>?.</c>) into a valid
@@ -43,5 +43,5 @@ public static class ExpressionPolyfill
         params IExpressionTreeTransformer[] transformers) where TDelegate : Delegate
         => throw new UnreachableException(
             "Must be intercepted by the ExpressiveSharp source generator. " +
-            "Ensure the generator package is installed and InterceptorsPreviewNamespaces is configured.");
+            "Ensure the generator package is installed and the InterceptorsNamespaces MSBuild property is configured.");
 }
