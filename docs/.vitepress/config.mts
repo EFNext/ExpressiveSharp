@@ -1,5 +1,7 @@
 import {defineConfig, type HeadConfig} from 'vitepress'
 
+const base = '/ExpressiveSharp/'
+
 const umamiScript: HeadConfig = ["script", {
     defer: "true",
     src: "https://cloud.umami.is/script.js",
@@ -7,7 +9,7 @@ const umamiScript: HeadConfig = ["script", {
 }]
 
 const baseHeaders: HeadConfig[] = [
-    ['link', { rel: 'icon', type: 'image/png', href: '/logo.png' }],
+    ['link', { rel: 'icon', type: 'image/png', href: `${base}logo.png` }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
 ];
@@ -19,7 +21,7 @@ const headers = process.env.GITHUB_ACTIONS === "true" ?
 export default defineConfig({
   title: "ExpressiveSharp",
   description: "Modern C# syntax in LINQ expression trees — source-generated at compile time",
-  base: '/ExpressiveSharp/',
+  base,
   head: headers,
   themeConfig: {
     logo: '/logo.png',
