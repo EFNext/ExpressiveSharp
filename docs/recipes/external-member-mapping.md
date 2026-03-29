@@ -265,4 +265,4 @@ Many `[ExpressiveFor]` use cases exist because of syntax limitations in other li
 
 - [DTO Projections with Constructors](/recipes/dto-projections) -- `[ExpressiveForConstructor]` in depth
 - [Computed Entity Properties](/recipes/computed-properties) -- `[Expressive]` on your own types
-- [Migrating from Projectables](/recipes/migration-from-projectables) -- replacing `UseMemberBody` with `[ExpressiveFor]`
+- [Migrating from Projectables](/guide/migration-from-projectables) -- replacing `UseMemberBody` with `[ExpressiveFor]`

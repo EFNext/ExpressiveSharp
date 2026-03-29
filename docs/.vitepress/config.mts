@@ -58,6 +58,12 @@ export default defineConfig({
           items: [
             { text: 'Window Functions (SQL)', link: '/guide/window-functions' },
           ]
+        },
+        {
+          text: 'Migration',
+          items: [
+            { text: 'Migrating from Projectables', link: '/guide/migration-from-projectables' },
+          ]
         }
       ],
       '/reference/': [
@@ -99,7 +105,6 @@ export default defineConfig({
             { text: 'External Member Mapping', link: '/recipes/external-member-mapping' },
             { text: 'Modern Syntax in LINQ Chains', link: '/recipes/modern-syntax-in-linq' },
             { text: 'Window Functions & Ranking', link: '/recipes/window-functions-ranking' },
-            { text: 'Migrating from Projectables', link: '/recipes/migration-from-projectables' },
           ]
         }
       ],
