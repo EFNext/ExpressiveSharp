@@ -368,3 +368,8 @@ FodyWeavers.xsd
 .idea
 ReadmeSample.db
 .remember/
+
+# VitePress docs
+docs/node_modules/
+docs/.vitepress/cache/
+docs/.vitepress/dist/
