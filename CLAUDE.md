@@ -87,7 +87,7 @@ ExpressiveSharp.EntityFrameworkCore.CodeFixers (Roslyn analyzer, netstandard2.0)
 
 ### Diagnostics
 
-12 diagnostic codes EXP0001–EXP0012 defined in `src/ExpressiveSharp.Generator/Infrastructure/Diagnostics.cs`. Key ones: EXP0001 (requires body), EXP0004 (block body requires opt-in), EXP0008 (unsupported operation).
+19 diagnostic codes (EXP0001–EXP0012 in `src/ExpressiveSharp.Generator/Infrastructure/Diagnostics.cs`, EXP0013 in CodeFixers, EXP0014–EXP0020 for `[ExpressiveFor]` validation). Key ones: EXP0001 (requires body), EXP0004 (block body requires opt-in), EXP0008 (unsupported operation), EXP0019 (`[ExpressiveFor]` conflicts with `[Expressive]`).
 
 ## Testing
 
