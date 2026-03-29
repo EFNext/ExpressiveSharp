@@ -1,21 +1,18 @@
-# IOperation to Expression Factory Mapping
+# IOperation to Expression Mapping
 
-Reference table mapping Roslyn `IOperation` types to `System.Linq.Expressions.Expression` factory methods,
-as implemented in `ExpressionTreeEmitter`.
+Reference table mapping Roslyn `IOperation` types to `System.Linq.Expressions.Expression` factory methods, as implemented in `ExpressionTreeEmitter`.
 
 **Roslyn version**: Microsoft.CodeAnalysis.CSharp 5.0.0
 **Target**: `System.Linq.Expressions` (netstandard2.0+)
 
 ## Overview
 
-`ExpressionTreeEmitter` walks the Roslyn `IOperation` tree for a member body and emits imperative C# code
-that builds the equivalent `Expression<TDelegate>` using factory methods. It receives the **original syntax**
-and **original semantic model** — no syntax preprocessing is required. Transparent syntax wrappers (`checked()`, `unchecked()`, parenthesized, null-forgiving `!`) are unwrapped before `GetOperation` is called.
+`ExpressionTreeEmitter` walks the Roslyn `IOperation` tree for a member body and emits imperative C# code that builds the equivalent `Expression<TDelegate>` using factory methods. It receives the **original syntax** and **original semantic model** -- no syntax preprocessing is required. Transparent syntax wrappers (`checked()`, `unchecked()`, parenthesized, null-forgiving `!`) are unwrapped before `GetOperation` is called.
 
 ## Legend
 
 | Status | Meaning |
-|--------|---------|
+|---|---|
 | Implemented | Handled in `ExpressionTreeEmitter.EmitOperation()` dispatch |
 | Not yet implemented | Has a clear path to implementation; currently falls through to `EmitUnsupported()` |
 | N/A | No `Expression.*` equivalent exists; not applicable to expression trees |
@@ -40,24 +37,24 @@ Unrecognized operations fall through to `EmitUnsupported()` which emits `Express
 |---|---|---|---|
 | `IPropertyReferenceOperation` | `Expression.Property(instance, PropertyInfo)` | Implemented | Cached via `ReflectionFieldCache.EnsurePropertyInfo()`. |
 | `IFieldReferenceOperation` | `Expression.Field(instance, FieldInfo)` | Implemented | Cached via `ReflectionFieldCache.EnsureFieldInfo()`. |
-| `IArrayElementReferenceOperation` | `Expression.ArrayIndex(array, index)` / `Expression.ArrayAccess(array, indices)` | Implemented | Single index → `ArrayIndex`; multiple → `ArrayAccess`. |
-| `IEventReferenceOperation` | — | N/A | Events cannot be represented in expression trees. |
+| `IArrayElementReferenceOperation` | `Expression.ArrayIndex(array, index)` / `Expression.ArrayAccess(array, indices)` | Implemented | Single index uses `ArrayIndex`; multiple uses `ArrayAccess`. |
+| `IEventReferenceOperation` | -- | N/A | Events cannot be represented in expression trees. |
 
-## Invocation & Creation
+## Invocation and Creation
 
 | IOperation | Expression Factory | Status | Notes |
 |---|---|---|---|
 | `IInvocationOperation` | `Expression.Call(instance, MethodInfo, args)` | Implemented | Static/instance dispatch. Generic methods resolved via `MakeGenericMethod()`. Enum method expansion to ternary chains. |
-| `IObjectCreationOperation` | `Expression.New(ConstructorInfo, args)` | Implemented | With member initializer → `Expression.MemberInit`. With collection initializer → `Expression.ListInit` via `Expression.ElementInit`. |
+| `IObjectCreationOperation` | `Expression.New(ConstructorInfo, args)` | Implemented | With member initializer: `Expression.MemberInit`. With collection initializer: `Expression.ListInit` via `Expression.ElementInit`. |
 | `IAnonymousObjectCreationOperation` | `Expression.New(ctor, args, members)` | Implemented (interceptor path) | Uses inline runtime reflection via generic type parameters (e.g., `typeof(TResult).GetConstructors()[0]`). Nested anonymous types fall back to EXP0008. |
 | `IDelegateCreationOperation` | *(transparent)* | Implemented | Emits its `Target` operation directly. |
-| `IArrayCreationOperation` | `Expression.NewArrayInit` / `Expression.NewArrayBounds` | Implemented | With initializer → `NewArrayInit`; without → `NewArrayBounds`. |
+| `IArrayCreationOperation` | `Expression.NewArrayInit` / `Expression.NewArrayBounds` | Implemented | With initializer: `NewArrayInit`; without: `NewArrayBounds`. |
 
 ## Operators
 
 | IOperation | Expression Factory | Status | Notes |
 |---|---|---|---|
-| `IBinaryOperation` | `Expression.MakeBinary(ExpressionType, left, right)` | Implemented | Maps `BinaryOperatorKind` → `ExpressionType`. Supports checked variants (`AddChecked`, `SubtractChecked`, `MultiplyChecked`) when `IsChecked` is true. Unrecognized operators report `EXP0009` diagnostic. |
+| `IBinaryOperation` | `Expression.MakeBinary(ExpressionType, left, right)` | Implemented | Maps `BinaryOperatorKind` to `ExpressionType`. Supports checked variants (`AddChecked`, `SubtractChecked`, `MultiplyChecked`) when `IsChecked` is true. Unrecognized operators report `EXP0009` diagnostic. |
 | `IUnaryOperation` | `Expression.MakeUnary(ExpressionType, operand, type)` | Implemented | Supports `NegateChecked` when `IsChecked` is true. Unrecognized operators report `EXP0009`. |
 | `IIncrementOrDecrementOperation` | `Expression.Assign(target, MakeBinary(Add/Sub, target, 1))` | Implemented | `++`/`--` emitted as assign + binary. Supports checked variants. |
 | `ICompoundAssignmentOperation` | `Expression.Assign(target, MakeBinary(op, target, value))` | Implemented | `+=`, `-=`, etc. emitted as assign + binary. Supports checked variants. |
@@ -69,32 +66,32 @@ Unrecognized operations fall through to `EmitUnsupported()` which emits `Express
 | `Add` | `Add` | `AddChecked` |
 | `Subtract` | `Subtract` | `SubtractChecked` |
 | `Multiply` | `Multiply` | `MultiplyChecked` |
-| `Divide` | `Divide` | — |
-| `Remainder` | `Modulo` | — |
-| `LeftShift` | `LeftShift` | — |
-| `RightShift` | `RightShift` | — |
-| `And` (bitwise) | `And` | — |
-| `Or` (bitwise) | `Or` | — |
-| `ExclusiveOr` | `ExclusiveOr` | — |
-| `ConditionalAnd` (`&&`) | `AndAlso` | — |
-| `ConditionalOr` (`\|\|`) | `OrElse` | — |
-| `Equals` | `Equal` | — |
-| `NotEquals` | `NotEqual` | — |
-| `LessThan` | `LessThan` | — |
-| `LessThanOrEqual` | `LessThanOrEqual` | — |
-| `GreaterThan` | `GreaterThan` | — |
-| `GreaterThanOrEqual` | `GreaterThanOrEqual` | — |
-| *(unrecognized)* | — | Reports `EXP0009` diagnostic |
+| `Divide` | `Divide` | -- |
+| `Remainder` | `Modulo` | -- |
+| `LeftShift` | `LeftShift` | -- |
+| `RightShift` | `RightShift` | -- |
+| `And` (bitwise) | `And` | -- |
+| `Or` (bitwise) | `Or` | -- |
+| `ExclusiveOr` | `ExclusiveOr` | -- |
+| `ConditionalAnd` (`&&`) | `AndAlso` | -- |
+| `ConditionalOr` (`\|\|`) | `OrElse` | -- |
+| `Equals` | `Equal` | -- |
+| `NotEquals` | `NotEqual` | -- |
+| `LessThan` | `LessThan` | -- |
+| `LessThanOrEqual` | `LessThanOrEqual` | -- |
+| `GreaterThan` | `GreaterThan` | -- |
+| `GreaterThanOrEqual` | `GreaterThanOrEqual` | -- |
+| *(unrecognized)* | -- | Reports `EXP0009` diagnostic |
 
 ### Unary Operator Kind Mapping
 
 | `UnaryOperatorKind` | `ExpressionType` | Checked variant |
 |---|---|---|
-| `BitwiseNegation` (`~`) | `OnesComplement` | — |
-| `Not` (`!`) | `Not` | — |
-| `Plus` (`+`) | `UnaryPlus` | — |
+| `BitwiseNegation` (`~`) | `OnesComplement` | -- |
+| `Not` (`!`) | `Not` | -- |
+| `Plus` (`+`) | `UnaryPlus` | -- |
 | `Minus` (`-`) | `Negate` | `NegateChecked` |
-| *(unrecognized)* | — | Reports `EXP0009` diagnostic |
+| *(unrecognized)* | -- | Reports `EXP0009` diagnostic |
 
 ## Type Operations
 
@@ -105,7 +102,7 @@ Unrecognized operations fall through to `EmitUnsupported()` which emits `Express
 | `IDefaultValueOperation` | `Expression.Default(typeof(T))` | Implemented | |
 | `IIsTypeOperation` | `Expression.TypeIs(expr, typeof(T))` | Implemented | Simple `is Type` check. |
 
-## Conditional & Null Operations
+## Conditional and Null Operations
 
 | IOperation | Expression Factory | Status | Notes |
 |---|---|---|---|
@@ -141,14 +138,14 @@ Unrecognized operations fall through to `EmitUnsupported()` which emits `Express
 | IOperation | Expression Factory | Status | Notes |
 |---|---|---|---|
 | `ITupleOperation` | `Expression.New(ValueTuple<...> ctor, elements)` | Implemented | Handles 1-7 elements directly. 8+ elements use nested `ValueTuple` for `Rest` argument. |
-| `ITupleBinaryOperation` | Element-wise `Equal` + `AndAlso` / `Not` | Implemented | `(a, b) == (c, d)` → `AndAlso(Equal(a.Item1, c.Item1), Equal(a.Item2, c.Item2))`. `!=` wraps in `Not`. |
+| `ITupleBinaryOperation` | Element-wise `Equal` + `AndAlso` / `Not` | Implemented | `(a, b) == (c, d)` becomes `AndAlso(Equal(a.Item1, c.Item1), Equal(a.Item2, c.Item2))`. `!=` wraps in `Not`. |
 
-## Index & Range
+## Index and Range
 
 | IOperation | Expression Factory | Status | Notes |
 |---|---|---|---|
-| `IUnaryOperation` (Hat) | `Expression.New(Index ctor, value, true)` | Implemented | `^n` → `new Index(n, fromEnd: true)`. |
-| `IRangeOperation` | `Expression.New(Range ctor, start, end)` | Implemented | `a..b` → `new Range(start, end)`. Implicit start/end produce `new Index(0, false)` / `new Index(0, true)`. Operand `int→Index` conversions handled by `EmitConversion`. |
+| `IUnaryOperation` (Hat) | `Expression.New(Index ctor, value, true)` | Implemented | `^n` becomes `new Index(n, fromEnd: true)`. |
+| `IRangeOperation` | `Expression.New(Range ctor, start, end)` | Implemented | `a..b` becomes `new Range(start, end)`. Implicit start/end produce `new Index(0, false)` / `new Index(0, true)`. Operand `int` to `Index` conversions handled by `EmitConversion`. |
 
 ## Collection Expressions
 
@@ -176,11 +173,11 @@ Unrecognized operations fall through to `EmitUnsupported()` which emits `Express
 
 | IOperation | Expression Factory | Status | Notes |
 |---|---|---|---|
-| `IForEachLoopOperation` | `Expression.Loop` with enumerator pattern | Implemented | GetEnumerator/MoveNext/Current pattern. `ConvertLoopsToLinq` transformer rewrites to LINQ for providers that can't handle `LoopExpression`. |
+| `IForEachLoopOperation` | `Expression.Loop` with enumerator pattern | Implemented | GetEnumerator/MoveNext/Current pattern. `ConvertLoopsToLinq` transformer rewrites to LINQ for providers that cannot handle `LoopExpression`. |
 | `IForLoopOperation` | `Expression.Loop` with init/condition/increment | Implemented | |
 | `IWhileLoopOperation` | `Expression.Loop` with condition | Implemented | Supports both while (condition-at-top) and do-while (condition-at-bottom). |
 
-## Nested Lambda & Delegate Operations
+## Nested Lambda and Delegate Operations
 
 | IOperation | Expression Factory | Status | Notes |
 |---|---|---|---|

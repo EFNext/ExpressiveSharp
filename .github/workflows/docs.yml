@@ -1,0 +1,69 @@
+name: Deploy Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: docs
+        run: npm ci
+
+      - name: Build VitePress site
+        working-directory: docs
+        env:
+          GITHUB_ACTIONS: "true"
+        run: npm run build
+
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Deploy to gh-pages
+        run: |
+          cd gh-pages
+
+          # Remove old docs files but preserve dev/bench (benchmark data)
+          find . -maxdepth 1 \
+            ! -name '.' \
+            ! -name '.git' \
+            ! -name 'dev' \
+            -exec rm -rf {} +
+
+          # Copy new VitePress build output
+          cp -r ../docs/.vitepress/dist/* .
+
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Commit and push if there are changes
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to deploy"
+          else
+            git commit -m "docs: deploy VitePress site from ${GITHUB_SHA::7}"
+            git push
+          fi
