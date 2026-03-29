@@ -14,7 +14,7 @@ ExpressiveSharp is the successor to EntityFrameworkCore.Projectables. It keeps t
 
 - **Customizable transformers** — The `IExpressionTreeTransformer` interface lets you plug in your own expression tree transformations, replacing the fixed rewrite modes from Projectables.
 
-- **Simpler configuration** — No `CompatibilityMode`, no `ProjectableOptionsBuilder`. `UseExpressives()` handles all the EF Core defaults automatically.
+- **Simpler configuration** — No `CompatibilityMode`. `UseExpressives()` handles all the EF Core defaults automatically, with an optional `ExpressiveOptionsBuilder` callback for plugin registration.
 
 ## Package Changes
 
@@ -79,9 +79,16 @@ options.UseSqlServer(connectionString)
            opts.CompatibilityMode(CompatibilityMode.Full);
        });
 
-// After — no configuration callback, no compatibility mode
+// After — no compatibility mode; optional callback available for plugins
 options.UseSqlServer(connectionString)
        .UseExpressives();
+```
+
+An optional configuration callback is available for registering plugins:
+
+```csharp
+options.UseSqlServer(connectionString)
+       .UseExpressives(opts => opts.AddPlugin(new MyPlugin()));
 ```
 
 `UseExpressives()` automatically registers the `RemoveNullConditionalPatterns` and `FlattenBlockExpressions` transformers as global defaults, sets up the query compiler decorator, and configures model conventions.
@@ -108,12 +115,12 @@ public string? CustomerName => Customer?.Name;
 public string? CustomerName => Customer?.Name;
 ```
 
-### Removed Properties
+### Changed and Removed Properties
 
 | Old Property | Migration |
 |---|---|
 | `UseMemberBody = "SomeMethod"` | Replace with `[ExpressiveFor]`. See [Migrating `UseMemberBody`](#migrating-usememberbody) below. |
-| `AllowBlockBody = true` | Remove — block bodies work automatically. `UseExpressives()` registers `FlattenBlockExpressions` globally for EF Core. |
+| `AllowBlockBody = true` | Keep — block bodies remain opt-in. Set `AllowBlockBody = true` per-member, or set the MSBuild property `Expressive_AllowBlockBody` to `true` globally. `UseExpressives()` registers `FlattenBlockExpressions` to flatten them for EF Core at runtime. |
 | `ExpandEnumMethods = true` | Remove — enum method expansion is enabled by default |
 | `CompatibilityMode.Full / .Limited` | Remove — only the full approach exists (query compiler decoration) |
 
@@ -187,7 +194,7 @@ static OrderDto CreateDto(int id, string name)
 |---|---|
 | `Projectables_NullConditionalRewriteSupport` | Remove — `UseExpressives()` handles this globally |
 | `Projectables_ExpandEnumMethods` | Remove — always enabled |
-| `Projectables_AllowBlockBody` | Remove — always enabled |
+| `Projectables_AllowBlockBody` | Rename to `Expressive_AllowBlockBody` — block bodies remain opt-in (default `false`) |
 
 The `InterceptorsNamespaces` MSBuild property needed for method interceptors is set automatically.
 
@@ -199,13 +206,13 @@ The `InterceptorsNamespaces` MSBuild property needed for method interceptors is 
 
 3. **`NullConditionalRewriteSupport` enum removed** — ExpressiveSharp always generates faithful null-conditional ternaries. `UseExpressives()` globally registers the `RemoveNullConditionalPatterns` transformer to strip them for EF Core. No per-member configuration needed.
 
-4. **`ProjectableOptionsBuilder` callback removed** — `UseProjectables(opts => { ... })` becomes `UseExpressives()` with no parameters. Global transformer configuration is done via `ExpressiveOptions.Default` if needed.
+4. **`ProjectableOptionsBuilder` replaced by `ExpressiveOptionsBuilder`** — `UseProjectables(opts => { ... })` becomes `UseExpressives()` (or `UseExpressives(opts => opts.AddPlugin(...))` for plugin registration). The callback API is simpler — `ExpressiveOptionsBuilder` only has `AddPlugin` for registering `IExpressivePlugin` instances; there is no `CompatibilityMode` or `NullConditionalRewriteSupport` configuration.
 
 5. **`UseMemberBody` property removed** — Replaced by `[ExpressiveFor]` from the `ExpressiveSharp.Mapping` namespace. See [Migrating `UseMemberBody`](#migrating-usememberbody).
 
 6. **`CompatibilityMode` removed** — ExpressiveSharp always uses the full query-compiler-decoration approach. The `Limited` compatibility mode does not exist.
 
-7. **`AllowBlockBody` property removed** — Block bodies are always supported. `UseExpressives()` globally registers `FlattenBlockExpressions` for EF Core.
+7. **`AllowBlockBody` property retained (opt-in)** — Block bodies require `AllowBlockBody = true` on individual `[Expressive]`/`[ExpressiveFor]` attributes, or the MSBuild property `Expressive_AllowBlockBody` set to `true` globally. `UseExpressives()` registers `FlattenBlockExpressions` to flatten block expressions for EF Core at runtime.
 
 8. **MSBuild properties `Projectables_*` removed** — Remove any `Projectables_NullConditionalRewriteSupport`, `Projectables_ExpandEnumMethods`, or `Projectables_AllowBlockBody` properties from your `.csproj` or `Directory.Build.props`.
 
@@ -219,7 +226,7 @@ The `InterceptorsNamespaces` MSBuild property needed for method interceptors is 
 |---|---|---|
 | Attribute | `[Projectable]` | `[Expressive]` |
 | Expression-bodied properties/methods | Yes | Yes |
-| Block-bodied methods | Opt-in (`AllowBlockBody = true`) | Always supported |
+| Block-bodied methods | Opt-in (`AllowBlockBody = true`) | Opt-in (`AllowBlockBody = true`, or MSBuild `Expressive_AllowBlockBody`) |
 | Null-conditional `?.` | `NullConditionalRewriteSupport` enum | Always emitted; `UseExpressives()` strips for EF Core |
 | Switch expressions | No | Yes |
 | Pattern matching | No | Yes (constant, type, relational, logical, property, positional) |
