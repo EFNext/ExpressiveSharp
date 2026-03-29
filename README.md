@@ -3,7 +3,7 @@
 [![CI](https://github.com/EFNext/ExpressiveSharp/actions/workflows/ci.yml/badge.svg)](https://github.com/EFNext/ExpressiveSharp/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/ExpressiveSharp.svg)](https://www.nuget.org/packages/ExpressiveSharp)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/ExpressiveSharp.svg)](https://www.nuget.org/packages/ExpressiveSharp)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%2010.0-purple)](https://dotnet.microsoft.com)
 [![GitHub Stars](https://img.shields.io/github/stars/EFNext/ExpressiveSharp)](https://github.com/EFNext/ExpressiveSharp/stargazers)
 [![GitHub Issues](https://img.shields.io/github/issues/EFNext/ExpressiveSharp)](https://github.com/EFNext/ExpressiveSharp/issues)
@@ -56,7 +56,7 @@ var results = db.Orders
     .ToList();
 ```
 
-Generated SQL (SQLite):
+Generated SQL (SQLite — other providers produce equivalent dialect-specific SQL):
 
 ```sql
 SELECT "o"."Id",
@@ -80,6 +80,8 @@ dotnet add package ExpressiveSharp
 dotnet add package ExpressiveSharp.EntityFrameworkCore
 ```
 
+See the [BasicSample](samples/BasicSample) and [EFCoreSample](samples/EFCoreSample) projects for runnable examples.
+
 ### Which API Should I Use?
 
 Mark computed properties and methods with [`[Expressive]`](#expressive-attribute) to generate companion expression trees. Then choose how to wire them into your queries:
@@ -87,7 +89,7 @@ Mark computed properties and methods with [`[Expressive]`](#expressive-attribute
 | Scenario | API |
 |---|---|
 | **EF Core** — modern syntax + `[Expressive]` expansion on `DbSet` | [`ExpressiveDbSet<T>`](#ef-core-integration) (or [`UseExpressives()`](#ef-core-integration) for global `[Expressive]` expansion) |
-| **Any `IQueryable`** — modern syntax + `[Expressive]` expansion | [`.WithExpressionRewrite()`](#irewritablequeryt) |
+| **Any `IQueryable`** — modern syntax + `[Expressive]` expansion | [`.WithExpressionRewrite()`](#irewritablequeryt--modern-syntax-on-any-iqueryable) |
 | **EF Core** — SQL window functions (ROW_NUMBER, RANK, etc.) | [`WindowFunction.*`](#window-functions-sql) (install `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions`) |
 | **Advanced** — build an `Expression<T>` inline, no attribute needed | [`ExpressionPolyfill.Create`](#expressionpolyfillcreate) |
 | **Advanced** — expand `[Expressive]` members in an existing expression tree | [`.ExpandExpressives()`](#expressive-attribute) |
@@ -118,7 +120,7 @@ public class Order
         _ => "Budget",
     };
 
-    // Block bodies are opt-in and experimental
+    // Block bodies are opt-in and experimental (per-member or globally via MSBuild)
     [Expressive(AllowBlockBody = true)]
     public string GetCategory()
     {
@@ -148,7 +150,7 @@ var expanded = expr.ExpandExpressives();
 // expanded body is: o.Price * o.Quantity (translatable by EF Core / other providers)
 ```
 
-### `IRewritableQueryable<T>`
+### `IRewritableQueryable<T>` — Modern Syntax on Any `IQueryable`
 
 Wrap any `IQueryable<T>` to use modern syntax directly in LINQ chains:
 
@@ -164,6 +166,8 @@ var results = queryable
 The source generator intercepts these calls at compile time and rewrites them to use proper expression trees — no runtime overhead.
 
 Most common `Queryable` methods are supported — filtering (`Where`, `Any`, `All`), projection (`Select`, `SelectMany`), ordering (`OrderBy`, `ThenBy`), grouping (`GroupBy`), joins (`Join`, `GroupJoin`, `Zip`), aggregation (`Sum`, `Average`, `Min`, `Max`, `Count`), element access (`First`, `Single`, `Last` and their `OrDefault` variants), set operations (`ExceptBy`, `IntersectBy`, `UnionBy`, `DistinctBy`), and more. Non-lambda operators like `Take`, `Skip`, `Distinct`, and `Reverse` preserve the `IRewritableQueryable<T>` chain. Comparer overloads (`IEqualityComparer<T>`, `IComparer<T>`) are also supported.
+
+On .NET 10+, additional methods are available: `LeftJoin`, `RightJoin`, `CountBy`, `AggregateBy`, and `Index`.
 
 ### `ExpressionPolyfill.Create`
 
@@ -282,6 +286,8 @@ Build window specifications with the fluent API:
 | `Window.PartitionBy(expr)` | `PARTITION BY expr` |
 | `.ThenBy(expr)` / `.ThenByDescending(expr)` | Additional ordering columns |
 
+Window functions are supported across SQLite, SQL Server, PostgreSQL, MySQL, and Oracle.
+
 ## Supported C# Features
 
 ### Expression-Level
@@ -302,6 +308,7 @@ Build window specifications with the fluent API:
 | Collection expressions (`[1, 2, 3]`, `[..items]`) | Supported | |
 | Dictionary indexer initializers | Supported | |
 | `this`/`base` references | Supported | |
+| Checked arithmetic (`checked(...)`) | Supported | |
 
 ### Block-Body
 
@@ -448,6 +455,68 @@ static MyDto Create(int id, string name) => new MyDto { Id = id, Name = name };
 ```
 
 > **Note:** If a member already has `[Expressive]`, adding `[ExpressiveFor]` targeting it is a compile error (EXP0019). `[ExpressiveFor]` is for members that *don't* have `[Expressive]`.
+
+## Configuration
+
+### `Expressive_AllowBlockBody` MSBuild Property
+
+Instead of opting in to block bodies per-member, you can enable them globally for a project:
+
+```xml
+<PropertyGroup>
+    <Expressive_AllowBlockBody>true</Expressive_AllowBlockBody>
+</PropertyGroup>
+```
+
+This is equivalent to setting `AllowBlockBody = true` on every `[Expressive]` member.
+
+### Global Transformers
+
+Register transformers globally so all `ExpandExpressives()` calls apply them without explicit parameters:
+
+```csharp
+ExpressiveOptions.Default.AddTransformers(new RemoveNullConditionalPatterns());
+
+// All subsequent ExpandExpressives() calls use this transformer
+expr.ExpandExpressives(); // RemoveNullConditionalPatterns applied automatically
+```
+
+### Plugin Architecture (Advanced)
+
+Create custom EF Core integrations by implementing `IExpressivePlugin`:
+
+```csharp
+public class MyPlugin : IExpressivePlugin
+{
+    public void ApplyServices(IServiceCollection services)
+    {
+        // Register custom EF Core services
+    }
+
+    public IExpressionTreeTransformer[] GetTransformers()
+        => [new MyCustomTransformer()];
+}
+
+// Register during setup
+options.UseExpressives(o => o.AddPlugin(new MyPlugin()));
+```
+
+The built-in `RelationalExtensions` package uses this plugin architecture.
+
+## Diagnostics
+
+Common diagnostic codes emitted by the source generator:
+
+| Code | Severity | Description |
+|------|----------|-------------|
+| EXP0001 | Error | Member must have a body (expression-bodied or block) |
+| EXP0004 | Error | Block body requires `AllowBlockBody = true` |
+| EXP0005 | Error | Side effects detected in block body |
+| EXP0008 | Warning | Unsupported operation — default value substituted |
+| EXP0014 | Error | `[ExpressiveFor]` target type not found |
+| EXP0015 | Error | `[ExpressiveFor]` target member not found |
+| EXP0019 | Error | `[ExpressiveFor]` conflicts with existing `[Expressive]` |
+| EXP0020 | Error | Duplicate `[ExpressiveFor]` mapping |
 
 ## How It Works
 
