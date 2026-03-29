@@ -289,8 +289,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         var elementType = rewritableInterface.TypeArguments[0];
         if (elementType is not INamedTypeSymbol elementSymbol)
             return null; // Skip when T is itself a type parameter
-        if (elementSymbol.IsAnonymousType)
-            return null; // Anonymous element types can't be named in the interceptor body
+        var isAnonElement = elementSymbol.IsAnonymousType;
 
         var elementFqn = elementType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         var methodName = ma.Name.Identifier.Text;
@@ -408,7 +407,9 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         if (lambda is SimpleLambdaExpressionSyntax simple)
         {
             var paramSymbol = model.GetDeclaredSymbol(simple.Parameter);
-            var paramTypeFqn = elementSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            var paramTypeFqn = (typeAliases is not null && typeAliases.TryGetValue(elementSymbol, out var elemAlias))
+                ? elemAlias
+                : elementSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             emitterParams.Add(new Emitter.EmitterParameter(
                 simple.Parameter.Identifier.Text, paramTypeFqn,
                 symbol: paramSymbol as IParameterSymbol));
@@ -418,7 +419,11 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             foreach (var param in parens.ParameterList.Parameters)
             {
                 var paramSymbol = model.GetDeclaredSymbol(param) as IParameterSymbol;
-                var paramTypeFqn = paramSymbol?.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) ?? "object";
+                var paramTypeFqn = paramSymbol?.Type is not null
+                    ? (typeAliases is not null && typeAliases.TryGetValue(paramSymbol.Type, out var paramAlias)
+                        ? paramAlias
+                        : paramSymbol.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
+                    : "object";
                 emitterParams.Add(new Emitter.EmitterParameter(
                     param.Identifier.Text, paramTypeFqn, symbol: paramSymbol));
             }
@@ -478,25 +483,54 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     private static string? EmitWhere(
         InvocationExpressionSyntax inv, SemanticModel model,
         SourceProductionContext spc, string interceptAttr, int idx,
-        INamedTypeSymbol elemSym, string elemFqn, 
+        INamedTypeSymbol elemSym, string elemFqn,
         ExpressiveGlobalOptions globalOptions, List<string> allStaticFields)
     {
         if (inv.ArgumentList.Arguments[0].Expression is not LambdaExpressionSyntax lam) return null;
-        var delegateFqn = $"global::System.Func<{elemFqn}, bool>";
-        var emitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, delegateFqn, fieldPrefix: $"i{idx}_");
-        if (emitResult is null) return null;
-        allStaticFields.AddRange(emitResult.StaticFields);
+
+        if (!elemSym.IsAnonymousType)
+        {
+            var delegateFqn = $"global::System.Func<{elemFqn}, bool>";
+            var emitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, delegateFqn, fieldPrefix: $"i{idx}_");
+            if (emitResult is null) return null;
+            allStaticFields.AddRange(emitResult.StaticFields);
+
+            return $$"""
+                    {{interceptAttr}}
+                    internal static global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> {{MethodId("Where", idx)}}(
+                        this global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> source,
+                        global::System.Func<{{elemFqn}}, bool> _)
+                    {
+            {{emitResult.Body}}            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+                            global::System.Linq.Queryable.Where(
+                                (global::System.Linq.IQueryable<{{elemFqn}}>)source,
+                                __lambda));
+                    }
+
+            """;
+        }
+
+        // Anonymous element type — use generic TElem parameter.
+        var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default)
+        {
+            { elemSym, "TElem" }
+        };
+        var anonDelegateFqn = "global::System.Func<TElem, bool>";
+        var anonEmitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, anonDelegateFqn, fieldPrefix: $"i{idx}_", typeAliases: typeAliases);
+        if (anonEmitResult is null) return null;
+        allStaticFields.AddRange(anonEmitResult.StaticFields);
 
         return $$"""
                 {{interceptAttr}}
-                internal static global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> {{MethodId("Where", idx)}}(
-                    this global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> source,
-                    global::System.Func<{{elemFqn}}, bool> _)
+                internal static global::ExpressiveSharp.IRewritableQueryable<TElem> {{MethodId("Where", idx)}}<TElem>(
+                    this global::ExpressiveSharp.IRewritableQueryable<TElem> source,
+                    global::System.Func<TElem, bool> _)
                 {
-        {{emitResult.Body}}            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
-                        global::System.Linq.Queryable.Where(
-                            (global::System.Linq.IQueryable<{{elemFqn}}>)source,
-                            __lambda));
+        {{anonEmitResult.Body}}            return (global::ExpressiveSharp.IRewritableQueryable<TElem>)(object)
+                        global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+                            global::System.Linq.Queryable.Where(
+                                (global::System.Linq.IQueryable<TElem>)(object)source,
+                                __lambda));
                 }
 
         """;
@@ -511,8 +545,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     {
         if (inv.ArgumentList.Arguments[0].Expression is not LambdaExpressionSyntax lam) return null;
 
-        var isAnon = IsAnonymousType(resultType);
-        if (!isAnon)
+        var hasAnon = IsAnonymousType(resultType) || elemSym.IsAnonymousType;
+        if (!hasAnon)
         {
             var resultFqn = resultType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             var delegateFqn = $"global::System.Func<{elemFqn}, int, {resultFqn}>";
@@ -535,25 +569,29 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             """;
         }
 
-        var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default)
-        {
-            { resultType, "TResult" }
-        };
-        var anonDelegateFqn = $"global::System.Func<{elemFqn}, int, TResult>";
+        var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default);
+        if (elemSym.IsAnonymousType)
+            typeAliases[elemSym] = "TElem";
+        if (IsAnonymousType(resultType))
+            typeAliases[resultType] = "TResult";
+
+        var elemRef = elemSym.IsAnonymousType ? "TElem" : elemFqn;
+        var resultRef = IsAnonymousType(resultType) ? "TResult" : resultType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var anonDelegateFqn = $"global::System.Func<{elemRef}, int, {resultRef}>";
         var anonEmitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, anonDelegateFqn, fieldPrefix: $"i{idx}_", typeAliases: typeAliases);
         if (anonEmitResult is null) return null;
         allStaticFields.AddRange(anonEmitResult.StaticFields);
 
         return $$"""
                 {{interceptAttr}}
-                internal static global::ExpressiveSharp.IRewritableQueryable<TResult> {{MethodId("Select", idx)}}<TElem, TResult>(
+                internal static global::ExpressiveSharp.IRewritableQueryable<{{resultRef}}> {{MethodId("Select", idx)}}<TElem, TResult>(
                     this global::ExpressiveSharp.IRewritableQueryable<TElem> source,
-                    global::System.Func<TElem, int, TResult> _)
+                    global::System.Func<TElem, int, {{resultRef}}> _)
                 {
-        {{anonEmitResult.Body}}            return (global::ExpressiveSharp.IRewritableQueryable<TResult>)(object)
+        {{anonEmitResult.Body}}            return (global::ExpressiveSharp.IRewritableQueryable<{{resultRef}}>)(object)
                         global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
                             global::System.Linq.Queryable.Select(
-                                (global::System.Linq.IQueryable<{{elemFqn}}>)(object)source,
+                                (global::System.Linq.IQueryable<{{elemRef}}>)(object)source,
                                 __lambda));
                 }
 
@@ -569,8 +607,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     {
         if (inv.ArgumentList.Arguments[0].Expression is not LambdaExpressionSyntax lam) return null;
 
-        var isAnon = IsAnonymousType(resultType);
-        if (!isAnon)
+        var hasAnon = IsAnonymousType(resultType) || elemSym.IsAnonymousType;
+        if (!hasAnon)
         {
             var resultFqn = resultType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             var delegateFqn = $"global::System.Func<{elemFqn}, {resultFqn}>";
@@ -593,27 +631,31 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             """;
         }
 
-        // Anonymous result type: must match arity 2 (T, TResult) of Select<T, TResult>.
-        // TElem is generic in signature but concrete in body via (object) cast.
-        var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default)
-        {
-            { resultType, "TResult" }
-        };
-        var anonDelegateFqn = $"global::System.Func<{elemFqn}, TResult>";
+        // Anonymous type(s): must match arity 2 (T, TResult) of Select<T, TResult>.
+        // TElem is generic in signature; concrete types use (object) cast.
+        var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default);
+        if (elemSym.IsAnonymousType)
+            typeAliases[elemSym] = "TElem";
+        if (IsAnonymousType(resultType))
+            typeAliases[resultType] = "TResult";
+
+        var elemRef = elemSym.IsAnonymousType ? "TElem" : elemFqn;
+        var resultRef = IsAnonymousType(resultType) ? "TResult" : resultType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var anonDelegateFqn = $"global::System.Func<{elemRef}, {resultRef}>";
         var anonEmitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, anonDelegateFqn, fieldPrefix: $"i{idx}_", typeAliases: typeAliases);
         if (anonEmitResult is null) return null;
         allStaticFields.AddRange(anonEmitResult.StaticFields);
 
         return $$"""
                 {{interceptAttr}}
-                internal static global::ExpressiveSharp.IRewritableQueryable<TResult> {{MethodId("Select", idx)}}<TElem, TResult>(
+                internal static global::ExpressiveSharp.IRewritableQueryable<{{resultRef}}> {{MethodId("Select", idx)}}<TElem, TResult>(
                     this global::ExpressiveSharp.IRewritableQueryable<TElem> source,
-                    global::System.Func<TElem, TResult> _)
+                    global::System.Func<TElem, {{resultRef}}> _)
                 {
-        {{anonEmitResult.Body}}            return (global::ExpressiveSharp.IRewritableQueryable<TResult>)(object)
+        {{anonEmitResult.Body}}            return (global::ExpressiveSharp.IRewritableQueryable<{{resultRef}}>)(object)
                         global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
                             global::System.Linq.Queryable.Select(
-                                (global::System.Linq.IQueryable<{{elemFqn}}>)(object)source,
+                                (global::System.Linq.IQueryable<{{elemRef}}>)(object)source,
                                 __lambda));
                 }
 
@@ -629,8 +671,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     {
         if (inv.ArgumentList.Arguments[0].Expression is not LambdaExpressionSyntax lam) return null;
 
-        var isAnon = IsAnonymousType(resultType);
-        if (!isAnon)
+        var hasAnon = IsAnonymousType(resultType) || elemSym.IsAnonymousType;
+        if (!hasAnon)
         {
             var resultFqn = resultType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             var delegateFqn = $"global::System.Func<{elemFqn}, global::System.Collections.Generic.IEnumerable<{resultFqn}>>";
@@ -653,25 +695,29 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             """;
         }
 
-        var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default)
-        {
-            { resultType, "TResult" }
-        };
-        var anonDelegateFqn = $"global::System.Func<{elemFqn}, global::System.Collections.Generic.IEnumerable<TResult>>";
+        var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default);
+        if (elemSym.IsAnonymousType)
+            typeAliases[elemSym] = "TElem";
+        if (IsAnonymousType(resultType))
+            typeAliases[resultType] = "TResult";
+
+        var elemRef = elemSym.IsAnonymousType ? "TElem" : elemFqn;
+        var resultRef = IsAnonymousType(resultType) ? "TResult" : resultType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var anonDelegateFqn = $"global::System.Func<{elemRef}, global::System.Collections.Generic.IEnumerable<{resultRef}>>";
         var anonEmitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, anonDelegateFqn, fieldPrefix: $"i{idx}_", typeAliases: typeAliases);
         if (anonEmitResult is null) return null;
         allStaticFields.AddRange(anonEmitResult.StaticFields);
 
         return $$"""
                 {{interceptAttr}}
-                internal static global::ExpressiveSharp.IRewritableQueryable<TResult> {{MethodId("SelectMany", idx)}}<TElem, TResult>(
+                internal static global::ExpressiveSharp.IRewritableQueryable<{{resultRef}}> {{MethodId("SelectMany", idx)}}<TElem, TResult>(
                     this global::ExpressiveSharp.IRewritableQueryable<TElem> source,
-                    global::System.Func<TElem, global::System.Collections.Generic.IEnumerable<TResult>> _)
+                    global::System.Func<TElem, global::System.Collections.Generic.IEnumerable<{{resultRef}}>> _)
                 {
-        {{anonEmitResult.Body}}            return (global::ExpressiveSharp.IRewritableQueryable<TResult>)(object)
+        {{anonEmitResult.Body}}            return (global::ExpressiveSharp.IRewritableQueryable<{{resultRef}}>)(object)
                         global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
                             global::System.Linq.Queryable.SelectMany(
-                                (global::System.Linq.IQueryable<{{elemFqn}}>)(object)source,
+                                (global::System.Linq.IQueryable<{{elemRef}}>)(object)source,
                                 __lambda));
                 }
 
@@ -691,7 +737,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         if (inv.ArgumentList.Arguments[1].Expression is not LambdaExpressionSyntax lam2) return null;
 
         var collFqn = collType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        var hasAnon = IsAnonymousType(collType) || IsAnonymousType(resultType);
+        var hasAnon = IsAnonymousType(collType) || IsAnonymousType(resultType) || elemSym.IsAnonymousType;
         if (!hasAnon)
         {
             var resultFqn = resultType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
@@ -724,19 +770,22 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
         // Arity 3: <TElem, TCollection, TResult>. All become generic to match SelectMany<T, TCollection, TResult>.
         var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default);
+        if (elemSym.IsAnonymousType)
+            typeAliases[elemSym] = "TElem";
         if (IsAnonymousType(collType))
             typeAliases[collType] = "TCollection";
         if (IsAnonymousType(resultType))
             typeAliases[resultType] = "TResult";
 
+        var elemRef = elemSym.IsAnonymousType ? "TElem" : elemFqn;
         var collRef = IsAnonymousType(collType) ? "TCollection" : collFqn;
-        var anonDelegateFqn1 = $"global::System.Func<{elemFqn}, global::System.Collections.Generic.IEnumerable<{collRef}>>";
+        var anonDelegateFqn1 = $"global::System.Func<{elemRef}, global::System.Collections.Generic.IEnumerable<{collRef}>>";
         var anonEmitResult1 = EmitLambdaBody(lam1, elemSym, model, spc, globalOptions, anonDelegateFqn1, "__lambda1", fieldPrefix: $"i{idx}a_", typeAliases: typeAliases);
         if (anonEmitResult1 is null) return null;
         allStaticFields.AddRange(anonEmitResult1.StaticFields);
 
         var resultRef = IsAnonymousType(resultType) ? "TResult" : resultType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        var anonDelegateFqn2 = $"global::System.Func<{elemFqn}, {collRef}, {resultRef}>";
+        var anonDelegateFqn2 = $"global::System.Func<{elemRef}, {collRef}, {resultRef}>";
         var anonEmitResult2 = EmitLambdaBody(lam2, elemSym, model, spc, globalOptions, anonDelegateFqn2, "__lambda2", fieldPrefix: $"i{idx}b_", typeAliases: typeAliases);
         if (anonEmitResult2 is null) return null;
         allStaticFields.AddRange(anonEmitResult2.StaticFields);
@@ -751,7 +800,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         {{anonEmitResult1.Body}}{{anonEmitResult2.Body}}            return (global::ExpressiveSharp.IRewritableQueryable<TResult>)(object)
                         global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
                             global::System.Linq.Queryable.SelectMany(
-                                (global::System.Linq.IQueryable<{{elemFqn}}>)(object)source,
+                                (global::System.Linq.IQueryable<{{elemRef}}>)(object)source,
                                 __lambda1,
                                 __lambda2));
                 }
@@ -768,15 +817,15 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     {
         if (inv.ArgumentList.Arguments[0].Expression is not LambdaExpressionSyntax lam) return null;
 
-        var isAnonKey = IsAnonymousType(keyType);
+        var hasAnon = IsAnonymousType(keyType) || elemSym.IsAnonymousType;
 
-        // ThenBy/ThenByDescending require IOrderedQueryable<T>; wrapper implements it.
-        var castFqn = ordered
-            ? $"global::System.Linq.IOrderedQueryable<{elemFqn}>"
-            : $"global::System.Linq.IQueryable<{elemFqn}>";
-
-        if (!isAnonKey)
+        if (!hasAnon)
         {
+            // ThenBy/ThenByDescending require IOrderedQueryable<T>; wrapper implements it.
+            var castFqn = ordered
+                ? $"global::System.Linq.IOrderedQueryable<{elemFqn}>"
+                : $"global::System.Linq.IQueryable<{elemFqn}>";
+
             var keyFqn = keyType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             var delegateFqn = $"global::System.Func<{elemFqn}, {keyFqn}>";
             var emitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, delegateFqn, fieldPrefix: $"i{idx}_");
@@ -798,12 +847,20 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             """;
         }
 
-        // Arity 2: <TElem, TKey>. Return type stays concrete (element type).
-        var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default)
-        {
-            { keyType, "TKey" }
-        };
-        var anonDelegateFqn = $"global::System.Func<{elemFqn}, TKey>";
+        // Arity 2: <TElem, TKey>. Generic path for anonymous types.
+        var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default);
+        if (elemSym.IsAnonymousType)
+            typeAliases[elemSym] = "TElem";
+        if (IsAnonymousType(keyType))
+            typeAliases[keyType] = "TKey";
+
+        var elemRef = elemSym.IsAnonymousType ? "TElem" : elemFqn;
+        var keyRef = IsAnonymousType(keyType) ? "TKey" : keyType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var anonCastFqn = ordered
+            ? $"global::System.Linq.IOrderedQueryable<{elemRef}>"
+            : $"global::System.Linq.IQueryable<{elemRef}>";
+
+        var anonDelegateFqn = $"global::System.Func<{elemRef}, {keyRef}>";
         var anonEmitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, anonDelegateFqn, fieldPrefix: $"i{idx}_", typeAliases: typeAliases);
         if (anonEmitResult is null) return null;
         allStaticFields.AddRange(anonEmitResult.StaticFields);
@@ -817,7 +874,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         {{anonEmitResult.Body}}            return (global::ExpressiveSharp.IRewritableQueryable<TElem>)(object)
                         global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
                             global::System.Linq.Queryable.{{methodName}}(
-                                ({{castFqn}})(object)source,
+                                ({{anonCastFqn}})(object)source,
                                 __lambda));
                 }
 
@@ -833,8 +890,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     {
         if (inv.ArgumentList.Arguments[0].Expression is not LambdaExpressionSyntax lam) return null;
 
-        var isAnonKey = IsAnonymousType(keyType);
-        if (!isAnonKey)
+        var hasAnon = IsAnonymousType(keyType) || elemSym.IsAnonymousType;
+        if (!hasAnon)
         {
             var keyFqn = keyType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             var groupingFqn = $"global::System.Linq.IGrouping<{keyFqn}, {elemFqn}>";
@@ -859,25 +916,29 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         }
 
         // Arity 2: <TElem, TKey>. Return type is IGrouping<TKey, TElem>.
-        var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default)
-        {
-            { keyType, "TKey" }
-        };
-        var anonDelegateFqn = $"global::System.Func<{elemFqn}, TKey>";
+        var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default);
+        if (elemSym.IsAnonymousType)
+            typeAliases[elemSym] = "TElem";
+        if (IsAnonymousType(keyType))
+            typeAliases[keyType] = "TKey";
+
+        var elemRef = elemSym.IsAnonymousType ? "TElem" : elemFqn;
+        var keyRef = IsAnonymousType(keyType) ? "TKey" : keyType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var anonDelegateFqn = $"global::System.Func<{elemRef}, {keyRef}>";
         var anonEmitResult = EmitLambdaBody(lam, elemSym, model, spc, globalOptions, anonDelegateFqn, fieldPrefix: $"i{idx}_", typeAliases: typeAliases);
         if (anonEmitResult is null) return null;
         allStaticFields.AddRange(anonEmitResult.StaticFields);
 
         return $$"""
                 {{interceptAttr}}
-                internal static global::ExpressiveSharp.IRewritableQueryable<global::System.Linq.IGrouping<TKey, TElem>> {{MethodId("GroupBy", idx)}}<TElem, TKey>(
+                internal static global::ExpressiveSharp.IRewritableQueryable<global::System.Linq.IGrouping<{{keyRef}}, TElem>> {{MethodId("GroupBy", idx)}}<TElem, TKey>(
                     this global::ExpressiveSharp.IRewritableQueryable<TElem> source,
-                    global::System.Func<TElem, TKey> _)
+                    global::System.Func<TElem, {{keyRef}}> _)
                 {
-        {{anonEmitResult.Body}}            return (global::ExpressiveSharp.IRewritableQueryable<global::System.Linq.IGrouping<TKey, TElem>>)(object)
+        {{anonEmitResult.Body}}            return (global::ExpressiveSharp.IRewritableQueryable<global::System.Linq.IGrouping<{{keyRef}}, TElem>>)(object)
                         global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
                             global::System.Linq.Queryable.GroupBy(
-                                (global::System.Linq.IQueryable<{{elemFqn}}>)(object)source,
+                                (global::System.Linq.IQueryable<{{elemRef}}>)(object)source,
                                 __lambda));
                 }
 
@@ -904,7 +965,6 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
         if (typeArgs.Length == 3)
         {
-            // Two lambdas at [0] and [1]
             var keyFqn = typeArgs[1].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             var thirdFqn = typeArgs[2].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
@@ -913,35 +973,105 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             var secondFuncType = (INamedTypeSymbol)methodSym.Parameters[1].Type;
             var isElementSelector = secondFuncType.TypeArguments.Length == 2; // Func<T, TElement>
 
-            var delegateFqn1 = $"global::System.Func<{elemFqn}, {keyFqn}>";
-            var emitResult1 = EmitLambdaBody(lam1, elemSym, model, spc, globalOptions, delegateFqn1, "__lambda1", fieldPrefix: $"i{idx}a_");
-            if (emitResult1 is null) return null;
-            allStaticFields.AddRange(emitResult1.StaticFields);
+            var hasAnon = elemSym.IsAnonymousType || IsAnonymousType(typeArgs[1]) || IsAnonymousType(typeArgs[2]);
+            if (!hasAnon)
+            {
+                var delegateFqn1 = $"global::System.Func<{elemFqn}, {keyFqn}>";
+                var emitResult1 = EmitLambdaBody(lam1, elemSym, model, spc, globalOptions, delegateFqn1, "__lambda1", fieldPrefix: $"i{idx}a_");
+                if (emitResult1 is null) return null;
+                allStaticFields.AddRange(emitResult1.StaticFields);
 
-            string delegateFqn2;
+                string delegateFqn2;
+                if (isElementSelector)
+                    delegateFqn2 = $"global::System.Func<{elemFqn}, {thirdFqn}>";
+                else
+                    delegateFqn2 = $"global::System.Func<{keyFqn}, global::System.Collections.Generic.IEnumerable<{elemFqn}>, {thirdFqn}>";
+
+                var emitResult2 = EmitLambdaBody(lam2, elemSym, model, spc, globalOptions, delegateFqn2, "__lambda2", fieldPrefix: $"i{idx}b_");
+                if (emitResult2 is null) return null;
+                allStaticFields.AddRange(emitResult2.StaticFields);
+
+                if (isElementSelector)
+                {
+                    return $$"""
+                            {{interceptAttr}}
+                            internal static global::ExpressiveSharp.IRewritableQueryable<global::System.Linq.IGrouping<{{keyFqn}}, {{thirdFqn}}>> {{MethodId("GroupBy", idx)}}(
+                                this global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> source,
+                                global::System.Func<{{elemFqn}}, {{keyFqn}}> _1,
+                                global::System.Func<{{elemFqn}}, {{thirdFqn}}> _2)
+                            {
+                    {{emitResult1.Body}}{{emitResult2.Body}}            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+                                    global::System.Linq.Queryable.GroupBy(
+                                        (global::System.Linq.IQueryable<{{elemFqn}}>)source,
+                                        __lambda1,
+                                        __lambda2));
+                            }
+
+                    """;
+                }
+                else
+                {
+                    return $$"""
+                            {{interceptAttr}}
+                            internal static global::ExpressiveSharp.IRewritableQueryable<{{thirdFqn}}> {{MethodId("GroupBy", idx)}}(
+                                this global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> source,
+                                global::System.Func<{{elemFqn}}, {{keyFqn}}> _1,
+                                global::System.Func<{{keyFqn}}, global::System.Collections.Generic.IEnumerable<{{elemFqn}}>, {{thirdFqn}}> _2)
+                            {
+                    {{emitResult1.Body}}{{emitResult2.Body}}            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+                                    global::System.Linq.Queryable.GroupBy(
+                                        (global::System.Linq.IQueryable<{{elemFqn}}>)source,
+                                        __lambda1,
+                                        __lambda2));
+                            }
+
+                    """;
+                }
+            }
+
+            // Anonymous path for arity 3.
+            var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default);
+            if (elemSym.IsAnonymousType)
+                typeAliases[elemSym] = "TElem";
+            if (IsAnonymousType(typeArgs[1]))
+                typeAliases[typeArgs[1]] = "TKey";
+            if (IsAnonymousType(typeArgs[2]))
+                typeAliases[typeArgs[2]] = "TThird";
+
+            var elemRef = elemSym.IsAnonymousType ? "TElem" : elemFqn;
+            var keyRef = IsAnonymousType(typeArgs[1]) ? "TKey" : keyFqn;
+            var thirdRef = IsAnonymousType(typeArgs[2]) ? "TThird" : thirdFqn;
+
+            var anonDelegateFqn1 = $"global::System.Func<{elemRef}, {keyRef}>";
+            var anonEmitResult1 = EmitLambdaBody(lam1, elemSym, model, spc, globalOptions, anonDelegateFqn1, "__lambda1", fieldPrefix: $"i{idx}a_", typeAliases: typeAliases);
+            if (anonEmitResult1 is null) return null;
+            allStaticFields.AddRange(anonEmitResult1.StaticFields);
+
+            string anonDelegateFqn2;
             if (isElementSelector)
-                delegateFqn2 = $"global::System.Func<{elemFqn}, {thirdFqn}>";
+                anonDelegateFqn2 = $"global::System.Func<{elemRef}, {thirdRef}>";
             else
-                delegateFqn2 = $"global::System.Func<{keyFqn}, global::System.Collections.Generic.IEnumerable<{elemFqn}>, {thirdFqn}>";
+                anonDelegateFqn2 = $"global::System.Func<{keyRef}, global::System.Collections.Generic.IEnumerable<{elemRef}>, {thirdRef}>";
 
-            var emitResult2 = EmitLambdaBody(lam2, elemSym, model, spc, globalOptions, delegateFqn2, "__lambda2", fieldPrefix: $"i{idx}b_");
-            if (emitResult2 is null) return null;
-            allStaticFields.AddRange(emitResult2.StaticFields);
+            var anonEmitResult2 = EmitLambdaBody(lam2, elemSym, model, spc, globalOptions, anonDelegateFqn2, "__lambda2", fieldPrefix: $"i{idx}b_", typeAliases: typeAliases);
+            if (anonEmitResult2 is null) return null;
+            allStaticFields.AddRange(anonEmitResult2.StaticFields);
 
             if (isElementSelector)
             {
                 return $$"""
                         {{interceptAttr}}
-                        internal static global::ExpressiveSharp.IRewritableQueryable<global::System.Linq.IGrouping<{{keyFqn}}, {{thirdFqn}}>> {{MethodId("GroupBy", idx)}}(
-                            this global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> source,
-                            global::System.Func<{{elemFqn}}, {{keyFqn}}> _1,
-                            global::System.Func<{{elemFqn}}, {{thirdFqn}}> _2)
+                        internal static global::ExpressiveSharp.IRewritableQueryable<global::System.Linq.IGrouping<{{keyRef}}, {{thirdRef}}>> {{MethodId("GroupBy", idx)}}<TElem, TKey, TThird>(
+                            this global::ExpressiveSharp.IRewritableQueryable<TElem> source,
+                            global::System.Func<TElem, {{keyRef}}> _1,
+                            global::System.Func<TElem, {{thirdRef}}> _2)
                         {
-                {{emitResult1.Body}}{{emitResult2.Body}}            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
-                                global::System.Linq.Queryable.GroupBy(
-                                    (global::System.Linq.IQueryable<{{elemFqn}}>)source,
-                                    __lambda1,
-                                    __lambda2));
+                {{anonEmitResult1.Body}}{{anonEmitResult2.Body}}            return (global::ExpressiveSharp.IRewritableQueryable<global::System.Linq.IGrouping<{{keyRef}}, {{thirdRef}}>>)(object)
+                                global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+                                    global::System.Linq.Queryable.GroupBy(
+                                        (global::System.Linq.IQueryable<{{elemRef}}>)(object)source,
+                                        __lambda1,
+                                        __lambda2));
                         }
 
                 """;
@@ -950,16 +1080,17 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             {
                 return $$"""
                         {{interceptAttr}}
-                        internal static global::ExpressiveSharp.IRewritableQueryable<{{thirdFqn}}> {{MethodId("GroupBy", idx)}}(
-                            this global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> source,
-                            global::System.Func<{{elemFqn}}, {{keyFqn}}> _1,
-                            global::System.Func<{{keyFqn}}, global::System.Collections.Generic.IEnumerable<{{elemFqn}}>, {{thirdFqn}}> _2)
+                        internal static global::ExpressiveSharp.IRewritableQueryable<{{thirdRef}}> {{MethodId("GroupBy", idx)}}<TElem, TKey, TThird>(
+                            this global::ExpressiveSharp.IRewritableQueryable<TElem> source,
+                            global::System.Func<TElem, {{keyRef}}> _1,
+                            global::System.Func<{{keyRef}}, global::System.Collections.Generic.IEnumerable<TElem>, {{thirdRef}}> _2)
                         {
-                {{emitResult1.Body}}{{emitResult2.Body}}            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
-                                global::System.Linq.Queryable.GroupBy(
-                                    (global::System.Linq.IQueryable<{{elemFqn}}>)source,
-                                    __lambda1,
-                                    __lambda2));
+                {{anonEmitResult1.Body}}{{anonEmitResult2.Body}}            return (global::ExpressiveSharp.IRewritableQueryable<{{thirdRef}}>)(object)
+                                global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+                                    global::System.Linq.Queryable.GroupBy(
+                                        (global::System.Linq.IQueryable<{{elemRef}}>)(object)source,
+                                        __lambda1,
+                                        __lambda2));
                         }
 
                 """;
@@ -976,35 +1107,89 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             var elemSelFqn = typeArgs[2].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             var resultFqn = typeArgs[3].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
-            var delegateFqn1 = $"global::System.Func<{elemFqn}, {keyFqn}>";
-            var emitResult1 = EmitLambdaBody(lam1, elemSym, model, spc, globalOptions, delegateFqn1, "__lambda1", fieldPrefix: $"i{idx}a_");
-            if (emitResult1 is null) return null;
-            allStaticFields.AddRange(emitResult1.StaticFields);
+            var hasAnon = elemSym.IsAnonymousType || IsAnonymousType(typeArgs[1]) || IsAnonymousType(typeArgs[2]) || IsAnonymousType(typeArgs[3]);
+            if (!hasAnon)
+            {
+                var delegateFqn1 = $"global::System.Func<{elemFqn}, {keyFqn}>";
+                var emitResult1 = EmitLambdaBody(lam1, elemSym, model, spc, globalOptions, delegateFqn1, "__lambda1", fieldPrefix: $"i{idx}a_");
+                if (emitResult1 is null) return null;
+                allStaticFields.AddRange(emitResult1.StaticFields);
 
-            var delegateFqn2 = $"global::System.Func<{elemFqn}, {elemSelFqn}>";
-            var emitResult2 = EmitLambdaBody(lam2, elemSym, model, spc, globalOptions, delegateFqn2, "__lambda2", fieldPrefix: $"i{idx}b_");
-            if (emitResult2 is null) return null;
-            allStaticFields.AddRange(emitResult2.StaticFields);
+                var delegateFqn2 = $"global::System.Func<{elemFqn}, {elemSelFqn}>";
+                var emitResult2 = EmitLambdaBody(lam2, elemSym, model, spc, globalOptions, delegateFqn2, "__lambda2", fieldPrefix: $"i{idx}b_");
+                if (emitResult2 is null) return null;
+                allStaticFields.AddRange(emitResult2.StaticFields);
 
-            var delegateFqn3 = $"global::System.Func<{keyFqn}, global::System.Collections.Generic.IEnumerable<{elemSelFqn}>, {resultFqn}>";
-            var emitResult3 = EmitLambdaBody(lam3, elemSym, model, spc, globalOptions, delegateFqn3, "__lambda3", fieldPrefix: $"i{idx}c_");
-            if (emitResult3 is null) return null;
-            allStaticFields.AddRange(emitResult3.StaticFields);
+                var delegateFqn3 = $"global::System.Func<{keyFqn}, global::System.Collections.Generic.IEnumerable<{elemSelFqn}>, {resultFqn}>";
+                var emitResult3 = EmitLambdaBody(lam3, elemSym, model, spc, globalOptions, delegateFqn3, "__lambda3", fieldPrefix: $"i{idx}c_");
+                if (emitResult3 is null) return null;
+                allStaticFields.AddRange(emitResult3.StaticFields);
+
+                return $$"""
+                        {{interceptAttr}}
+                        internal static global::ExpressiveSharp.IRewritableQueryable<{{resultFqn}}> {{MethodId("GroupBy", idx)}}(
+                            this global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> source,
+                            global::System.Func<{{elemFqn}}, {{keyFqn}}> _1,
+                            global::System.Func<{{elemFqn}}, {{elemSelFqn}}> _2,
+                            global::System.Func<{{keyFqn}}, global::System.Collections.Generic.IEnumerable<{{elemSelFqn}}>, {{resultFqn}}> _3)
+                        {
+                {{emitResult1.Body}}{{emitResult2.Body}}{{emitResult3.Body}}            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+                                global::System.Linq.Queryable.GroupBy(
+                                    (global::System.Linq.IQueryable<{{elemFqn}}>)source,
+                                    __lambda1,
+                                    __lambda2,
+                                    __lambda3));
+                        }
+
+                """;
+            }
+
+            // Anonymous path for arity 4.
+            var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default);
+            if (elemSym.IsAnonymousType)
+                typeAliases[elemSym] = "TElem";
+            if (IsAnonymousType(typeArgs[1]))
+                typeAliases[typeArgs[1]] = "TKey";
+            if (IsAnonymousType(typeArgs[2]))
+                typeAliases[typeArgs[2]] = "TElement";
+            if (IsAnonymousType(typeArgs[3]))
+                typeAliases[typeArgs[3]] = "TResult";
+
+            var elemRef = elemSym.IsAnonymousType ? "TElem" : elemFqn;
+            var keyRef = IsAnonymousType(typeArgs[1]) ? "TKey" : keyFqn;
+            var elemSelRef = IsAnonymousType(typeArgs[2]) ? "TElement" : elemSelFqn;
+            var resultRef = IsAnonymousType(typeArgs[3]) ? "TResult" : resultFqn;
+
+            var anonDelegateFqn1 = $"global::System.Func<{elemRef}, {keyRef}>";
+            var anonEmitResult1 = EmitLambdaBody(lam1, elemSym, model, spc, globalOptions, anonDelegateFqn1, "__lambda1", fieldPrefix: $"i{idx}a_", typeAliases: typeAliases);
+            if (anonEmitResult1 is null) return null;
+            allStaticFields.AddRange(anonEmitResult1.StaticFields);
+
+            var anonDelegateFqn2 = $"global::System.Func<{elemRef}, {elemSelRef}>";
+            var anonEmitResult2 = EmitLambdaBody(lam2, elemSym, model, spc, globalOptions, anonDelegateFqn2, "__lambda2", fieldPrefix: $"i{idx}b_", typeAliases: typeAliases);
+            if (anonEmitResult2 is null) return null;
+            allStaticFields.AddRange(anonEmitResult2.StaticFields);
+
+            var anonDelegateFqn3 = $"global::System.Func<{keyRef}, global::System.Collections.Generic.IEnumerable<{elemSelRef}>, {resultRef}>";
+            var anonEmitResult3 = EmitLambdaBody(lam3, elemSym, model, spc, globalOptions, anonDelegateFqn3, "__lambda3", fieldPrefix: $"i{idx}c_", typeAliases: typeAliases);
+            if (anonEmitResult3 is null) return null;
+            allStaticFields.AddRange(anonEmitResult3.StaticFields);
 
             return $$"""
                     {{interceptAttr}}
-                    internal static global::ExpressiveSharp.IRewritableQueryable<{{resultFqn}}> {{MethodId("GroupBy", idx)}}(
-                        this global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> source,
-                        global::System.Func<{{elemFqn}}, {{keyFqn}}> _1,
-                        global::System.Func<{{elemFqn}}, {{elemSelFqn}}> _2,
-                        global::System.Func<{{keyFqn}}, global::System.Collections.Generic.IEnumerable<{{elemSelFqn}}>, {{resultFqn}}> _3)
+                    internal static global::ExpressiveSharp.IRewritableQueryable<{{resultRef}}> {{MethodId("GroupBy", idx)}}<TElem, TKey, TElement, TResult>(
+                        this global::ExpressiveSharp.IRewritableQueryable<TElem> source,
+                        global::System.Func<TElem, {{keyRef}}> _1,
+                        global::System.Func<TElem, {{elemSelRef}}> _2,
+                        global::System.Func<{{keyRef}}, global::System.Collections.Generic.IEnumerable<{{elemSelRef}}>, {{resultRef}}> _3)
                     {
-            {{emitResult1.Body}}{{emitResult2.Body}}{{emitResult3.Body}}            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
-                            global::System.Linq.Queryable.GroupBy(
-                                (global::System.Linq.IQueryable<{{elemFqn}}>)source,
-                                __lambda1,
-                                __lambda2,
-                                __lambda3));
+            {{anonEmitResult1.Body}}{{anonEmitResult2.Body}}{{anonEmitResult3.Body}}            return (global::ExpressiveSharp.IRewritableQueryable<{{resultRef}}>)(object)
+                            global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+                                global::System.Linq.Queryable.GroupBy(
+                                    (global::System.Linq.IQueryable<{{elemRef}}>)(object)source,
+                                    __lambda1,
+                                    __lambda2,
+                                    __lambda3));
                     }
 
             """;
@@ -1037,45 +1222,105 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         var keyFqn = keyType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         var resultFqn = resultType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
-        // Lambda 1: outerKeySelector — Func<T, TKey>
-        var delegateFqn1 = $"global::System.Func<{elemFqn}, {keyFqn}>";
-        var emitResult1 = EmitLambdaBody(lam1, elemSym, model, spc, globalOptions, delegateFqn1, "__lambda1", fieldPrefix: $"i{idx}a_");
-        if (emitResult1 is null) return null;
-        allStaticFields.AddRange(emitResult1.StaticFields);
+        if (innerType is not INamedTypeSymbol innerSym) return null;
+
+        var hasAnon = IsAnonymousType(innerType) || IsAnonymousType(keyType) || IsAnonymousType(resultType)
+                      || elemSym.IsAnonymousType;
+
+        if (!hasAnon)
+        {
+            // Lambda 1: outerKeySelector — Func<T, TKey>
+            var delegateFqn1 = $"global::System.Func<{elemFqn}, {keyFqn}>";
+            var emitResult1 = EmitLambdaBody(lam1, elemSym, model, spc, globalOptions, delegateFqn1, "__lambda1", fieldPrefix: $"i{idx}a_");
+            if (emitResult1 is null) return null;
+            allStaticFields.AddRange(emitResult1.StaticFields);
+
+            // Lambda 2: innerKeySelector — Func<TInner, TKey>
+            var delegateFqn2 = $"global::System.Func<{innerFqn}, {keyFqn}>";
+            var emitResult2 = EmitLambdaBody(lam2, innerSym, model, spc, globalOptions, delegateFqn2, "__lambda2", fieldPrefix: $"i{idx}b_");
+            if (emitResult2 is null) return null;
+            allStaticFields.AddRange(emitResult2.StaticFields);
+
+            // Lambda 3: resultSelector — Func<T, TInner, TResult>
+            var resultSelectorParam = model.GetSymbolInfo(inv).Symbol is IMethodSymbol m && m.Parameters.Length > 3
+                ? m.Parameters[3].Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+                : $"global::System.Func<{elemFqn}, {innerFqn}, {resultFqn}>";
+            var emitResult3 = EmitLambdaBody(lam3, elemSym, model, spc, globalOptions, resultSelectorParam, "__lambda3", fieldPrefix: $"i{idx}c_");
+            if (emitResult3 is null) return null;
+            allStaticFields.AddRange(emitResult3.StaticFields);
+
+            return $$"""
+                    {{interceptAttr}}
+                    internal static global::ExpressiveSharp.IRewritableQueryable<{{resultFqn}}> {{MethodId(methodName, idx)}}(
+                        this global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> source,
+                        global::System.Collections.Generic.IEnumerable<{{innerFqn}}> inner,
+                        global::System.Func<{{elemFqn}}, {{keyFqn}}> _1,
+                        global::System.Func<{{innerFqn}}, {{keyFqn}}> _2,
+                        {{resultSelectorParam}} _3)
+                    {
+            {{emitResult1.Body}}{{emitResult2.Body}}{{emitResult3.Body}}            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+                            global::System.Linq.Queryable.{{methodName}}(
+                                (global::System.Linq.IQueryable<{{elemFqn}}>)source,
+                                inner,
+                                __lambda1,
+                                __lambda2,
+                                __lambda3));
+                    }
+
+            """;
+        }
+
+        // Anonymous path: use generic type parameters for ALL types.
+        // All four type args must use generic params so that the Queryable.Join call's
+        // type inference can reconcile the method's generic params with the lambda types.
+        var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default)
+        {
+            { elemSym, "TOuter" },
+            { innerType, "TInner" },
+            { keyType, "TKey" },
+            { resultType, "TResult" },
+        };
+
+        var elemRef = "TOuter";
+        var innerRef = "TInner";
+        var keyRef = "TKey";
+        var resultRef = "TResult";
+
+        // Lambda 1: outerKeySelector — Func<TOuter, TKey>
+        var anonDelegateFqn1 = $"global::System.Func<{elemRef}, {keyRef}>";
+        var anonEmitResult1 = EmitLambdaBody(lam1, elemSym, model, spc, globalOptions, anonDelegateFqn1, "__lambda1", fieldPrefix: $"i{idx}a_", typeAliases: typeAliases);
+        if (anonEmitResult1 is null) return null;
+        allStaticFields.AddRange(anonEmitResult1.StaticFields);
 
         // Lambda 2: innerKeySelector — Func<TInner, TKey>
-        // Note: element type for this lambda is TInner, not T
-        if (innerType is not INamedTypeSymbol innerSym) return null;
-        var delegateFqn2 = $"global::System.Func<{innerFqn}, {keyFqn}>";
-        var emitResult2 = EmitLambdaBody(lam2, innerSym, model, spc, globalOptions, delegateFqn2, "__lambda2", fieldPrefix: $"i{idx}b_");
-        if (emitResult2 is null) return null;
-        allStaticFields.AddRange(emitResult2.StaticFields);
+        var anonDelegateFqn2 = $"global::System.Func<{innerRef}, {keyRef}>";
+        var anonEmitResult2 = EmitLambdaBody(lam2, innerSym, model, spc, globalOptions, anonDelegateFqn2, "__lambda2", fieldPrefix: $"i{idx}b_", typeAliases: typeAliases);
+        if (anonEmitResult2 is null) return null;
+        allStaticFields.AddRange(anonEmitResult2.StaticFields);
 
-        // Lambda 3: resultSelector — Func<T, TInner, TResult>
-        // Use the stub's parameter type for the result selector delegate FQN.
-        var resultSelectorParam = model.GetSymbolInfo(inv).Symbol is IMethodSymbol m && m.Parameters.Length > 3
-            ? m.Parameters[3].Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
-            : $"global::System.Func<{elemFqn}, {innerFqn}, {resultFqn}>";
-        var emitResult3 = EmitLambdaBody(lam3, elemSym, model, spc, globalOptions, resultSelectorParam, "__lambda3", fieldPrefix: $"i{idx}c_");
-        if (emitResult3 is null) return null;
-        allStaticFields.AddRange(emitResult3.StaticFields);
+        // Lambda 3: resultSelector — Func<TOuter, TInner, TResult>
+        var anonResultSelectorFqn = $"global::System.Func<{elemRef}, {innerRef}, {resultRef}>";
+        var anonEmitResult3 = EmitLambdaBody(lam3, elemSym, model, spc, globalOptions, anonResultSelectorFqn, "__lambda3", fieldPrefix: $"i{idx}c_", typeAliases: typeAliases);
+        if (anonEmitResult3 is null) return null;
+        allStaticFields.AddRange(anonEmitResult3.StaticFields);
 
         return $$"""
                 {{interceptAttr}}
-                internal static global::ExpressiveSharp.IRewritableQueryable<{{resultFqn}}> {{MethodId(methodName, idx)}}(
-                    this global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> source,
-                    global::System.Collections.Generic.IEnumerable<{{innerFqn}}> inner,
-                    global::System.Func<{{elemFqn}}, {{keyFqn}}> _1,
-                    global::System.Func<{{innerFqn}}, {{keyFqn}}> _2,
-                    {{resultSelectorParam}} _3)
+                internal static global::ExpressiveSharp.IRewritableQueryable<{{resultRef}}> {{MethodId(methodName, idx)}}<TOuter, TInner, TKey, TResult>(
+                    this global::ExpressiveSharp.IRewritableQueryable<TOuter> source,
+                    global::System.Collections.Generic.IEnumerable<TInner> inner,
+                    global::System.Func<TOuter, TKey> _1,
+                    global::System.Func<TInner, TKey> _2,
+                    global::System.Func<TOuter, TInner, TResult> _3)
                 {
-        {{emitResult1.Body}}{{emitResult2.Body}}{{emitResult3.Body}}            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
-                        global::System.Linq.Queryable.{{methodName}}(
-                            (global::System.Linq.IQueryable<{{elemFqn}}>)source,
-                            inner,
-                            __lambda1,
-                            __lambda2,
-                            __lambda3));
+        {{anonEmitResult1.Body}}{{anonEmitResult2.Body}}{{anonEmitResult3.Body}}            return (global::ExpressiveSharp.IRewritableQueryable<{{resultRef}}>)(object)
+                        global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+                            global::System.Linq.Queryable.{{methodName}}(
+                                (global::System.Linq.IQueryable<{{elemRef}}>)(object)source,
+                                inner,
+                                __lambda1,
+                                __lambda2,
+                                __lambda3));
                 }
 
         """;
@@ -1118,7 +1363,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
         // Build the full Func<…> type string from the Func<> parameter.
         var funcTypeArgs = ((INamedTypeSymbol)method.Parameters[funcParamIndex].Type).TypeArguments;
-        var hasAnyAnon = funcTypeArgs.Any(t => IsAnonymousType(t));
+        var hasAnyAnon = funcTypeArgs.Any(t => IsAnonymousType(t)) || elemSym.IsAnonymousType;
 
         // Determine if the stub returns IRewritableQueryable<X> (queryable) or a scalar type.
         var isRewritableReturn = method.ReturnType is INamedTypeSymbol rqType
@@ -1252,11 +1497,18 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
         // For the anon branch, build type aliases and delegate type using generic param names.
         var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default);
+        if (elemSym.IsAnonymousType)
+            typeAliases[elemSym] = typeParamNames[0];
         for (int i = 0; i < methodTypeArgs.Length; i++)
         {
-            if (IsAnonymousType(methodTypeArgs[i]))
+            if (IsAnonymousType(methodTypeArgs[i]) && !typeAliases.ContainsKey(methodTypeArgs[i]))
                 typeAliases[methodTypeArgs[i]] = typeParamNames[i];
         }
+
+        // Recompute cast FQN using the generic T0 param for anonymous element types.
+        var anonCastFqn = isOrdered
+            ? $"global::System.Linq.IOrderedQueryable<{typeParamNames[0]}>"
+            : $"global::System.Linq.IQueryable<{typeParamNames[0]}>";
         var anonFuncFqn = "global::System.Func<" +
             string.Join(", ", funcTypeArgs.Select((t, i) =>
                 IsAnonymousType(t) ? funcArgStrings[i] : t.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))) + ">";
@@ -1297,7 +1549,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             {{anonEmitResult.Body}}            return (global::ExpressiveSharp.IRewritableQueryable<{{returnParamName}}>)(object)
                             global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
                                 {{targetTypeFqn}}.{{methodName}}(
-                                    ({{castFqn}})(object)source,
+                                    ({{anonCastFqn}})(object)source,
                                     {{anonQueryableArgList}}));
                     }
 
@@ -1312,7 +1564,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                     {{anonInterceptorParamList}})
                 {
         {{anonEmitResult.Body}}            return {{targetTypeFqn}}.{{methodName}}(
-                            ({{castFqn}})(object)source,
+                            ({{anonCastFqn}})(object)source,
                             {{anonQueryableArgList}});
                 }
 

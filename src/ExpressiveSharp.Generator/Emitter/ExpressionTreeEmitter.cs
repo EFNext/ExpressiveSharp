@@ -61,7 +61,7 @@ internal sealed class ExpressionTreeEmitter
     {
         _semanticModel = semanticModel;
         _context = context;
-        _fieldCache = new ReflectionFieldCache(fieldPrefix);
+        _fieldCache = new ReflectionFieldCache(fieldPrefix, _typeAliases);
         _varPrefix = varPrefix;
     }
 

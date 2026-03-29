@@ -16,17 +16,22 @@ internal sealed class ReflectionFieldCache
         SymbolDisplayFormat.FullyQualifiedFormat;
 
     private readonly Dictionary<string, string> _expressionsByKey = new();
+    private readonly Dictionary<ITypeSymbol, string> _typeAliases;
 
-    public ReflectionFieldCache(string prefix = "")
+    public ReflectionFieldCache(string prefix = "", Dictionary<ITypeSymbol, string>? typeAliases = null)
     {
+        _typeAliases = typeAliases ?? new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default);
     }
+
+    private string ResolveTypeFqn(ITypeSymbol type)
+        => _typeAliases.TryGetValue(type, out var alias) ? alias : type.ToDisplayString(_fullyQualifiedFormat);
 
     /// <summary>
     /// Returns an inline reflection expression for a <see cref="System.Reflection.PropertyInfo"/>.
     /// </summary>
     public string EnsurePropertyInfo(IPropertySymbol property)
     {
-        var typeFqn = property.ContainingType.ToDisplayString(_fullyQualifiedFormat);
+        var typeFqn = ResolveTypeFqn(property.ContainingType);
         var key = $"P:{typeFqn}.{property.Name}";
         if (_expressionsByKey.TryGetValue(key, out var cached))
             return cached;
@@ -41,7 +46,7 @@ internal sealed class ReflectionFieldCache
     /// </summary>
     public string EnsureFieldInfo(IFieldSymbol field)
     {
-        var typeFqn = field.ContainingType.ToDisplayString(_fullyQualifiedFormat);
+        var typeFqn = ResolveTypeFqn(field.ContainingType);
         var key = $"F:{typeFqn}.{field.Name}";
         if (_expressionsByKey.TryGetValue(key, out var cached))
             return cached;
@@ -59,9 +64,9 @@ internal sealed class ReflectionFieldCache
     /// </summary>
     public string EnsureMethodInfo(IMethodSymbol method)
     {
-        var typeFqn = method.ContainingType.ToDisplayString(_fullyQualifiedFormat);
+        var typeFqn = ResolveTypeFqn(method.ContainingType);
         var paramTypes = string.Join(", ", method.Parameters.Select(p =>
-            $"typeof({p.Type.ToDisplayString(_fullyQualifiedFormat)})"));
+            $"typeof({ResolveTypeFqn(p.Type)})"));
         var key = $"M:{typeFqn}.{method.Name}({paramTypes})";
         if (_expressionsByKey.TryGetValue(key, out var cached))
             return cached;
@@ -77,7 +82,7 @@ internal sealed class ReflectionFieldCache
             var genericArity = originalDef.TypeParameters.Length;
             var paramCount = originalDef.Parameters.Length;
             var typeArgs = string.Join(", ", method.TypeArguments.Select(t =>
-                $"typeof({t.ToDisplayString(_fullyQualifiedFormat)})"));
+                $"typeof({ResolveTypeFqn(t)})"));
             expr = $"global::System.Linq.Enumerable.First(global::System.Linq.Enumerable.Where(typeof({typeFqn}).GetMethods({flags}), m => m.Name == \"{method.Name}\" && m.IsGenericMethodDefinition && m.GetGenericArguments().Length == {genericArity} && m.GetParameters().Length == {paramCount})).MakeGenericMethod({typeArgs})";
         }
         else
@@ -94,9 +99,9 @@ internal sealed class ReflectionFieldCache
     /// </summary>
     public string EnsureConstructorInfo(IMethodSymbol constructor)
     {
-        var typeFqn = constructor.ContainingType.ToDisplayString(_fullyQualifiedFormat);
+        var typeFqn = ResolveTypeFqn(constructor.ContainingType);
         var paramTypes = string.Join(", ", constructor.Parameters.Select(p =>
-            $"typeof({p.Type.ToDisplayString(_fullyQualifiedFormat)})"));
+            $"typeof({ResolveTypeFqn(p.Type)})"));
         var key = $"C:{typeFqn}({paramTypes})";
         if (_expressionsByKey.TryGetValue(key, out var cached))
             return cached;
