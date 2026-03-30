@@ -14,7 +14,7 @@ This page explains why that gap exists, why it is unlikely to close through offi
 | 2010 | .NET 4.0 adds statement-level node types (Block, Loop, Try/Catch, Switch, Goto, Label, assignment) for DLR support. The C# compiler is never updated to emit them -- they remain a runtime-only API. |
 | 2015--2024 | C# adds `?.` (C# 6), pattern matching (C# 7), switch expressions (C# 8), tuples (C# 7), index/range (C# 8), records (C# 9), collection expressions (C# 12), and more. None work in expression tree lambdas. |
 | 2017 | The Roslyn compiler migration reveals deep compatibility issues with expression tree generation (more on this below). |
-| ~2020 | `System.Linq.Expressions` is [formally archived](https://github.com/dotnet/runtime/issues/31354) -- no feature contributions accepted, security fixes only. |
+| ~2020 | `System.Linq.Expressions` is [effectively archived](https://github.com/dotnet/runtime/blob/main/src/libraries/System.Linq.Expressions/README.md) -- no feature contributions accepted. Bug and regression fixes only. |
 | 2025 | A senior .NET team member [explains publicly](https://github.com/dotnet/csharplang/discussions/158#discussioncomment-11793200) why the team has not invested further in expression tree enhancements. |
 
 ## Why It Hasn't Been Fixed
@@ -106,7 +106,7 @@ Several approaches have been discussed in the [community](https://github.com/dot
 | Source generators + interceptors | Generate expression trees at compile time, bypassing the runtime API limitations | **This is the approach ExpressiveSharp takes.** |
 
 ::: warning
-`System.Linq.Expressions` is formally archived. The library accepts security fixes only -- no new features will be added. Any solution must work outside the runtime library.
+`System.Linq.Expressions` is [effectively archived](https://github.com/dotnet/runtime/blob/main/src/libraries/System.Linq.Expressions/README.md). The library accepts bug and regression fixes only -- no new features will be added. Any solution must work outside the runtime library.
 :::
 
 ## AOT and Accessibility Concerns
