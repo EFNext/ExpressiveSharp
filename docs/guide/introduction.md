@@ -14,7 +14,7 @@ You write a perfectly reasonable query and hit:
 error CS8072: An expression tree lambda may not contain a null propagating operator
 ```
 
-Expression trees (`Expression<Func<...>>`) only support a restricted subset of C#. There is no `?.`, no switch expressions, no pattern matching. You end up writing ugly ternary chains instead of the clean code you would write anywhere else.
+Expression trees (`Expression<Func<...>>`) only support a restricted subset of C#. There is no `?.`, no switch expressions, no pattern matching. You end up writing ugly ternary chains instead of the clean code you would write anywhere else. For the full story of why this restriction has persisted since 2007, see [The Expression Tree Problem](./expression-tree-problem).
 
 ### 2. Computed properties are opaque to LINQ providers
 

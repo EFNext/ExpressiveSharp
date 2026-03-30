@@ -10,6 +10,7 @@
     <Project Path="src/ExpressiveSharp.CodeFixers/ExpressiveSharp.CodeFixers.csproj" />
     <Project Path="src/ExpressiveSharp.EntityFrameworkCore.CodeFixers/ExpressiveSharp.EntityFrameworkCore.CodeFixers.csproj" />
     <Project Path="src/ExpressiveSharp.EntityFrameworkCore/ExpressiveSharp.EntityFrameworkCore.csproj" />
+    <Project Path="src/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions.csproj" />
     <Project Path="src/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.csproj" />
     <Project Path="src/ExpressiveSharp.Generator/ExpressiveSharp.Generator.csproj" />
     <Project Path="src/ExpressiveSharp/ExpressiveSharp.csproj" />

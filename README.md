@@ -552,7 +552,7 @@ No. The core `ExpressiveSharp` package works with any LINQ provider or standalon
 
 ### Coming from EntityFrameworkCore.Projectables?
 
-ExpressiveSharp is its spiritual successor. See the [Migration Guide](docs/migration-from-projectables.md) for a step-by-step walkthrough including automated code fixers.
+ExpressiveSharp is its spiritual successor. See the [Migration Guide](docs/guide/migration-from-projectables.md) for a step-by-step walkthrough including automated code fixers.
 
 Key improvements: broader C# syntax support (switch expressions, pattern matching, string interpolation, tuples), customizable transformer pipeline, inline expression creation via `ExpressionPolyfill.Create`, modern syntax in LINQ chains via `IRewritableQueryable<T>`, and no EF Core coupling.
 
@@ -568,8 +568,8 @@ Key improvements: broader C# syntax support (switch expressions, pattern matchin
 
 Development docs for contributors:
 
-- [Testing Strategy](docs/testing-strategy.md) — snapshot tests, functional tests, and test consumers
-- [IOperation to Expression Mapping](docs/ioperation-to-expression-mapping.md) — reference table for the expression tree emitter
+- [Testing Strategy](docs/advanced/testing-strategy.md) — snapshot tests, functional tests, and test consumers
+- [IOperation to Expression Mapping](docs/advanced/ioperation-mapping.md) — reference table for the expression tree emitter
 
 ```bash
 dotnet build    # Build all projects

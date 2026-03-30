@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ExpressiveSharp.EntityFrameworkCore\ExpressiveSharp.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions.csproj" />
     <ProjectReference Include="..\ExpressiveSharp\ExpressiveSharp.csproj" />
   </ItemGroup>
 

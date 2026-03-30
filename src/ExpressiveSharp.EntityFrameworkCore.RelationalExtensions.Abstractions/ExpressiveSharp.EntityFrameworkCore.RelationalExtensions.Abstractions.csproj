@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Pure marker types for SQL window functions (ROW_NUMBER, RANK, DENSE_RANK, NTILE) with no EF Core dependency. Pair with ExpressiveSharp.EntityFrameworkCore.RelationalExtensions for EF Core SQL translation.</Description>
+  </PropertyGroup>
+
+</Project>

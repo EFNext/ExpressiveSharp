@@ -74,10 +74,16 @@ ExpressiveSharp.EntityFrameworkCore (net8.0;net10.0)
   └── Provides: ExpressiveDbSet<T>, IIncludableRewritableQueryable<T,P>,
       chain-continuity stubs, async lambda stubs with [PolyfillTarget]
 
+ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions (net8.0;net10.0)
+  └── no external deps
+  Provides: Pure marker types for window functions (WindowFunction, Window,
+      OrderedWindowDefinition, PartitionedWindowDefinition) — no EF Core dependency
+
 ExpressiveSharp.EntityFrameworkCore.RelationalExtensions (net8.0;net10.0, experimental)
   ├── ExpressiveSharp.EntityFrameworkCore
+  ├── ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions
   ├── EF Core Relational 8.0.25 / 10.0.0
-  └── Provides: Window functions (ROW_NUMBER, RANK, DENSE_RANK, NTILE),
+  └── Provides: Window function SQL translation (ROW_NUMBER, RANK, DENSE_RANK, NTILE),
       indexed Select, activated via UseExpressives(o => o.UseRelationalExtensions())
 
 ExpressiveSharp.EntityFrameworkCore.CodeFixers (Roslyn analyzer, netstandard2.0)

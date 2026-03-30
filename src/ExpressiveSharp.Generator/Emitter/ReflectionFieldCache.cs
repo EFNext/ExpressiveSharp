@@ -52,8 +52,6 @@ internal sealed class ReflectionFieldCache
     public string EnsureMethodInfo(IMethodSymbol method)
     {
         var typeFqn = ResolveTypeFqn(method.ContainingType);
-        var paramTypes = string.Join(", ", method.Parameters.Select(p =>
-            $"typeof({ResolveTypeFqn(p.Type)})"));
 
         var flags = method.IsStatic
             ? "global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static"
@@ -68,8 +66,12 @@ internal sealed class ReflectionFieldCache
                 $"typeof({ResolveTypeFqn(t)})"));
             return $"global::System.Linq.Enumerable.First(global::System.Linq.Enumerable.Where(typeof({typeFqn}).GetMethods({flags}), m => m.Name == \"{method.Name}\" && m.IsGenericMethodDefinition && m.GetGenericArguments().Length == {genericArity} && m.GetParameters().Length == {paramCount})).MakeGenericMethod({typeArgs})";
         }
-
-        return $"typeof({typeFqn}).GetMethod(\"{method.Name}\", {flags}, null, new global::System.Type[] {{ {paramTypes} }}, null)";
+        else
+        {
+            var paramTypes = string.Join(", ", method.Parameters.Select(p =>
+                $"typeof({ResolveTypeFqn(p.Type)})"));
+            return $"typeof({typeFqn}).GetMethod(\"{method.Name}\", {flags}, null, new global::System.Type[] {{ {paramTypes} }}, null)";
+        }
     }
 
     /// <summary>
