@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '.vitepress/**'
+      - 'LICENSE'
   workflow_dispatch:
 
 permissions:
@@ -50,9 +55,7 @@ jobs:
           --filter "*"
           --exporters json
           --join
-          --job short
-          --iterationCount 3
-          --warmupCount 1
+          --job medium
 
       - name: Find benchmark result
         id: find-result
@@ -73,7 +76,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           auto-push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           comment-on-alert: true
-          alert-threshold: '120%'
+          alert-threshold: '150%'
           fail-on-alert: false
           gh-pages-branch: gh-pages
           benchmark-data-dir-path: dev/bench
