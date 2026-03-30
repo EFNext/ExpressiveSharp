@@ -31,7 +31,7 @@ export default defineConfig({
       { text: 'Reference', link: '/reference/expressive-attribute' },
       { text: 'Advanced', link: '/advanced/how-it-works' },
       { text: 'Recipes', link: '/recipes/computed-properties' },
-      { text: 'Benchmarks', link: '/dev/bench/' },
+      { text: 'Benchmarks', link: 'https://efnext.github.io/ExpressiveSharp/dev/bench/' },
     ],
 
     sidebar: {
