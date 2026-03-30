@@ -56,12 +56,11 @@ internal sealed class ExpressionTreeEmitter
     public ExpressionTreeEmitter(
         SemanticModel semanticModel,
         SourceProductionContext? context = null,
-        string fieldPrefix = "",
         string varPrefix = "")
     {
         _semanticModel = semanticModel;
         _context = context;
-        _fieldCache = new ReflectionFieldCache(fieldPrefix, _typeAliases);
+        _fieldCache = new ReflectionFieldCache(_typeAliases);
         _varPrefix = varPrefix;
     }
 
@@ -2920,7 +2919,7 @@ internal sealed class ExpressionTreeEmitter
         {
             sb.AppendLine(line);
         }
-        return new EmitResult(sb.ToString(), _fieldCache.GetDeclarations());
+        return new EmitResult(sb.ToString());
     }
 
     private void ReportDiagnostic(DiagnosticDescriptor descriptor, Location location, params object[] messageArgs)
