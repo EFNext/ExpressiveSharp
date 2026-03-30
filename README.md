@@ -1,6 +1,7 @@
 # <img src="assets/icon.png" width="32" height="32" alt="ExpressiveSharp icon" style="vertical-align: middle"> ExpressiveSharp
 
 [![CI](https://github.com/EFNext/ExpressiveSharp/actions/workflows/ci.yml/badge.svg)](https://github.com/EFNext/ExpressiveSharp/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/EFNext/ExpressiveSharp/graph/badge.svg)](https://codecov.io/gh/EFNext/ExpressiveSharp)
 [![NuGet](https://img.shields.io/nuget/v/ExpressiveSharp.svg)](https://www.nuget.org/packages/ExpressiveSharp)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/ExpressiveSharp.svg)](https://www.nuget.org/packages/ExpressiveSharp)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)

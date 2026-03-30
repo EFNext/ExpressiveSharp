@@ -64,6 +64,13 @@ jobs:
             ./test-results/**/coverage.xml
           retention-days: 14
 
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./test-results/**/coverage.xml
+          fail_ci_if_error: false
+
       - name: Test report
         if: always()
         uses: dorny/test-reporter@v1
