@@ -22,7 +22,7 @@ There are two problems when using C# with LINQ providers like EF Core:
 error CS8072: An expression tree lambda may not contain a null propagating operator
 ```
 
-Expression trees (`Expression<Func<...>>`) only support a restricted subset of C# — no `?.`, no switch expressions, no pattern matching. So you end up writing ugly ternary chains instead of the clean code you'd write anywhere else.
+Expression trees (`Expression<Func<...>>`) only support a restricted subset of C# — no `?.`, no switch expressions, no pattern matching. So you end up writing ugly ternary chains instead of the clean code you'd write anywhere else. ([Why hasn't this been fixed?](https://efnext.github.io/ExpressiveSharp/guide/expression-tree-problem.html))
 
 **2. Computed properties are opaque to LINQ providers.** You define `public string FullName => FirstName + " " + LastName` and use it in a query — but EF Core can't see inside the property getter. It either throws a runtime translation error, or worse, silently fetches the entire entity to evaluate `FullName` on the client (overfetching). The only workaround is to duplicate the logic as an inline expression in every query that needs it.
 
