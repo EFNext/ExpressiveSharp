@@ -8,6 +8,8 @@
 [![GitHub Stars](https://img.shields.io/github/stars/EFNext/ExpressiveSharp)](https://github.com/EFNext/ExpressiveSharp/stargazers)
 [![GitHub Issues](https://img.shields.io/github/issues/EFNext/ExpressiveSharp)](https://github.com/EFNext/ExpressiveSharp/issues)
 
+**[Documentation](https://efnext.github.io/ExpressiveSharp/)** | **[Getting Started](https://efnext.github.io/ExpressiveSharp/)**
+
 Source generator that enables modern C# syntax in LINQ expression trees. All expression trees are generated at compile time with minimal runtime overhead.
 
 ## The Problem
