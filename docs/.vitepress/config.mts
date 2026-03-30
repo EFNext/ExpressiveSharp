@@ -80,6 +80,7 @@ export default defineConfig({
             { text: 'Switch Expressions', link: '/reference/switch-expressions' },
             { text: 'Expression Transformers', link: '/reference/expression-transformers' },
             { text: 'Diagnostics & Code Fixes', link: '/reference/diagnostics' },
+            { text: 'Troubleshooting', link: '/reference/troubleshooting' },
           ]
         }
       ],

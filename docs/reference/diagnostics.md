@@ -2,6 +2,10 @@
 
 The ExpressiveSharp source generator and companion analyzers emit diagnostics during compilation to help you identify and fix issues. Many diagnostics also have IDE code fixes that resolve them automatically.
 
+::: tip Looking for help with a specific problem?
+See [Troubleshooting](./troubleshooting) for symptom-oriented guidance -- find the error message or behavior you see and get step-by-step resolution.
+:::
+
 ## Overview
 
 | ID | Severity | Title | Code Fix |

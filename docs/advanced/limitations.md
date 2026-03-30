@@ -2,6 +2,10 @@
 
 This page documents the current limitations of ExpressiveSharp and guidance on how to work around them.
 
+::: info
+For step-by-step help resolving specific issues, see [Troubleshooting](../reference/troubleshooting).
+:::
+
 ## Members Must Have a Body
 
 An `[Expressive]` member must have an **expression body** or a **block body** (with `AllowBlockBody = true`). Abstract members, interface declarations, and auto-properties without accessors produce diagnostic EXP0001.
