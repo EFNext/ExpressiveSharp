@@ -40,7 +40,7 @@ This means that when the compiler introduces a new node type, existing code that
 ::: info Source
 A Roslyn team member [explained](https://github.com/dotnet/csharplang/discussions/158) that the significant cost of new nodes "does not come from the compiler -- it's fairly easy to do in the compiler. Its significant cost comes from every downstream tool now being broken because there is a new node in the tree they were not expecting."
 
-The Roslyn lead [added](https://github.com/dotnet/csharplang/discussions/158): "The single greatest compat challenge the Roslyn compiler faced was getting expression trees into a shape that did not massively break customers. This is not hypothetical -- it is 'we've done this before and observed it breaking.'"
+In a separate [discussion](https://github.com/dotnet/csharplang/discussions/158), a Roslyn team member noted: "The single greatest compat challenge the Roslyn compiler faced was getting expression trees into a shape that did not massively break customers. This is not hypothetical -- it is 'we've done this before and observed it breaking.'"
 :::
 
 ### The Catch-22
