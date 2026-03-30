@@ -40,6 +40,7 @@ export default defineConfig({
           text: 'Getting Started',
           items: [
             { text: 'Introduction', link: '/guide/introduction' },
+            { text: 'The Expression Tree Problem', link: '/guide/expression-tree-problem' },
             { text: 'Quick Start', link: '/guide/quickstart' },
           ]
         },
