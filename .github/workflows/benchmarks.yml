@@ -3,6 +3,11 @@ name: Benchmarks
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '.vitepress/**'
+      - 'LICENSE'
   pull_request:
     branches: [main]
     paths-ignore:
