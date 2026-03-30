@@ -12,16 +12,8 @@ internal sealed class EmitResult
     /// </summary>
     public string Body { get; }
 
-    /// <summary>
-    /// <c>private static readonly</c> field declarations for cached
-    /// <see cref="System.Reflection.MethodInfo"/>, <see cref="System.Reflection.PropertyInfo"/>,
-    /// and <see cref="System.Reflection.ConstructorInfo"/> instances used by <see cref="Body"/>.
-    /// </summary>
-    public IReadOnlyList<string> StaticFields { get; }
-
-    public EmitResult(string body, IReadOnlyList<string> staticFields)
+    public EmitResult(string body)
     {
         Body = body;
-        StaticFields = staticFields;
     }
 }
