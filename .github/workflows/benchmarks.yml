@@ -13,7 +13,6 @@ on:
     paths-ignore:
       - 'docs/**'
       - '*.md'
-      - '.vitepress/**'
       - 'LICENSE'
   workflow_dispatch:
 
