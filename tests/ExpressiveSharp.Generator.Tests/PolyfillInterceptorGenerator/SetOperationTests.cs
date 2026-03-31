@@ -21,7 +21,7 @@ public class SetOperationTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query, System.Collections.Generic.IEnumerable<string> excluded)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .ExceptBy(excluded, o => o.Tag)
                              .ToList();
                     }
@@ -49,7 +49,7 @@ public class SetOperationTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query, System.Collections.Generic.IEnumerable<string> included)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .IntersectBy(included, o => o.Tag)
                              .ToList();
                     }
@@ -77,7 +77,7 @@ public class SetOperationTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query, System.Collections.Generic.IEnumerable<string> extra)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .UnionBy(extra, o => o.Tag)
                              .ToList();
                     }

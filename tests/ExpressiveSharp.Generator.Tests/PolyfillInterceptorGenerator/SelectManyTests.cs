@@ -21,7 +21,7 @@ public class SelectManyTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .SelectMany(o => o.Tags)
                              .ToList();
                     }
@@ -49,7 +49,7 @@ public class SelectManyTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .SelectMany(o => o.Tags, (o, t) => o.Name + ": " + t)
                              .ToList();
                     }

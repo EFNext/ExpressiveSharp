@@ -131,7 +131,7 @@ public class UseExpressivesTests
 
     // ── ExpressiveDbSet tests ──────────────────────────────────────────
     // TestDbContext.Orders is ExpressiveDbSet<Order> (via AsExpressiveDbSet()),
-    // so delegate lambdas with ?. work directly — no .WithExpressionRewrite() needed.
+    // so delegate lambdas with ?. work directly — no .AsExpressive() needed.
 
     [TestMethod]
     public void ExpressiveDbSet_NullConditionalInWhere()

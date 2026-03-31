@@ -106,21 +106,21 @@ var dtos = orders.Select(o => new OrderDto(o.Id, o.Tag ?? "N/A", o.Total)).ToLis
 foreach (var dto in dtos)
     Console.WriteLine($"    OrderDto {{ Id={dto.Id}, Desc=\"{dto.Description}\", Total={dto.Total} }}");
 
-// ── 5. WithExpressionRewrite ─────────────────────────────────────────────────
+// ── 5. AsExpressive ─────────────────────────────────────────────────
 // Wraps IQueryable<T> so delegate-based LINQ methods (Where, Select, OrderBy,
 // GroupBy) accept modern C# syntax. The source generator rewrites the lambdas
 // to expression trees at compile time.
-Section("WithExpressionRewrite");
+Section("AsExpressive");
 
 var aliceOrders = orders.AsQueryable()
-    .WithExpressionRewrite()
+    .AsExpressive()
     .Where(o => o.Customer?.Name == "Alice")
     .Select(o => o.Tag)
     .ToList();
 Console.WriteLine($"  Alice's orders: [{string.Join(", ", aliceOrders.Select(t => $"\"{t}\""))}]");
 
 var grouped = orders.AsQueryable()
-    .WithExpressionRewrite()
+    .AsExpressive()
     .OrderBy(o => o.Price)
     .GroupBy(o => o.Status)
     .ToList();

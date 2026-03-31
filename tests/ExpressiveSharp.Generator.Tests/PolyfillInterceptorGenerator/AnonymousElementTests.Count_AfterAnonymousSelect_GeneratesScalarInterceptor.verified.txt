@@ -33,7 +33,7 @@ namespace ExpressiveSharp.Generated.Interceptors
             var i1_expr_0 = global::System.Linq.Expressions.Expression.New(i1_expr_3, new global::System.Linq.Expressions.Expression[] { i1_expr_1, i1_expr_2 }, new global::System.Reflection.MemberInfo[] { typeof(T1).GetProperty("Id"), typeof(T1).GetProperty("Total") });
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<T0, T1>>(i1_expr_0, i1_p_o);
             return (global::ExpressiveSharp.IRewritableQueryable<T1>)(object)
-                global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+                global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
                     global::System.Linq.Queryable.Select(
                         (global::System.Linq.IQueryable<T0>)(object)source,
                         __lambda));

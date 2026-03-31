@@ -53,7 +53,7 @@ public class GlobalOptionsTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .Where(o => o.Customer?.Name == "Alice")
                              .ToList();
                     }
@@ -74,7 +74,7 @@ public class GlobalOptionsTests : GeneratorTestBase
     [TestMethod]
     public Task Where_PerCallOverridesGlobal()
     {
-        // Global says Ignore, but per-call WithExpressionRewrite says Rewrite — per-call wins.
+        // Global says Ignore, but per-call AsExpressive says Rewrite — per-call wins.
         var source = 
             """
             using ExpressiveSharp.Extensions;
@@ -87,7 +87,7 @@ public class GlobalOptionsTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite(new ExpressionRewriteOptions())
+                        query.AsExpressive(new ExpressionRewriteOptions())
                              .Where(o => o.Customer?.Name == "Alice")
                              .ToList();
                     }

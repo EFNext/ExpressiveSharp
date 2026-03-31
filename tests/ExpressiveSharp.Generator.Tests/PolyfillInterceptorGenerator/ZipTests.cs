@@ -22,7 +22,7 @@ public class ZipTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> orders, System.Collections.Generic.IEnumerable<Price> prices)
                     {
-                        orders.WithExpressionRewrite()
+                        orders.AsExpressive()
                               .Zip(prices, (o, p) => o.Name)
                               .ToList();
                     }

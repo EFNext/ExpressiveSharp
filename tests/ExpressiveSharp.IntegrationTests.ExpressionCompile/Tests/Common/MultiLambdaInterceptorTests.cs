@@ -38,7 +38,7 @@ public class MultiLambdaInterceptorTests
 
         // Both lambdas use 'o' — this triggers the duplicate variable name bug
         // if the generator doesn't prefix local variables per lambda.
-        var results = source.WithExpressionRewrite()
+        var results = source.AsExpressive()
             .SelectMany(o => o.Items, (o, item) => o.Tag + ": " + item.ProductName)
             .ToList();
 
@@ -63,7 +63,7 @@ public class MultiLambdaInterceptorTests
             new() { Id = 2, OrderId = 2, ProductName = "Gadget", UnitPrice = 25, Quantity = 3 },
         };
 
-        var results = orders.WithExpressionRewrite()
+        var results = orders.AsExpressive()
             .Join(lineItems,
                   o => o.Id,
                   li => li.OrderId,
@@ -93,7 +93,7 @@ public class MultiLambdaInterceptorTests
         _orders[0].CustomerId = 1;
         _orders[1].CustomerId = 2;
 
-        var results = orders.WithExpressionRewrite()
+        var results = orders.AsExpressive()
             .Join(customers,
                   o => o.CustomerId,
                   c => c.Id,

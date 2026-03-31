@@ -23,7 +23,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Any(o => o.Tag == "urgent");
+                        var result = query.AsExpressive().Any(o => o.Tag == "urgent");
                     }
                 }
             }
@@ -49,7 +49,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().All(o => o.Active);
+                        var result = query.AsExpressive().All(o => o.Active);
                     }
                 }
             }
@@ -77,7 +77,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Count(o => o.Amount > 100);
+                        var result = query.AsExpressive().Count(o => o.Amount > 100);
                     }
                 }
             }
@@ -103,7 +103,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().LongCount(o => o.Amount > 100);
+                        var result = query.AsExpressive().LongCount(o => o.Amount > 100);
                     }
                 }
             }
@@ -131,7 +131,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().First(o => o.Active);
+                        var result = query.AsExpressive().First(o => o.Active);
                     }
                 }
             }
@@ -157,7 +157,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().FirstOrDefault(o => o.Active);
+                        var result = query.AsExpressive().FirstOrDefault(o => o.Active);
                     }
                 }
             }
@@ -183,7 +183,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Last(o => o.Active);
+                        var result = query.AsExpressive().Last(o => o.Active);
                     }
                 }
             }
@@ -209,7 +209,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().LastOrDefault(o => o.Active);
+                        var result = query.AsExpressive().LastOrDefault(o => o.Active);
                     }
                 }
             }
@@ -235,7 +235,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Single(o => o.Active);
+                        var result = query.AsExpressive().Single(o => o.Active);
                     }
                 }
             }
@@ -261,7 +261,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().SingleOrDefault(o => o.Active);
+                        var result = query.AsExpressive().SingleOrDefault(o => o.Active);
                     }
                 }
             }
@@ -289,7 +289,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Min(o => o.Name);
+                        var result = query.AsExpressive().Min(o => o.Name);
                     }
                 }
             }
@@ -315,7 +315,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Max(o => o.Name);
+                        var result = query.AsExpressive().Max(o => o.Name);
                     }
                 }
             }
@@ -341,7 +341,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().MinBy(o => o.Amount);
+                        var result = query.AsExpressive().MinBy(o => o.Amount);
                     }
                 }
             }
@@ -367,7 +367,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().MaxBy(o => o.Amount);
+                        var result = query.AsExpressive().MaxBy(o => o.Amount);
                     }
                 }
             }
@@ -395,7 +395,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Sum(o => o.Amount);
+                        var result = query.AsExpressive().Sum(o => o.Amount);
                     }
                 }
             }
@@ -421,7 +421,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Sum(o => o.Amount);
+                        var result = query.AsExpressive().Sum(o => o.Amount);
                     }
                 }
             }
@@ -447,7 +447,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Sum(o => o.Amount);
+                        var result = query.AsExpressive().Sum(o => o.Amount);
                     }
                 }
             }
@@ -473,7 +473,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Sum(o => o.Amount);
+                        var result = query.AsExpressive().Sum(o => o.Amount);
                     }
                 }
             }
@@ -499,7 +499,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Sum(o => o.Amount);
+                        var result = query.AsExpressive().Sum(o => o.Amount);
                     }
                 }
             }
@@ -525,7 +525,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Sum(o => o.Amount);
+                        var result = query.AsExpressive().Sum(o => o.Amount);
                     }
                 }
             }
@@ -551,7 +551,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Sum(o => o.Amount);
+                        var result = query.AsExpressive().Sum(o => o.Amount);
                     }
                 }
             }
@@ -577,7 +577,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Sum(o => o.Amount);
+                        var result = query.AsExpressive().Sum(o => o.Amount);
                     }
                 }
             }
@@ -603,7 +603,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Sum(o => o.Amount);
+                        var result = query.AsExpressive().Sum(o => o.Amount);
                     }
                 }
             }
@@ -629,7 +629,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Sum(o => o.Amount);
+                        var result = query.AsExpressive().Sum(o => o.Amount);
                     }
                 }
             }
@@ -657,7 +657,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Average(o => o.Amount);
+                        var result = query.AsExpressive().Average(o => o.Amount);
                     }
                 }
             }
@@ -683,7 +683,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Average(o => o.Amount);
+                        var result = query.AsExpressive().Average(o => o.Amount);
                     }
                 }
             }
@@ -709,7 +709,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Average(o => o.Amount);
+                        var result = query.AsExpressive().Average(o => o.Amount);
                     }
                 }
             }
@@ -735,7 +735,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Average(o => o.Amount);
+                        var result = query.AsExpressive().Average(o => o.Amount);
                     }
                 }
             }
@@ -761,7 +761,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Average(o => o.Amount);
+                        var result = query.AsExpressive().Average(o => o.Amount);
                     }
                 }
             }
@@ -787,7 +787,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Average(o => o.Amount);
+                        var result = query.AsExpressive().Average(o => o.Amount);
                     }
                 }
             }
@@ -813,7 +813,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Average(o => o.Amount);
+                        var result = query.AsExpressive().Average(o => o.Amount);
                     }
                 }
             }
@@ -839,7 +839,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Average(o => o.Amount);
+                        var result = query.AsExpressive().Average(o => o.Amount);
                     }
                 }
             }
@@ -865,7 +865,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Average(o => o.Amount);
+                        var result = query.AsExpressive().Average(o => o.Amount);
                     }
                 }
             }
@@ -891,7 +891,7 @@ public class ScalarMethodTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Average(o => o.Amount);
+                        var result = query.AsExpressive().Average(o => o.Amount);
                     }
                 }
             }

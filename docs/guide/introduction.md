@@ -54,7 +54,7 @@ Mark computed properties and methods with `[Expressive]` to generate companion e
 | Scenario | API |
 |---|---|
 | **EF Core** -- modern syntax + `[Expressive]` expansion on `DbSet` | [`ExpressiveDbSet<T>`](./ef-core-integration) (or [`UseExpressives()`](./ef-core-integration) for global expansion) |
-| **Any `IQueryable`** -- modern syntax + `[Expressive]` expansion | [`.WithExpressionRewrite()`](./rewritable-queryable) |
+| **Any `IQueryable`** -- modern syntax + `[Expressive]` expansion | [`.AsExpressive()`](./rewritable-queryable) |
 | **EF Core** -- SQL window functions (ROW_NUMBER, RANK, etc.) | [`WindowFunction.*`](./window-functions) (install `RelationalExtensions` package) |
 | **Advanced** -- build an `Expression<T>` inline, no attribute needed | [`ExpressionPolyfill.Create`](./expression-polyfill) |
 | **Advanced** -- expand `[Expressive]` members in an existing expression tree | `.ExpandExpressives()` |

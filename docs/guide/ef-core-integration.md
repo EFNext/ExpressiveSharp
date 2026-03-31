@@ -59,7 +59,7 @@ public class MyDbContext : DbContext
 `this.ExpressiveSet<T>()` is a convenience extension method that calls `Set<T>().AsExpressiveDbSet()`. You can also call `.AsExpressiveDbSet()` on any `DbSet<T>` or `IQueryable<T>` directly.
 :::
 
-With `ExpressiveDbSet<T>`, modern C# syntax works directly -- no `.WithExpressionRewrite()` needed:
+With `ExpressiveDbSet<T>`, modern C# syntax works directly -- no `.AsExpressive()` needed:
 
 ```csharp
 var results = ctx.Orders

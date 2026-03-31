@@ -21,7 +21,7 @@ public class ComparerOverloadTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .OrderBy(o => o.Tag, System.StringComparer.OrdinalIgnoreCase)
                              .ToList();
                     }
@@ -49,7 +49,7 @@ public class ComparerOverloadTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .GroupBy(o => o.Tag, System.StringComparer.OrdinalIgnoreCase)
                              .ToList();
                     }
@@ -77,7 +77,7 @@ public class ComparerOverloadTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .DistinctBy(o => o.Tag, System.StringComparer.OrdinalIgnoreCase)
                              .ToList();
                     }

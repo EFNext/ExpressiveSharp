@@ -3,24 +3,24 @@ using ExpressiveSharp.Extensions;
 namespace ExpressiveSharp.Tests.Extensions;
 
 [TestClass]
-public class ExpressionRewriteExtensionsTests
+public class ExpressiveQueryableExtensionsTests
 {
     [TestMethod]
-    public void WithExpressionRewrite_WrapsAsRewritableQueryable()
+    public void AsExpressive_WrapsAsRewritableQueryable()
     {
         var source = new[] { 1, 2, 3 }.AsQueryable();
 
-        var result = source.WithExpressionRewrite();
+        var result = source.AsExpressive();
 
         Assert.IsInstanceOfType<IRewritableQueryable<int>>(result);
     }
 
     [TestMethod]
-    public void WithExpressionRewrite_DelegatesProperties()
+    public void AsExpressive_DelegatesProperties()
     {
         var source = new[] { 1, 2, 3 }.AsQueryable();
 
-        var result = source.WithExpressionRewrite();
+        var result = source.AsExpressive();
 
         Assert.AreEqual(source.ElementType, result.ElementType);
         Assert.AreEqual(source.Expression, result.Expression);
@@ -28,11 +28,11 @@ public class ExpressionRewriteExtensionsTests
     }
 
     [TestMethod]
-    public void WithExpressionRewrite_NullSource_ThrowsArgumentNullException()
+    public void AsExpressive_NullSource_ThrowsArgumentNullException()
     {
         IQueryable<int>? source = null;
 
         Assert.ThrowsExactly<ArgumentNullException>(() =>
-            source!.WithExpressionRewrite());
+            source!.AsExpressive());
     }
 }

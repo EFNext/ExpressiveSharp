@@ -274,7 +274,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         var elementFqn = elementType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         var methodName = ma.Name.Identifier.Text;
 
-        // Per-call WithExpressionRewrite() → MSBuild global → hardcoded Ignore fallback.
+        // Per-call AsExpressive() → MSBuild global → hardcoded Ignore fallback.
 
         // Resolve the target type for the Queryable.* call. Defaults to System.Linq.Queryable
         // unless overridden by [PolyfillTarget(typeof(...))] on the stub method.
@@ -625,7 +625,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                             this global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> source,
                             {{interceptorParamList}})
                         {
-                {{allBodies}}            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+                {{allBodies}}            return global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
                                 {{targetTypeFqn}}.{{methodName}}(
                                     ({{castFqn}})source,
                                     {{queryableArgList}}));
@@ -657,7 +657,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                         {{interceptorParamList}})
                     {
             {{allBodies}}            return (global::ExpressiveSharp.IRewritableQueryable<{{returnRef}}>)(object)
-                            global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+                            global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
                                 {{targetTypeFqn}}.{{methodName}}(
                                     ({{castFqn}})(object)source,
                                     {{queryableArgList}}));

@@ -21,7 +21,7 @@ namespace ExpressiveSharp.Generated.Interceptors
             var i0_expr_7 = global::System.Linq.Expressions.Expression.Constant("Alice", typeof(string)); // "Alice"
             var i0_expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Equal, i0_expr_3, i0_expr_7);
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, bool>>(i0_expr_0, i0_p_o);
-            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+            return global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
                 global::System.Linq.Queryable.Where(
                     (global::System.Linq.IQueryable<global::TestNs.Order>)source,
                     __lambda));

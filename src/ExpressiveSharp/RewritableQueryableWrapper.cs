@@ -8,7 +8,7 @@ namespace ExpressiveSharp
 {
     /// <summary>
     /// Internal wrapper that adapts an <see cref="IQueryable{T}"/> to <see cref="IRewritableQueryable{T}"/>.
-    /// Created by <see cref="Extensions.ExpressionRewriteExtensions.WithExpressionRewrite{T}"/> and by source-generated interceptors.
+    /// Created by <see cref="Extensions.ExpressiveQueryableExtensions.AsExpressive{T}"/> and by source-generated interceptors.
     /// </summary>
     /// <summary>
     /// Also implements <see cref="IOrderedQueryable{T}"/> (which adds no members over <see cref="IQueryable{T}"/>)

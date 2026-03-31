@@ -26,7 +26,7 @@ namespace ExpressiveSharp.Generated.Interceptors
             var i0c_p_cs = global::System.Linq.Expressions.Expression.Parameter(typeof(global::System.Collections.Generic.IEnumerable<global::TestNs.Customer>), "cs");
             var i0c_expr_0 = global::System.Linq.Expressions.Expression.Property(i0c_p_o, typeof(global::TestNs.Order).GetProperty("CustomerId")); // o.CustomerId
             var __lambda3 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, global::System.Collections.Generic.IEnumerable<global::TestNs.Customer>, int>>(i0c_expr_0, i0c_p_o, i0c_p_cs);
-            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+            return global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
                 global::System.Linq.Queryable.GroupJoin(
                     (global::System.Linq.IQueryable<global::TestNs.Order>)source,
                     inner,

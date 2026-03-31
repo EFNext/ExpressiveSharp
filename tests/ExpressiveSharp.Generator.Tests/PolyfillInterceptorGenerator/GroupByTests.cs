@@ -21,7 +21,7 @@ public class GroupByTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite().GroupBy(o => o.Tag).ToList();
+                        query.AsExpressive().GroupBy(o => o.Tag).ToList();
                     }
                 }
             }
@@ -47,7 +47,7 @@ public class GroupByTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .GroupBy(o => o.Tag, o => o.Name)
                              .ToList();
                     }
@@ -75,7 +75,7 @@ public class GroupByTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .GroupBy(o => o.Tag, (key, orders) => key)
                              .ToList();
                     }
@@ -103,7 +103,7 @@ public class GroupByTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .GroupBy(o => o.Tag, o => o.Name, (key, names) => key)
                              .ToList();
                     }

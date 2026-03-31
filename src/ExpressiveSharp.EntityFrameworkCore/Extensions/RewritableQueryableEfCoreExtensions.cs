@@ -27,19 +27,19 @@ public static class RewritableQueryableEfCoreExtensions
     public static IRewritableQueryable<TEntity> AsNoTracking<TEntity>(
         this IRewritableQueryable<TEntity> source)
         where TEntity : class
-        => EntityFrameworkQueryableExtensions.AsNoTracking(source).WithExpressionRewrite();
+        => EntityFrameworkQueryableExtensions.AsNoTracking(source).AsExpressive();
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static IRewritableQueryable<TEntity> AsNoTrackingWithIdentityResolution<TEntity>(
         this IRewritableQueryable<TEntity> source)
         where TEntity : class
-        => EntityFrameworkQueryableExtensions.AsNoTrackingWithIdentityResolution(source).WithExpressionRewrite();
+        => EntityFrameworkQueryableExtensions.AsNoTrackingWithIdentityResolution(source).AsExpressive();
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static IRewritableQueryable<TEntity> AsTracking<TEntity>(
         this IRewritableQueryable<TEntity> source)
         where TEntity : class
-        => EntityFrameworkQueryableExtensions.AsTracking(source).WithExpressionRewrite();
+        => EntityFrameworkQueryableExtensions.AsTracking(source).AsExpressive();
 
     // ── Query filters ────────────────────────────────────────────────────
 
@@ -47,13 +47,13 @@ public static class RewritableQueryableEfCoreExtensions
     public static IRewritableQueryable<TEntity> IgnoreAutoIncludes<TEntity>(
         this IRewritableQueryable<TEntity> source)
         where TEntity : class
-        => EntityFrameworkQueryableExtensions.IgnoreAutoIncludes(source).WithExpressionRewrite();
+        => EntityFrameworkQueryableExtensions.IgnoreAutoIncludes(source).AsExpressive();
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static IRewritableQueryable<TEntity> IgnoreQueryFilters<TEntity>(
         this IRewritableQueryable<TEntity> source)
         where TEntity : class
-        => EntityFrameworkQueryableExtensions.IgnoreQueryFilters(source).WithExpressionRewrite();
+        => EntityFrameworkQueryableExtensions.IgnoreQueryFilters(source).AsExpressive();
 
     // ── Query tagging ────────────────────────────────────────────────────
 
@@ -62,7 +62,7 @@ public static class RewritableQueryableEfCoreExtensions
         this IRewritableQueryable<TEntity> source,
         string tag)
         where TEntity : class
-        => EntityFrameworkQueryableExtensions.TagWith(source, tag).WithExpressionRewrite();
+        => EntityFrameworkQueryableExtensions.TagWith(source, tag).AsExpressive();
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static IRewritableQueryable<TEntity> TagWithCallSite<TEntity>(
@@ -70,7 +70,7 @@ public static class RewritableQueryableEfCoreExtensions
         [System.Runtime.CompilerServices.CallerFilePath] string filePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int lineNumber = 0)
         where TEntity : class
-        => EntityFrameworkQueryableExtensions.TagWithCallSite(source, filePath, lineNumber).WithExpressionRewrite();
+        => EntityFrameworkQueryableExtensions.TagWithCallSite(source, filePath, lineNumber).AsExpressive();
 
     // ── Include / ThenInclude (runtime, not intercepted) ───────────────
 
@@ -88,7 +88,7 @@ public static class RewritableQueryableEfCoreExtensions
         string navigationPropertyPath)
         where TEntity : class
         => EntityFrameworkQueryableExtensions.Include(source, navigationPropertyPath)
-            .WithExpressionRewrite();
+            .AsExpressive();
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static IIncludableRewritableQueryable<TEntity, TProperty>

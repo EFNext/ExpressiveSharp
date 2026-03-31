@@ -15,7 +15,7 @@ namespace ExpressiveSharp.Generated.Interceptors
             var i0_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
             var i0_expr_0 = global::System.Linq.Expressions.Expression.Property(i0_p_o, typeof(global::TestNs.Order).GetProperty("Tag")); // o.Tag
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, string>>(i0_expr_0, i0_p_o);
-            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+            return global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
                 global::System.Linq.Queryable.IntersectBy(
                     (global::System.Linq.IQueryable<global::TestNs.Order>)source,
                     second,

@@ -45,7 +45,7 @@ public class PolyfillTargetTests : GeneratorTestBase
                 {
                     public void Run(IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().AnyAsync(o => o.Active);
+                        var result = query.AsExpressive().AnyAsync(o => o.Active);
                     }
                 }
             }
@@ -71,7 +71,7 @@ public class PolyfillTargetTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        var result = query.WithExpressionRewrite().Any(o => o.Active);
+                        var result = query.AsExpressive().Any(o => o.Active);
                     }
                 }
             }

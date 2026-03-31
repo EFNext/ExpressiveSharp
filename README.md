@@ -92,7 +92,7 @@ Mark computed properties and methods with `[Expressive]` to generate companion e
 | Scenario | API |
 |---|---|
 | **EF Core** — modern syntax + `[Expressive]` expansion on `DbSet` | [`ExpressiveDbSet<T>`](https://efnext.github.io/ExpressiveSharp/guide/ef-core-integration) |
-| **Any `IQueryable`** — modern syntax + `[Expressive]` expansion | [`.WithExpressionRewrite()`](https://efnext.github.io/ExpressiveSharp/guide/rewritable-queryable) |
+| **Any `IQueryable`** — modern syntax + `[Expressive]` expansion | [`.AsExpressive()`](https://efnext.github.io/ExpressiveSharp/guide/rewritable-queryable) |
 | **EF Core** — SQL window functions (ROW_NUMBER, RANK, etc.) | [`WindowFunction.*`](https://efnext.github.io/ExpressiveSharp/guide/window-functions) |
 | **Advanced** — build an `Expression<T>` inline, no attribute needed | [`ExpressionPolyfill.Create`](https://efnext.github.io/ExpressiveSharp/guide/expression-polyfill) |
 | **Advanced** — expand `[Expressive]` members in an existing expression tree | [`.ExpandExpressives()`](https://efnext.github.io/ExpressiveSharp/guide/expressive-properties) |

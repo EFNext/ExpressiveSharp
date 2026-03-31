@@ -21,7 +21,7 @@ public class SelectTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite().Select(o => new { o.Id, o.Name }).ToList();
+                        query.AsExpressive().Select(o => new { o.Id, o.Name }).ToList();
                     }
                 }
             }
@@ -48,7 +48,7 @@ public class SelectTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite().Select(o => new { o.Id, Total = o.Price * o.Qty }).ToList();
+                        query.AsExpressive().Select(o => new { o.Id, Total = o.Price * o.Qty }).ToList();
                     }
                 }
             }
@@ -75,7 +75,7 @@ public class SelectTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite().Select(o => o.Name).ToList();
+                        query.AsExpressive().Select(o => o.Name).ToList();
                     }
                 }
             }

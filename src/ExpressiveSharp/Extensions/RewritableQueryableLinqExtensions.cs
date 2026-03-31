@@ -339,64 +339,64 @@ namespace ExpressiveSharp.Extensions
         public static IRewritableQueryable<T> Take<T>(
             this IRewritableQueryable<T> source,
             int count)
-            => Queryable.Take(source, count).WithExpressionRewrite();
+            => Queryable.Take(source, count).AsExpressive();
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IRewritableQueryable<T> Skip<T>(
             this IRewritableQueryable<T> source,
             int count)
-            => Queryable.Skip(source, count).WithExpressionRewrite();
+            => Queryable.Skip(source, count).AsExpressive();
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IRewritableQueryable<T> Distinct<T>(
             this IRewritableQueryable<T> source)
-            => Queryable.Distinct(source).WithExpressionRewrite();
+            => Queryable.Distinct(source).AsExpressive();
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IRewritableQueryable<T> Reverse<T>(
             this IRewritableQueryable<T> source)
-            => Queryable.Reverse(source).WithExpressionRewrite();
+            => Queryable.Reverse(source).AsExpressive();
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IRewritableQueryable<T> Concat<T>(
             this IRewritableQueryable<T> source,
             IEnumerable<T> other)
-            => Queryable.Concat(source, other).WithExpressionRewrite();
+            => Queryable.Concat(source, other).AsExpressive();
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IRewritableQueryable<T> Union<T>(
             this IRewritableQueryable<T> source,
             IEnumerable<T> other)
-            => Queryable.Union(source, other).WithExpressionRewrite();
+            => Queryable.Union(source, other).AsExpressive();
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IRewritableQueryable<T> Intersect<T>(
             this IRewritableQueryable<T> source,
             IEnumerable<T> other)
-            => Queryable.Intersect(source, other).WithExpressionRewrite();
+            => Queryable.Intersect(source, other).AsExpressive();
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IRewritableQueryable<T> Except<T>(
             this IRewritableQueryable<T> source,
             IEnumerable<T> other)
-            => Queryable.Except(source, other).WithExpressionRewrite();
+            => Queryable.Except(source, other).AsExpressive();
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IRewritableQueryable<T?> DefaultIfEmpty<T>(
             this IRewritableQueryable<T> source)
-            => Queryable.DefaultIfEmpty(source).WithExpressionRewrite();
+            => Queryable.DefaultIfEmpty(source).AsExpressive();
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IRewritableQueryable<T> DefaultIfEmpty<T>(
             this IRewritableQueryable<T> source,
             T defaultValue)
-            => Queryable.DefaultIfEmpty(source, defaultValue).WithExpressionRewrite();
+            => Queryable.DefaultIfEmpty(source, defaultValue).AsExpressive();
 
 #if NET9_0_OR_GREATER
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IRewritableQueryable<(int Index, T Item)> Index<T>(
             this IRewritableQueryable<T> source)
-            => Queryable.Index(source).WithExpressionRewrite();
+            => Queryable.Index(source).AsExpressive();
 #endif
 
         // ── Non-lambda-first intercepted methods ─────────────────────────────
@@ -412,7 +412,7 @@ namespace ExpressiveSharp.Extensions
         public static IRewritableQueryable<(T First, TSecond Second)> Zip<T, TSecond>(
             this IRewritableQueryable<T> source,
             IEnumerable<TSecond> second)
-            => Queryable.Zip(source, second).WithExpressionRewrite();
+            => Queryable.Zip(source, second).AsExpressive();
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IRewritableQueryable<T> ExceptBy<T, TKey>(
@@ -589,27 +589,27 @@ namespace ExpressiveSharp.Extensions
         public static IRewritableQueryable<T> Distinct<T>(
             this IRewritableQueryable<T> source,
             IEqualityComparer<T>? comparer)
-            => Queryable.Distinct(source, comparer).WithExpressionRewrite();
+            => Queryable.Distinct(source, comparer).AsExpressive();
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IRewritableQueryable<T> Union<T>(
             this IRewritableQueryable<T> source,
             IEnumerable<T> other,
             IEqualityComparer<T>? comparer)
-            => Queryable.Union(source, other, comparer).WithExpressionRewrite();
+            => Queryable.Union(source, other, comparer).AsExpressive();
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IRewritableQueryable<T> Intersect<T>(
             this IRewritableQueryable<T> source,
             IEnumerable<T> other,
             IEqualityComparer<T>? comparer)
-            => Queryable.Intersect(source, other, comparer).WithExpressionRewrite();
+            => Queryable.Intersect(source, other, comparer).AsExpressive();
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IRewritableQueryable<T> Except<T>(
             this IRewritableQueryable<T> source,
             IEnumerable<T> other,
             IEqualityComparer<T>? comparer)
-            => Queryable.Except(source, other, comparer).WithExpressionRewrite();
+            => Queryable.Except(source, other, comparer).AsExpressive();
     }
 }

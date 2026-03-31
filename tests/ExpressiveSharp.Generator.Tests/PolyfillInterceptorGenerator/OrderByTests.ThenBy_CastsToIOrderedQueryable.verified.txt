@@ -14,7 +14,7 @@ namespace ExpressiveSharp.Generated.Interceptors
             var i0_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
             var i0_expr_0 = global::System.Linq.Expressions.Expression.Property(i0_p_o, typeof(global::TestNs.Order).GetProperty("Name")); // o.Name
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, string>>(i0_expr_0, i0_p_o);
-            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+            return global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
                 global::System.Linq.Queryable.ThenBy(
                     (global::System.Linq.IOrderedQueryable<global::TestNs.Order>)source,
                     __lambda));
@@ -28,7 +28,7 @@ namespace ExpressiveSharp.Generated.Interceptors
             var i1_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
             var i1_expr_0 = global::System.Linq.Expressions.Expression.Property(i1_p_o, typeof(global::TestNs.Order).GetProperty("Priority")); // o.Priority
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, int>>(i1_expr_0, i1_p_o);
-            return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
+            return global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
                 global::System.Linq.Queryable.OrderBy(
                     (global::System.Linq.IQueryable<global::TestNs.Order>)source,
                     __lambda));

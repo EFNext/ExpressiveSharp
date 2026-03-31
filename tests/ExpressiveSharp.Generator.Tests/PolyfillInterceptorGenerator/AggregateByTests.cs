@@ -22,7 +22,7 @@ public class AggregateByTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .AggregateBy(
                                  o => o.Tag,
                                  0m,
@@ -53,7 +53,7 @@ public class AggregateByTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .AggregateBy(
                                  o => o.Tag,
                                  k => 0m,

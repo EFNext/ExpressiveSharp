@@ -4,13 +4,13 @@
 
 ## Basic Usage
 
-Wrap any `IQueryable<T>` with `.WithExpressionRewrite()`:
+Wrap any `IQueryable<T>` with `.AsExpressive()`:
 
 ```csharp
 using ExpressiveSharp;
 
 var results = queryable
-    .WithExpressionRewrite()
+    .AsExpressive()
     .Where(o => o.Customer?.Email != null)
     .Select(o => new { o.Id, Name = o.Customer?.Name ?? "Unknown" })
     .OrderBy(o => o.Name)
@@ -21,7 +21,7 @@ The source generator intercepts these calls at compile time and rewrites the del
 
 ## How It Works
 
-When you call `.WithExpressionRewrite()`, you get back an `IRewritableQueryable<T>` wrapper. This wrapper exposes the same LINQ methods as `IQueryable<T>`, but they accept `Func<...>` delegates instead of `Expression<Func<...>>`.
+When you call `.AsExpressive()`, you get back an `IRewritableQueryable<T>` wrapper. This wrapper exposes the same LINQ methods as `IQueryable<T>`, but they accept `Func<...>` delegates instead of `Expression<Func<...>>`.
 
 At compile time, the `PolyfillInterceptorGenerator` uses C# 13 method interceptors to replace each call site with code that:
 
@@ -79,7 +79,7 @@ When using `IRewritableQueryable<T>` with EF Core, `Include` and `ThenInclude` a
 
 ```csharp
 var orders = ctx.Set<Order>()
-    .WithExpressionRewrite()
+    .AsExpressive()
     .Include(o => o.Customer)
     .ThenInclude(c => c.Address)
     .Where(o => o.Customer?.Email != null)
@@ -107,7 +107,7 @@ All EF Core async methods that accept a lambda predicate or selector are support
 
 ```csharp
 var hasExpensive = await ctx.Set<Order>()
-    .WithExpressionRewrite()
+    .AsExpressive()
     .AnyAsync(o => o.Price switch
     {
         >= 100 => true,
@@ -115,7 +115,7 @@ var hasExpensive = await ctx.Set<Order>()
     });
 
 var total = await ctx.Set<Order>()
-    .WithExpressionRewrite()
+    .AsExpressive()
     .SumAsync(o => o.Customer?.Email != null ? o.Price : 0);
 ```
 
@@ -131,7 +131,7 @@ The following EF Core operations preserve the `IRewritableQueryable<T>` chain, s
 
 ```csharp
 var orders = ctx.Set<Order>()
-    .WithExpressionRewrite()
+    .AsExpressive()
     .AsNoTracking()
     .IgnoreQueryFilters()
     .TagWith("Admin query")
@@ -146,7 +146,7 @@ var orders = ctx.Set<Order>()
 
 ```csharp
 await foreach (var order in ctx.Set<Order>()
-    .WithExpressionRewrite()
+    .AsExpressive()
     .Where(o => o.Customer?.Name != null)
     .AsAsyncEnumerable())
 {
@@ -154,11 +154,11 @@ await foreach (var order in ctx.Set<Order>()
 }
 ```
 
-## ExpressiveDbSet\<T\> vs WithExpressionRewrite()
+## ExpressiveDbSet\<T\> vs AsExpressive()
 
 With EF Core, you have two options for modern syntax:
 
-| | `ExpressiveDbSet<T>` | `.WithExpressionRewrite()` |
+| | `ExpressiveDbSet<T>` | `.AsExpressive()` |
 |---|---|---|
 | **Setup** | Property on `DbContext` | Call on any `IQueryable<T>` |
 | **`[Expressive]` expansion** | Automatic | Requires `UseExpressives()` separately |
@@ -167,7 +167,7 @@ With EF Core, you have two options for modern syntax:
 | **Works outside EF Core** | No | Yes (any `IQueryable<T>`) |
 
 ::: tip
-For EF Core projects, `ExpressiveDbSet<T>` is the most convenient option -- it combines both `[Expressive]` expansion and modern syntax in one API. Use `.WithExpressionRewrite()` when you need modern syntax on a non-EF Core `IQueryable<T>` or want explicit control over the wrapping.
+For EF Core projects, `ExpressiveDbSet<T>` is the most convenient option -- it combines both `[Expressive]` expansion and modern syntax in one API. Use `.AsExpressive()` when you need modern syntax on a non-EF Core `IQueryable<T>` or want explicit control over the wrapping.
 :::
 
 ## Next Steps

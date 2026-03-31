@@ -6,7 +6,7 @@ namespace ExpressiveSharp.Tests.Extensions;
 public class RewritableQueryableLinqExtensionsTests
 {
     private IRewritableQueryable<int> CreateRewritableSource()
-        => new[] { 1, 2, 3 }.AsQueryable().WithExpressionRewrite();
+        => new[] { 1, 2, 3 }.AsQueryable().AsExpressive();
 
     [TestMethod]
     public void Take_PreservesRewritableQueryable()
@@ -75,7 +75,7 @@ public class RewritableQueryableLinqExtensionsTests
     [TestMethod]
     public void DefaultIfEmpty_PreservesRewritableQueryable()
     {
-        var source = new string[0].AsQueryable().WithExpressionRewrite();
+        var source = new string[0].AsQueryable().AsExpressive();
         var result = source.DefaultIfEmpty();
         Assert.IsInstanceOfType<IRewritableQueryable<string?>>(result);
     }
@@ -83,7 +83,7 @@ public class RewritableQueryableLinqExtensionsTests
     [TestMethod]
     public void DefaultIfEmpty_WithValue_PreservesRewritableQueryable()
     {
-        var source = new int[0].AsQueryable().WithExpressionRewrite();
+        var source = new int[0].AsQueryable().AsExpressive();
         var result = source.DefaultIfEmpty(42);
         Assert.IsInstanceOfType<IRewritableQueryable<int>>(result);
     }

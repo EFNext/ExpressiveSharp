@@ -340,7 +340,7 @@ The generated SQL uses standard window function syntax, which all these provider
 ## Tips
 
 ::: tip Combine with other ExpressiveSharp features
-Window functions work alongside `[Expressive]` members, null-conditional operators, and switch expressions in the same query. Use `ExpressiveDbSet<T>` or `.WithExpressionRewrite()` for the full experience.
+Window functions work alongside `[Expressive]` members, null-conditional operators, and switch expressions in the same query. Use `ExpressiveDbSet<T>` or `.AsExpressive()` for the full experience.
 :::
 
 ::: tip PARTITION BY for analytics

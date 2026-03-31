@@ -26,7 +26,7 @@ public class AnonymousElementTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .Select(o => new { o.Id, o.Total })
                              .Where(x => x.Total > 100m)
                              .ToList();
@@ -56,7 +56,7 @@ public class AnonymousElementTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .Select(o => new { o.Id, o.Name })
                              .OrderByDescending(x => x.Name)
                              .ToList();
@@ -86,7 +86,7 @@ public class AnonymousElementTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .Select(o => new { o.Id, o.Name })
                              .Select(x => x.Id)
                              .ToList();
@@ -116,7 +116,7 @@ public class AnonymousElementTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .Select(o => new { o.Id, o.Category })
                              .DistinctBy(x => x.Category)
                              .ToList();
@@ -146,7 +146,7 @@ public class AnonymousElementTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .Select(o => new { o.Id, o.Category })
                              .GroupBy(x => x.Category)
                              .ToList();
@@ -176,7 +176,7 @@ public class AnonymousElementTests : GeneratorTestBase
                 {
                     public int Run(System.Linq.IQueryable<Order> query)
                     {
-                        return query.WithExpressionRewrite()
+                        return query.AsExpressive()
                                     .Select(o => new { o.Id, o.Total })
                                     .Count(x => x.Total > 0m);
                     }

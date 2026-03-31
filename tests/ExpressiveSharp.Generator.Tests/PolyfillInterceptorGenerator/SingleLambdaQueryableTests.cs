@@ -21,7 +21,7 @@ public class SingleLambdaQueryableTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite().TakeWhile(o => o.Active).ToList();
+                        query.AsExpressive().TakeWhile(o => o.Active).ToList();
                     }
                 }
             }
@@ -47,7 +47,7 @@ public class SingleLambdaQueryableTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite().SkipWhile(o => o.Amount < 50).ToList();
+                        query.AsExpressive().SkipWhile(o => o.Amount < 50).ToList();
                     }
                 }
             }
@@ -73,7 +73,7 @@ public class SingleLambdaQueryableTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite().DistinctBy(o => o.Tag).ToList();
+                        query.AsExpressive().DistinctBy(o => o.Tag).ToList();
                     }
                 }
             }
@@ -99,7 +99,7 @@ public class SingleLambdaQueryableTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite().OrderByDescending(o => o.Amount).ToList();
+                        query.AsExpressive().OrderByDescending(o => o.Amount).ToList();
                     }
                 }
             }
@@ -125,7 +125,7 @@ public class SingleLambdaQueryableTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .OrderBy(o => o.Amount)
                              .ThenByDescending(o => o.Tag)
                              .ToList();
@@ -155,7 +155,7 @@ public class SingleLambdaQueryableTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite().CountBy(o => o.Tag).ToList();
+                        query.AsExpressive().CountBy(o => o.Tag).ToList();
                     }
                 }
             }

@@ -22,7 +22,7 @@ public class JoinTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> orders, System.Collections.Generic.IEnumerable<Customer> customers)
                     {
-                        orders.WithExpressionRewrite()
+                        orders.AsExpressive()
                               .Join(customers,
                                     o => o.CustomerId,
                                     c => c.Id,
@@ -54,7 +54,7 @@ public class JoinTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> orders, System.Collections.Generic.IEnumerable<Customer> customers)
                     {
-                        orders.WithExpressionRewrite()
+                        orders.AsExpressive()
                               .Join(customers,
                                     o => o.CustomerId,
                                     c => c.Id,
@@ -87,7 +87,7 @@ public class JoinTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> orders, System.Collections.Generic.IEnumerable<Customer> customers)
                     {
-                        orders.WithExpressionRewrite()
+                        orders.AsExpressive()
                               .GroupJoin(customers,
                                          o => o.CustomerId,
                                          c => c.Id,
@@ -120,7 +120,7 @@ public class JoinTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> orders, System.Collections.Generic.IEnumerable<Customer> customers)
                     {
-                        orders.WithExpressionRewrite()
+                        orders.AsExpressive()
                               .GroupJoin(customers,
                                          o => o.CustomerId,
                                          c => c.Id,

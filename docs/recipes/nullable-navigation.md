@@ -128,7 +128,7 @@ var results = ctx.Orders
 ```csharp
 // Using IRewritableQueryable<T> (any IQueryable)
 var results = queryable
-    .WithExpressionRewrite()
+    .AsExpressive()
     .Where(o => o.Customer?.Email != null)
     .Select(o => new { o.Id, Email = o.Customer?.Email })
     .ToList();

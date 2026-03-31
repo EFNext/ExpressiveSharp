@@ -21,7 +21,7 @@ public class WhereTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite().Where(o => o.Tag == "urgent").ToList();
+                        query.AsExpressive().Where(o => o.Tag == "urgent").ToList();
                     }
                 }
             }
@@ -69,7 +69,7 @@ public class WhereTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .Where(o => o.Tag == "urgent")
                              .Select(o => o.Name)
                              .ToList();

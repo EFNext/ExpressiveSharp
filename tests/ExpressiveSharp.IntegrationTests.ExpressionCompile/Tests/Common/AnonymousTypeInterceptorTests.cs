@@ -26,7 +26,7 @@ public class AnonymousTypeInterceptorTests
     public void Select_AnonymousType_ThenWhere_CompilesAndRuns()
     {
         var results = _orders.AsQueryable()
-            .WithExpressionRewrite()
+            .AsExpressive()
             .Select(o => new { o.Id, Total = o.Price * o.Quantity })
             .Where(x => x.Total > 100)
             .ToList();
@@ -43,7 +43,7 @@ public class AnonymousTypeInterceptorTests
     public void Select_AnonymousType_ThenOrderByDescending_CompilesAndRuns()
     {
         var results = _orders.AsQueryable()
-            .WithExpressionRewrite()
+            .AsExpressive()
             .Select(o => new { o.Id, Total = o.Price * o.Quantity })
             .OrderByDescending(x => x.Total)
             .ToList();
@@ -61,7 +61,7 @@ public class AnonymousTypeInterceptorTests
     public void Select_AnonymousType_ThenSelectConcrete_CompilesAndRuns()
     {
         var results = _orders.AsQueryable()
-            .WithExpressionRewrite()
+            .AsExpressive()
             .Select(o => new { o.Id, o.Tag })
             .Select(x => x.Id)
             .ToList();
@@ -83,7 +83,7 @@ public class AnonymousTypeInterceptorTests
             new() { Id = 2, OrderId = 2, ProductName = "Gadget", UnitPrice = 25, Quantity = 3 },
         };
 
-        var results = orders.WithExpressionRewrite()
+        var results = orders.AsExpressive()
             .Join(lineItems,
                   o => o.Id,
                   li => li.OrderId,
@@ -110,7 +110,7 @@ public class AnonymousTypeInterceptorTests
         };
 
         var results = orders.AsQueryable()
-            .WithExpressionRewrite()
+            .AsExpressive()
             .Select(o => new { o.Id, o.Tag })
             .DistinctBy(x => x.Tag)
             .ToList();

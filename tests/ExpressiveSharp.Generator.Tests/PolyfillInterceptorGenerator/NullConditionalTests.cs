@@ -22,7 +22,7 @@ public class NullConditionalTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite(new ExpressionRewriteOptions())
+                        query.AsExpressive(new ExpressionRewriteOptions())
                              .Where(o => o.Customer?.Name == "Alice")
                              .ToList();
                     }

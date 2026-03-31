@@ -29,13 +29,13 @@ var results = dbContext.Orders
 
 ExpressiveSharp offers three ways to use modern syntax in LINQ chains. Each targets a different scenario.
 
-### 1. `IRewritableQueryable<T>` with `.WithExpressionRewrite()`
+### 1. `IRewritableQueryable<T>` with `.AsExpressive()`
 
 Works with **any** `IQueryable<T>` -- not tied to EF Core:
 
 ```csharp
 var results = queryable
-    .WithExpressionRewrite()
+    .AsExpressive()
     .Where(o => o.Customer?.Email != null)
     .Select(o => new
     {
@@ -67,7 +67,7 @@ public class MyDbContext : DbContext
 ```
 
 ```csharp
-// Modern syntax works directly -- no .WithExpressionRewrite() needed
+// Modern syntax works directly -- no .AsExpressive() needed
 var results = ctx.Orders
     .Where(o => o.Customer?.Email != null)
     .Select(o => new
@@ -209,7 +209,7 @@ var results = ctx.Orders
 | Scenario | Approach |
 |---|---|
 | EF Core project, modern syntax on `DbSet` | `ExpressiveDbSet<T>` |
-| Any `IQueryable`, modern syntax in chains | `.WithExpressionRewrite()` |
+| Any `IQueryable`, modern syntax in chains | `.AsExpressive()` |
 | Standalone expression tree, no queryable | `ExpressionPolyfill.Create` |
 | Reusable logic across multiple queries | `[Expressive]` property or method |
 | One-off query logic, not reused elsewhere | Inline modern syntax via the above |

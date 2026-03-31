@@ -21,7 +21,7 @@ public class OrderByTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite().OrderBy(o => o.Priority).ToList();
+                        query.AsExpressive().OrderBy(o => o.Priority).ToList();
                     }
                 }
             }
@@ -47,7 +47,7 @@ public class OrderByTests : GeneratorTestBase
                 {
                     public void Run(System.Linq.IQueryable<Order> query)
                     {
-                        query.WithExpressionRewrite()
+                        query.AsExpressive()
                              .OrderBy(o => o.Priority)
                              .ThenBy(o => o.Name)
                              .ToList();
