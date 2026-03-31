@@ -41,6 +41,7 @@ public class ExpressiveOptionsExtension : IDbContextOptionsExtension
     public void ApplyServices(IServiceCollection services)
     {
         // Register conventions
+        services.AddScoped<IConventionSetPlugin, ExpressiveDbSetDiscoveryConventionPlugin>();
         services.AddScoped<IConventionSetPlugin, ExpressivePropertiesNotMappedConventionPlugin>();
         services.AddScoped<IConventionSetPlugin, ExpressiveExpandQueryFiltersConventionPlugin>();
 
