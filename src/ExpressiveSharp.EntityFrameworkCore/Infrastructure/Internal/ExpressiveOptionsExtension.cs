@@ -45,17 +45,27 @@ public class ExpressiveOptionsExtension : IDbContextOptionsExtension
         services.AddScoped<IConventionSetPlugin, ExpressiveExpandQueryFiltersConventionPlugin>();
 
         // Decorate IQueryCompiler with ExpressiveQueryCompiler
-        var targetDescriptor = services.FirstOrDefault(x => x.ServiceType == typeof(IQueryCompiler))
-            ?? throw new InvalidOperationException(
-                "No QueryCompiler is configured. Ensure a database provider is configured before calling UseExpressives().");
+        var targetDescriptor = services.FirstOrDefault(x => x.ServiceType == typeof(IQueryCompiler));
 
         var decoratorFactory = ActivatorUtilities.CreateFactory(
-            typeof(ExpressiveQueryCompiler), [targetDescriptor.ServiceType]);
+            typeof(ExpressiveQueryCompiler), [typeof(IQueryCompiler)]);
 
-        services.Replace(ServiceDescriptor.Describe(
-            targetDescriptor.ServiceType,
-            serviceProvider => decoratorFactory(serviceProvider, [CreateTargetInstance(serviceProvider, targetDescriptor)]),
-            targetDescriptor.Lifetime));
+        if (targetDescriptor is not null)
+        {
+            // Provider registered first (e.g. UseSqlite().UseExpressives()) — decorate immediately
+            services.Replace(ServiceDescriptor.Describe(
+                targetDescriptor.ServiceType,
+                serviceProvider => decoratorFactory(serviceProvider, [CreateTargetInstance(serviceProvider, targetDescriptor)]),
+                targetDescriptor.Lifetime));
+        }
+        else
+        {
+            // UseExpressives() called before provider (e.g. AddSqlite optionsAction) — deferred decoration.
+            // Pre-register IQueryCompiler so the provider's TryAdd becomes a no-op.
+            // At resolution time, all provider services (IDatabase, IModel, etc.) are available.
+            services.AddScoped<IQueryCompiler>(sp =>
+                (IQueryCompiler)decoratorFactory(sp, [ActivatorUtilities.CreateInstance<QueryCompiler>(sp)]));
+        }
 
         // Apply plugin services
         foreach (var plugin in _plugins)

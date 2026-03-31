@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructure.Internal;
 using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Transformers;
 using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -37,21 +38,37 @@ public sealed class RelationalExpressivePlugin : IExpressivePlugin
     public IExpressionTreeTransformer[] GetTransformers() =>
         [new RewriteIndexedSelectToRowNumber()];
 
+    [SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required to decorate EF Core services")]
     private static void DecorateParameterBasedSqlProcessorFactory(IServiceCollection services)
     {
         var targetDescriptor = services.FirstOrDefault(
             x => x.ServiceType == typeof(IRelationalParameterBasedSqlProcessorFactory));
-        if (targetDescriptor is null) return;
 
-        services.Replace(ServiceDescriptor.Describe(
-            typeof(IRelationalParameterBasedSqlProcessorFactory),
-            sp =>
+        if (targetDescriptor is not null)
+        {
+            // Provider registered first — decorate immediately
+            services.Replace(ServiceDescriptor.Describe(
+                typeof(IRelationalParameterBasedSqlProcessorFactory),
+                sp =>
+                {
+                    var inner = CreateTargetInstance<IRelationalParameterBasedSqlProcessorFactory>(sp, targetDescriptor);
+                    var dependencies = sp.GetRequiredService<RelationalParameterBasedSqlProcessorDependencies>();
+                    return new WindowFunctionParameterBasedSqlProcessorFactory(inner, dependencies);
+                },
+                targetDescriptor.Lifetime));
+        }
+        else
+        {
+            // UseExpressives() called before provider — deferred decoration.
+            // Pre-register so the provider's TryAdd becomes a no-op.
+            // At resolution time, create the default factory and wrap it.
+            services.AddScoped<IRelationalParameterBasedSqlProcessorFactory>(sp =>
             {
-                var inner = CreateTargetInstance<IRelationalParameterBasedSqlProcessorFactory>(sp, targetDescriptor);
+                var inner = ActivatorUtilities.CreateInstance<RelationalParameterBasedSqlProcessorFactory>(sp);
                 var dependencies = sp.GetRequiredService<RelationalParameterBasedSqlProcessorDependencies>();
                 return new WindowFunctionParameterBasedSqlProcessorFactory(inner, dependencies);
-            },
-            targetDescriptor.Lifetime));
+            });
+        }
     }
 
     private static T CreateTargetInstance<T>(IServiceProvider services, ServiceDescriptor descriptor)

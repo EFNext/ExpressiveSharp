@@ -38,6 +38,18 @@ public class WindowFunctionIntegrationTests
         return ctx;
     }
 
+    private WindowTestDbContext CreateContextReversedOrder()
+    {
+        // UseExpressives() before UseSqlite() — simulates AddSqlite optionsAction ordering
+        var options = new DbContextOptionsBuilder<WindowTestDbContext>()
+            .UseExpressives(o => o.UseRelationalExtensions())
+            .UseSqlite(_connection)
+            .Options;
+        var ctx = new WindowTestDbContext(options);
+        ctx.Database.EnsureCreated();
+        return ctx;
+    }
+
     private static void SeedTestData(WindowTestDbContext ctx)
     {
         ctx.Customers.AddRange(
@@ -228,5 +240,31 @@ public class WindowFunctionIntegrationTests
         Assert.AreEqual(3, results.Count);
         var positions = results.Select(r => r.Position).OrderBy(p => p).ToList();
         CollectionAssert.AreEqual(new[] { 0, 1, 2 }, positions);
+    }
+
+    // ── Reversed ordering tests (UseExpressives before UseSqlite) ─────
+
+    [TestMethod]
+    public async Task RowNumber_BeforeProvider_ReturnsCorrectSequentialNumbers()
+    {
+        using var ctx = CreateContextReversedOrder();
+        SeedTestData(ctx);
+
+        var results = await ctx.Orders
+            .Select(o => new
+            {
+                o.Id,
+                o.Price,
+                RowNum = WindowFunction.RowNumber(Window.OrderBy(o.Price))
+            })
+            .OrderBy(x => x.RowNum)
+            .ToListAsync();
+
+        Assert.AreEqual(10, results.Count);
+        for (var i = 0; i < results.Count; i++)
+        {
+            Assert.AreEqual(i + 1, results[i].RowNum,
+                $"Expected RowNum {i + 1} at index {i}, got {results[i].RowNum}");
+        }
     }
 }
