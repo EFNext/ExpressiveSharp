@@ -270,6 +270,242 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             "Should not warn for enum extension method — generator expands these via TryEmitEnumMethodExpansion");
     }
 
+    // ── Prong 2: IRewritableQueryable LINQ lambdas ────────────────────────
+
+    [TestMethod]
+    public async Task RewritableQueryable_Select_WithNonExpressiveExtensionMethod_WarnsEXP0013()
+    {
+        var diagnostics = await RunAnalyzerAsync(
+            """
+            using ExpressiveSharp.Extensions;
+
+            namespace TestNs {
+                class Todo {
+                    public string Name { get; set; } = "";
+                }
+                class TodoItem {
+                    public string Name { get; set; } = "";
+                }
+
+                static class TodoExtensions {
+                    public static TodoItem AsTodoItem(this Todo t)
+                        => new TodoItem { Name = t.Name };
+                }
+
+                class C {
+                    void Run(IRewritableQueryable<Todo> source) {
+                        source.Select(t => t.AsTodoItem());
+                    }
+                }
+            }
+            """);
+
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0013"),
+            "Expected EXP0013 for non-[Expressive] extension method in IRewritableQueryable Select lambda");
+    }
+
+    [TestMethod]
+    public async Task RewritableQueryable_Where_WithNonExpressiveInstanceMethod_WarnsEXP0013()
+    {
+        var diagnostics = await RunAnalyzerAsync(
+            """
+            using ExpressiveSharp.Extensions;
+
+            namespace TestNs {
+                class Todo {
+                    public string Name { get; set; } = "";
+                    public bool IsImportant() => Name.Length > 10;
+                }
+
+                class C {
+                    void Run(IRewritableQueryable<Todo> source) {
+                        source.Where(t => t.IsImportant());
+                    }
+                }
+            }
+            """);
+
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0013"),
+            "Expected EXP0013 for non-[Expressive] instance method in IRewritableQueryable Where lambda");
+    }
+
+    [TestMethod]
+    public async Task RewritableQueryable_Select_WithNonExpressiveProperty_WarnsEXP0013()
+    {
+        var diagnostics = await RunAnalyzerAsync(
+            """
+            using ExpressiveSharp.Extensions;
+
+            namespace TestNs {
+                class Todo {
+                    public string FirstName { get; set; } = "";
+                    public string LastName { get; set; } = "";
+                    public string FullName => FirstName + " " + LastName;
+                }
+
+                class C {
+                    void Run(IRewritableQueryable<Todo> source) {
+                        source.Select(t => t.FullName);
+                    }
+                }
+            }
+            """);
+
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0013"),
+            "Expected EXP0013 for non-[Expressive] property in IRewritableQueryable Select lambda");
+    }
+
+    [TestMethod]
+    public async Task RewritableQueryable_MethodGroup_WithNonExpressiveMethod_WarnsEXP0013()
+    {
+        var diagnostics = await RunAnalyzerAsync(
+            """
+            using ExpressiveSharp.Extensions;
+
+            namespace TestNs {
+                class Todo {
+                    public string Name { get; set; } = "";
+                }
+                class TodoItem {
+                    public string Name { get; set; } = "";
+                }
+
+                static class TodoExtensions {
+                    public static TodoItem AsTodoItem(this Todo t)
+                        => new TodoItem { Name = t.Name };
+                }
+
+                class C {
+                    static TodoItem Convert(Todo t) => new TodoItem { Name = t.Name };
+
+                    void Run(IRewritableQueryable<Todo> source) {
+                        source.Select(Convert);
+                    }
+                }
+            }
+            """);
+
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0013"),
+            "Expected EXP0013 for non-[Expressive] method group in IRewritableQueryable Select");
+    }
+
+    // ── Prong 2 Negative: no EXP0013 in LINQ lambdas ───────────────────────
+
+    [TestMethod]
+    public async Task RewritableQueryable_WithExpressiveMethod_NoWarning()
+    {
+        var diagnostics = await RunAnalyzerAsync(
+            """
+            using ExpressiveSharp.Extensions;
+
+            namespace TestNs {
+                class Todo {
+                    public string Name { get; set; } = "";
+                }
+                class TodoItem {
+                    public string Name { get; set; } = "";
+                }
+
+                static class TodoExtensions {
+                    [Expressive]
+                    public static TodoItem AsTodoItem(this Todo t)
+                        => new TodoItem { Name = t.Name };
+                }
+
+                class C {
+                    void Run(IRewritableQueryable<Todo> source) {
+                        source.Select(t => t.AsTodoItem());
+                    }
+                }
+            }
+            """);
+
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
+            "Should not warn when referenced method already has [Expressive] in LINQ lambda");
+    }
+
+    [TestMethod]
+    public async Task RewritableQueryable_WithBclMethod_NoWarning()
+    {
+        var diagnostics = await RunAnalyzerAsync(
+            """
+            using ExpressiveSharp.Extensions;
+
+            namespace TestNs {
+                class Todo {
+                    public string Name { get; set; } = "";
+                }
+
+                class C {
+                    void Run(IRewritableQueryable<Todo> source) {
+                        source.Select(t => t.Name.ToUpper());
+                    }
+                }
+            }
+            """);
+
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
+            "Should not warn for BCL method call in IRewritableQueryable LINQ lambda");
+    }
+
+    [TestMethod]
+    public async Task RewritableQueryable_WithAutoProperty_NoWarning()
+    {
+        var diagnostics = await RunAnalyzerAsync(
+            """
+            using ExpressiveSharp.Extensions;
+
+            namespace TestNs {
+                class Todo {
+                    public string Name { get; set; } = "";
+                }
+
+                class C {
+                    void Run(IRewritableQueryable<Todo> source) {
+                        source.Select(t => t.Name);
+                    }
+                }
+            }
+            """);
+
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
+            "Should not warn for auto-property access in IRewritableQueryable LINQ lambda");
+    }
+
+    [TestMethod]
+    public async Task RewritableQueryable_WithEnumExtensionMethod_NoWarning()
+    {
+        var diagnostics = await RunAnalyzerAsync(
+            """
+            using ExpressiveSharp.Extensions;
+
+            namespace TestNs {
+                enum Priority { Low, Medium, High }
+
+                static class PriorityExtensions {
+                    public static string Label(this Priority p) => p switch {
+                        Priority.Low => "Low",
+                        Priority.Medium => "Medium",
+                        _ => "High",
+                    };
+                }
+
+                class Todo {
+                    public Priority Priority { get; set; }
+                }
+
+                class C {
+                    void Run(IRewritableQueryable<Todo> source) {
+                        source.Select(t => t.Priority.Label());
+                    }
+                }
+            }
+            """);
+
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
+            "Should not warn for enum extension method in IRewritableQueryable LINQ lambda");
+    }
+
     // ── Helper ──────────────────────────────────────────────────────────────
 
     private async Task<ImmutableArray<Diagnostic>> RunAnalyzerAsync(string source)

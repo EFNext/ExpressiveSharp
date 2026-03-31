@@ -74,6 +74,15 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
             {
                 AnalyzeDescendants(context, lambda);
             }
+            else
+            {
+                // Handle method group syntax: .Select(MyMethod)
+                var argSymbol = context.SemanticModel.GetSymbolInfo(arg.Expression, context.CancellationToken);
+                if (argSymbol.Symbol is IMethodSymbol methodGroup)
+                {
+                    WarnIfMissingExpressive(context, methodGroup, arg.Expression.GetLocation());
+                }
+            }
         }
     }
 
