@@ -104,7 +104,7 @@ internal sealed class WindowFunctionSqlExpression : SqlExpression
         appendText(")");
     }
 
-#if NET10_0_OR_GREATER
+#if NET9_0_OR_GREATER
     public override Expression Quote() =>
         throw new InvalidOperationException("WindowFunctionSqlExpression quoting is not supported.");
 #endif

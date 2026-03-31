@@ -21,7 +21,7 @@ internal sealed class WindowFunctionParameterBasedSqlProcessorFactory : IRelatio
         _dependencies = dependencies;
     }
 
-#if NET10_0_OR_GREATER
+#if NET9_0_OR_GREATER
     public RelationalParameterBasedSqlProcessor Create(RelationalParameterBasedSqlProcessorParameters parameters) =>
         new WindowFunctionParameterBasedSqlProcessor(_inner.Create(parameters), _dependencies, parameters);
 #else

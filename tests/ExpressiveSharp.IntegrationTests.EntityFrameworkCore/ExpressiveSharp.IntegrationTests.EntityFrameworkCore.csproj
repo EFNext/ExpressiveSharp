@@ -9,6 +9,9 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"
                       Condition="'$(TargetFramework)' == 'net8.0'" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"
+                      Condition="'$(TargetFramework)' == 'net9.0'"
+                      VersionOverride="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"
                       Condition="'$(TargetFramework)' == 'net10.0'"
                       VersionOverride="10.0.5" />
   </ItemGroup>

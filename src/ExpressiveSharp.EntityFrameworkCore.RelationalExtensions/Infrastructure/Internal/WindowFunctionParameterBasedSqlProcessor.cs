@@ -15,7 +15,7 @@ internal sealed class WindowFunctionParameterBasedSqlProcessor : RelationalParam
 {
     private readonly RelationalParameterBasedSqlProcessor _inner;
 
-#if NET10_0_OR_GREATER
+#if NET9_0_OR_GREATER
     public WindowFunctionParameterBasedSqlProcessor(
         RelationalParameterBasedSqlProcessor inner,
         RelationalParameterBasedSqlProcessorDependencies dependencies,
@@ -23,15 +23,6 @@ internal sealed class WindowFunctionParameterBasedSqlProcessor : RelationalParam
         : base(dependencies, parameters)
     {
         _inner = inner;
-    }
-
-    public override Expression Process(
-        Expression queryExpression,
-        ParametersCacheDecorator parametersDecorator)
-    {
-        var wrapped = WindowFunctionSqlExpressionWrapper.WrapAll(queryExpression, out var stash);
-        var processed = _inner.Process(wrapped, parametersDecorator);
-        return WindowFunctionSqlExpressionWrapper.UnwrapAll(processed, stash);
     }
 #else
     public WindowFunctionParameterBasedSqlProcessor(
@@ -44,7 +35,16 @@ internal sealed class WindowFunctionParameterBasedSqlProcessor : RelationalParam
     }
 #endif
 
-#if !NET10_0_OR_GREATER
+#if NET10_0_OR_GREATER
+    public override Expression Process(
+        Expression queryExpression,
+        ParametersCacheDecorator parametersDecorator)
+    {
+        var wrapped = WindowFunctionSqlExpressionWrapper.WrapAll(queryExpression, out var stash);
+        var processed = _inner.Process(wrapped, parametersDecorator);
+        return WindowFunctionSqlExpressionWrapper.UnwrapAll(processed, stash);
+    }
+#else
     public override Expression Optimize(
         Expression queryExpression,
         IReadOnlyDictionary<string, object?> parametersValues,

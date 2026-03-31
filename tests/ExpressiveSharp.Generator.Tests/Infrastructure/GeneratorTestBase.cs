@@ -49,8 +49,10 @@ public abstract partial class GeneratorTestBase
     protected IReadOnlyList<MetadataReference> GetDefaultReferences()
     {
         var references = Basic.Reference.Assemblies.
-#if NET10_0
+#if NET10_0_OR_GREATER
             Net100
+#elif NET9_0
+            Net90
 #else
             Net80
 #endif

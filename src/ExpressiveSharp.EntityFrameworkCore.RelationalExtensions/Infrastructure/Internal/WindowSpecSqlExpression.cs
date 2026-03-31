@@ -91,7 +91,7 @@ internal sealed class WindowSpecSqlExpression : SqlExpression
         expressionPrinter.Append(")");
     }
 
-#if NET10_0_OR_GREATER
+#if NET9_0_OR_GREATER
     public override Expression Quote() =>
         throw new InvalidOperationException("WindowSpecSqlExpression is an intermediate node and should not be quoted.");
 #endif
