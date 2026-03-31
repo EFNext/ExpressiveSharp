@@ -1,4 +1,4 @@
-# <img src="assets/icon.png" width="32" height="32" alt="ExpressiveSharp icon" style="vertical-align: middle"> ExpressiveSharp
+# ExpressiveSharp
 
 [![CI](https://github.com/EFNext/ExpressiveSharp/actions/workflows/ci.yml/badge.svg)](https://github.com/EFNext/ExpressiveSharp/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/EFNext/ExpressiveSharp/graph/badge.svg)](https://codecov.io/gh/EFNext/ExpressiveSharp)
