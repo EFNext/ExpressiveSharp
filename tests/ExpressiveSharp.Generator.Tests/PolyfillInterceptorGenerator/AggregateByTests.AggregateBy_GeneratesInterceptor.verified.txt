@@ -6,23 +6,27 @@ namespace ExpressiveSharp.Generated.Interceptors
     internal static class PolyfillInterceptors
     {
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
-        internal static global::ExpressiveSharp.IRewritableQueryable<string> __Polyfill_GroupBy_0(
+        internal static global::ExpressiveSharp.IRewritableQueryable<global::System.Collections.Generic.KeyValuePair<string, decimal>> __Polyfill_AggregateBy_0(
             this global::ExpressiveSharp.IRewritableQueryable<global::TestNs.Order> source,
             global::System.Func<global::TestNs.Order, string> _1,
-                    global::System.Func<string, global::System.Collections.Generic.IEnumerable<global::TestNs.Order>, string> _2)
+                    decimal seed,
+                    global::System.Func<decimal, global::TestNs.Order, decimal> _2)
         {
             // Source: o => o.Tag
             var i0a_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
             var i0a_expr_0 = global::System.Linq.Expressions.Expression.Property(i0a_p_o, typeof(global::TestNs.Order).GetProperty("Tag")); // o.Tag
             var __lambda1 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, string>>(i0a_expr_0, i0a_p_o);
-            // Source: (key, orders) => key
-            var i0b_p_key = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "key");
-            var i0b_p_orders = global::System.Linq.Expressions.Expression.Parameter(typeof(global::System.Collections.Generic.IEnumerable<global::TestNs.Order>), "orders");
-            var __lambda2 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<string, global::System.Collections.Generic.IEnumerable<global::TestNs.Order>, string>>(i0b_p_key, i0b_p_key, i0b_p_orders);
+            // Source: (acc, o) => acc + o.Price
+            var i0b_p_acc = global::System.Linq.Expressions.Expression.Parameter(typeof(decimal), "acc");
+            var i0b_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
+            var i0b_expr_1 = global::System.Linq.Expressions.Expression.Property(i0b_p_o, typeof(global::TestNs.Order).GetProperty("Price")); // o.Price
+            var i0b_expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, i0b_p_acc, i0b_expr_1);
+            var __lambda2 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<decimal, global::TestNs.Order, decimal>>(i0b_expr_0, i0b_p_acc, i0b_p_o);
             return global::ExpressiveSharp.Extensions.ExpressionRewriteExtensions.WithExpressionRewrite(
-                global::System.Linq.Queryable.GroupBy(
+                global::System.Linq.Queryable.AggregateBy(
                     (global::System.Linq.IQueryable<global::TestNs.Order>)source,
                     __lambda1,
+                        seed,
                         __lambda2));
         }
     }

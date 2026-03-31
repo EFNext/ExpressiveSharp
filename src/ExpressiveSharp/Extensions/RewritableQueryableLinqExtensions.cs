@@ -505,6 +505,14 @@ namespace ExpressiveSharp.Extensions
             TAccumulate seed,
             Func<TAccumulate, T, TAccumulate> func)
             => throw new UnreachableException(InterceptedMessage);
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static IRewritableQueryable<KeyValuePair<TKey, TAccumulate>> AggregateBy<T, TKey, TAccumulate>(
+            this IRewritableQueryable<T> source,
+            Func<T, TKey> keySelector,
+            Func<TKey, TAccumulate> seedSelector,
+            Func<TAccumulate, T, TAccumulate> func)
+            => throw new UnreachableException(InterceptedMessage);
 #endif
 
         // ── IEqualityComparer / IComparer overloads (intercepted) ────────────

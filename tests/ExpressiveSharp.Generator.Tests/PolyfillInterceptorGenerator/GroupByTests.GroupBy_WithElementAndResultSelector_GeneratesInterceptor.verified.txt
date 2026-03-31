@@ -9,8 +9,8 @@ namespace ExpressiveSharp.Generated.Interceptors
         internal static global::ExpressiveSharp.IRewritableQueryable<string> __Polyfill_GroupBy_0(
             this global::ExpressiveSharp.IRewritableQueryable<global::TestNs.Order> source,
             global::System.Func<global::TestNs.Order, string> _1,
-            global::System.Func<global::TestNs.Order, string> _2,
-            global::System.Func<string, global::System.Collections.Generic.IEnumerable<string>, string> _3)
+                    global::System.Func<global::TestNs.Order, string> _2,
+                    global::System.Func<string, global::System.Collections.Generic.IEnumerable<string>, string> _3)
         {
             // Source: o => o.Tag
             var i0a_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
@@ -28,8 +28,8 @@ namespace ExpressiveSharp.Generated.Interceptors
                 global::System.Linq.Queryable.GroupBy(
                     (global::System.Linq.IQueryable<global::TestNs.Order>)source,
                     __lambda1,
-                    __lambda2,
-                    __lambda3));
+                        __lambda2,
+                        __lambda3));
         }
     }
 }
