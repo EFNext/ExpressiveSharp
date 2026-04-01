@@ -69,6 +69,7 @@ jobs:
         if: always()
         uses: codecov/codecov-action@v5
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ./test-results/**/coverage.xml
           fail_ci_if_error: false
 
