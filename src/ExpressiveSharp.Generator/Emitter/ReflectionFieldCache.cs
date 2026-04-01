@@ -64,7 +64,21 @@ internal sealed class ReflectionFieldCache
             var paramCount = originalDef.Parameters.Length;
             var typeArgs = string.Join(", ", method.TypeArguments.Select(t =>
                 $"typeof({ResolveTypeFqn(t)})"));
-            return $"global::System.Linq.Enumerable.First(global::System.Linq.Enumerable.Where(typeof({typeFqn}).GetMethods({flags}), m => m.Name == \"{method.Name}\" && m.IsGenericMethodDefinition && m.GetGenericArguments().Length == {genericArity} && m.GetParameters().Length == {paramCount})).MakeGenericMethod({typeArgs})";
+
+            // Disambiguate overloads that share name, generic arity, and parameter count
+            // (e.g., SetProperty<P>(Func<T,P>, P) vs SetProperty<P>(Func<T,P>, Func<T,P>))
+            // by checking whether each parameter is a generic type or a type parameter.
+            var paramChecks = "";
+            for (int i = 0; i < originalDef.Parameters.Length; i++)
+            {
+                var paramType = originalDef.Parameters[i].Type;
+                if (paramType is ITypeParameterSymbol)
+                    paramChecks += $" && !m.GetParameters()[{i}].ParameterType.IsGenericType";
+                else if (paramType is INamedTypeSymbol { IsGenericType: true })
+                    paramChecks += $" && m.GetParameters()[{i}].ParameterType.IsGenericType";
+            }
+
+            return $"global::System.Linq.Enumerable.First(global::System.Linq.Enumerable.Where(typeof({typeFqn}).GetMethods({flags}), m => m.Name == \"{method.Name}\" && m.IsGenericMethodDefinition && m.GetGenericArguments().Length == {genericArity} && m.GetParameters().Length == {paramCount}{paramChecks})).MakeGenericMethod({typeArgs})";
         }
         else
         {
