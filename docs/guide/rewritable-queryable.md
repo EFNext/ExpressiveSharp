@@ -140,6 +140,36 @@ var orders = ctx.Set<Order>()
     .ToList();
 ```
 
+## EF Core: Bulk Updates with ExecuteUpdate
+
+::: info
+Requires the `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` package and `.UseExpressives(o => o.UseRelationalExtensions())` configuration. Available on EF Core 8 and 9. On EF Core 10+, `ExecuteUpdate` natively accepts delegates — use `ExpressionPolyfill.Create()` for modern syntax in individual `SetProperty` value expressions.
+:::
+
+`ExecuteUpdate` and `ExecuteUpdateAsync` are supported on `IRewritableQueryable<T>`, enabling modern C# syntax inside `SetProperty` value expressions — which is normally impossible in expression trees:
+
+```csharp
+ctx.ExpressiveSet<Product>()
+    .ExecuteUpdate(s => s
+        .SetProperty(p => p.Tag, p => p.Price switch
+        {
+            > 100 => "premium",
+            > 50  => "standard",
+            _     => "budget"
+        })
+        .SetProperty(p => p.Category, p => p.Category ?? "Uncategorized"));
+```
+
+This generates a single SQL `UPDATE` with `CASE WHEN` and `COALESCE` expressions — no entity loading required.
+
+`ExecuteDelete` works out of the box on `IRewritableQueryable<T>` without any stubs (it has no lambda parameter):
+
+```csharp
+ctx.ExpressiveSet<Product>()
+    .Where(p => p.Price switch { < 10 => true, _ => false })
+    .ExecuteDelete();
+```
+
 ## IAsyncEnumerable Support
 
 `IRewritableQueryable<T>` supports `AsAsyncEnumerable()` for streaming results:

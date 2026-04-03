@@ -152,6 +152,38 @@ Supported chain-preserving operations:
 - `IgnoreQueryFilters()`, `IgnoreAutoIncludes()`
 - `TagWith(tag)`, `TagWithCallSite()`
 
+## Bulk Updates with ExecuteUpdate
+
+With the `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` package, you can use modern C# syntax inside `ExecuteUpdate` / `ExecuteUpdateAsync`:
+
+```csharp
+// Requires: .UseExpressives(o => o.UseRelationalExtensions())
+ctx.Orders
+    .ExecuteUpdate(s => s
+        .SetProperty(o => o.Tag, o => o.Price switch
+        {
+            >= 100 => "Premium",
+            >= 50  => "Standard",
+            _      => "Budget"
+        }));
+
+// Async variant
+await ctx.Orders
+    .ExecuteUpdateAsync(s => s.SetProperty(
+        o => o.Tag,
+        o => o.Customer?.Name ?? "Unknown"));
+```
+
+Switch expressions and null-conditional operators inside `SetProperty` value lambdas are normally rejected by the C# compiler in expression tree contexts. The source generator converts them to `CASE WHEN` and `COALESCE` SQL expressions.
+
+::: info
+`ExecuteDelete` works on `IRewritableQueryable<T>` / `ExpressiveDbSet<T>` without any additional setup — it has no lambda parameter, so no interception is needed.
+:::
+
+::: warning
+This feature is available on EF Core 8 and 9. EF Core 10 changed the `ExecuteUpdate` API to use `Action<UpdateSettersBuilder<T>>`, which natively supports modern C# syntax in the outer lambda. For inner `SetProperty` value expressions on EF Core 10, use `ExpressionPolyfill.Create()`.
+:::
+
 ## Plugin Architecture
 
 `UseExpressives()` accepts an optional configuration callback for registering plugins:
@@ -193,7 +225,7 @@ The built-in `RelationalExtensions` package (for window functions) uses this plu
 |---------|-------------|
 | [`ExpressiveSharp`](https://www.nuget.org/packages/ExpressiveSharp/) | Core runtime -- `[Expressive]` attribute, source generator, expression expansion, transformers |
 | [`ExpressiveSharp.EntityFrameworkCore`](https://www.nuget.org/packages/ExpressiveSharp.EntityFrameworkCore/) | EF Core integration -- `UseExpressives()`, `ExpressiveDbSet<T>`, Include/ThenInclude, async methods, analyzers and code fixes |
-| [`ExpressiveSharp.EntityFrameworkCore.RelationalExtensions`](https://www.nuget.org/packages/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions/) | SQL window functions -- ROW_NUMBER, RANK, DENSE_RANK, NTILE (experimental) |
+| [`ExpressiveSharp.EntityFrameworkCore.RelationalExtensions`](https://www.nuget.org/packages/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions/) | Relational extensions -- `ExecuteUpdate`/`ExecuteUpdateAsync` with modern syntax, SQL window functions (ROW_NUMBER, RANK, DENSE_RANK, NTILE) |
 
 ::: info
 The `ExpressiveSharp.EntityFrameworkCore` package bundles Roslyn analyzers and code fixes from `ExpressiveSharp.EntityFrameworkCore.CodeFixers`. These provide compile-time diagnostics and IDE quick-fix actions for common issues like missing `[Expressive]` attributes.
