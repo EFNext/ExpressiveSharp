@@ -73,9 +73,9 @@ internal sealed class ReflectionFieldCache
             {
                 var paramType = originalDef.Parameters[i].Type;
                 if (paramType is ITypeParameterSymbol)
-                    paramChecksBuilder.Append($" && !m.GetParameters()[{i}].ParameterType.IsGenericType");
+                    paramChecksBuilder.Append($" && m.GetParameters()[{i}].ParameterType.IsGenericParameter && !m.GetParameters()[{i}].ParameterType.IsGenericType");
                 else if (paramType is INamedTypeSymbol { IsGenericType: true })
-                    paramChecksBuilder.Append($" && m.GetParameters()[{i}].ParameterType.IsGenericType");
+                    paramChecksBuilder.Append($" && m.GetParameters()[{i}].ParameterType.IsGenericType && !m.GetParameters()[{i}].ParameterType.IsGenericParameter");
             }
             var paramChecks = paramChecksBuilder.ToString();
 
