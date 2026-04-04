@@ -8,7 +8,7 @@ namespace ExpressiveSharp.Generated.Interceptors
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
         internal static global::ExpressiveSharp.IRewritableQueryable<T0> __Polyfill_Where_0<T0>(
             this global::ExpressiveSharp.IRewritableQueryable<T0> source,
-            global::System.Func<T0, bool> _)
+            global::System.Func<T0, bool> __func)
         {
             // Source: x => x.Total > 100m
             var i0_p_x = global::System.Linq.Expressions.Expression.Parameter(typeof(T0), "x");
@@ -25,7 +25,7 @@ namespace ExpressiveSharp.Generated.Interceptors
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
         internal static global::ExpressiveSharp.IRewritableQueryable<T1> __Polyfill_Select_1<T0, T1>(
             this global::ExpressiveSharp.IRewritableQueryable<T0> source,
-            global::System.Func<T0, T1> _)
+            global::System.Func<T0, T1> __func)
         {
             // Source: o => new { o.Id, o.Total }
             var i1_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(T0), "o");

@@ -52,16 +52,20 @@ internal sealed class ExpressionTreeEmitter
     private readonly Stack<(string VarName, ITypeSymbol? Type)> _conditionalAccessReceiverStack = new();
     private readonly Dictionary<ITypeSymbol, string> _typeAliases = new(SymbolEqualityComparer.Default);
     private readonly string _varPrefix;
+    private readonly string? _delegateVarName;
+    private string? _closureTargetVarName;
 
     public ExpressionTreeEmitter(
         SemanticModel semanticModel,
         SourceProductionContext? context = null,
-        string varPrefix = "")
+        string varPrefix = "",
+        string? delegateVarName = null)
     {
         _semanticModel = semanticModel;
         _context = context;
         _fieldCache = new ReflectionFieldCache(_typeAliases);
         _varPrefix = varPrefix;
+        _delegateVarName = delegateVarName;
     }
 
     /// <summary>
@@ -502,12 +506,21 @@ internal sealed class ExpressionTreeEmitter
         if (_symbolToVar.TryGetValue(paramRef.Parameter, out var varName))
             return varName;
 
-        // Fallback: parameter not in our map
-        var resultVar = NextVar();
+        // Outer-scope parameter — captured variable from enclosing method.
+        // Extract its value from the delegate's closure at runtime.
+        if (_delegateVarName is not null)
+        {
+            var resultVar = EmitCapturedVariable(paramRef.Parameter.Name, paramRef.Parameter.Type);
+            _symbolToVar[paramRef.Parameter] = resultVar;
+            return resultVar;
+        }
+
+        // Fallback: parameter not in our map (non-interceptor path)
+        var fallbackVar = NextVar();
         var typeFqn = paramRef.Parameter.Type.ToDisplayString(_fqnFormat);
-        AppendLine($"var {resultVar} = {Expr}.Parameter(typeof({typeFqn}), \"{paramRef.Parameter.Name}\");");
-        _symbolToVar[paramRef.Parameter] = resultVar;
-        return resultVar;
+        AppendLine($"var {fallbackVar} = {Expr}.Parameter(typeof({typeFqn}), \"{paramRef.Parameter.Name}\");");
+        _symbolToVar[paramRef.Parameter] = fallbackVar;
+        return fallbackVar;
     }
 
     private string EmitLocalReference(ILocalReferenceOperation localRef)
@@ -515,11 +528,42 @@ internal sealed class ExpressionTreeEmitter
         if (_localToVar.TryGetValue(localRef.Local, out var varName))
             return varName;
 
+        // Outer-scope local — captured variable from enclosing method.
+        if (_delegateVarName is not null)
+        {
+            var resultVar = EmitCapturedVariable(localRef.Local.Name, localRef.Local.Type);
+            _localToVar[localRef.Local] = resultVar;
+            return resultVar;
+        }
+
         // Fallback: local not yet declared (shouldn't happen in well-formed code)
-        var resultVar = NextVar();
+        var fallbackVar = NextVar();
         var typeFqn = localRef.Local.Type.ToDisplayString(_fqnFormat);
-        AppendLine($"var {resultVar} = {Expr}.Variable(typeof({typeFqn}), \"{localRef.Local.Name}\");");
-        _localToVar[localRef.Local] = resultVar;
+        AppendLine($"var {fallbackVar} = {Expr}.Variable(typeof({typeFqn}), \"{localRef.Local.Name}\");");
+        _localToVar[localRef.Local] = fallbackVar;
+        return fallbackVar;
+    }
+
+    /// <summary>
+    /// Emits an expression tree node that accesses a captured variable from the delegate's closure,
+    /// replicating the pattern the C# compiler uses: <c>Expression.Field(Expression.Constant(closure), "name")</c>.
+    /// EF Core (and other LINQ providers) recognizes this pattern and evaluates it to extract the parameter value.
+    /// </summary>
+    private string EmitCapturedVariable(string variableName, ITypeSymbol variableType)
+    {
+        // Lazily emit the closure target constant (shared across all captured variables from the same delegate)
+        if (_closureTargetVarName is null)
+        {
+            _closureTargetVarName = $"{_varPrefix}__closureTarget";
+            AppendLine($"var {_closureTargetVarName} = {Expr}.Constant({_delegateVarName}.Target);");
+        }
+
+        var fieldVar = NextVar();
+        AppendLine($"var {fieldVar} = {_delegateVarName}.Target.GetType().GetField(\"{variableName}\", " +
+            "global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic);");
+
+        var resultVar = NextVar();
+        AppendLine($"var {resultVar} = {Expr}.MakeMemberAccess({_closureTargetVarName}, {fieldVar});");
         return resultVar;
     }
 

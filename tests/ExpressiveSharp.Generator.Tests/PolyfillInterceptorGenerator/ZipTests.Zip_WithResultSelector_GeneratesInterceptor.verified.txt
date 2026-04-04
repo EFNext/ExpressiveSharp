@@ -9,7 +9,7 @@ namespace ExpressiveSharp.Generated.Interceptors
         internal static global::ExpressiveSharp.IRewritableQueryable<string> __Polyfill_Zip_0(
             this global::ExpressiveSharp.IRewritableQueryable<global::TestNs.Order> source,
             global::System.Collections.Generic.IEnumerable<global::TestNs.Price> second,
-                    global::System.Func<global::TestNs.Order, global::TestNs.Price, string> _)
+                    global::System.Func<global::TestNs.Order, global::TestNs.Price, string> __func)
         {
             // Source: (o, p) => o.Name
             var i0_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");

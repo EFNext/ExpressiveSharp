@@ -8,7 +8,7 @@ namespace ExpressiveSharp.Generated.Interceptors
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
         internal static global::ExpressiveSharp.IRewritableQueryable<T1> __Polyfill_Select_0<T0, T1>(
             this global::ExpressiveSharp.IRewritableQueryable<T0> source,
-            global::System.Func<T0, T1> _)
+            global::System.Func<T0, T1> __func)
         {
             // Source: o => new { o.Id, o.Name }
             var i0_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(T0), "o");

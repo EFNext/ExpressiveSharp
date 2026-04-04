@@ -9,9 +9,9 @@ namespace ExpressiveSharp.Generated.Interceptors
         internal static global::ExpressiveSharp.IRewritableQueryable<T3> __Polyfill_Join_0<T0, T1, T2, T3>(
             this global::ExpressiveSharp.IRewritableQueryable<T0> source,
             global::System.Collections.Generic.IEnumerable<T1> inner,
-                    global::System.Func<T0, T2> _1,
-                    global::System.Func<T1, T2> _2,
-                    global::System.Func<T0, T1, T3> _3)
+                    global::System.Func<T0, T2> __func1,
+                    global::System.Func<T1, T2> __func2,
+                    global::System.Func<T0, T1, T3> __func3)
         {
             // Source: o => o.CustomerId
             var i0a_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(T0), "o");

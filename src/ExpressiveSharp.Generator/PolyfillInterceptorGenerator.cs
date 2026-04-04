@@ -180,7 +180,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         // Use ExpressionTreeEmitter to build the expression tree
         var exprTypeFqn = $"global::System.Linq.Expressions.Expression<{delegateFqn}>";
         var emitResult = EmitLambdaBody(lam, elemSymbol, model, spc, globalOptions, delegateFqn,
-            varPrefix: $"i{index}_");
+            varPrefix: $"i{index}_", delegateVarName: "__func");
         if (emitResult is null)
             return null;
 
@@ -189,7 +189,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             return $$"""
                     {{interceptAttr}}
                     internal static global::System.Linq.Expressions.Expression<{{delegateFqn}}> {{MethodId("Create", index)}}(
-                        {{delegateFqn}} _,
+                        {{delegateFqn}} __func,
                         params global::ExpressiveSharp.IExpressionTreeTransformer[] transformers)
                     {
             {{emitResult.Body}}            global::System.Linq.Expressions.Expression result = __lambda;
@@ -203,7 +203,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         return $$"""
                 {{interceptAttr}}
                 internal static global::System.Linq.Expressions.Expression<{{delegateFqn}}> {{MethodId("Create", index)}}(
-                    {{delegateFqn}} _)
+                    {{delegateFqn}} __func)
                 {
         {{emitResult.Body}}            return __lambda;
                 }
@@ -306,14 +306,15 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         string delegateTypeFqn,
         string assignToVariable = "__lambda",
         string varPrefix = "",
-        IReadOnlyDictionary<ITypeSymbol, string>? typeAliases = null)
+        IReadOnlyDictionary<ITypeSymbol, string>? typeAliases = null,
+        string? delegateVarName = null)
     {
         // For expression-bodied lambdas, use the expression directly.
         // For block-bodied lambdas, use the block.
         var bodyNode = lambda.Body is ExpressionSyntax expr ? (SyntaxNode)expr : lambda.Body;
         if (bodyNode is null) return null;
 
-        var emitter = new Emitter.ExpressionTreeEmitter(model, spc, varPrefix: varPrefix);
+        var emitter = new Emitter.ExpressionTreeEmitter(model, spc, varPrefix: varPrefix, delegateVarName: delegateVarName);
 
         if (typeAliases is not null)
         {
@@ -530,8 +531,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             {
                 if (funcOrdinal < funcParamIndices.Count && i == funcParamIndices[funcOrdinal])
                 {
-                    var discardName = single ? "_" : $"_{funcOrdinal + 1}";
-                    interceptorParams.Add($"{funcFqnGenerics[funcOrdinal]} {discardName}");
+                    var delegateName = single ? "__func" : $"__func{funcOrdinal + 1}";
+                    interceptorParams.Add($"{funcFqnGenerics[funcOrdinal]} {delegateName}");
                     queryableArgs.Add(single ? "__lambda" : $"__lambda{funcOrdinal + 1}");
                     funcOrdinal++;
                 }
@@ -578,8 +579,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                 var paramTypeFqn = method.Parameters[i].Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                 if (funcOrdinal < funcParamIndices.Count && i == funcParamIndices[funcOrdinal])
                 {
-                    var discardName = single ? "_" : $"_{funcOrdinal + 1}";
-                    interceptorParams.Add($"{paramTypeFqn} {discardName}");
+                    var delegateName = single ? "__func" : $"__func{funcOrdinal + 1}";
+                    interceptorParams.Add($"{paramTypeFqn} {delegateName}");
                     queryableArgs.Add(single ? "__lambda" : $"__lambda{funcOrdinal + 1}");
                     funcOrdinal++;
                 }
@@ -604,11 +605,13 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         {
             var lambdaVar = single ? "__lambda" : $"__lambda{j + 1}";
             var prefix = single ? $"i{idx}_" : $"i{idx}{(char)('a' + j)}_";
+            var delegateName = single ? "__func" : $"__func{j + 1}";
             var funcType = (INamedTypeSymbol)method.Parameters[funcParamIndices[j]].Type;
             var lambdaElemSym = funcType.TypeArguments[0] as INamedTypeSymbol ?? elemSym;
             var emitResult = EmitLambdaBody(lambdas[j], lambdaElemSym, model, spc, globalOptions,
                 delegateFqns[j], lambdaVar, varPrefix: prefix,
-                typeAliases: hasAnyAnon ? typeAliases : null);
+                typeAliases: hasAnyAnon ? typeAliases : null,
+                delegateVarName: delegateName);
             if (emitResult is null) return null;
             emitBodies.Add(emitResult.Body);
         }

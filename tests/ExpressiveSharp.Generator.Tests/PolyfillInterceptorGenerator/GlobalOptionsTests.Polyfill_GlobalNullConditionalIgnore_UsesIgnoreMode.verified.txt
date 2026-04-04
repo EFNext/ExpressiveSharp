@@ -7,7 +7,7 @@ namespace ExpressiveSharp.Generated.Interceptors
     {
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
         internal static global::System.Linq.Expressions.Expression<global::System.Func<global::TestNs.Order, int?>> __Polyfill_Create_0(
-            global::System.Func<global::TestNs.Order, int?> _)
+            global::System.Func<global::TestNs.Order, int?> __func)
         {
             // Source: o => o.Tag?.Length
             var i0_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");

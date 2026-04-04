@@ -9,11 +9,13 @@ namespace ExpressiveSharp.Generated.Interceptors
         internal static global::System.Linq.Expressions.Expression<global::System.Func<global::TestNs.Order, bool>> __Polyfill_Create_0(
             global::System.Func<global::TestNs.Order, bool> __func)
         {
-            // Source: (Order o) => o.Tag == "urgent"
+            // Source: (Order o) => o.Price > threshold
             var i0_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var i0_expr_1 = global::System.Linq.Expressions.Expression.Property(i0_p_o, typeof(global::TestNs.Order).GetProperty("Tag")); // o.Tag
-            var i0_expr_2 = global::System.Linq.Expressions.Expression.Constant("urgent", typeof(string)); // "urgent"
-            var i0_expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Equal, i0_expr_1, i0_expr_2);
+            var i0_expr_1 = global::System.Linq.Expressions.Expression.Property(i0_p_o, typeof(global::TestNs.Order).GetProperty("Price")); // o.Price
+            var i0___closureTarget = global::System.Linq.Expressions.Expression.Constant(__func.Target); // threshold
+            var i0_expr_2 = __func.Target.GetType().GetField("threshold", global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic);
+            var i0_expr_3 = global::System.Linq.Expressions.Expression.MakeMemberAccess(i0___closureTarget, i0_expr_2);
+            var i0_expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.GreaterThan, i0_expr_1, i0_expr_3);
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, bool>>(i0_expr_0, i0_p_o);
             return __lambda;
         }

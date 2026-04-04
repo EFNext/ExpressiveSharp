@@ -8,9 +8,9 @@ namespace ExpressiveSharp.Generated.Interceptors
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
         internal static global::ExpressiveSharp.IRewritableQueryable<global::System.Collections.Generic.KeyValuePair<string, decimal>> __Polyfill_AggregateBy_0(
             this global::ExpressiveSharp.IRewritableQueryable<global::TestNs.Order> source,
-            global::System.Func<global::TestNs.Order, string> _1,
+            global::System.Func<global::TestNs.Order, string> __func1,
                     decimal seed,
-                    global::System.Func<decimal, global::TestNs.Order, decimal> _2)
+                    global::System.Func<decimal, global::TestNs.Order, decimal> __func2)
         {
             // Source: o => o.Tag
             var i0a_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");

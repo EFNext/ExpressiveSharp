@@ -9,7 +9,7 @@ namespace ExpressiveSharp.Generated.Interceptors
         internal static global::ExpressiveSharp.IRewritableQueryable<global::TestNs.Order> __Polyfill_IntersectBy_0(
             this global::ExpressiveSharp.IRewritableQueryable<global::TestNs.Order> source,
             global::System.Collections.Generic.IEnumerable<string> second,
-                    global::System.Func<global::TestNs.Order, string> _)
+                    global::System.Func<global::TestNs.Order, string> __func)
         {
             // Source: o => o.Tag
             var i0_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");

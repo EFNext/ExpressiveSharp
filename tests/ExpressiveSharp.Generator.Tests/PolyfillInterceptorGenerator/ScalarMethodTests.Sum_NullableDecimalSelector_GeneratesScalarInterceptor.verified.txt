@@ -8,7 +8,7 @@ namespace ExpressiveSharp.Generated.Interceptors
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
         internal static decimal? __Polyfill_Sum_0(
             this global::ExpressiveSharp.IRewritableQueryable<global::TestNs.Order> source,
-            global::System.Func<global::TestNs.Order, decimal?> _)
+            global::System.Func<global::TestNs.Order, decimal?> __func)
         {
             // Source: o => o.Amount
             var i0_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");

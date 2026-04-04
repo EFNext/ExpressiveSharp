@@ -61,6 +61,32 @@ public class PolyfillTests : GeneratorTestBase
     }
 
     [TestMethod]
+    public Task Polyfill_CapturedVariable_GeneratesClosureAccess()
+    {
+        var source =
+            """
+            using System.Linq.Expressions;
+
+            namespace TestNs
+            {
+                class Order { public double Price { get; set; } }
+                class TestClass
+                {
+                    public void Run(double threshold)
+                    {
+                        var expr = ExpressionPolyfill.Create((Order o) => o.Price > threshold);
+                    }
+                }
+            }
+            """;
+        var result = RunPolyfillInterceptorGenerator(CreateCompilation(source));
+
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].GetText().ToString());
+    }
+
+    [TestMethod]
     public Task Polyfill_NullConditional_RewritesOperator()
     {
         var source = 

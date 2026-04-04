@@ -8,7 +8,7 @@ namespace ExpressiveSharp.Generated.Interceptors
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
         internal static int __Polyfill_ExecuteUpdate_0(
             this global::ExpressiveSharp.IRewritableQueryable<global::TestNs.Order> source,
-            global::System.Func<global::TestNs.SetPropertyCalls<global::TestNs.Order>, global::TestNs.SetPropertyCalls<global::TestNs.Order>> _)
+            global::System.Func<global::TestNs.SetPropertyCalls<global::TestNs.Order>, global::TestNs.SetPropertyCalls<global::TestNs.Order>> __func)
         {
             // Source: s => s.SetProperty(o => o.Tag, o => o.Customer?.Name ?? "none")
             var i0_p_s = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.SetPropertyCalls<global::TestNs.Order>), "s");
