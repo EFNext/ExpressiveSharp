@@ -8,7 +8,7 @@ namespace ExpressiveSharp.IntegrationTests.EntityFrameworkCore.Infrastructure;
 public sealed class EFCorePomeloMySqlTestRunner : EFCoreRelationalTestRunnerBase
 {
     public EFCorePomeloMySqlTestRunner(string baseConnectionString, Action<string>? logSql = null)
-        : base(CreateOptions(baseConnectionString, logSql), logSql)
+        : base(CreateOptions(baseConnectionString, logSql))
     {
     }
 
@@ -50,7 +50,14 @@ public sealed class EFCorePomeloMySqlTestRunner : EFCoreRelationalTestRunnerBase
 
     public override async ValueTask DisposeAsync()
     {
-        await Context.DisposeAsync();
+        try
+        {
+            await Context.Database.EnsureDeletedAsync();
+        }
+        finally
+        {
+            await Context.DisposeAsync();
+        }
     }
 }
 #endif

@@ -40,7 +40,16 @@ public abstract class CapturedVariableTestBase
     public async Task Cleanup()
     {
         if (Context is not null)
-            await Context.DisposeAsync();
+        {
+            try
+            {
+                await Context.Database.EnsureDeletedAsync();
+            }
+            finally
+            {
+                await Context.DisposeAsync();
+            }
+        }
         await OnCleanupAsync();
     }
 

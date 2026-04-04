@@ -42,7 +42,16 @@ public abstract class ExpressiveExpansionTestBase
     public async Task Cleanup()
     {
         if (Context is not null)
-            await Context.DisposeAsync();
+        {
+            try
+            {
+                await Context.Database.EnsureDeletedAsync();
+            }
+            finally
+            {
+                await Context.DisposeAsync();
+            }
+        }
         await OnCleanupAsync();
     }
 
@@ -62,7 +71,7 @@ public abstract class ExpressiveExpansionTestBase
     }
 
     [TestMethod]
-    public async Task NestedExpressive_GetOrderSummaryTuple_ExpandsBothGetGradeAndTotal()
+    public virtual async Task NestedExpressive_GetOrderSummaryTuple_ExpandsBothGetGradeAndTotal()
     {
         var results = await Context.Orders
             .OrderBy(o => o.Id)

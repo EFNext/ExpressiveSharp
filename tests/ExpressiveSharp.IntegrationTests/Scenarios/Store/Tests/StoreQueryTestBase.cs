@@ -5,7 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpressiveSharp.IntegrationTests.Scenarios.Store.Tests;
 
-public abstract class StoreQueryTests : StoreTestBase
+public abstract class StoreQueryTestBase : StoreTestBase
 {
     [TestMethod]
     public async Task FilterByCustomerName_ProjectTotal()

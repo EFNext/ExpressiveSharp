@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace ExpressiveSharp.IntegrationTests.EntityFrameworkCore.Tests.SqlServer;
 
 [TestClass]
-public class CommonScenarioTests : Scenarios.Common.Tests.CommonScenarioTests
+public class CommonScenarioTests : Scenarios.Common.Tests.CommonScenarioTestBase
 {
     public TestContext TestContext { get; set; } = null!;
 

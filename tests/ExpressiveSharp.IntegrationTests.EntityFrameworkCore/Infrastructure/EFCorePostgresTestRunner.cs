@@ -10,7 +10,7 @@ public sealed class EFCorePostgresTestRunner : EFCoreRelationalTestRunnerBase
     private readonly NpgsqlDataSource _dataSource;
 
     public EFCorePostgresTestRunner(string baseConnectionString, Action<string>? logSql = null)
-        : base(CreateOptions(baseConnectionString, out var dataSource, logSql), logSql)
+        : base(CreateOptions(baseConnectionString, out var dataSource, logSql))
     {
         _dataSource = dataSource;
     }
@@ -57,8 +57,15 @@ public sealed class EFCorePostgresTestRunner : EFCoreRelationalTestRunnerBase
 
     public override async ValueTask DisposeAsync()
     {
-        await Context.DisposeAsync();
-        await _dataSource.DisposeAsync();
+        try
+        {
+            await Context.Database.EnsureDeletedAsync();
+        }
+        finally
+        {
+            await Context.DisposeAsync();
+            await _dataSource.DisposeAsync();
+        }
     }
 }
 #endif

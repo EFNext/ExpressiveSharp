@@ -7,7 +7,7 @@ namespace ExpressiveSharp.IntegrationTests.EntityFrameworkCore.Infrastructure;
 public sealed class EFCoreSqlServerTestRunner : EFCoreRelationalTestRunnerBase
 {
     public EFCoreSqlServerTestRunner(string baseConnectionString, Action<string>? logSql = null)
-        : base(CreateOptions(baseConnectionString, logSql), logSql)
+        : base(CreateOptions(baseConnectionString, logSql))
     {
     }
 
@@ -39,7 +39,14 @@ public sealed class EFCoreSqlServerTestRunner : EFCoreRelationalTestRunnerBase
 
     public override async ValueTask DisposeAsync()
     {
-        await Context.DisposeAsync();
+        try
+        {
+            await Context.Database.EnsureDeletedAsync();
+        }
+        finally
+        {
+            await Context.DisposeAsync();
+        }
     }
 }
 #endif

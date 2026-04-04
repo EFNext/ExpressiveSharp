@@ -9,23 +9,9 @@ public abstract class EFCoreTestRunnerBase : IIntegrationTestRunner
 {
     protected DbContext Context { get; }
 
-    private readonly Action<string>? _logSql;
-    private bool _loggingEnabled;
-
-    protected EFCoreTestRunnerBase(DbContext context, Action<string>? logSql = null)
+    protected EFCoreTestRunnerBase(DbContext context)
     {
         Context = context;
-        _logSql = logSql;
-    }
-
-    protected void EnableLogging() => _loggingEnabled = true;
-
-    protected bool ShouldLog => _loggingEnabled && _logSql is not null;
-
-    protected void Log(string message)
-    {
-        if (_loggingEnabled)
-            _logSql?.Invoke(message);
     }
 
     public abstract Task SeedAsync(

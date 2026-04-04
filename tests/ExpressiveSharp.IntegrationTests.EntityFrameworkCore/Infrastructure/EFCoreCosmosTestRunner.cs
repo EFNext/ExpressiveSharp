@@ -18,7 +18,7 @@ public sealed class EFCoreCosmosTestRunner : EFCoreTestRunnerBase
     private new CosmosIntegrationTestDbContext Context => (CosmosIntegrationTestDbContext)base.Context;
 
     public EFCoreCosmosTestRunner(string connectionString, string databaseName, Action<string>? logSql = null)
-        : base(CreateContext(connectionString, databaseName, logSql), logSql)
+        : base(CreateContext(connectionString, databaseName, logSql))
     {
         Context.Database.EnsureCreated();
     }
@@ -106,7 +106,6 @@ public sealed class EFCoreCosmosTestRunner : EFCoreTestRunnerBase
         }
 
         await Context.SaveChangesAsync();
-        EnableLogging();
     }
 
     public override async ValueTask DisposeAsync()

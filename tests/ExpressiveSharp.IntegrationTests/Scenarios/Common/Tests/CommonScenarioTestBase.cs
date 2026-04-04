@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpressiveSharp.IntegrationTests.Scenarios.Common.Tests;
 
-public abstract class CommonScenarioTests : StoreTestBase
+public abstract class CommonScenarioTestBase : StoreTestBase
 {
     // ── Arithmetic ──────────────────────────────────────────────────────────
 

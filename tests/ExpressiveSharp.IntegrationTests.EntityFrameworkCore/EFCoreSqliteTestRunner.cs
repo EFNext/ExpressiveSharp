@@ -10,7 +10,7 @@ public sealed class EFCoreSqliteTestRunner : EFCoreRelationalTestRunnerBase
     private readonly SqliteConnection _connection;
 
     public EFCoreSqliteTestRunner(Action<string>? logSql = null)
-        : base(CreateOptions(out var connection, logSql), logSql)
+        : base(CreateOptions(out var connection, logSql))
     {
         _connection = connection;
     }
