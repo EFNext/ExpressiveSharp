@@ -40,7 +40,8 @@ public sealed class EFCorePostgresTestRunner : EFCoreRelationalTestRunnerBase
 
         var builder = new DbContextOptionsBuilder<IntegrationTestDbContext>()
             .UseNpgsql(dataSource)
-            .UseExpressives();
+            .UseExpressives()
+            .ConfigureWarnings(w => w.Ignore(CoreEventId.ManyServiceProvidersCreatedWarning));
 
         if (logSql is not null)
         {

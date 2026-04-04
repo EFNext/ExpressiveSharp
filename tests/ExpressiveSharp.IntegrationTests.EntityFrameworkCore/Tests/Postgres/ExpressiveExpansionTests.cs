@@ -1,6 +1,7 @@
 #if TEST_POSTGRES
 using ExpressiveSharp.IntegrationTests.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Npgsql;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -38,6 +39,7 @@ public class ExpressiveExpansionTests : ExpressiveExpansionTestBase
         var options = new DbContextOptionsBuilder<IntegrationTestDbContext>()
             .UseNpgsql(_dataSource)
             .UseExpressives()
+            .ConfigureWarnings(w => w.Ignore(CoreEventId.ManyServiceProvidersCreatedWarning))
             .Options;
 
         return new IntegrationTestDbContext(options);
