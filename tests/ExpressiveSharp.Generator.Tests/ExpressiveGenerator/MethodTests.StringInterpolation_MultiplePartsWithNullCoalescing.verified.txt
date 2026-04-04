@@ -19,10 +19,8 @@ namespace ExpressiveSharp.Generated
             var expr_5 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Tag")); // Tag
             var expr_6 = global::System.Linq.Expressions.Expression.Constant("N/A", typeof(string)); // "N/A"
             var expr_4 = global::System.Linq.Expressions.Expression.Coalesce(expr_5, expr_6);
-            var expr_7 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_0, expr_2);
-            var expr_8 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_7, expr_3);
-            var expr_9 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_8, expr_4);
-            return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, string>>(expr_9, p__this);
+            var expr_7 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string), typeof(string), typeof(string) }, null), expr_0, expr_2, expr_3, expr_4);
+            return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, string>>(expr_7, p__this);
         }
     }
 }

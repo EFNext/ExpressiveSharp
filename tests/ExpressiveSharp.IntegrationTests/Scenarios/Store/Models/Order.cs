@@ -62,6 +62,14 @@ public class Order
     [Expressive]
     public string SummaryConcat => "Order #" + Id + ": " + (Tag ?? "N/A");
 
+    // Format specifier: works in-memory but not translatable to SQL
+    [Expressive]
+    public string FormattedPrice => $"{Price:F2}";
+
+    // 5+ interpolation parts: tests string.Concat(string[]) overload
+    [Expressive]
+    public string DetailedSummary => $"Order #{Id}: {Tag ?? "N/A"} (${Price})";
+
     // Loop-based computed members (foreach → Expression.Loop)
     [Expressive(AllowBlockBody = true)]
     public int ItemCount()

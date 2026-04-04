@@ -20,11 +20,9 @@ namespace ExpressiveSharp.Generated
             var expr_4 = global::System.Linq.Expressions.Expression.Property(expr_5, typeof(global::Foo.TypedObject<TEnum>).GetProperty("SomeProp"));
             var expr_6 = global::System.Linq.Expressions.Expression.Convert(expr_4, typeof(object));
             var expr_7 = global::System.Linq.Expressions.Expression.Call(expr_6, typeof(object).GetMethod("ToString"));
-            var expr_8 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_0, expr_1);
-            var expr_9 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_8, expr_2);
-            var expr_10 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_9, expr_3);
-            var expr_11 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_10, expr_7);
-            return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.Entity<T, TEnum>, string>>(expr_11, p__this);
+            var expr_8 = global::System.Linq.Expressions.Expression.NewArrayInit(typeof(string), expr_0, expr_1, expr_2, expr_3, expr_7);
+            var expr_9 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string[]) }, null), expr_8);
+            return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.Entity<T, TEnum>, string>>(expr_9, p__this);
         }
     }
 }

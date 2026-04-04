@@ -158,7 +158,7 @@ Unrecognized operations fall through to `EmitUnsupported()` which emits `Express
 
 | IOperation | Expression Factory | Status | Notes |
 |---|---|---|---|
-| `IInterpolatedStringOperation` | `Expression.Call(string.Concat, ...)` | Implemented | Parts flattened to string expressions, non-string parts wrapped in `.ToString()`. Format specifiers use `ToString(format)`. Left-fold reduction via `string.Concat(string, string)`. Alignment specifiers fall through to `EmitUnsupported`. |
+| `IInterpolatedStringOperation` | `Expression.Call(string.Concat, ...)` | Implemented | Parts flattened to string expressions, non-string parts wrapped in `.ToString()`. Format specifiers use `ToString(format)` (**not translatable to SQL** -- client-evaluated in projections, throws in `Where`/`OrderBy`). Uses optimal `string.Concat` overload based on part count (2-arg, 3-arg, 4-arg, or `string[]` for 5+). `FlattenConcatArrayCalls` transformer rewrites the array form for EF Core compatibility. Alignment specifiers emit a diagnostic and are ignored. |
 
 ## Block Body Operations
 
@@ -225,3 +225,7 @@ The `liftToNull` parameter in `Expression.MakeBinary()` is always hardcoded to `
 ### 2. IOperation Null Fallback
 
 If `SemanticModel.GetOperation()` returns `null` for the body syntax (after unwrapping transparent syntax), the emitter reports `EXP0008` and produces `Expression.Default(typeof(ReturnType))` as the lambda body.
+
+### 3. String Interpolation vs. `+` Operator Asymmetry
+
+String interpolation (`$"text {value}"`) emits `value.ToString()` followed by `string.Concat(string, string)`. The `+` operator for mixed types (`"text" + value`) emits `string.Concat(object, object)` with an implicit `Expression.Convert` to `object`. These produce structurally different expression trees for semantically equivalent operations. Both translate correctly in EF Core, but may produce slightly different SQL.

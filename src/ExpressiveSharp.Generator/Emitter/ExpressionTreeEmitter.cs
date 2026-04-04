@@ -2106,7 +2106,13 @@ internal sealed class ExpressionTreeEmitter
                 case IInterpolationOperation interp:
                 {
                     if (interp.Alignment is not null)
-                        return EmitUnsupported(operation);
+                    {
+                        // Alignment specifiers have no expression tree equivalent.
+                        // Report diagnostic but continue emitting the interpolation without alignment.
+                        ReportDiagnostic(Diagnostics.UnsupportedOperation,
+                            interp.Alignment.Syntax?.GetLocation() ?? Location.None,
+                            "Alignment specifier in string interpolation");
+                    }
 
                     var innerVar = EmitOperation(interp.Expression);
                     var innerType = interp.Expression.Type;
@@ -2150,7 +2156,7 @@ internal sealed class ExpressionTreeEmitter
             }
         }
 
-        // Reduce parts via string.Concat(string, string)
+        // Reduce parts using optimal string.Concat overload
         if (partVars.Count == 0)
         {
             var emptyVar = NextVar();
@@ -2161,17 +2167,37 @@ internal sealed class ExpressionTreeEmitter
         if (partVars.Count == 1)
             return partVars[0];
 
-        // Left-fold: Concat(Concat(p0, p1), p2) ...
-        var concatMethod = EnsureStringConcatMethod();
-        var current = partVars[0];
-        for (var i = 1; i < partVars.Count; i++)
+        if (partVars.Count == 2)
         {
-            var concatVar = NextVar();
-            AppendLine($"var {concatVar} = {Expr}.Call({concatMethod}, {current}, {partVars[i]});");
-            current = concatVar;
+            var resultVar = NextVar();
+            AppendLine($"var {resultVar} = {Expr}.Call({EnsureStringConcatMethod()}, {partVars[0]}, {partVars[1]});");
+            return resultVar;
         }
 
-        return current;
+        if (partVars.Count == 3)
+        {
+            var resultVar = NextVar();
+            AppendLine($"var {resultVar} = {Expr}.Call({EnsureStringConcat3Method()}, {partVars[0]}, {partVars[1]}, {partVars[2]});");
+            return resultVar;
+        }
+
+        if (partVars.Count == 4)
+        {
+            var resultVar = NextVar();
+            AppendLine($"var {resultVar} = {Expr}.Call({EnsureStringConcat4Method()}, {partVars[0]}, {partVars[1]}, {partVars[2]}, {partVars[3]});");
+            return resultVar;
+        }
+
+        // 5+ parts: use string.Concat(string[]) to faithfully represent the interpolation.
+        // Runtime transformers (e.g., FlattenConcatArrayCalls) rewrite this for providers
+        // like EF Core that cannot translate NewArrayInit to SQL.
+        {
+            var arrayVar = NextVar();
+            AppendLine($"var {arrayVar} = {Expr}.NewArrayInit(typeof(string), {string.Join(", ", partVars)});");
+            var resultVar = NextVar();
+            AppendLine($"var {resultVar} = {Expr}.Call({EnsureStringConcatArrayMethod()}, {arrayVar});");
+            return resultVar;
+        }
     }
 
     private string EmitToStringCall(string innerVar, ITypeSymbol? innerType)
@@ -2229,6 +2255,69 @@ internal sealed class ExpressionTreeEmitter
         _concatMethodField = _fieldCache.EnsureMethodInfo(concatMethod
             ?? throw new InvalidOperationException("string.Concat(string, string) not found in compilation"));
         return _concatMethodField;
+    }
+
+    private string? _concat3MethodField;
+
+    private string EnsureStringConcat3Method()
+    {
+        if (_concat3MethodField is not null)
+            return _concat3MethodField;
+
+        var stringType = _semanticModel.Compilation.GetSpecialType(SpecialType.System_String);
+        var concatMethod = stringType.GetMembers("Concat")
+            .OfType<IMethodSymbol>()
+            .FirstOrDefault(m => m.IsStatic
+                && m.Parameters.Length == 3
+                && m.Parameters[0].Type.SpecialType == SpecialType.System_String
+                && m.Parameters[1].Type.SpecialType == SpecialType.System_String
+                && m.Parameters[2].Type.SpecialType == SpecialType.System_String);
+
+        _concat3MethodField = _fieldCache.EnsureMethodInfo(concatMethod
+            ?? throw new InvalidOperationException("string.Concat(string, string, string) not found in compilation"));
+        return _concat3MethodField;
+    }
+
+    private string? _concat4MethodField;
+
+    private string EnsureStringConcat4Method()
+    {
+        if (_concat4MethodField is not null)
+            return _concat4MethodField;
+
+        var stringType = _semanticModel.Compilation.GetSpecialType(SpecialType.System_String);
+        var concatMethod = stringType.GetMembers("Concat")
+            .OfType<IMethodSymbol>()
+            .FirstOrDefault(m => m.IsStatic
+                && m.Parameters.Length == 4
+                && m.Parameters[0].Type.SpecialType == SpecialType.System_String
+                && m.Parameters[1].Type.SpecialType == SpecialType.System_String
+                && m.Parameters[2].Type.SpecialType == SpecialType.System_String
+                && m.Parameters[3].Type.SpecialType == SpecialType.System_String);
+
+        _concat4MethodField = _fieldCache.EnsureMethodInfo(concatMethod
+            ?? throw new InvalidOperationException("string.Concat(string, string, string, string) not found in compilation"));
+        return _concat4MethodField;
+    }
+
+    private string? _concatArrayMethodField;
+
+    private string EnsureStringConcatArrayMethod()
+    {
+        if (_concatArrayMethodField is not null)
+            return _concatArrayMethodField;
+
+        var stringType = _semanticModel.Compilation.GetSpecialType(SpecialType.System_String);
+        var concatMethod = stringType.GetMembers("Concat")
+            .OfType<IMethodSymbol>()
+            .FirstOrDefault(m => m.IsStatic
+                && m.Parameters.Length == 1
+                && m.Parameters[0].Type is IArrayTypeSymbol arrayType
+                && arrayType.ElementType.SpecialType == SpecialType.System_String);
+
+        _concatArrayMethodField = _fieldCache.EnsureMethodInfo(concatMethod
+            ?? throw new InvalidOperationException("string.Concat(string[]) not found in compilation"));
+        return _concatArrayMethodField;
     }
 
     private string? _concatObjectMethodField;

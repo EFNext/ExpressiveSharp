@@ -39,7 +39,12 @@ services.AddDbContext<MyDbContext>(options =>
    - `ConvertLoopsToLinq` -- converts loop expressions to LINQ method calls
    - `RemoveNullConditionalPatterns` -- strips null-check ternaries for SQL providers
    - `FlattenTupleComparisons` -- rewrites tuple field access to direct comparisons
+   - `FlattenConcatArrayCalls` -- flattens `string.Concat(string[])` into chained 2/3/4-arg `Concat` calls
    - `FlattenBlockExpressions` -- inlines block-local variables and removes `Expression.Block` nodes
+
+::: warning String interpolation format specifiers
+String interpolation with format specifiers like `$"{Price:F2}"` generates `ToString(format)` at the expression tree level. EF Core cannot translate `ToString(string)` to SQL -- in a final `Select` projection this silently falls back to client evaluation, but in `Where`, `OrderBy`, or other server-evaluated positions it throws at runtime. Simple interpolation without format specifiers (e.g., `$"Order #{Id}"`) always works because it uses `string.Concat` which EF Core translates to SQL concatenation.
+:::
 
 ## ExpressiveDbSet\<T\>
 

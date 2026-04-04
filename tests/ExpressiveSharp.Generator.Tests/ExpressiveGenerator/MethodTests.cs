@@ -538,6 +538,50 @@ public class MethodTests : GeneratorTestBase
     }
 
     [TestMethod]
+    public Task StringInterpolation_Empty()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    [Expressive]
+                    public string Empty => $"";
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task StringInterpolation_MultipleSegments()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    public string First { get; set; }
+                    public string Last { get; set; }
+                    public int Age { get; set; }
+
+                    [Expressive]
+                    public string Profile => $"{First} {Last}, age {Age}";
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
     public Task TypesInBodyGetsFullyQualified()
     {
         var compilation = CreateCompilation(

@@ -124,6 +124,28 @@ public class DiagnosticTests : GeneratorTestBase
             "Expected EXP0008 for throw expression (IThrowOperation not handled)");
     }
 
+    [TestMethod]
+    public void StringInterpolation_AlignmentSpecifier_ReportsEXP0008()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    public string Name { get; set; }
+
+                    [Expressive]
+                    public string Aligned => $"{Name,20}";
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0008"),
+            "Expected EXP0008 for alignment specifier in string interpolation");
+        Assert.IsTrue(result.GeneratedTrees.Length > 0,
+            "Generator should still produce output (interpolation without alignment)");
+    }
+
     // ── EXP0009: UnsupportedOperator ────────────────────────────────────────
 
     [TestMethod]
