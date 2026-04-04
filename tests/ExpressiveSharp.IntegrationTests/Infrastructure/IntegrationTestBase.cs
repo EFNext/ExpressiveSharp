@@ -12,5 +12,9 @@ public abstract class IntegrationTestBase
     public void InitRunner() => Runner = CreateRunner();
 
     [TestCleanup]
-    public async Task CleanupRunner() => await Runner.DisposeAsync();
+    public async Task CleanupRunner()
+    {
+        if (Runner is not null)
+            await Runner.DisposeAsync();
+    }
 }

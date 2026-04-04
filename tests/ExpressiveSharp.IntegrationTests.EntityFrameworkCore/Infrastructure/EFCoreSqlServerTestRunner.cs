@@ -1,28 +1,28 @@
-using ExpressiveSharp.IntegrationTests.EntityFrameworkCore.Infrastructure;
-using Microsoft.Data.Sqlite;
+#if TEST_SQLSERVER
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
-namespace ExpressiveSharp.IntegrationTests.EntityFrameworkCore;
+namespace ExpressiveSharp.IntegrationTests.EntityFrameworkCore.Infrastructure;
 
-public sealed class EFCoreSqliteTestRunner : EFCoreRelationalTestRunnerBase
+public sealed class EFCoreSqlServerTestRunner : EFCoreRelationalTestRunnerBase
 {
-    private readonly SqliteConnection _connection;
-
-    public EFCoreSqliteTestRunner(Action<string>? logSql = null)
-        : base(CreateOptions(out var connection, logSql), logSql)
+    public EFCoreSqlServerTestRunner(string baseConnectionString, Action<string>? logSql = null)
+        : base(CreateOptions(baseConnectionString, logSql), logSql)
     {
-        _connection = connection;
     }
 
     private static DbContextOptions<IntegrationTestDbContext> CreateOptions(
-        out SqliteConnection connection, Action<string>? logSql)
+        string baseConnectionString, Action<string>? logSql)
     {
-        connection = new SqliteConnection("Data Source=:memory:");
-        connection.Open();
+        // Each runner instance gets a unique database for test isolation
+        var dbName = $"test_{Guid.NewGuid():N}";
+        var connStr = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(baseConnectionString)
+        {
+            InitialCatalog = dbName
+        }.ConnectionString;
 
         var builder = new DbContextOptionsBuilder<IntegrationTestDbContext>()
-            .UseSqlite(connection)
+            .UseSqlServer(connStr)
             .UseExpressives();
 
         if (logSql is not null)
@@ -40,6 +40,6 @@ public sealed class EFCoreSqliteTestRunner : EFCoreRelationalTestRunnerBase
     public override async ValueTask DisposeAsync()
     {
         await Context.DisposeAsync();
-        await _connection.DisposeAsync();
     }
 }
+#endif
