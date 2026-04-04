@@ -82,6 +82,34 @@ public class WhereTests : GeneratorTestBase
     }
 
     [TestMethod]
+    public Task Where_CapturedInstanceField_GeneratesClosureAccess()
+    {
+        var source =
+            """
+            using ExpressiveSharp.Extensions;
+
+            namespace TestNs
+            {
+                class Order { public double Price { get; set; } }
+                class TestClass
+                {
+                    private double _minPrice = 50;
+
+                    public void Run(System.Linq.IQueryable<Order> query)
+                    {
+                        query.AsExpressive().Where(o => o.Price > _minPrice).ToList();
+                    }
+                }
+            }
+            """;
+        var result = RunPolyfillInterceptorGenerator(CreateCompilation(source));
+
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].GetText().ToString());
+    }
+
+    [TestMethod]
     public Task ChainedWhereAndSelect_GeneratesTwoInterceptors()
     {
         var source = 

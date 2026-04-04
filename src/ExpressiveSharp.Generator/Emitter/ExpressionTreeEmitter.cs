@@ -53,7 +53,6 @@ internal sealed class ExpressionTreeEmitter
     private readonly Dictionary<ITypeSymbol, string> _typeAliases = new(SymbolEqualityComparer.Default);
     private readonly string _varPrefix;
     private readonly string? _delegateVarName;
-    private string? _closureTargetVarName;
 
     public ExpressionTreeEmitter(
         SemanticModel semanticModel,
@@ -423,7 +422,7 @@ internal sealed class ExpressionTreeEmitter
         {
             ILiteralOperation literal => EmitLiteral(literal),
             IParameterReferenceOperation paramRef => EmitParameterReference(paramRef),
-            IInstanceReferenceOperation => EmitInstanceReference(),
+            IInstanceReferenceOperation instRef => EmitInstanceReference(instRef.Type),
             ILocalReferenceOperation localRef => EmitLocalReference(localRef),
             IPropertyReferenceOperation propRef => EmitPropertyReference(propRef),
             IFieldReferenceOperation fieldRef => EmitFieldReference(fieldRef),
@@ -544,35 +543,33 @@ internal sealed class ExpressionTreeEmitter
         return fallbackVar;
     }
 
-    /// <summary>
-    /// Emits an expression tree node that accesses a captured variable from the delegate's closure,
-    /// replicating the pattern the C# compiler uses: <c>Expression.Field(Expression.Constant(closure), "name")</c>.
-    /// EF Core (and other LINQ providers) recognizes this pattern and evaluates it to extract the parameter value.
-    /// </summary>
     private string EmitCapturedVariable(string variableName, ITypeSymbol variableType)
     {
-        // Lazily emit the closure target constant (shared across all captured variables from the same delegate)
-        if (_closureTargetVarName is null)
-        {
-            _closureTargetVarName = $"{_varPrefix}__closureTarget";
-            AppendLine($"var {_closureTargetVarName} = {Expr}.Constant({_delegateVarName}.Target);");
-        }
-
-        var fieldVar = NextVar();
-        AppendLine($"var {fieldVar} = {_delegateVarName}.Target.GetType().GetField(\"{variableName}\", " +
-            "global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic);");
-
         var resultVar = NextVar();
-        AppendLine($"var {resultVar} = {Expr}.MakeMemberAccess({_closureTargetVarName}, {fieldVar});");
+        AppendLine($"var {resultVar} = {Expr}.MakeMemberAccess(" +
+            $"{Expr}.Constant({_delegateVarName}.Target), " +
+            $"{_delegateVarName}.Target.GetType().GetField(\"{variableName}\", " +
+            "global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic));");
         return resultVar;
     }
 
-    private string EmitInstanceReference()
+    private string EmitInstanceReference(ITypeSymbol? instanceType)
     {
         if (_thisVarName is not null)
             return _thisVarName;
 
-        // Fallback
+        // Outer-scope `this` — captured from the enclosing instance method.
+        // The compiler stores `this` under a generated field name (e.g. <>4__this),
+        // so we resolve it by type rather than by name.
+        if (_delegateVarName is not null && instanceType is not null)
+        {
+            _thisVarName = $"{_varPrefix}__this";
+            var typeFqn = ResolveTypeFqn(instanceType);
+            AppendLine($"var {_thisVarName} = __ClosureHelper.ResolveCapturedThis({_delegateVarName}, typeof({typeFqn}));");
+            return _thisVarName;
+        }
+
+        // Fallback (non-interceptor path, e.g. [Expressive] members)
         _thisVarName = "p___this";
         AppendLine($"var {_thisVarName} = {Expr}.Parameter(typeof(object), \"@this\");");
         return _thisVarName;
@@ -582,38 +579,67 @@ internal sealed class ExpressionTreeEmitter
 
     private string EmitPropertyReference(IPropertyReferenceOperation propRef)
     {
-        var resultVar = NextVar();
+        // In the interceptor path, instance property access (this.Property) may be captured
+        // directly by the C# compiler as a closure field with the backing field name,
+        // or indirectly through a captured `this`. Delegate to the closure helper which
+        // handles both cases.
+        if (_delegateVarName is not null &&
+            propRef.Instance is IInstanceReferenceOperation &&
+            propRef.Property.GetMethod is { } getter)
+        {
+            // Auto-properties have a backing field with the same name pattern;
+            // the closure may capture the property's backing field directly.
+            var resultVar = NextVar();
+            var propName = propRef.Property.Name;
+            var enclosingTypeFqn = ResolveTypeFqn(propRef.Instance.Type!);
+            AppendLine($"var {resultVar} = __ClosureHelper.ResolveCapturedInstanceMember({_delegateVarName}, typeof({enclosingTypeFqn}), \"{propName}\");");
+            return resultVar;
+        }
+
+        var propResultVar = NextVar();
         var fieldName = _fieldCache.EnsurePropertyInfo(propRef.Property);
 
         if (propRef.Instance is not null)
         {
             var instanceVar = EmitOperation(propRef.Instance);
-            AppendLine($"var {resultVar} = {Expr}.Property({instanceVar}, {fieldName});");
+            AppendLine($"var {propResultVar} = {Expr}.Property({instanceVar}, {fieldName});");
         }
         else
         {
-            AppendLine($"var {resultVar} = {Expr}.Property(null, {fieldName});");
+            AppendLine($"var {propResultVar} = {Expr}.Property(null, {fieldName});");
         }
 
-        return resultVar;
+        return propResultVar;
     }
 
     private string EmitFieldReference(IFieldReferenceOperation fieldRef)
     {
-        var resultVar = NextVar();
+        // In the interceptor path, instance field access (this._field) may be captured
+        // directly as a closure field, or indirectly through a captured `this`.
+        // Delegate to the closure helper which handles both cases.
+        if (_delegateVarName is not null && fieldRef.Instance is IInstanceReferenceOperation)
+        {
+            var resultVar = NextVar();
+            var memberName = fieldRef.Field.Name;
+            var enclosingTypeFqn = ResolveTypeFqn(fieldRef.Instance.Type!);
+            AppendLine($"var {resultVar} = __ClosureHelper.ResolveCapturedInstanceMember({_delegateVarName}, typeof({enclosingTypeFqn}), \"{memberName}\");");
+            return resultVar;
+        }
+
+        var fieldResultVar = NextVar();
         var fieldName = _fieldCache.EnsureFieldInfo(fieldRef.Field);
 
         if (fieldRef.Instance is not null)
         {
             var instanceVar = EmitOperation(fieldRef.Instance);
-            AppendLine($"var {resultVar} = {Expr}.Field({instanceVar}, {fieldName});");
+            AppendLine($"var {fieldResultVar} = {Expr}.Field({instanceVar}, {fieldName});");
         }
         else
         {
-            AppendLine($"var {resultVar} = {Expr}.Field(null, {fieldName});");
+            AppendLine($"var {fieldResultVar} = {Expr}.Field(null, {fieldName});");
         }
 
-        return resultVar;
+        return fieldResultVar;
     }
 
     // ── Invocations ──────────────────────────────────────────────────────────
