@@ -7,13 +7,16 @@ namespace ExpressiveSharp.IntegrationTests.EntityFrameworkCore.Infrastructure;
 
 public sealed class EFCorePostgresTestRunner : EFCoreRelationalTestRunnerBase
 {
+    private readonly NpgsqlDataSource _dataSource;
+
     public EFCorePostgresTestRunner(string baseConnectionString, Action<string>? logSql = null)
-        : base(CreateOptions(baseConnectionString, logSql), logSql)
+        : base(CreateOptions(baseConnectionString, out var dataSource, logSql), logSql)
     {
+        _dataSource = dataSource;
     }
 
     private static DbContextOptions<IntegrationTestDbContext> CreateOptions(
-        string baseConnectionString, Action<string>? logSql)
+        string baseConnectionString, out NpgsqlDataSource dataSource, Action<string>? logSql)
     {
         var dbName = $"test_{Guid.NewGuid():N}";
         var connStrBuilder = new NpgsqlConnectionStringBuilder(baseConnectionString)
@@ -30,8 +33,13 @@ public sealed class EFCorePostgresTestRunner : EFCoreRelationalTestRunnerBase
             cmd.ExecuteNonQuery();
         }
 
+        // Build a data source with tuple support enabled
+        var dataSourceBuilder = new NpgsqlDataSourceBuilder(connStrBuilder.ConnectionString);
+        dataSourceBuilder.EnableRecordsAsTuples();
+        dataSource = dataSourceBuilder.Build();
+
         var builder = new DbContextOptionsBuilder<IntegrationTestDbContext>()
-            .UseNpgsql(connStrBuilder.ConnectionString)
+            .UseNpgsql(dataSource)
             .UseExpressives();
 
         if (logSql is not null)
@@ -49,6 +57,7 @@ public sealed class EFCorePostgresTestRunner : EFCoreRelationalTestRunnerBase
     public override async ValueTask DisposeAsync()
     {
         await Context.DisposeAsync();
+        await _dataSource.DisposeAsync();
     }
 }
 #endif

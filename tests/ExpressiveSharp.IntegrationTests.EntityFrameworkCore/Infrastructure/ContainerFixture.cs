@@ -67,7 +67,10 @@ public static class ContainerFixture
         tasks.Add(StartCosmosAsync());
 #endif
 #if TEST_POMELO_MYSQL && !NET10_0_OR_GREATER
-        _mysql = new MySqlBuilder().Build();
+        _mysql = new MySqlBuilder()
+            .WithUsername("root")
+            .WithPassword("test")
+            .Build();
         tasks.Add(StartMySqlAsync());
 #endif
 
