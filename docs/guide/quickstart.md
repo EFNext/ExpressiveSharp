@@ -21,7 +21,8 @@ dotnet add package ExpressiveSharp.EntityFrameworkCore
 
 | Package | Purpose |
 |---------|---------|
-| `ExpressiveSharp` | Core runtime -- `[Expressive]` attribute, source generator, expression expansion, transformers |
+| `ExpressiveSharp` | Core runtime -- expression expansion, transformers, `IRewritableQueryable<T>`, `ExpressionPolyfill` (includes everything from Abstractions) |
+| `ExpressiveSharp.Abstractions` | Lightweight -- `[Expressive]` attribute, `[ExpressiveFor]`, `IExpressionTreeTransformer`, source generator only (no runtime services) |
 | `ExpressiveSharp.EntityFrameworkCore` | EF Core integration -- `UseExpressives()`, `ExpressiveDbSet<T>`, Include/ThenInclude, async methods, analyzers and code fixes |
 | `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` | SQL window functions -- ROW_NUMBER, RANK, DENSE_RANK, NTILE (experimental) |
 

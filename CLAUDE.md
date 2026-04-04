@@ -62,8 +62,15 @@ CI targets both .NET 8.0 and .NET 10.0 SDKs.
 ### Project Dependencies
 
 ```
-ExpressiveSharp (core runtime, net8.0;net10.0)
+ExpressiveSharp.Abstractions (attributes + source generator, net8.0;net10.0)
   └── no external deps
+  Provides: [Expressive], [ExpressiveFor], [ExpressiveForConstructor], [PolyfillTarget],
+      IExpressionTreeTransformer, source generator + code fixers (as analyzers)
+
+ExpressiveSharp (core runtime, net8.0;net10.0)
+  └── ExpressiveSharp.Abstractions
+  Provides: ExpressiveResolver, ExpressiveReplacer, expression transformers,
+      IRewritableQueryable<T>, ExpressionPolyfill, .ExpandExpressives(), .AsExpressive()
 
 ExpressiveSharp.Generator (source generator, netstandard2.0)
   └── Microsoft.CodeAnalysis.CSharp 5.0.0
