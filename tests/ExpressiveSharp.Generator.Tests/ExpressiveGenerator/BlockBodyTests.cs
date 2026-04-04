@@ -286,7 +286,7 @@ public class BlockBodyTests : GeneratorTestBase
     }
 
     [TestMethod]
-    public void BlockBody_WithThrow_ReportsWarning()
+    public Task BlockBody_WithThrow()
     {
         var compilation = CreateCompilation(
             """
@@ -303,7 +303,9 @@ public class BlockBodyTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0006"),
-            "Expected EXP0006 warning for throw in block body");
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
     }
 }

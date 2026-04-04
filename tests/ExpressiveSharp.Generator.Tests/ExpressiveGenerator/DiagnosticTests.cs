@@ -102,28 +102,6 @@ public class DiagnosticTests : GeneratorTestBase
             "Expected EXP0007 for nested member initializer");
     }
 
-    // ── EXP0008: UnsupportedOperation ───────────────────────────────────────
-
-    [TestMethod]
-    public void ThrowExpression_ReportsEXP0008()
-    {
-        var compilation = CreateCompilation(
-            """
-            namespace Foo {
-                class C {
-                    public string? Name { get; set; }
-
-                    [Expressive]
-                    public string SafeName => Name ?? throw new System.InvalidOperationException();
-                }
-            }
-            """);
-        var result = RunExpressiveGenerator(compilation);
-
-        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0008"),
-            "Expected EXP0008 for throw expression (IThrowOperation not handled)");
-    }
-
     // ── EXP0009: UnsupportedOperator ────────────────────────────────────────
 
     [TestMethod]
