@@ -19,5 +19,10 @@
     <PackageVersion Include="Oracle.EntityFrameworkCore" Version="8.23.60" />
     <PackageVersion Include="Basic.Reference.Assemblies.Net90" Version="1.8.4" />
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageVersion Include="Testcontainers.MsSql" Version="4.3.0" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.3.0" />
+    <PackageVersion Include="Testcontainers.CosmosDb" Version="4.3.0" />
+    <PackageVersion Include="Testcontainers.MySql" Version="4.3.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Cosmos" Version="8.0.25" />
   </ItemGroup>
 </Project>

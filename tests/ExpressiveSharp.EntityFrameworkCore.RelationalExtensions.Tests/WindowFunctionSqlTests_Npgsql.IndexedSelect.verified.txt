@@ -1,2 +1,0 @@
-﻿SELECT o."Id", CAST(ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) - 1 AS integer) AS "Position"
-FROM "Orders" AS o

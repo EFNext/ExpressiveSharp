@@ -11,4 +11,15 @@ public class Customer
 
     [Expressive]
     public string? City => Address?.City;
+
+    // Block-body [Expressive] used by QueryFilterTestBase to exercise the
+    // FlattenBlockExpressions transformer inside a global query filter.
+    // A local variable assigned once + a single return expression is the
+    // canonical shape the transformer inlines.
+    [Expressive(AllowBlockBody = true)]
+    public bool HasValidEmail()
+    {
+        var email = Email;
+        return email != null && email.Length > 0;
+    }
 }
