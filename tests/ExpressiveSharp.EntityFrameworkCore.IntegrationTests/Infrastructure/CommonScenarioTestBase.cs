@@ -392,8 +392,12 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     }
 
     [TestMethod]
-    public async Task OrderBy_TagLength_NullsAppearFirst()
+    public virtual async Task OrderBy_TagLength_NullsAppearFirst()
     {
+        // NULL sort order is provider-specific: SQLite/SQL Server/MySQL
+        // put NULLs first on ASC, PostgreSQL puts them last. This test
+        // asserts the SQL Server / SQLite / MySQL convention; Postgres
+        // overrides with its own expectation.
         Expression<Func<Order, int?>> tagLenExpr = o => o.TagLength;
         var expanded = (Expression<Func<Order, int?>>)tagLenExpr.ExpandExpressives();
 
@@ -401,7 +405,8 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
 
         var results = await Context.Set<Order>().OrderBy(expanded).Select(idExpr).ToListAsync();
 
-        Assert.AreEqual(3, results[0]); // Order 3 has null Tag
+        Assert.AreEqual(4, results.Count);
+        Assert.AreEqual(3, results[0]); // Order 3 has null Tag → sorts first
     }
 
     // ── Nullable Chain ──────────────────────────────────────────────────────
