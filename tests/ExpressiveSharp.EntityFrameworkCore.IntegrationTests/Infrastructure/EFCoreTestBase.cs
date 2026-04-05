@@ -30,11 +30,12 @@ public abstract class EFCoreTestBase
     protected abstract IAsyncDisposable CreateContextHandle(out DbContext context);
 
     [TestInitialize]
-    public void InitContext()
+    public async Task InitContext()
     {
         _handle = CreateContextHandle(out var ctx);
         Context = ctx;
-        Context.Database.EnsureCreated();
+        // EnsureCreatedAsync (not EnsureCreated) — Cosmos rejects all sync I/O.
+        await Context.Database.EnsureCreatedAsync();
     }
 
     [TestCleanup]

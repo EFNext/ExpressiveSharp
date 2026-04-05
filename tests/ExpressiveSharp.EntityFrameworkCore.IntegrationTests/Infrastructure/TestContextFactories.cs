@@ -205,7 +205,19 @@ internal static class TestContextFactories
     {
         var dbName = $"test_{Guid.NewGuid():N}";
         var options = new DbContextOptionsBuilder<CosmosIntegrationTestDbContext>()
-            .UseCosmos(ContainerFixture.CosmosConnectionString!, dbName)
+            .UseCosmos(ContainerFixture.CosmosConnectionString!, dbName, cosmos =>
+            {
+                // Cosmos emulator (via Testcontainers) uses a self-signed cert.
+                // Supply an HttpClient that skips certificate validation so
+                // EF Core can talk to it. Gateway mode is required because the
+                // emulator's Direct (TCP) endpoint is not exposed.
+                cosmos.HttpClientFactory(() => new System.Net.Http.HttpClient(
+                    new System.Net.Http.HttpClientHandler
+                    {
+                        ServerCertificateCustomValidationCallback = (_, _, _, _) => true,
+                    }));
+                cosmos.ConnectionMode(Microsoft.Azure.Cosmos.ConnectionMode.Gateway);
+            })
             .UseExpressives()
             .Options;
 
