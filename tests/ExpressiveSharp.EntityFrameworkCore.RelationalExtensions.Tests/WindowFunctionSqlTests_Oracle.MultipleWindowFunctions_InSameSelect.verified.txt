@@ -1,2 +1,0 @@
-﻿SELECT "o"."Id", ROW_NUMBER() OVER(ORDER BY "o"."Price") "RowNum", RANK() OVER(ORDER BY "o"."Price" ASC) "PriceRank", DENSE_RANK() OVER(ORDER BY "o"."Price" ASC) "Dense"
-FROM "Orders" "o"

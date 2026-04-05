@@ -1,13 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="MSTest.Sdk">
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
-    <IsTestProject>false</IsTestProject>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="MSTest.TestFramework" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ExpressiveSharp\ExpressiveSharp.csproj" />

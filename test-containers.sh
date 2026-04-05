@@ -11,7 +11,7 @@ set -euo pipefail
 #   ./test-containers.sh Cosmos           # Cosmos DB emulator only
 #   ./test-containers.sh All              # All providers including Cosmos
 
-PROJECT="tests/ExpressiveSharp.IntegrationTests.EntityFrameworkCore/ExpressiveSharp.IntegrationTests.EntityFrameworkCore.csproj"
+PROJECT="tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests.csproj"
 CONFIG="Release"
 
 database="${1:-All}"
@@ -30,6 +30,6 @@ echo "==> Building with TestDatabase=$database..."
 dotnet build "$PROJECT" -c "$CONFIG" -p:TestDatabase="$database" --verbosity quiet
 
 echo "==> Running tests with TestDatabase=$database..."
-dotnet test --project tests/ExpressiveSharp.IntegrationTests.EntityFrameworkCore \
+dotnet test --project tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests \
     --no-build -c "$CONFIG" \
     -p:TestDatabase="$database"
