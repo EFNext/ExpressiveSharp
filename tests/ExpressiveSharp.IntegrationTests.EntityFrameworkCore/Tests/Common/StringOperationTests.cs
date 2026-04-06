@@ -21,6 +21,14 @@ public class StringOperationTests : Scenarios.Common.Tests.StringOperationTests
         Expression<Func<Order, string>> expr = o => o.FormattedPrice;
         var expanded = (Expression<Func<Order, string>>)expr.ExpandExpressives();
 
+        // Verify the expanded tree contains a ToString(string) call
+        var body = ((LambdaExpression)expanded).Body;
+        var hasToStringWithFormat = body is MethodCallExpression call
+            && call.Method.Name == "ToString"
+            && call.Method.GetParameters().Length == 1
+            && call.Method.GetParameters()[0].ParameterType == typeof(string);
+        Assert.IsTrue(hasToStringWithFormat, "Expected ToString(string) call in expanded expression");
+
         var results = await Runner.SelectAsync<Order, string>(expanded);
 
         Assert.AreEqual(4, results.Count);
@@ -43,10 +51,6 @@ public class StringOperationTests : Scenarios.Common.Tests.StringOperationTests
     [TestMethod]
     public async Task Where_DetailedSummary_ConcatArrayTranslatesToSql()
     {
-        // DetailedSummary uses string.Concat(string[]) (7 parts) which the emitter
-        // generates faithfully. The FlattenConcatArrayCalls transformer rewrites it
-        // into chained 2/3/4-arg Concat calls that EF Core can translate to SQL.
-        // Using Where (not Select) proves it translates server-side — Where throws if not.
         // DetailedSummary has 7 string parts, so the emitter produces string.Concat(string[]).
         // FlattenConcatArrayCalls rewrites it to chained Concat calls for EF Core.
         // Using Where (not Select) proves it translates server-side — Where throws if not.

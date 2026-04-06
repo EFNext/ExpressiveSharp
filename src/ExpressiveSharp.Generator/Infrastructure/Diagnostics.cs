@@ -143,6 +143,14 @@ static internal class Diagnostics
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    public readonly static DiagnosticDescriptor IgnoredOperation = new DiagnosticDescriptor(
+        id: "EXP0018",
+        title: "Unsupported operation ignored",
+        messageFormat: "Expression contains an unsupported operation ({0}). The operation will be ignored and the surrounding expression emitted without it.",
+        category: "Design",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
     public readonly static DiagnosticDescriptor ExpressiveForConflictsWithExpressive = new DiagnosticDescriptor(
         id: "EXP0019",
         title: "[ExpressiveFor] conflicts with [Expressive]",

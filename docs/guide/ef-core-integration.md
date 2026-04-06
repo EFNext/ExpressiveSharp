@@ -43,7 +43,7 @@ services.AddDbContext<MyDbContext>(options =>
    - `FlattenBlockExpressions` -- inlines block-local variables and removes `Expression.Block` nodes
 
 ::: warning String interpolation format specifiers
-String interpolation with format specifiers like `$"{Price:F2}"` generates `ToString(format)` at the expression tree level. EF Core cannot translate `ToString(string)` to SQL -- in a final `Select` projection this silently falls back to client evaluation, but in `Where`, `OrderBy`, or other server-evaluated positions it throws at runtime. Simple interpolation without format specifiers (e.g., `$"Order #{Id}"`) always works because it uses `string.Concat` which EF Core translates to SQL concatenation.
+String interpolation with format specifiers like `$"{Price:F2}"` generates `ToString(format)` at the expression tree level. EF Core cannot translate `ToString(string)` to SQL -- in a final `Select` projection this silently falls back to client evaluation, but in `Where`, `OrderBy`, or other server-evaluated positions it throws at runtime. Simple interpolation without format specifiers (e.g., `$"Order #{Id}"`) is usually server-translatable because EF Core natively translates the 2/3/4-argument `string.Concat` overloads to SQL concatenation. For interpolations with 5+ parts, the emitter produces `string.Concat(string[])`; the `FlattenConcatArrayCalls` transformer listed above rewrites this into EF Core-translatable `Concat` calls.
 :::
 
 ## ExpressiveDbSet\<T\>

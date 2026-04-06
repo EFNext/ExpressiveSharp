@@ -124,8 +124,10 @@ public class DiagnosticTests : GeneratorTestBase
             "Expected EXP0008 for throw expression (IThrowOperation not handled)");
     }
 
+    // ── EXP0018: IgnoredOperation ─────────────────────────────────────────
+
     [TestMethod]
-    public void StringInterpolation_AlignmentSpecifier_ReportsEXP0008()
+    public void StringInterpolation_AlignmentSpecifier_ReportsEXP0018()
     {
         var compilation = CreateCompilation(
             """
@@ -140,8 +142,8 @@ public class DiagnosticTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0008"),
-            "Expected EXP0008 for alignment specifier in string interpolation");
+        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0018"),
+            "Expected EXP0018 for alignment specifier in string interpolation");
         Assert.IsTrue(result.GeneratedTrees.Length > 0,
             "Generator should still produce output (interpolation without alignment)");
     }

@@ -144,7 +144,7 @@ If first-execution latency is critical, warm up the cache by calling `ExpandExpr
 | Checked arithmetic (`checked(...)`) | Supported | |
 
 ::: warning Format specifiers in string interpolation
-String interpolation with format specifiers like `$"{Price:F2}"` generates `Expression.Call(price, "ToString", "F2")`. EF Core cannot translate `ToString(string)` to SQL. In a final `Select` projection this silently falls back to client evaluation (performance cost), but in `Where`, `OrderBy`, or other server-evaluated positions it throws `InvalidOperationException`. Simple interpolation without format specifiers (e.g., `$"Order #{Id}"`) always works because it uses `string.Concat` which EF Core translates to SQL concatenation.
+String interpolation with format specifiers like `$"{Price:F2}"` introduces a `ToString(string)` call into the generated expression tree. EF Core cannot translate `ToString(string)` to SQL. In a final `Select` projection this silently falls back to client evaluation (performance cost), but in `Where`, `OrderBy`, or other server-evaluated positions it throws `InvalidOperationException`. Simple interpolation without format specifiers (e.g., `$"Order #{Id}"`) is server-translatable because it lowers to `string.Concat` overloads that EF Core supports (2/3/4-arg). For interpolations with 5+ parts, the emitter uses `string.Concat(string[])`; the `FlattenConcatArrayCalls` transformer rewrites this into supported `Concat` calls when using `UseExpressives()`.
 :::
 
 ### Block-Body

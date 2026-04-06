@@ -2109,7 +2109,7 @@ internal sealed class ExpressionTreeEmitter
                     {
                         // Alignment specifiers have no expression tree equivalent.
                         // Report diagnostic but continue emitting the interpolation without alignment.
-                        ReportDiagnostic(Diagnostics.UnsupportedOperation,
+                        ReportDiagnostic(Diagnostics.IgnoredOperation,
                             interp.Alignment.Syntax?.GetLocation() ?? Location.None,
                             "Alignment specifier in string interpolation");
                     }
