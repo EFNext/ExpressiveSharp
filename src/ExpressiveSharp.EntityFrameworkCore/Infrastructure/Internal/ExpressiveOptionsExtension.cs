@@ -18,11 +18,13 @@ namespace ExpressiveSharp.EntityFrameworkCore.Infrastructure.Internal;
 public class ExpressiveOptionsExtension : IDbContextOptionsExtension
 {
     private readonly IReadOnlyList<IExpressivePlugin> _plugins;
+    private readonly bool _preserveThrowExpressions;
     private readonly int _pluginHash;
 
-    public ExpressiveOptionsExtension(IReadOnlyList<IExpressivePlugin> plugins)
+    public ExpressiveOptionsExtension(IReadOnlyList<IExpressivePlugin> plugins, bool preserveThrowExpressions = false)
     {
         _plugins = plugins;
+        _preserveThrowExpressions = preserveThrowExpressions;
 
         var hash = new HashCode();
         foreach (var plugin in plugins)
@@ -30,6 +32,7 @@ public class ExpressiveOptionsExtension : IDbContextOptionsExtension
             hash.Add(plugin.GetType().FullName);
             hash.Add(plugin.GetHashCode());
         }
+        hash.Add(preserveThrowExpressions);
         _pluginHash = hash.ToHashCode();
 
         Info = new ExtensionInfo(this);
@@ -79,9 +82,12 @@ public class ExpressiveOptionsExtension : IDbContextOptionsExtension
 
         // Register a dedicated ExpressiveOptions instance with EF Core transformers
         // plus any transformers contributed by plugins
+        var preserveThrow = _preserveThrowExpressions;
         services.AddSingleton(sp =>
         {
             var options = new ExpressiveOptions();
+            if (!preserveThrow)
+                options.AddTransformers(new ReplaceThrowWithDefault());
             options.AddTransformers(
                 new ConvertLoopsToLinq(),
                 new RemoveNullConditionalPatterns(),

@@ -121,4 +121,8 @@ public class Order
     // Checked arithmetic
     [Expressive]
     public double CheckedTotal => checked(Price * Quantity);
+
+    // Throw expression in null-coalescing
+    [Expressive]
+    public string SafeTag => Tag ?? throw new InvalidOperationException("Tag is required");
 }
