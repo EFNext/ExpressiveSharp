@@ -59,7 +59,7 @@ public class ThrowExpressionTests : GeneratorTestBase
                     [Expressive]
                     public static string SafeValue(string? x) => x switch {
                         null => throw new System.ArgumentNullException(),
-                        var v => v,
+                        _ => x,
                     };
                 }
             }

@@ -21,7 +21,7 @@ public sealed class ExpressiveOptionsBuilder
     }
 
     /// <summary>
-    /// Prevents the <see cref="Transformers.ReplaceThrowWithDefault"/> transformer from
+    /// Prevents the <see cref="ExpressiveSharp.Transformers.ReplaceThrowWithDefault"/> transformer from
     /// being applied. When set, <c>Expression.Throw</c> nodes are preserved in the
     /// expression tree, and the LINQ provider is responsible for translating them.
     /// </summary>
