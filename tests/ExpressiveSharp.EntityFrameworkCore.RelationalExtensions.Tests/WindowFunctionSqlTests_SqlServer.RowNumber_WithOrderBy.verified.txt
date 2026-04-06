@@ -1,2 +1,0 @@
-﻿SELECT [o].[Id], ROW_NUMBER() OVER(ORDER BY [o].[Price]) AS [RowNum]
-FROM [Orders] AS [o]

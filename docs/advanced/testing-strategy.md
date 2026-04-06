@@ -35,42 +35,29 @@ The generated expression tree must be functionally equivalent to the original me
 |---|---|---|
 | `ExpressiveSharp.Generator.Tests` | Snapshot tests (Verify.MSTest) -- validates generated C# output | 1, 2 |
 | `ExpressiveSharp.Tests` | Unit tests for runtime services, transformers, extensions | 3 |
-| `ExpressiveSharp.IntegrationTests` | Shared abstract test classes, Store scenario models, seed data | -- |
-| `ExpressiveSharp.IntegrationTests.ExpressionCompile` | Compiles expression trees to delegates, executes in-memory | 3 |
-| `ExpressiveSharp.IntegrationTests.EntityFrameworkCore` | EF Core + SQLite query translation and execution | 3 |
-| `ExpressiveSharp.EntityFrameworkCore.Tests` | EF Core-specific hooks (conventions, ExpressiveDbSet) | 3 |
-| `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Tests` | Window function SQL shape + integration tests (SQLite) | 3 |
+| `ExpressiveSharp.IntegrationTests` | In-memory compiled-delegate tests (ExpressionCompile path). Also hosts the shared Store scenario models (`Order`, `Customer`, `LineItem`, `Address`) and seed data used by both test projects. | 3 |
+| `ExpressiveSharp.EntityFrameworkCore.IntegrationTests` | All EF Core integration tests (scenarios, async queryables, window functions, ExecuteUpdate, Include, query filters, conventions). Default: SQLite. Containers: SqlServer/Postgres/PomeloMySql/Cosmos via `-p:TestDatabase=<provider>` | 3 |
 
 ## Integration Test Architecture
 
-The integration tests use a three-project structure:
+Two test projects, one feature set per backend — no runner abstraction:
 
-### Shared Library
+### ExpressionCompile (in-memory)
 
-**`ExpressiveSharp.IntegrationTests`** -- A shared class library (not MSTest.Sdk) containing Store scenario models (`Order`, `Customer`, `LineItem`, `Address`), seed data, and abstract test classes. The source generator runs here to produce expression registries for `[Expressive]` models.
+**`ExpressiveSharp.IntegrationTests`** -- Contains the shared Store scenario models / seed data plus `[TestClass]` test classes (`CommonScenarioTests`, `StoreQueryTests`, `AnonymousTypeInterceptorTests`, `MultiLambdaInterceptorTests`). Each test compiles an expanded expression tree to a delegate via `.Compile()` and runs it against seeded `List<T>` collections through the internal `ExpressionCompileRunner` helper. Validates all expression types including `LoopExpression`.
 
-### ExpressionCompile Runner
+### EntityFrameworkCore
 
-**`ExpressiveSharp.IntegrationTests.ExpressionCompile`** -- Compiles expression trees to delegates and executes against in-memory `List<T>`. Validates all expression types including `LoopExpression`.
+**`ExpressiveSharp.EntityFrameworkCore.IntegrationTests`** -- Two-level test base hierarchy:
+- **`EFCoreTestBase`** — base lifecycle (context create / `EnsureCreated` / per-test database drop). Derived test bases that work on any EF Core provider (including Cosmos) extend this. `Context` is typed as `DbContext` so tests use `Context.Set<T>()`.
+- **`EFCoreRelationalTestBase : EFCoreTestBase`** — adds a strongly-typed `IntegrationTestDbContext Context` shadow. Derived test bases that require relational features (window functions, `ExecuteUpdate`, typed DbSet access) extend this; Cosmos concrete classes never do.
 
-### EntityFrameworkCore Runner
+Feature test bases:
+- Extend `EFCoreTestBase`: `CommonScenarioTestBase`, `StoreQueryTestBase` (run on Cosmos + all relational providers)
+- Extend `EFCoreRelationalTestBase`: `WindowFunctionTestBase`, `ExecuteUpdateTestBase`, `AsyncQueryableTestBase`, `CapturedVariableTestBase`, `IncludeTestBase`, `UseExpressivesConventionTestBase`, `ExpressiveExpansionTestBase`
+- Standalone (own DbContext): `QueryFilterTestBase`
 
-**`ExpressiveSharp.IntegrationTests.EntityFrameworkCore`** -- Executes against SQLite via EF Core with `UseExpressives()`. Validates the LINQ-translatable subset. Transformers (`ConvertLoopsToLinq`, `RemoveNullConditionalPatterns`, `FlattenBlockExpressions`) run before queries.
-
-### Concrete Test Classes
-
-Concrete test classes are one-liners that inherit abstract tests and override `CreateRunner()`:
-
-```csharp
-[TestClass]
-public class ArithmeticTests : Scenarios.Common.Tests.ArithmeticTests
-{
-    protected override IIntegrationTestRunner CreateRunner()
-        => new ExpressionCompileTestRunner();
-}
-```
-
-To add a new integration (e.g., NHibernate): implement `IIntegrationTestRunner`, create concrete subclasses.
+Per-provider concrete classes live under `Tests/<Provider>/` and implement `CreateContextHandle` using `TestContextFactories.Create<Provider>()`. Default `dotnet test` runs SQLite only; `-p:TestDatabase=<provider>` enables container-backed testing (see `.test-containers.sh`).
 
 ## Adding Tests for a New IOperation Mapping
 

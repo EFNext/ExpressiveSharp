@@ -1,0 +1,100 @@
+<Project Sdk="MSTest.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+
+    <!-- Default: only SQLite tests. Use -p:TestDatabase=All to run all providers. -->
+    <TestDatabase Condition="'$(TestDatabase)' == ''">Sqlite</TestDatabase>
+
+    <!-- Testcontainers transitive deps (e.g., Newtonsoft.Json via CosmosDb emulator) may have known vulnerabilities.
+         Suppress the NuGet audit warning in test projects only. -->
+    <NoWarn>$(NoWarn);NU1903;NU1902;NU1901;NU1904</NoWarn>
+  </PropertyGroup>
+
+  <!-- Define compilation constants per database provider -->
+  <PropertyGroup Condition="'$(TestDatabase)' == 'SqlServer' or '$(TestDatabase)' == 'All'">
+    <DefineConstants>$(DefineConstants);TEST_SQLSERVER</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TestDatabase)' == 'Postgres' or '$(TestDatabase)' == 'All'">
+    <DefineConstants>$(DefineConstants);TEST_POSTGRES</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TestDatabase)' == 'Cosmos' or '$(TestDatabase)' == 'All'">
+    <DefineConstants>$(DefineConstants);TEST_COSMOS</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="('$(TestDatabase)' == 'PomeloMySql' or '$(TestDatabase)' == 'All') and '$(TargetFramework)' != 'net10.0'">
+    <DefineConstants>$(DefineConstants);TEST_POMELO_MYSQL</DefineConstants>
+  </PropertyGroup>
+
+  <!-- SQLite (always available) -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"
+                      Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"
+                      Condition="'$(TargetFramework)' == 'net9.0'"
+                      VersionOverride="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"
+                      Condition="'$(TargetFramework)' == 'net10.0'"
+                      VersionOverride="10.0.5" />
+  </ItemGroup>
+
+  <!-- SQL Server (conditional) -->
+  <ItemGroup Condition="'$(TestDatabase)' == 'SqlServer' or '$(TestDatabase)' == 'All'">
+    <PackageReference Include="Testcontainers.MsSql" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer"
+                      Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer"
+                      Condition="'$(TargetFramework)' == 'net9.0'"
+                      VersionOverride="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer"
+                      Condition="'$(TargetFramework)' == 'net10.0'"
+                      VersionOverride="10.0.0" />
+  </ItemGroup>
+
+  <!-- PostgreSQL (conditional) -->
+  <ItemGroup Condition="'$(TestDatabase)' == 'Postgres' or '$(TestDatabase)' == 'All'">
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"
+                      Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"
+                      Condition="'$(TargetFramework)' == 'net9.0'"
+                      VersionOverride="9.0.4" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"
+                      Condition="'$(TargetFramework)' == 'net10.0'"
+                      VersionOverride="10.0.1" />
+  </ItemGroup>
+
+  <!-- Cosmos DB (conditional) -->
+  <ItemGroup Condition="'$(TestDatabase)' == 'Cosmos' or '$(TestDatabase)' == 'All'">
+    <PackageReference Include="Testcontainers.CosmosDb" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Cosmos"
+                      Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Cosmos"
+                      Condition="'$(TargetFramework)' == 'net9.0'"
+                      VersionOverride="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Cosmos"
+                      Condition="'$(TargetFramework)' == 'net10.0'"
+                      VersionOverride="10.0.0" />
+  </ItemGroup>
+
+  <!-- MySQL via Pomelo (conditional, no EF 10 support) -->
+  <ItemGroup Condition="('$(TestDatabase)' == 'PomeloMySql' or '$(TestDatabase)' == 'All') and '$(TargetFramework)' != 'net10.0'">
+    <PackageReference Include="Testcontainers.MySql" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql"
+                      Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql"
+                      Condition="'$(TargetFramework)' == 'net9.0'"
+                      VersionOverride="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ExpressiveSharp.IntegrationTests\ExpressiveSharp.IntegrationTests.csproj" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp\ExpressiveSharp.csproj" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp.EntityFrameworkCore\ExpressiveSharp.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.csproj" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp.Generator\ExpressiveSharp.Generator.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

@@ -13,15 +13,13 @@
     <Project Path="src/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions.csproj" />
     <Project Path="src/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.csproj" />
     <Project Path="src/ExpressiveSharp.Generator/ExpressiveSharp.Generator.csproj" />
+    <Project Path="src/ExpressiveSharp.Abstractions/ExpressiveSharp.Abstractions.csproj" />
     <Project Path="src/ExpressiveSharp/ExpressiveSharp.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/ExpressiveSharp.EntityFrameworkCore.Tests/ExpressiveSharp.EntityFrameworkCore.Tests.csproj" />
     <Project Path="tests/ExpressiveSharp.Generator.Tests/ExpressiveSharp.Generator.Tests.csproj" />
     <Project Path="tests/ExpressiveSharp.IntegrationTests/ExpressiveSharp.IntegrationTests.csproj" />
-    <Project Path="tests/ExpressiveSharp.IntegrationTests.ExpressionCompile/ExpressiveSharp.IntegrationTests.ExpressionCompile.csproj" />
-    <Project Path="tests/ExpressiveSharp.IntegrationTests.EntityFrameworkCore/ExpressiveSharp.IntegrationTests.EntityFrameworkCore.csproj" />
-    <Project Path="tests/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Tests/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Tests.csproj" />
+    <Project Path="tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests.csproj" />
     <Project Path="tests/ExpressiveSharp.Tests/ExpressiveSharp.Tests.csproj" />
   </Folder>
 </Solution>

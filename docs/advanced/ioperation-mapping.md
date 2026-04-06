@@ -110,6 +110,7 @@ Unrecognized operations fall through to `EmitUnsupported()` which emits `Express
 | `IConditionalAccessOperation` | `Expression.Condition(notNullCheck, whenNotNull, default)` | Implemented | `?.` operator with receiver stack for chained access. Handles `Nullable<T>` `.Value` injection. |
 | `IConditionalAccessInstanceOperation` | *(resolved to receiver)* | Implemented | Pops from receiver stack during conditional access processing. |
 | `ICoalesceOperation` | `Expression.Coalesce(left, right)` | Implemented | `??` operator. |
+| `IThrowOperation` | `Expression.Throw(expr, typeof(T))` | Implemented | `throw` expressions. Uses typed overload in value positions (`?? throw`, ternary, switch arm), void overload for statements. `ReplaceThrowWithDefault` transformer replaces with `Expression.Default` for EF Core compatibility. |
 
 ## Pattern Matching
 
@@ -185,12 +186,6 @@ Unrecognized operations fall through to `EmitUnsupported()` which emits `Express
 | `IDelegateCreationOperation` | *(transparent)* | Implemented | Emits its `Target` operation directly. |
 
 ---
-
-## Not Yet Implemented
-
-| IOperation | Target Expression Factory | Notes |
-|---|---|---|
-| `IThrowOperation` | `Expression.Throw(expr, typeof(T))` | `throw` expressions. `Expression.Throw` exists but not all LINQ providers support it. Detected early by block body validation (EXP0006). |
 
 ---
 

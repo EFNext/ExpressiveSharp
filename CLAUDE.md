@@ -62,8 +62,15 @@ CI targets both .NET 8.0 and .NET 10.0 SDKs.
 ### Project Dependencies
 
 ```
-ExpressiveSharp (core runtime, net8.0;net10.0)
+ExpressiveSharp.Abstractions (attributes + source generator, net8.0;net10.0)
   └── no external deps
+  Provides: [Expressive], [ExpressiveFor], [ExpressiveForConstructor], [PolyfillTarget],
+      IExpressionTreeTransformer, source generator + code fixers (as analyzers)
+
+ExpressiveSharp (core runtime, net8.0;net10.0)
+  └── ExpressiveSharp.Abstractions
+  Provides: ExpressiveResolver, ExpressiveReplacer, expression transformers,
+      IRewritableQueryable<T>, ExpressionPolyfill, .ExpandExpressives(), .AsExpressive()
 
 ExpressiveSharp.Generator (source generator, netstandard2.0)
   └── Microsoft.CodeAnalysis.CSharp 5.0.0
@@ -103,11 +110,8 @@ ExpressiveSharp.EntityFrameworkCore.CodeFixers (Roslyn analyzer, netstandard2.0)
 |---------|---------|
 | `ExpressiveSharp.Generator.Tests` | Snapshot tests (Verify.MSTest) — validates generated C# output |
 | `ExpressiveSharp.Tests` | Unit tests for runtime services, transformers, extensions |
-| `ExpressiveSharp.IntegrationTests` | End-to-end tests using the generator |
-| `ExpressiveSharp.IntegrationTests.ExpressionCompile` | Compiles and invokes generated expression trees directly |
-| `ExpressiveSharp.IntegrationTests.EntityFrameworkCore` | EF Core query translation validation |
-| `ExpressiveSharp.EntityFrameworkCore.Tests` | EF Core integration-specific tests |
-| `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Tests` | Window function SQL shape + integration tests (SQLite) |
+| `ExpressiveSharp.IntegrationTests` | Compiles expression trees to delegates and runs them against in-memory collections — provider-agnostic correctness for every feature (arithmetic, switch, pattern matching, null-conditional, loops, tuples, `[Expressive]` expansion). Also hosts the shared Store scenario models + seed data. |
+| `ExpressiveSharp.EntityFrameworkCore.IntegrationTests` | All EF Core integration tests — scenarios, async queryables, window functions, ExecuteUpdate, Include, query filters, conventions. Runs against SQLite by default; containerized SqlServer/Postgres/PomeloMySql/Cosmos via `-p:TestDatabase=<provider>` |
 | `ExpressiveSharp.Benchmarks` | BenchmarkDotNet performance benchmarks (generator, resolver, replacer, transformers, EF Core) |
 
 ### Three Verification Levels (see `docs/testing-strategy.md`)

@@ -1,2 +1,0 @@
-﻿SELECT [o].[Id], RANK() OVER(PARTITION BY [o].[CustomerId] ORDER BY [o].[Price] DESC) AS [PriceRank]
-FROM [Orders] AS [o]

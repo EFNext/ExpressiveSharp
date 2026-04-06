@@ -414,13 +414,6 @@ static internal partial class ExpressiveInterpreter
                     memberName, "lock statement"));
                 return;
 
-            case IThrowOperation:
-                context.ReportDiagnostic(Diagnostic.Create(
-                    Diagnostics.UnsupportedStatementInBlockBody,
-                    operation.Syntax?.GetLocation() ?? Location.None,
-                    memberName, "throw expression"));
-                return;
-
             case IForLoopOperation:
                 context.ReportDiagnostic(Diagnostic.Create(
                     Diagnostics.UnsupportedStatementInBlockBody,

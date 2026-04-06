@@ -461,6 +461,7 @@ internal sealed class ExpressionTreeEmitter
             IForEachLoopOperation forEach => EmitForEachLoop(forEach),
             IForLoopOperation forLoop => EmitForLoop(forLoop),
             IWhileLoopOperation whileLoop => EmitWhileLoop(whileLoop),
+            IThrowOperation throwOp => EmitThrow(throwOp),
             _ => EmitUnsupported(operation),
         };
 
@@ -975,6 +976,11 @@ internal sealed class ExpressionTreeEmitter
         if (conversion.Conversion.IsIdentity)
             return EmitOperation(conversion.Operand);
 
+        // Throw expressions are void-typed; Expression.Convert(void, T) is invalid.
+        // Emit Expression.Throw(exception, targetType) directly instead.
+        if (conversion.Operand is IThrowOperation throwOp && throwOp.Exception is not null)
+            return EmitThrowWithType(throwOp, conversion.Type);
+
         var resultVar = NextVar();
         var operandVar = EmitOperation(conversion.Operand);
         var targetTypeFqn = conversion.Type?.ToDisplayString(_fqnFormat) ?? "object";
@@ -1260,6 +1266,34 @@ internal sealed class ExpressionTreeEmitter
         var leftVar = EmitOperation(coalesce.Value);
         var rightVar = EmitOperation(coalesce.WhenNull);
         AppendLine($"var {resultVar} = {Expr}.Coalesce({leftVar}, {rightVar});");
+        return resultVar;
+    }
+
+    // ── Throw expressions ─────────────────────────────────────────────────────
+
+    private string EmitThrow(IThrowOperation throwOp)
+    {
+        if (throwOp.Exception is null)
+            return EmitUnsupported(throwOp);
+
+        return EmitThrowWithType(throwOp, throwOp.Type);
+    }
+
+    private string EmitThrowWithType(IThrowOperation throwOp, ITypeSymbol? targetType)
+    {
+        var resultVar = NextVar();
+        var exceptionVar = EmitOperation(throwOp.Exception!);
+
+        if (targetType is not null && targetType.SpecialType != SpecialType.System_Void)
+        {
+            var typeFqn = ResolveTypeFqn(targetType);
+            AppendLine($"var {resultVar} = {Expr}.Throw({exceptionVar}, typeof({typeFqn}));");
+        }
+        else
+        {
+            AppendLine($"var {resultVar} = {Expr}.Throw({exceptionVar});");
+        }
+
         return resultVar;
     }
 
