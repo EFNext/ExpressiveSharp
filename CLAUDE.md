@@ -58,6 +58,11 @@ CI targets both .NET 8.0 and .NET 10.0 SDKs.
 - `src/ExpressiveSharp/Extensions/RewritableQueryableLinqExtensions.cs` — delegate-based LINQ stubs on `IRewritableQueryable<T>` (~85 intercepted + ~15 passthrough methods)
 - `src/ExpressiveSharp.EntityFrameworkCore/Extensions/RewritableQueryableEfCoreExtensions.cs` — EF Core-specific stubs: chain-continuity (AsNoTracking, TagWith, etc.), Include/ThenInclude, and async lambda methods (AnyAsync, SumAsync, etc.)
 - `src/ExpressiveSharp.EntityFrameworkCore/IIncludableRewritableQueryable.cs` — hybrid interface bridging `IIncludableQueryable` and `IRewritableQueryable` for Include/ThenInclude chain continuity
+- `src/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions/WindowFunction.cs` — public marker methods for all SQL window functions (ranking, aggregate, navigation). All throw at runtime; translated to SQL by the method call translator
+- `src/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions/WindowDefinition.cs` — fluent builder types: `PartitionedWindowDefinition` → `OrderedWindowDefinition` → `FramedWindowDefinition`. Type-safe chain ensures ORDER BY before ranking, frame only on aggregates/value functions
+- `src/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions/WindowFrameBound.cs` — frame boundary markers: `UnboundedPreceding` (property), `Preceding(n)` (method), `CurrentRow` (property), `Following(n)` (method), `UnboundedFollowing` (property)
+- `src/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions/Infrastructure/Internal/WindowFunctionMethodCallTranslator.cs` — translates `WindowFunction.*` calls to `WindowFunctionSqlExpression` or `RowNumberExpression`. Ranking functions never emit frames; aggregates propagate frames; navigation functions pass through 1–3 args
+- `src/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions/Infrastructure/Internal/WindowFunctionSqlExpression.cs` — self-rendering SQL expression: `FUNC(args) OVER(PARTITION BY ... ORDER BY ... [ROWS/RANGE BETWEEN ...])`. Provider-agnostic via SQL:2003 standard syntax
 
 ### Project Dependencies
 
@@ -83,15 +88,22 @@ ExpressiveSharp.EntityFrameworkCore (net8.0;net10.0)
 
 ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions (net8.0;net10.0)
   └── no external deps
-  Provides: Pure marker types for window functions (WindowFunction, Window,
-      OrderedWindowDefinition, PartitionedWindowDefinition) — no EF Core dependency
+  Provides: Pure marker types for window functions — no EF Core dependency:
+      WindowFunction (ranking: ROW_NUMBER, RANK, DENSE_RANK, NTILE, PERCENT_RANK, CUME_DIST;
+          aggregate: SUM, AVG, COUNT, MIN, MAX; navigation: LAG, LEAD, FIRST_VALUE,
+          LAST_VALUE, NTH_VALUE), Window, OrderedWindowDefinition,
+          PartitionedWindowDefinition, FramedWindowDefinition, WindowFrameBound
 
 ExpressiveSharp.EntityFrameworkCore.RelationalExtensions (net8.0;net10.0, experimental)
   ├── ExpressiveSharp.EntityFrameworkCore
   ├── ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions
   ├── EF Core Relational 8.0.25 / 10.0.0
-  └── Provides: Window function SQL translation (ROW_NUMBER, RANK, DENSE_RANK, NTILE),
-      indexed Select, activated via UseExpressives(o => o.UseRelationalExtensions())
+  └── Provides: Window function SQL translation (ranking, aggregate with ROWS/RANGE
+      frame clauses, navigation with LAG/LEAD/FIRST_VALUE/LAST_VALUE/NTH_VALUE),
+      indexed Select, activated via UseExpressives(o => o.UseRelationalExtensions()).
+      Translators: WindowFunctionMethodCallTranslator, WindowSpecMethodCallTranslator,
+      WindowFrameBoundMemberTranslator (IMemberTranslatorPlugin for property getters).
+      Note: NTH_VALUE is not supported on SQL Server.
 
 ExpressiveSharp.EntityFrameworkCore.CodeFixers (Roslyn analyzer, netstandard2.0)
   └── Microsoft.CodeAnalysis.CSharp.Workspaces 4.12.0
