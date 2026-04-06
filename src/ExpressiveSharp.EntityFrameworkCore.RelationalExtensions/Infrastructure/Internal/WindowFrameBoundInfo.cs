@@ -26,10 +26,19 @@ internal readonly record struct WindowFrameBoundInfo(WindowFrameBoundKind Kind, 
     public string ToSqlFragment() => Kind switch
     {
         WindowFrameBoundKind.UnboundedPreceding => "UNBOUNDED PRECEDING",
-        WindowFrameBoundKind.Preceding => $"{Offset} PRECEDING",
+        WindowFrameBoundKind.Preceding => $"{ValidateOffset()} PRECEDING",
         WindowFrameBoundKind.CurrentRow => "CURRENT ROW",
-        WindowFrameBoundKind.Following => $"{Offset} FOLLOWING",
+        WindowFrameBoundKind.Following => $"{ValidateOffset()} FOLLOWING",
         WindowFrameBoundKind.UnboundedFollowing => "UNBOUNDED FOLLOWING",
         _ => throw new InvalidOperationException($"Unknown WindowFrameBoundKind: {Kind}"),
     };
+
+    private int ValidateOffset()
+    {
+        if (!Offset.HasValue)
+            throw new InvalidOperationException($"Window frame bound '{Kind}' requires a non-null offset.");
+        if (Offset.Value < 0)
+            throw new InvalidOperationException($"Window frame bound '{Kind}' requires a non-negative offset, but got {Offset.Value}.");
+        return Offset.Value;
+    }
 }

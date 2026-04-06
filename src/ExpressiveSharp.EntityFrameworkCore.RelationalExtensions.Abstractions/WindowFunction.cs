@@ -121,19 +121,19 @@ public static class WindowFunction
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
     /// <summary>Translates to <c>COUNT(*) OVER(...)</c>. Counts all rows in the window.</summary>
-    public static long Count(OrderedWindowDefinition window) =>
+    public static int Count(OrderedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
     /// <inheritdoc cref="Count(OrderedWindowDefinition)"/>
-    public static long Count(FramedWindowDefinition window) =>
+    public static int Count(FramedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
     /// <summary>Translates to <c>COUNT(expression) OVER(...)</c>. Counts non-null values.</summary>
-    public static long Count<T>(T expression, OrderedWindowDefinition window) =>
+    public static int Count<T>(T expression, OrderedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
     /// <inheritdoc cref="Count{T}(T, OrderedWindowDefinition)"/>
-    public static long Count<T>(T expression, FramedWindowDefinition window) =>
+    public static int Count<T>(T expression, FramedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
     /// <summary>Translates to <c>MIN(expression) OVER(...)</c>.</summary>

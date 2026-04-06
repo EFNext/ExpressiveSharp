@@ -83,13 +83,20 @@ internal sealed class WindowFunctionMethodCallTranslator : IMethodCallTranslator
                 => MakeAggregate("SUM", [expr], spec, method.ReturnType),
 
             nameof(WindowFunction.Average) when ExtractAggregateArgs(arguments, out var expr, out var spec)
-                => MakeAggregate("AVG", [expr], spec, method.ReturnType),
+                => MakeAggregate("AVG",
+                    // When the C# return type differs from the expression type (int/long→double),
+                    // cast the argument so SQL computes a floating-point AVG, not integer division.
+                    [NeedsFloatCast(expr, method.ReturnType)
+                        ? _sqlExpressionFactory.ApplyDefaultTypeMapping(
+                            _sqlExpressionFactory.Convert(expr, method.ReturnType))
+                        : expr],
+                    spec, method.ReturnType),
 
             nameof(WindowFunction.Count) when arguments.Count == 1 && arguments[0] is WindowSpecSqlExpression spec
-                => MakeAggregate("COUNT", [_sqlExpressionFactory.Fragment("*")], spec, typeof(long)),
+                => MakeAggregate("COUNT", [_sqlExpressionFactory.Fragment("*")], spec, typeof(int)),
 
             nameof(WindowFunction.Count) when ExtractAggregateArgs(arguments, out var expr, out var spec)
-                => MakeAggregate("COUNT", [expr], spec, typeof(long)),
+                => MakeAggregate("COUNT", [expr], spec, typeof(int)),
 
             nameof(WindowFunction.Min) when ExtractAggregateArgs(arguments, out var expr, out var spec)
                 => MakeAggregate("MIN", [expr], spec, method.ReturnType),
@@ -182,6 +189,16 @@ internal sealed class WindowFunctionMethodCallTranslator : IMethodCallTranslator
             returnType,
             typeMapping);
     }
+
+    /// <summary>
+    /// Returns true when the AVG expression argument's CLR type is an integer type
+    /// but the method's return type is floating-point — SQL Server performs integer
+    /// division for AVG(int), so we need to CAST the argument.
+    /// </summary>
+    private static bool NeedsFloatCast(SqlExpression expr, Type returnType) =>
+        returnType == typeof(double)
+        && expr.Type is var t
+        && (t == typeof(int) || t == typeof(long) || t == typeof(int?) || t == typeof(long?));
 
     private WindowFunctionSqlExpression MakeAggregate(
         string functionName,

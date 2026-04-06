@@ -363,7 +363,7 @@ var results = dbContext.Orders
 See the [Window Functions guide](/guide/window-functions#window-frame-specification) for the full frame specification reference.
 
 ::: warning Frames apply to aggregate functions only
-The SQL standard forbids frame clauses on ranking functions (ROW_NUMBER, RANK, DENSE_RANK, NTILE). SQL Server and PostgreSQL reject the syntax. Only aggregate functions (SUM, AVG, COUNT, MIN, MAX) support frames.
+The SQL standard forbids frame clauses on ranking functions (ROW_NUMBER, RANK, DENSE_RANK, NTILE). SQL Server and PostgreSQL reject the syntax. Aggregate functions (SUM, AVG, COUNT, MIN, MAX) and value functions (FIRST_VALUE, LAST_VALUE, NTH_VALUE) support frames.
 :::
 
 ## Tips

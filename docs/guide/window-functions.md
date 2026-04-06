@@ -182,7 +182,7 @@ When no explicit frame is specified, SQL defaults to `RANGE BETWEEN UNBOUNDED PR
 :::
 
 ::: warning Ranking functions don't support frames
-The SQL standard forbids frame clauses on ranking functions (ROW_NUMBER, RANK, DENSE_RANK, NTILE) — SQL Server and PostgreSQL will reject the query. Only aggregate functions (SUM, AVG, COUNT, MIN, MAX) accept frames.
+The SQL standard forbids frame clauses on ranking functions (ROW_NUMBER, RANK, DENSE_RANK, NTILE) — SQL Server and PostgreSQL will reject the query. Aggregate functions (SUM, AVG, COUNT, MIN, MAX) and value functions (FIRST_VALUE, LAST_VALUE, NTH_VALUE) accept frames.
 :::
 
 ::: warning Literal offsets only

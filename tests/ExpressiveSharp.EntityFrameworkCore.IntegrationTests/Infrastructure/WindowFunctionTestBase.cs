@@ -384,8 +384,8 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
         var c1 = results.Where(r => r.CustomerId == 1).Select(r => r.RunningCount).ToList();
         var c2 = results.Where(r => r.CustomerId == 2).Select(r => r.RunningCount).ToList();
 
-        CollectionAssert.AreEqual(new long[] { 1, 2, 3, 4, 5 }, c1);
-        CollectionAssert.AreEqual(new long[] { 1, 2, 3, 4, 5 }, c2);
+        CollectionAssert.AreEqual(new int[] { 1, 2, 3, 4, 5 }, c1);
+        CollectionAssert.AreEqual(new int[] { 1, 2, 3, 4, 5 }, c2);
     }
 
     [TestMethod]
@@ -639,7 +639,7 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
 
         var results = await query.ToListAsync();
         Assert.AreEqual(10, results.Count);
-        Assert.IsTrue(results.All(r => r.First == 10.0),
+        Assert.IsTrue(results.All(r => Math.Abs(r.First - 10.0) < 1e-9),
             "FIRST_VALUE should return the lowest price (10) for all rows");
     }
 
@@ -663,7 +663,7 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
 
         var results = await query.ToListAsync();
         Assert.AreEqual(10, results.Count);
-        Assert.IsTrue(results.All(r => r.Last == 50.0),
+        Assert.IsTrue(results.All(r => Math.Abs(r.Last - 50.0) < 1e-9),
             "LAST_VALUE with unbounded frame should return the highest price (50) for all rows");
     }
 
@@ -689,8 +689,8 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
         var c1 = results.Where(r => r.CustomerId == 1).ToList();
         var c2 = results.Where(r => r.CustomerId == 2).ToList();
 
-        Assert.IsTrue(c1.All(r => r.FirstInGroup == 15.0));
-        Assert.IsTrue(c2.All(r => r.FirstInGroup == 10.0));
+        Assert.IsTrue(c1.All(r => Math.Abs(r.FirstInGroup - 15.0) < 1e-9));
+        Assert.IsTrue(c2.All(r => Math.Abs(r.FirstInGroup - 10.0) < 1e-9));
     }
 
     // ── PERCENT_RANK ─────────────────────────────────────────────────────
@@ -753,6 +753,7 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
     [TestMethod]
     public async Task NthValue_ReturnsValueAtPosition()
     {
+        // NTH_VALUE is not supported on SQL Server — skip gracefully.
         // Ordered by Price ASC: 10, 15, 20, 20, 25, 30, 35, 40, 45, 50
         // NTH_VALUE(Price, 3) with unbounded frame → 3rd value = 20 for all rows
         var query = Context.Orders
@@ -767,10 +768,17 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
         var sql = query.ToQueryString();
         StringAssert.Contains(sql, "NTH_VALUE");
 
-        var results = await query.ToListAsync();
-        Assert.AreEqual(10, results.Count);
-        Assert.IsTrue(results.All(r => r.Third == 20.0),
-            "NTH_VALUE(Price, 3) should return the 3rd price (20) for all rows with unbounded frame");
+        try
+        {
+            var results = await query.ToListAsync();
+            Assert.AreEqual(10, results.Count);
+            Assert.IsTrue(results.All(r => Math.Abs(r.Third - 20.0) < 1e-9),
+                "NTH_VALUE(Price, 3) should return the 3rd price (20) for all rows with unbounded frame");
+        }
+        catch (Exception ex) when (ex.Message.Contains("NTH_VALUE") && ex.Message.Contains("not a recognized"))
+        {
+            Assert.Inconclusive("NTH_VALUE is not supported by this database provider.");
+        }
     }
 
     // ── Coverage gap tests ───────────────────────────────────────────────

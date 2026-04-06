@@ -4,7 +4,7 @@ namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructur
 
 /// <summary>
 /// Registers member access translators with EF Core's query pipeline.
-/// Currently handles only <see cref="WindowFrameBound"/> property getters
+/// Currently handles only <see cref="WindowFunctions.WindowFrameBound"/> property getters
 /// (<c>UnboundedPreceding</c>, <c>CurrentRow</c>, <c>UnboundedFollowing</c>).
 /// </summary>
 internal sealed class WindowFunctionMemberTranslatorPlugin : IMemberTranslatorPlugin
