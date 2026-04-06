@@ -39,4 +39,26 @@ public sealed class OrderedWindowDefinition
     /// <summary>Adds a subsequent ORDER BY column (descending).</summary>
     public OrderedWindowDefinition ThenByDescending<TKey>(TKey key) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
+
+    /// <summary>
+    /// Applies a row-based window frame: <c>ROWS BETWEEN <paramref name="start"/> AND <paramref name="end"/></c>.
+    /// </summary>
+    public FramedWindowDefinition RowsBetween(WindowFrameBound start, WindowFrameBound end) =>
+        throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
+
+    /// <summary>
+    /// Applies a range-based window frame: <c>RANGE BETWEEN <paramref name="start"/> AND <paramref name="end"/></c>.
+    /// </summary>
+    public FramedWindowDefinition RangeBetween(WindowFrameBound start, WindowFrameBound end) =>
+        throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
+}
+
+/// <summary>
+/// Represents a window specification after a frame clause (ROWS/RANGE BETWEEN) has been applied.
+/// Terminal type — no further chaining is possible.
+/// </summary>
+public sealed class FramedWindowDefinition
+{
+    private FramedWindowDefinition() =>
+        throw new InvalidOperationException("FramedWindowDefinition is a marker type for expression trees and cannot be instantiated.");
 }

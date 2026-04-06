@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructure.Internal;
 
 /// <summary>
-/// SQL expression representing a window function call: FUNC_NAME(args) OVER(PARTITION BY ... ORDER BY ...).
+/// SQL expression representing a window function call: FUNC_NAME(args) OVER(PARTITION BY ... ORDER BY ... [frame]).
 /// Used for RANK, DENSE_RANK, NTILE (ROW_NUMBER uses the built-in <see cref="RowNumberExpression"/>).
 /// <para>
 /// This expression is self-rendering: <see cref="VisitChildren"/> produces correct SQL through
@@ -16,11 +16,11 @@ namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructur
 /// </para>
 /// <para>
 /// <b>SQL standard assumption:</b> The function names (RANK, DENSE_RANK, NTILE) and the
-/// OVER(PARTITION BY ... ORDER BY ...) clause syntax are hardcoded as literal SQL fragments.
-/// This relies on SQL:2003 window function syntax which is consistently implemented by all
-/// major databases (SQL Server 2005+, PostgreSQL 8.4+, SQLite 3.25+, MySQL 8.0+, Oracle 8i+,
-/// MariaDB 10.2+). If a provider deviates from this standard syntax, a provider-specific
-/// implementation would be needed.
+/// OVER(PARTITION BY ... ORDER BY ... [ROWS/RANGE BETWEEN ...]) clause syntax are hardcoded as
+/// literal SQL fragments. This relies on SQL:2003 window function syntax which is consistently
+/// implemented by all major databases (SQL Server 2012+, PostgreSQL 8.4+, SQLite 3.25+,
+/// MySQL 8.0+, Oracle 8i+, MariaDB 10.2+). If a provider deviates from this standard syntax,
+/// a provider-specific implementation would be needed.
 /// </para>
 /// </summary>
 internal sealed class WindowFunctionSqlExpression : SqlExpression
@@ -29,6 +29,9 @@ internal sealed class WindowFunctionSqlExpression : SqlExpression
     public IReadOnlyList<SqlExpression> Arguments { get; }
     public IReadOnlyList<SqlExpression> Partitions { get; }
     public IReadOnlyList<OrderingExpression> Orderings { get; }
+    public WindowFrameType? FrameType { get; }
+    public WindowFrameBoundInfo? FrameStart { get; }
+    public WindowFrameBoundInfo? FrameEnd { get; }
 
     public WindowFunctionSqlExpression(
         string functionName,
@@ -36,19 +39,25 @@ internal sealed class WindowFunctionSqlExpression : SqlExpression
         IReadOnlyList<SqlExpression> partitions,
         IReadOnlyList<OrderingExpression> orderings,
         Type type,
-        RelationalTypeMapping? typeMapping)
+        RelationalTypeMapping? typeMapping,
+        WindowFrameType? frameType = null,
+        WindowFrameBoundInfo? frameStart = null,
+        WindowFrameBoundInfo? frameEnd = null)
         : base(type, typeMapping)
     {
         FunctionName = functionName;
         Arguments = arguments;
         Partitions = partitions;
         Orderings = orderings;
+        FrameType = frameType;
+        FrameStart = frameStart;
+        FrameEnd = frameEnd;
     }
 
     /// <summary>
     /// Self-rendering: when any QuerySqlGenerator visits this expression via VisitExtension,
     /// it calls VisitChildren, which visits SqlFragmentExpression and child SqlExpression nodes
-    /// in the correct order to produce <c>FUNC(args) OVER(PARTITION BY ... ORDER BY ...)</c>.
+    /// in the correct order to produce <c>FUNC(args) OVER(PARTITION BY ... ORDER BY ... [frame])</c>.
     /// </summary>
     protected override Expression VisitChildren(ExpressionVisitor visitor)
     {
@@ -67,7 +76,7 @@ internal sealed class WindowFunctionSqlExpression : SqlExpression
     /// <summary>
     /// Shared rendering logic for both SQL generation (<see cref="VisitChildren"/>) and
     /// diagnostic output (<see cref="Print"/>). Produces the
-    /// <c>FUNC(args) OVER(PARTITION BY ... ORDER BY ...)</c> structure.
+    /// <c>FUNC(args) OVER(PARTITION BY ... ORDER BY ... [ROWS/RANGE BETWEEN ...])</c> structure.
     /// </summary>
     private void EmitWindowFunction(Action<string> appendText, Action<Expression> visitExpression)
     {
@@ -79,6 +88,8 @@ internal sealed class WindowFunctionSqlExpression : SqlExpression
         }
         appendText(") OVER(");
 
+        var anyClauseEmitted = false;
+
         if (Partitions.Count > 0)
         {
             appendText("PARTITION BY ");
@@ -87,11 +98,12 @@ internal sealed class WindowFunctionSqlExpression : SqlExpression
                 if (i > 0) appendText(", ");
                 visitExpression(Partitions[i]);
             }
+            anyClauseEmitted = true;
         }
 
         if (Orderings.Count > 0)
         {
-            if (Partitions.Count > 0) appendText(" ");
+            if (anyClauseEmitted) appendText(" ");
             appendText("ORDER BY ");
             for (var i = 0; i < Orderings.Count; i++)
             {
@@ -99,6 +111,16 @@ internal sealed class WindowFunctionSqlExpression : SqlExpression
                 visitExpression(Orderings[i].Expression);
                 appendText(Orderings[i].IsAscending ? " ASC" : " DESC");
             }
+            anyClauseEmitted = true;
+        }
+
+        if (FrameType is { } frameType)
+        {
+            if (anyClauseEmitted) appendText(" ");
+            appendText(frameType == WindowFrameType.Rows ? "ROWS BETWEEN " : "RANGE BETWEEN ");
+            appendText(FrameStart!.Value.ToSqlFragment());
+            appendText(" AND ");
+            appendText(FrameEnd!.Value.ToSqlFragment());
         }
 
         appendText(")");
@@ -114,7 +136,10 @@ internal sealed class WindowFunctionSqlExpression : SqlExpression
         && FunctionName == other.FunctionName
         && Arguments.SequenceEqual(other.Arguments)
         && Partitions.SequenceEqual(other.Partitions)
-        && Orderings.SequenceEqual(other.Orderings);
+        && Orderings.SequenceEqual(other.Orderings)
+        && FrameType == other.FrameType
+        && FrameStart == other.FrameStart
+        && FrameEnd == other.FrameEnd;
 
     public override int GetHashCode()
     {
@@ -123,6 +148,9 @@ internal sealed class WindowFunctionSqlExpression : SqlExpression
         foreach (var a in Arguments) hash.Add(a);
         foreach (var p in Partitions) hash.Add(p);
         foreach (var o in Orderings) hash.Add(o);
+        hash.Add(FrameType);
+        hash.Add(FrameStart);
+        hash.Add(FrameEnd);
         return hash.ToHashCode();
     }
 }
