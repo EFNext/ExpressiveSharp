@@ -150,6 +150,7 @@ Computed properties are **inlined into SQL** — no client-side evaluation, no N
 
 | Package | Description |
 |---------|-------------|
-| [`ExpressiveSharp`](https://www.nuget.org/packages/ExpressiveSharp/) | Core runtime — `[Expressive]` attribute, expression expansion, transformers |
+| [`ExpressiveSharp`](https://www.nuget.org/packages/ExpressiveSharp/) | Core runtime — expression expansion, transformers, `IRewritableQueryable<T>`, `ExpressionPolyfill` |
+| [`ExpressiveSharp.Abstractions`](https://www.nuget.org/packages/ExpressiveSharp.Abstractions/) | Lightweight — attributes (`[Expressive]`, `[ExpressiveFor]`), `IExpressionTreeTransformer`, source generator only |
 | [`ExpressiveSharp.EntityFrameworkCore`](https://www.nuget.org/packages/ExpressiveSharp.EntityFrameworkCore/) | EF Core integration — `UseExpressives()`, `ExpressiveDbSet<T>`, Include/ThenInclude, async methods |
 | [`ExpressiveSharp.EntityFrameworkCore.RelationalExtensions`](https://www.nuget.org/packages/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions/) | SQL window functions — ROW_NUMBER, RANK, DENSE_RANK, NTILE (experimental) |

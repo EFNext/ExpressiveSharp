@@ -13,6 +13,7 @@
     <Project Path="src/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions.csproj" />
     <Project Path="src/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.csproj" />
     <Project Path="src/ExpressiveSharp.Generator/ExpressiveSharp.Generator.csproj" />
+    <Project Path="src/ExpressiveSharp.Abstractions/ExpressiveSharp.Abstractions.csproj" />
     <Project Path="src/ExpressiveSharp/ExpressiveSharp.csproj" />
   </Folder>
   <Folder Name="/tests/">

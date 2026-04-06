@@ -79,6 +79,8 @@ WHERE "c"."Email" IS NOT NULL
 
 ```bash
 dotnet add package ExpressiveSharp
+# Lightweight alternative (attributes + source generator only, no runtime services):
+# dotnet add package ExpressiveSharp.Abstractions
 # Optional: EF Core integration
 dotnet add package ExpressiveSharp.EntityFrameworkCore
 ```
