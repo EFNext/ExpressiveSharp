@@ -102,6 +102,30 @@ public class DiagnosticTests : GeneratorTestBase
             "Expected EXP0007 for nested member initializer");
     }
 
+    // ── EXP0018: IgnoredOperation ─────────────────────────────────────────
+
+    [TestMethod]
+    public void StringInterpolation_AlignmentSpecifier_ReportsEXP0018()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    public string Name { get; set; }
+
+                    [Expressive]
+                    public string Aligned => $"{Name,20}";
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0018"),
+            "Expected EXP0018 for alignment specifier in string interpolation");
+        Assert.IsTrue(result.GeneratedTrees.Length > 0,
+            "Generator should still produce output (interpolation without alignment)");
+    }
+
     // ── EXP0009: UnsupportedOperator ────────────────────────────────────────
 
     [TestMethod]
