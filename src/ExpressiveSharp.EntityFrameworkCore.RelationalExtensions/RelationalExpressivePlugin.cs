@@ -27,6 +27,10 @@ public sealed class RelationalExpressivePlugin : IExpressivePlugin
         // Register method call translator plugin (scoped — matches EF Core's service lifetimes)
         services.AddScoped<IMethodCallTranslatorPlugin, WindowFunctionTranslatorPlugin>();
 
+        // Register member translator plugin for WindowFrameBound property getters
+        // (UnboundedPreceding, CurrentRow, UnboundedFollowing)
+        services.AddScoped<IMemberTranslatorPlugin, WindowFunctionMemberTranslatorPlugin>();
+
         // Register evaluatable expression filter
         services.AddSingleton<IEvaluatableExpressionFilterPlugin, WindowFunctionEvaluatableExpressionFilter>();
 

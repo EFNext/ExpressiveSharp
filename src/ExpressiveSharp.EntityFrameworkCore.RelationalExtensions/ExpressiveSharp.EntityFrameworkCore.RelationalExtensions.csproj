@@ -24,4 +24,8 @@
     <ProjectReference Include="..\ExpressiveSharp\ExpressiveSharp.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="ExpressiveSharp.Tests" />
+  </ItemGroup>
+
 </Project>

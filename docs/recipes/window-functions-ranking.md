@@ -337,6 +337,35 @@ Window functions are supported across all major relational providers:
 
 The generated SQL uses standard window function syntax, which all these providers support.
 
+## Aggregate Window Functions
+
+In addition to ranking, ExpressiveSharp supports aggregate window functions (`SUM`, `AVG`, `COUNT`, `MIN`, `MAX`) with optional frame clauses. These are useful for running totals, moving averages, and cumulative min/max:
+
+```csharp
+using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.WindowFunctions;
+
+var results = dbContext.Orders
+    .Select(o => new
+    {
+        o.Id,
+        o.Price,
+        RunningTotal = WindowFunction.Sum(o.Price,
+            Window.PartitionBy(o.CustomerId)
+                  .OrderBy(o.Price)
+                  .RowsBetween(WindowFrameBound.UnboundedPreceding, WindowFrameBound.CurrentRow)),
+        MovingAvg = WindowFunction.Average(o.Price,
+            Window.OrderBy(o.Price)
+                  .RowsBetween(WindowFrameBound.Preceding(2), WindowFrameBound.CurrentRow))
+    })
+    .ToList();
+```
+
+See the [Window Functions guide](/guide/window-functions#window-frame-specification) for the full frame specification reference.
+
+::: warning Frames apply to aggregate functions only
+The SQL standard forbids frame clauses on ranking functions (ROW_NUMBER, RANK, DENSE_RANK, NTILE). SQL Server and PostgreSQL reject the syntax. Aggregate functions (SUM, AVG, COUNT, MIN, MAX) and value functions (FIRST_VALUE, LAST_VALUE, NTH_VALUE) support frames.
+:::
+
 ## Tips
 
 ::: tip Combine with other ExpressiveSharp features

@@ -6,29 +6,38 @@ using Microsoft.EntityFrameworkCore.Storage;
 namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructure.Internal;
 
 /// <summary>
-/// Intermediate SQL expression that carries the PARTITION BY and ORDER BY clauses
-/// of a window specification. This node is consumed by the window function translator
-/// and should never reach final SQL rendering.
+/// Intermediate SQL expression that carries the PARTITION BY, ORDER BY, and optional
+/// frame (ROWS/RANGE BETWEEN) clauses of a window specification. This node is consumed
+/// by the window function translator and should never reach final SQL rendering.
 /// </summary>
 internal sealed class WindowSpecSqlExpression : SqlExpression
 {
     public IReadOnlyList<SqlExpression> Partitions { get; }
     public IReadOnlyList<OrderingExpression> Orderings { get; }
+    public WindowFrameType? FrameType { get; }
+    public WindowFrameBoundInfo? FrameStart { get; }
+    public WindowFrameBoundInfo? FrameEnd { get; }
 
     public WindowSpecSqlExpression(
         IReadOnlyList<SqlExpression> partitions,
         IReadOnlyList<OrderingExpression> orderings,
-        RelationalTypeMapping? typeMapping)
+        RelationalTypeMapping? typeMapping,
+        WindowFrameType? frameType = null,
+        WindowFrameBoundInfo? frameStart = null,
+        WindowFrameBoundInfo? frameEnd = null)
         : base(typeof(object), typeMapping)
     {
         Partitions = partitions;
         Orderings = orderings;
+        FrameType = frameType;
+        FrameStart = frameStart;
+        FrameEnd = frameEnd;
     }
 
     public WindowSpecSqlExpression WithPartition(SqlExpression partition)
     {
         var newPartitions = new List<SqlExpression>(Partitions) { partition };
-        return new WindowSpecSqlExpression(newPartitions, Orderings, TypeMapping);
+        return new WindowSpecSqlExpression(newPartitions, Orderings, TypeMapping, FrameType, FrameStart, FrameEnd);
     }
 
     public WindowSpecSqlExpression WithOrdering(SqlExpression expression, bool ascending)
@@ -37,8 +46,12 @@ internal sealed class WindowSpecSqlExpression : SqlExpression
         {
             new(expression, ascending)
         };
-        return new WindowSpecSqlExpression(Partitions, newOrderings, TypeMapping);
+        return new WindowSpecSqlExpression(Partitions, newOrderings, TypeMapping, FrameType, FrameStart, FrameEnd);
     }
+
+    public WindowSpecSqlExpression WithFrame(
+        WindowFrameType frameType, WindowFrameBoundInfo start, WindowFrameBoundInfo end) =>
+        new(Partitions, Orderings, TypeMapping, frameType, start, end);
 
     protected override Expression VisitChildren(ExpressionVisitor visitor)
     {
@@ -59,7 +72,7 @@ internal sealed class WindowSpecSqlExpression : SqlExpression
         }
 
         return changed
-            ? new WindowSpecSqlExpression(newPartitions, newOrderings, TypeMapping)
+            ? new WindowSpecSqlExpression(newPartitions, newOrderings, TypeMapping, FrameType, FrameStart, FrameEnd)
             : this;
     }
 
@@ -88,6 +101,15 @@ internal sealed class WindowSpecSqlExpression : SqlExpression
             }
         }
 
+        if (FrameType is { } frameType)
+        {
+            if (Partitions.Count > 0 || Orderings.Count > 0) expressionPrinter.Append(" ");
+            expressionPrinter.Append(frameType == WindowFrameType.Rows ? "ROWS BETWEEN " : "RANGE BETWEEN ");
+            expressionPrinter.Append(FrameStart!.Value.ToSqlFragment());
+            expressionPrinter.Append(" AND ");
+            expressionPrinter.Append(FrameEnd!.Value.ToSqlFragment());
+        }
+
         expressionPrinter.Append(")");
     }
 
@@ -99,13 +121,19 @@ internal sealed class WindowSpecSqlExpression : SqlExpression
     public override bool Equals(object? obj) =>
         obj is WindowSpecSqlExpression other
         && Partitions.SequenceEqual(other.Partitions)
-        && Orderings.SequenceEqual(other.Orderings);
+        && Orderings.SequenceEqual(other.Orderings)
+        && FrameType == other.FrameType
+        && FrameStart == other.FrameStart
+        && FrameEnd == other.FrameEnd;
 
     public override int GetHashCode()
     {
         var hash = new HashCode();
         foreach (var p in Partitions) hash.Add(p);
         foreach (var o in Orderings) hash.Add(o);
+        hash.Add(FrameType);
+        hash.Add(FrameStart);
+        hash.Add(FrameEnd);
         return hash.ToHashCode();
     }
 }

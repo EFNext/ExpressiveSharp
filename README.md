@@ -113,7 +113,7 @@ Mark computed properties and methods with `[Expressive]` to generate companion e
 | External member mapping | `[ExpressiveFor]` for BCL/third-party members |
 | Tuples, index/range, `with`, collection expressions | And more modern C# syntax |
 | Expression transformers | Built-in + custom `IExpressionTreeTransformer` pipeline |
-| SQL window functions | ROW_NUMBER, RANK, DENSE_RANK, NTILE (experimental) |
+| SQL window functions | ROW_NUMBER, RANK, DENSE_RANK, NTILE, PERCENT_RANK, CUME_DIST, SUM/AVG/COUNT/MIN/MAX OVER, LAG/LEAD, FIRST_VALUE/LAST_VALUE/NTH_VALUE with ROWS/RANGE frames (experimental) |
 
 See the [full documentation](https://efnext.github.io/ExpressiveSharp/guide/introduction) for detailed usage, [reference](https://efnext.github.io/ExpressiveSharp/reference/expressive-attribute), and [recipes](https://efnext.github.io/ExpressiveSharp/recipes/computed-properties).
 
