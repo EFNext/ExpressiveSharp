@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Query;
 namespace Microsoft.EntityFrameworkCore;
 
 /// <summary>
-/// Extension methods on <see cref="IRewritableQueryable{T}"/> for EF Core bulk update operations.
+/// Extension methods on <see cref="IExpressiveQueryable{T}"/> for EF Core bulk update operations.
 /// These stubs are intercepted by the ExpressiveSharp source generator via <see cref="PolyfillTargetAttribute"/>
 /// to forward to the appropriate EF Core ExecuteUpdate method.
 /// </summary>
@@ -18,7 +18,7 @@ namespace Microsoft.EntityFrameworkCore;
 /// use <c>ExpressionPolyfill.Create()</c> to enable modern C# syntax.
 /// </remarks>
 [EditorBrowsable(EditorBrowsableState.Never)]
-public static class RewritableQueryableRelationalExtensions
+public static class ExpressiveQueryableRelationalExtensions
 {
     private const string InterceptedMessage =
         "This method must be intercepted by the ExpressiveSharp source generator. " +
@@ -35,7 +35,7 @@ public static class RewritableQueryableRelationalExtensions
 #endif
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static int ExecuteUpdate<TSource>(
-        this IRewritableQueryable<TSource> source,
+        this IExpressiveQueryable<TSource> source,
         Func<SetPropertyCalls<TSource>, SetPropertyCalls<TSource>> setPropertyCalls)
         where TSource : class
         => throw new UnreachableException(InterceptedMessage);
@@ -47,7 +47,7 @@ public static class RewritableQueryableRelationalExtensions
 #endif
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static Task<int> ExecuteUpdateAsync<TSource>(
-        this IRewritableQueryable<TSource> source,
+        this IExpressiveQueryable<TSource> source,
         Func<SetPropertyCalls<TSource>, SetPropertyCalls<TSource>> setPropertyCalls,
         CancellationToken cancellationToken = default)
         where TSource : class

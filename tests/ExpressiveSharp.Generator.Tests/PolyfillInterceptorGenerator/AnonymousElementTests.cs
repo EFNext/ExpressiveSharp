@@ -5,7 +5,7 @@ using ExpressiveSharp.Generator.Tests.Infrastructure;
 namespace ExpressiveSharp.Generator.Tests.PolyfillInterceptorGenerator;
 
 /// <summary>
-/// Tests for interceptor generation when the element type T of IRewritableQueryable&lt;T&gt;
+/// Tests for interceptor generation when the element type T of IExpressiveQueryable&lt;T&gt;
 /// is an anonymous type (i.e., after Select into an anonymous type).
 /// Covers the fix for GitHub issue #9.
 /// </summary>

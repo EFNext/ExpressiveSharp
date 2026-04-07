@@ -6,8 +6,8 @@ namespace ExpressiveSharp.Generated.Interceptors
     internal static class PolyfillInterceptors
     {
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
-        internal static global::ExpressiveSharp.IRewritableQueryable<int> __Polyfill_GroupJoin_0(
-            this global::ExpressiveSharp.IRewritableQueryable<global::TestNs.Order> source,
+        internal static global::ExpressiveSharp.IExpressiveQueryable<int> __Polyfill_GroupJoin_0(
+            this global::ExpressiveSharp.IExpressiveQueryable<global::TestNs.Order> source,
             global::System.Collections.Generic.IEnumerable<global::TestNs.Customer> inner,
                     global::System.Func<global::TestNs.Order, int> __func1,
                     global::System.Func<global::TestNs.Customer, int> __func2,

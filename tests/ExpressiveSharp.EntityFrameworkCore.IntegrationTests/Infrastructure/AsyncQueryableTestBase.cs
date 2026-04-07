@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Infrastructure;
 
 /// <summary>
-/// Integration tests for <see cref="IRewritableQueryable{T}"/> async terminal
+/// Integration tests for <see cref="IExpressiveQueryable{T}"/> async terminal
 /// methods, multi-lambda operators, chain continuity, and null-conditional
 /// syntax in delegate lambdas. These exercise the polyfill interceptor path
 /// that rewrites delegate-based LINQ calls into expression trees.

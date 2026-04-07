@@ -89,7 +89,7 @@ public class BenchEntity
 
         for (var i = 0; i < callSiteCount; i++)
         {
-            sb.AppendLine($"    public static IQueryable<int> Query{i}(IRewritableQueryable<BenchEntity> q)");
+            sb.AppendLine($"    public static IQueryable<int> Query{i}(IExpressiveQueryable<BenchEntity> q)");
             sb.AppendLine($"        => q.Select(x => x.Id + {i});");
         }
 

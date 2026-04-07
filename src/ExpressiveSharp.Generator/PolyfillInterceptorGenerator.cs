@@ -14,20 +14,20 @@ using Microsoft.CodeAnalysis.Text;
 namespace ExpressiveSharp.Generator;
 
 /// <summary>
-/// Source generator that intercepts calls to <c>IRewritableQueryable&lt;T&gt;</c> extension methods
+/// Source generator that intercepts calls to <c>IExpressiveQueryable&lt;T&gt;</c> extension methods
 /// that take <c>Func&lt;T,…&gt;</c> delegates (instead of <c>Expression&lt;Func&lt;T,…&gt;&gt;</c>).
 /// For each such call-site it emits a <c>[InterceptsLocation]</c> method that rewrites the
 /// lambda body through <see cref="ExpressionSyntaxRewriter"/> and forwards the result to the
 /// matching <c>Queryable.*</c> overload.
 ///
-/// Any extension method on <c>IRewritableQueryable&lt;T&gt;</c> that takes a <c>Func&lt;&gt;</c> is
+/// Any extension method on <c>IExpressiveQueryable&lt;T&gt;</c> that takes a <c>Func&lt;&gt;</c> is
 /// intercepted by convention — including library-provided stubs and user-defined ones.
 /// </summary>
 [Generator]
 public class PolyfillInterceptorGenerator : IIncrementalGenerator
 {
-    private const string IRewritableQueryableOpenTypeName =
-        "ExpressiveSharp.IRewritableQueryable<T>";
+    private const string IExpressiveQueryableOpenTypeName =
+        "ExpressiveSharp.IExpressiveQueryable<T>";
 
     private const string PolyfillTypeName = "ExpressiveSharp.ExpressionPolyfill";
     private const string PolyfillMethodName = "Create";
@@ -278,7 +278,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         """;
     }
 
-    // ── Per-invocation dispatch (IRewritableQueryable) ───────────────────────
+    // ── Per-invocation dispatch (IExpressiveQueryable) ───────────────────────
 
     private static string? TryEmit(
         InvocationExpressionSyntax inv,
@@ -290,19 +290,19 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         var model = compilation.GetSemanticModel(inv.SyntaxTree);
         var ma = (MemberAccessExpressionSyntax)inv.Expression;
 
-        // Receiver must be or implement IRewritableQueryable<T>.
+        // Receiver must be or implement IExpressiveQueryable<T>.
         if (model.GetTypeInfo(ma.Expression).Type is not INamedTypeSymbol receiverType)
             return null;
 
         // Check both the type itself and its implemented interfaces
-        if (!IsRewritableQueryable(receiverType))
+        if (!IsExpressiveQueryable(receiverType))
             return null;
 
         if (model.GetSymbolInfo(inv).Symbol is not IMethodSymbol method)
             return null;
 
         // The stub convention: at least one non-receiver parameter must be a Func<> delegate,
-        // not an Expression<Func<>>. This distinguishes user/library IRewritableQueryable<T> stubs
+        // not an Expression<Func<>>. This distinguishes user/library IExpressiveQueryable<T> stubs
         // from regular IQueryable<T> extension methods.
         // For most methods, Func<> is Parameters[0]. For Join/GroupJoin/Zip/ExceptBy etc.,
         // it may be at a later position (e.g., Parameters[1]) after an IEnumerable<> arg.
@@ -330,9 +330,9 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         var interceptAttr = Microsoft.CodeAnalysis.CSharp.CSharpExtensions
             .GetInterceptsLocationAttributeSyntax(interceptableLocation);
 
-        // Element type T of IRewritableQueryable<T>.
-        // The receiver may be IRewritableQueryable<T> directly, or a type that implements it.
-        var rewritableInterface = GetRewritableQueryableInterface(receiverType);
+        // Element type T of IExpressiveQueryable<T>.
+        // The receiver may be IExpressiveQueryable<T> directly, or a type that implements it.
+        var rewritableInterface = GetExpressiveQueryableInterface(receiverType);
         if (rewritableInterface is null)
             return null;
         var elementType = rewritableInterface.TypeArguments[0];
@@ -498,9 +498,9 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                 hasAnyAnon = hasAnyAnon || IsAnonymousType(method.Parameters[i].Type);
         }
 
-        // Determine if the stub returns IRewritableQueryable<X> (queryable) or a scalar type.
+        // Determine if the stub returns IExpressiveQueryable<X> (queryable) or a scalar type.
         var isRewritableReturn = method.ReturnType is INamedTypeSymbol rqType
-            && rqType.ConstructedFrom.ToDisplayString() == IRewritableQueryableOpenTypeName;
+            && rqType.ConstructedFrom.ToDisplayString() == IExpressiveQueryableOpenTypeName;
 
         ITypeSymbol? returnElemType = null;
         if (isRewritableReturn)
@@ -691,8 +691,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             {
                 return $$"""
                         {{interceptAttr}}
-                        internal static global::ExpressiveSharp.IRewritableQueryable<{{returnRef}}> {{MethodId(methodName, idx)}}(
-                            this global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> source,
+                        internal static global::ExpressiveSharp.IExpressiveQueryable<{{returnRef}}> {{MethodId(methodName, idx)}}(
+                            this global::ExpressiveSharp.IExpressiveQueryable<{{elemFqn}}> source,
                             {{interceptorParamList}})
                         {
                 {{allBodies}}            return global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
@@ -707,7 +707,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             return $$"""
                     {{interceptAttr}}
                     internal static {{returnRef}} {{MethodId(methodName, idx)}}(
-                        this global::ExpressiveSharp.IRewritableQueryable<{{elemFqn}}> source,
+                        this global::ExpressiveSharp.IExpressiveQueryable<{{elemFqn}}> source,
                         {{interceptorParamList}})
                     {
             {{allBodies}}            return {{targetTypeFqn}}.{{methodName}}(
@@ -722,11 +722,11 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         {
             return $$"""
                     {{interceptAttr}}
-                    internal static global::ExpressiveSharp.IRewritableQueryable<{{returnRef}}> {{MethodId(methodName, idx)}}{{typeParams}}(
-                        this global::ExpressiveSharp.IRewritableQueryable<{{elemRef}}> source,
+                    internal static global::ExpressiveSharp.IExpressiveQueryable<{{returnRef}}> {{MethodId(methodName, idx)}}{{typeParams}}(
+                        this global::ExpressiveSharp.IExpressiveQueryable<{{elemRef}}> source,
                         {{interceptorParamList}})
                     {
-            {{allBodies}}            return (global::ExpressiveSharp.IRewritableQueryable<{{returnRef}}>)(object)
+            {{allBodies}}            return (global::ExpressiveSharp.IExpressiveQueryable<{{returnRef}}>)(object)
                             global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
                                 {{targetTypeFqn}}.{{methodName}}(
                                     ({{castFqn}})(object)source,
@@ -739,7 +739,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         return $$"""
                 {{interceptAttr}}
                 internal static {{returnRef}} {{MethodId(methodName, idx)}}{{typeParams}}(
-                    this global::ExpressiveSharp.IRewritableQueryable<{{elemRef}}> source,
+                    this global::ExpressiveSharp.IExpressiveQueryable<{{elemRef}}> source,
                     {{interceptorParamList}})
                 {
         {{allBodies}}            return {{targetTypeFqn}}.{{methodName}}(
@@ -751,28 +751,28 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     }
 
     /// <summary>
-    /// Returns true if <paramref name="type"/> is or implements <c>IRewritableQueryable&lt;T&gt;</c>.
+    /// Returns true if <paramref name="type"/> is or implements <c>IExpressiveQueryable&lt;T&gt;</c>.
     /// </summary>
-    private static bool IsRewritableQueryable(INamedTypeSymbol type)
+    private static bool IsExpressiveQueryable(INamedTypeSymbol type)
     {
-        if (type.ConstructedFrom.ToDisplayString() == IRewritableQueryableOpenTypeName)
+        if (type.ConstructedFrom.ToDisplayString() == IExpressiveQueryableOpenTypeName)
             return true;
 
         return type.AllInterfaces.Any(i =>
-            i.ConstructedFrom.ToDisplayString() == IRewritableQueryableOpenTypeName);
+            i.ConstructedFrom.ToDisplayString() == IExpressiveQueryableOpenTypeName);
     }
 
     /// <summary>
-    /// Finds the <c>IRewritableQueryable&lt;T&gt;</c> interface on <paramref name="type"/>,
-    /// or returns <paramref name="type"/> itself if it is <c>IRewritableQueryable&lt;T&gt;</c>.
+    /// Finds the <c>IExpressiveQueryable&lt;T&gt;</c> interface on <paramref name="type"/>,
+    /// or returns <paramref name="type"/> itself if it is <c>IExpressiveQueryable&lt;T&gt;</c>.
     /// </summary>
-    private static INamedTypeSymbol? GetRewritableQueryableInterface(INamedTypeSymbol type)
+    private static INamedTypeSymbol? GetExpressiveQueryableInterface(INamedTypeSymbol type)
     {
-        if (type.ConstructedFrom.ToDisplayString() == IRewritableQueryableOpenTypeName)
+        if (type.ConstructedFrom.ToDisplayString() == IExpressiveQueryableOpenTypeName)
             return type;
 
         return type.AllInterfaces.FirstOrDefault(i =>
-            i.ConstructedFrom.ToDisplayString() == IRewritableQueryableOpenTypeName);
+            i.ConstructedFrom.ToDisplayString() == IExpressiveQueryableOpenTypeName);
     }
 
     /// <summary>

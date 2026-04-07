@@ -52,7 +52,7 @@ export default defineConfig({
             { text: 'Extension Members', link: '/guide/extension-members' },
             { text: 'Constructor Projections', link: '/guide/expressive-constructors' },
             { text: 'ExpressionPolyfill.Create', link: '/guide/expression-polyfill' },
-            { text: 'IRewritableQueryable<T>', link: '/guide/rewritable-queryable' },
+            { text: 'IExpressiveQueryable<T>', link: '/guide/expressive-queryable' },
             { text: 'EF Core Integration', link: '/guide/ef-core-integration' },
           ]
         },

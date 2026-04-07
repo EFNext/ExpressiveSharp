@@ -6,7 +6,7 @@ This guide covers a complete step-by-step migration, including automated code fi
 
 ## Why Migrate
 
-- **Modern C# syntax in LINQ chains** -- Use null-conditional operators (`?.`), switch expressions, pattern matching, and more directly in `.Where()`, `.Select()`, `.OrderBy()` via `IRewritableQueryable<T>`.
+- **Modern C# syntax in LINQ chains** -- Use null-conditional operators (`?.`), switch expressions, pattern matching, and more directly in `.Where()`, `.Select()`, `.OrderBy()` via `IExpressiveQueryable<T>`.
 - **Broader C# syntax in `[Expressive]` members** -- Switch expressions, pattern matching (constant, type, relational, logical, property, positional), string interpolation, tuples, and constructor projections all work out of the box.
 - **Not EF Core specific** -- Works standalone with any LINQ provider, or use `ExpressionPolyfill.Create` to build expression trees without a queryable.
 - **More accurate code generation** -- The source generator now analyzes code at the semantic level rather than rewriting syntax.
@@ -238,7 +238,7 @@ The `InterceptorsNamespaces` MSBuild property needed for method interceptors is 
 | Tuple literals | No | Yes |
 | Constructor projections | No | Yes |
 | Inline expression creation | No | `ExpressionPolyfill.Create(...)` |
-| Modern syntax in LINQ chains | No | Yes (`IRewritableQueryable<T>`) |
+| Modern syntax in LINQ chains | No | Yes (`IExpressiveQueryable<T>`) |
 | Custom transformers | No | `IExpressionTreeTransformer` interface |
 | `ExpressiveDbSet<T>` | No | Yes |
 | External member mapping | `UseMemberBody` (same type only) | `[ExpressiveFor]` (any type) |
@@ -254,7 +254,7 @@ After migrating, you gain access to features that Projectables never had. Here a
 
 ### Modern Syntax in LINQ Chains
 
-Use `IRewritableQueryable<T>` or `ExpressiveDbSet<T>` to write LINQ queries with modern C# syntax:
+Use `IExpressiveQueryable<T>` or `ExpressiveDbSet<T>` to write LINQ queries with modern C# syntax:
 
 ```csharp
 var results = ctx.Orders

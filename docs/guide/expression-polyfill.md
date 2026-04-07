@@ -121,5 +121,5 @@ Use `[Expressive]` when the logic belongs on an entity and will be reused across
 ## Next Steps
 
 - [[Expressive] Properties](./expressive-properties) -- reusable computed properties
-- [IRewritableQueryable\<T\>](./rewritable-queryable) -- modern syntax directly in LINQ chains
+- [IExpressiveQueryable\<T\>](./expressive-queryable) -- modern syntax directly in LINQ chains
 - [EF Core Integration](./ef-core-integration) -- full EF Core setup

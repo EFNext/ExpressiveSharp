@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Infrastructure;
 
 /// <summary>
-/// Integration tests for <c>ExecuteUpdate</c> via <c>IRewritableQueryable</c>.
+/// Integration tests for <c>ExecuteUpdate</c> via <c>IExpressiveQueryable</c>.
 /// Proves that modern C# syntax (switch expressions, null-coalescing) inside
 /// <c>SetProperty</c> value lambdas translates to real SQL — a capability
 /// impossible with normal C# expression trees.

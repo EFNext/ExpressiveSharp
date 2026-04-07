@@ -9,7 +9,7 @@ namespace ExpressiveSharp.CodeFixers;
 
 /// <summary>
 /// Reports EXP0013 when a member referenced inside an [Expressive] body, an
-/// <c>ExpressionPolyfill.Create()</c> lambda, or an <c>IRewritableQueryable</c>
+/// <c>ExpressionPolyfill.Create()</c> lambda, or an <c>IExpressiveQueryable</c>
 /// LINQ lambda has an expandable body but is not marked [Expressive].
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
@@ -37,7 +37,7 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
             SyntaxKind.PropertyDeclaration,
             SyntaxKind.ConstructorDeclaration);
 
-        // Prong 2: ExpressionPolyfill.Create() and IRewritableQueryable LINQ lambdas
+        // Prong 2: ExpressionPolyfill.Create() and IExpressiveQueryable LINQ lambdas
         context.RegisterSyntaxNodeAction(AnalyzePolyfillInvocation,
             SyntaxKind.InvocationExpression);
     }
@@ -65,7 +65,7 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
         if (symbolInfo.Symbol is not IMethodSymbol method)
             return;
 
-        if (!IsExpressionPolyfillCreate(method) && !IsRewritableQueryableMethod(method))
+        if (!IsExpressionPolyfillCreate(method) && !IsExpressiveQueryableMethod(method))
             return;
 
         foreach (var arg in invocation.ArgumentList.Arguments)
@@ -91,36 +91,36 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
         method.ContainingType?.Name == "ExpressionPolyfill" &&
         method.ContainingType.ContainingNamespace?.ToDisplayString() == "ExpressiveSharp";
 
-    private static bool IsRewritableQueryableMethod(IMethodSymbol method)
+    private static bool IsExpressiveQueryableMethod(IMethodSymbol method)
     {
         if (!method.IsExtensionMethod)
             return false;
 
-        // Check if the first parameter (the receiver) is IRewritableQueryable<T>
+        // Check if the first parameter (the receiver) is IExpressiveQueryable<T>
         var originalMethod = method.ReducedFrom ?? method;
         if (originalMethod.Parameters.Length == 0)
             return false;
 
         var receiverType = originalMethod.Parameters[0].Type;
-        return IsOrImplementsRewritableQueryable(receiverType);
+        return IsOrImplementsExpressiveQueryable(receiverType);
     }
 
-    private static bool IsOrImplementsRewritableQueryable(ITypeSymbol type)
+    private static bool IsOrImplementsExpressiveQueryable(ITypeSymbol type)
     {
-        if (IsRewritableQueryableType(type))
+        if (IsExpressiveQueryableType(type))
             return true;
 
         foreach (var iface in type.AllInterfaces)
         {
-            if (IsRewritableQueryableType(iface))
+            if (IsExpressiveQueryableType(iface))
                 return true;
         }
 
         return false;
     }
 
-    private static bool IsRewritableQueryableType(ITypeSymbol type) =>
-        type.Name == "IRewritableQueryable" &&
+    private static bool IsExpressiveQueryableType(ITypeSymbol type) =>
+        type.Name == "IExpressiveQueryable" &&
         type.ContainingNamespace?.ToDisplayString() == "ExpressiveSharp";
 
     // ── Shared: walk descendants for member references ──────────────────────

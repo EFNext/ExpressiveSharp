@@ -6,13 +6,13 @@ namespace ExpressiveSharp.Tests.Extensions;
 public class ExpressiveQueryableExtensionsTests
 {
     [TestMethod]
-    public void AsExpressive_WrapsAsRewritableQueryable()
+    public void AsExpressive_WrapsAsExpressiveQueryable()
     {
         var source = new[] { 1, 2, 3 }.AsQueryable();
 
         var result = source.AsExpressive();
 
-        Assert.IsInstanceOfType<IRewritableQueryable<int>>(result);
+        Assert.IsInstanceOfType<IExpressiveQueryable<int>>(result);
     }
 
     [TestMethod]

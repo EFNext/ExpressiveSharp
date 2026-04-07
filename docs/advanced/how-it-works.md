@@ -22,7 +22,7 @@ Understanding the internals of ExpressiveSharp helps you use it effectively and 
 |  +-----------------------------------------------------+ |
 |  | PolyfillInterceptorGenerator                         | |
 |  | - Intercepts ExpressionPolyfill.Create calls         | |
-|  | - Intercepts IRewritableQueryable<T> LINQ methods    | |
+|  | - Intercepts IExpressiveQueryable<T> LINQ methods    | |
 |  | - Uses C# 13 [InterceptsLocation] attribute          | |
 |  +-----------------------------------------------------+ |
 |           |                                               |
@@ -93,7 +93,7 @@ Unlike syntax-tree-based approaches (such as EntityFrameworkCore.Projectables, w
 This generator uses C# 13 method interceptors (`[InterceptsLocation]`) to replace call sites at compile time:
 
 - **`ExpressionPolyfill.Create` calls** -- The delegate-form lambda is rewritten to an expression tree, enabling modern syntax without any attribute.
-- **`IRewritableQueryable<T>` LINQ methods** -- Methods like `Where`, `Select`, `OrderBy`, etc. that accept delegates are rewritten to their `Queryable` equivalents that accept `Expression<Func<...>>`.
+- **`IExpressiveQueryable<T>` LINQ methods** -- Methods like `Where`, `Select`, `OrderBy`, etc. that accept delegates are rewritten to their `Queryable` equivalents that accept `Expression<Func<...>>`.
 
 The interceptor handles complex multi-lambda methods (Join, GroupJoin, GroupBy overloads), non-lambda-first methods (Zip, ExceptBy), and custom target types registered via `[PolyfillTarget]` (such as EF Core's `EntityFrameworkQueryableExtensions` for async methods).
 
@@ -228,7 +228,7 @@ The built-in `RelationalExtensions` package uses this architecture to register w
 | Build | `ExpressiveInterpreter` | Validates members, extracts descriptors |
 | Build | `ExpressionTreeEmitter` | Maps `IOperation` nodes to `Expression.*` factory calls |
 | Build | `ExpressionRegistryEmitter` | Generates per-assembly expression registry |
-| Build | `PolyfillInterceptorGenerator` | Intercepts `ExpressionPolyfill.Create` and `IRewritableQueryable<T>` call sites |
+| Build | `PolyfillInterceptorGenerator` | Intercepts `ExpressionPolyfill.Create` and `IExpressiveQueryable<T>` call sites |
 | Runtime | `ExpressiveResolver` | Locates generated expressions via registry or reflection |
 | Runtime | `ExpressiveReplacer` | Walks and replaces `[Expressive]` member references |
 | Runtime | `ExpressiveQueryCompiler` | EF Core decorator: expands before compilation |

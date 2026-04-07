@@ -13,7 +13,7 @@ namespace ExpressiveSharp
     /// ExpressiveSharp source generator, which rewrites the lambda body into an
     /// expression tree using the same rewrite rules as <see cref="ExpressiveAttribute"/>.
     /// </remarks>
-    public interface IRewritableQueryable<T> : IQueryable<T>
+    public interface IExpressiveQueryable<T> : IQueryable<T>
     {
     }
 }

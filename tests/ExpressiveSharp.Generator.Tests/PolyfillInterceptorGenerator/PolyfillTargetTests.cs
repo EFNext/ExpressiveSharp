@@ -35,7 +35,7 @@ public class PolyfillTargetTests : GeneratorTestBase
                 {
                     [PolyfillTarget(typeof(MockEfExtensions))]
                     public static Task<bool> AnyAsync<T>(
-                        this IRewritableQueryable<T> source,
+                        this IExpressiveQueryable<T> source,
                         Func<T, bool> predicate,
                         CancellationToken cancellationToken = default)
                         => throw new System.Diagnostics.UnreachableException();
