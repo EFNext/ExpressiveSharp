@@ -103,8 +103,13 @@ public class RemoveNullConditionalPatternsTests
     }
 
     [TestMethod]
-    public void MethodCallOnReceiver_RemovesNullCheck()
+    public void MethodCallOnReceiver_KeepsNullCheck()
     {
+        // Method calls (e.g. s?.ToUpper()) are intentionally left alone: not all
+        // LINQ providers propagate null through function calls the way SQL does.
+        // MongoDB's aggregation $toUpper, for example, returns "" on a null/missing
+        // field rather than null, so stripping the null check would silently change
+        // semantics. Only pure member access chains are flattened.
         var s = Expression.Parameter(typeof(string), "s");
         var toUpper = Expression.Call(s, typeof(string).GetMethod("ToUpper", Type.EmptyTypes)!);
 
@@ -116,28 +121,82 @@ public class RemoveNullConditionalPatternsTests
 
         var result = _sut.Transform(conditional);
 
-        Assert.IsInstanceOfType<MethodCallExpression>(result);
-        var call = (MethodCallExpression)result;
-        Assert.AreEqual("ToUpper", call.Method.Name);
+        Assert.IsInstanceOfType<ConditionalExpression>(result);
+        Assert.AreSame(conditional, result);
+    }
+
+    [TestMethod]
+    public void ConvertWrappingMethodCall_KeepsNullCheck()
+    {
+        // Pattern: (s != null) ? (object)s.ToString() : null
+        // ContainsMethodCall must walk through the Convert wrapper to detect
+        // that the inner expression is a method call.
+        var s = Expression.Parameter(typeof(string), "s");
+        var toString = Expression.Call(s, typeof(string).GetMethod("ToString", Type.EmptyTypes)!);
+        var convertedToObject = Expression.Convert(toString, typeof(object));
+
+        var conditional = Expression.Condition(
+            Expression.NotEqual(s, Expression.Constant(null, typeof(string))),
+            convertedToObject,
+            Expression.Constant(null, typeof(object)),
+            typeof(object));
+
+        var result = _sut.Transform(conditional);
+
+        Assert.IsInstanceOfType<ConditionalExpression>(result);
+        Assert.AreSame(conditional, result);
+    }
+
+    [TestMethod]
+    public void ChainedNullConditional_WithInnerMethodCall_KeepsOuterNullCheck()
+    {
+        // Pattern: a?.Inner?.Value.ToString() — the inner nested conditional
+        // contains a method call, so ContainsMethodCall must recurse into it
+        // and the outer null check must NOT be stripped.
+        var a = Expression.Parameter(typeof(NullTestOuter), "a");
+        var innerProp = Expression.Property(a, "Inner");
+        var valueProp = Expression.Property(innerProp, "Value");
+        var toString = Expression.Call(valueProp, typeof(object).GetMethod("ToString", Type.EmptyTypes)!);
+
+        var innerConditional = Expression.Condition(
+            Expression.NotEqual(innerProp, Expression.Constant(null, typeof(NullTestInner))),
+            toString,
+            Expression.Constant(null, typeof(string)),
+            typeof(string));
+
+        var outerConditional = Expression.Condition(
+            Expression.NotEqual(a, Expression.Constant(null, typeof(NullTestOuter))),
+            innerConditional,
+            Expression.Constant(null, typeof(string)),
+            typeof(string));
+
+        var result = _sut.Transform(outerConditional);
+
+        // Outer is preserved (the inner method call prevents flattening).
+        Assert.IsInstanceOfType<ConditionalExpression>(result);
+        Assert.AreSame(outerConditional, result);
     }
 
     [TestMethod]
     public void DefaultExpressionAsFalseBranch_Matches()
     {
+        // Same shape as SimpleNullCheck_MemberAccess_RemovesPattern but uses
+        // Expression.Default(T) instead of Expression.Constant(null, T) on the
+        // false branch — verifies the transformer treats both as "null-like".
         var s = Expression.Parameter(typeof(string), "s");
-        var toUpper = Expression.Call(s, typeof(string).GetMethod("ToUpper", Type.EmptyTypes)!);
+        var lengthProp = Expression.Property(s, "Length");
 
         var conditional = Expression.Condition(
             Expression.NotEqual(s, Expression.Constant(null, typeof(string))),
-            toUpper,
-            Expression.Default(typeof(string)),
-            typeof(string));
+            lengthProp,
+            Expression.Default(typeof(int)),
+            typeof(int));
 
         var result = _sut.Transform(conditional);
 
-        Assert.IsInstanceOfType<MethodCallExpression>(result);
-        var call = (MethodCallExpression)result;
-        Assert.AreEqual("ToUpper", call.Method.Name);
+        Assert.IsInstanceOfType<MemberExpression>(result);
+        var member = (MemberExpression)result;
+        Assert.AreEqual("Length", member.Member.Name);
     }
 
     [TestMethod]

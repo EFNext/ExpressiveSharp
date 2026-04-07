@@ -20,6 +20,11 @@ namespace ExpressiveSharp
         public static IExpressiveQueryable<T> AsExpressive<T>(
             this IQueryable<T> source,
             ExpressionRewriteOptions? options = null)
-            => new ExpressiveQueryableWrapper<T>(source);
+            // If the source is already an IExpressiveQueryable<T> (e.g. a provider-specific
+            // wrapper like ExpressiveMongoQueryable<T>), return it unchanged so that any
+            // additional interfaces it implements (IAsyncCursorSource<T>, IAsyncEnumerable<T>,
+            // etc.) remain observable through the returned reference.
+            => source as IExpressiveQueryable<T>
+               ?? new ExpressiveQueryableWrapper<T>(source);
     }
 }

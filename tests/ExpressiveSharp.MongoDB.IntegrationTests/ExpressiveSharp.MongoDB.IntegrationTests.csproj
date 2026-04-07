@@ -1,0 +1,24 @@
+<Project Sdk="MSTest.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+
+    <!-- Testcontainers transitive deps may have known vulnerabilities.
+         Suppress the NuGet audit warning in test projects only. -->
+    <NoWarn>$(NoWarn);NU1903;NU1902;NU1901;NU1904</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Testcontainers.MongoDb" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ExpressiveSharp.IntegrationTests\ExpressiveSharp.IntegrationTests.csproj" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp\ExpressiveSharp.csproj" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp.MongoDB\ExpressiveSharp.MongoDB.csproj" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp.Generator\ExpressiveSharp.Generator.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

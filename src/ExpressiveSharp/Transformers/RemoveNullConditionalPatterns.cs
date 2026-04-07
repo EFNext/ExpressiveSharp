@@ -19,15 +19,23 @@ public sealed class RemoveNullConditionalPatterns : ExpressionVisitor, IExpressi
     protected override Expression VisitConditional(ConditionalExpression node)
     {
         // Pattern: (x != null) ? whenTrue : default(T)
-        // where whenTrue accesses a member on x
+        // where whenTrue is a pure member access chain on x.
+        //
+        // We deliberately refuse to strip when whenTrue contains a method call
+        // (e.g. `x?.ToUpper()`). Unlike pure member access, method-call null
+        // propagation is not guaranteed across LINQ providers — MongoDB's
+        // $toUpper on a null/missing field returns "" instead of null, so
+        // stripping the null check silently changes semantics. Property access
+        // chains (`Customer?.Address?.Country`) are safe because both SQL and
+        // MongoDB's aggregation framework propagate missing/null through them.
         if (node.Test is BinaryExpression { NodeType: ExpressionType.NotEqual } notEqual
             && IsNullConstant(notEqual.Right)
             && IsDefaultOrNull(node.IfFalse))
         {
             var receiver = notEqual.Left;
 
-            // Check if the whenTrue branch accesses the same receiver
-            if (AccessesReceiver(node.IfTrue, receiver))
+            // Check if the whenTrue branch is a pure member access on the same receiver.
+            if (AccessesReceiver(node.IfTrue, receiver) && !ContainsMethodCall(node.IfTrue))
             {
                 // Strip the null check — return the whenTrue branch with
                 // any nested null-conditional patterns also removed.
@@ -43,6 +51,38 @@ public sealed class RemoveNullConditionalPatterns : ExpressionVisitor, IExpressi
         }
 
         return base.VisitConditional(node);
+    }
+
+    /// <summary>
+    /// Returns true if <paramref name="expr"/> contains a method call anywhere in its
+    /// receiver/member chain (including nested null-conditional patterns).
+    /// </summary>
+    private static bool ContainsMethodCall(Expression expr)
+    {
+        var current = expr;
+
+        while (current is not null)
+        {
+            switch (current)
+            {
+                case MethodCallExpression:
+                    return true;
+                case UnaryExpression { NodeType: ExpressionType.Convert } convert:
+                    current = convert.Operand;
+                    break;
+                case MemberExpression member:
+                    current = member.Expression;
+                    break;
+                case ConditionalExpression conditional:
+                    // Nested ?. — inspect the true branch (the other branches are
+                    // null/default which contain no method calls by construction).
+                    return ContainsMethodCall(conditional.IfTrue);
+                default:
+                    return false;
+            }
+        }
+
+        return false;
     }
 
     private static bool IsNullConstant(Expression expr)

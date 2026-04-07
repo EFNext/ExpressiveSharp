@@ -15,12 +15,14 @@
     <Project Path="src/ExpressiveSharp.Generator/ExpressiveSharp.Generator.csproj" />
     <Project Path="src/ExpressiveSharp.Abstractions/ExpressiveSharp.Abstractions.csproj" />
     <Project Path="src/ExpressiveSharp/ExpressiveSharp.csproj" />
+    <Project Path="src/ExpressiveSharp.MongoDB/ExpressiveSharp.MongoDB.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ExpressiveSharp.Generator.Tests/ExpressiveSharp.Generator.Tests.csproj" />
     <Project Path="tests/ExpressiveSharp.IntegrationTests/ExpressiveSharp.IntegrationTests.csproj" />
     <Project Path="tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests.csproj" />
     <Project Path="tests/ExpressiveSharp.Tests/ExpressiveSharp.Tests.csproj" />
+    <Project Path="tests/ExpressiveSharp.MongoDB.IntegrationTests/ExpressiveSharp.MongoDB.IntegrationTests.csproj" />
     <File Path="tests/Directory.Build.props" />
   </Folder>
 </Solution>
