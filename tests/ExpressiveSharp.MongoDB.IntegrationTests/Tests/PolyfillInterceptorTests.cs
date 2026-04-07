@@ -53,7 +53,7 @@ public class PolyfillInterceptorTests : MongoTestBase
     {
         // This uses ?. which requires source generator interception
         var results = await Query
-            .Where(o => o.Tag != null)
+            .Where(o => o.Tag?.Length > 0)
             .Select(o => o.Tag)
             .ToListAsync();
 
