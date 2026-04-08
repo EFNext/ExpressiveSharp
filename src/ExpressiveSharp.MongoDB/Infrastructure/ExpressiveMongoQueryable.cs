@@ -30,8 +30,10 @@ internal sealed class ExpressiveMongoQueryable<T> : IExpressiveMongoQueryable<T>
     public Expression Expression => _source.Expression;
     public IQueryProvider Provider => _provider;
 
-    public IEnumerator<T> GetEnumerator() => _source.GetEnumerator();
-    IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)_source).GetEnumerator();
+    public IEnumerator<T> GetEnumerator()
+        => _provider.Execute<IEnumerable<T>>(Expression).GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     public IAsyncCursor<T> ToCursor(CancellationToken cancellationToken = default)
         => ((IAsyncCursorSource<T>)ExpandedInnerQueryable()).ToCursor(cancellationToken);

@@ -1,6 +1,6 @@
 using System.Linq.Expressions;
-using ExpressiveSharp.Extensions;
 using ExpressiveSharp.IntegrationTests.Scenarios.Store.Models;
+using ExpressiveSharp.MongoDB.Extensions;
 using ExpressiveSharp.MongoDB.IntegrationTests.Infrastructure;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MongoDB.Driver;
@@ -9,7 +9,7 @@ using MongoDB.Driver.Linq;
 namespace ExpressiveSharp.MongoDB.IntegrationTests.Tests;
 
 /// <summary>
-/// Verifies that <see cref="Infrastructure.ExpressiveMongoQueryProvider"/> correctly
+/// Verifies that <see cref="ExpressiveMongoQueryProvider"/> correctly
 /// expands <c>[Expressive]</c> members before MongoDB's LINQ provider processes the query.
 /// </summary>
 [TestClass]
