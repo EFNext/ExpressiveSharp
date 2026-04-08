@@ -18,7 +18,7 @@ public class PolyfillTargetTests : GeneratorTestBase
             using System.Threading;
             using System.Threading.Tasks;
             using ExpressiveSharp;
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -62,7 +62,7 @@ public class PolyfillTargetTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {

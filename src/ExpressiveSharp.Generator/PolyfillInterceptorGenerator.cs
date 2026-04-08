@@ -695,7 +695,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                             this global::ExpressiveSharp.IExpressiveQueryable<{{elemFqn}}> source,
                             {{interceptorParamList}})
                         {
-                {{allBodies}}            return global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
+                {{allBodies}}            return global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                                 {{targetTypeFqn}}.{{methodName}}(
                                     ({{castFqn}})source,
                                     {{queryableArgList}}));
@@ -727,7 +727,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                         {{interceptorParamList}})
                     {
             {{allBodies}}            return (global::ExpressiveSharp.IExpressiveQueryable<{{returnRef}}>)(object)
-                            global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
+                            global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                                 {{targetTypeFqn}}.{{methodName}}(
                                     ({{castFqn}})(object)source,
                                     {{queryableArgList}}));

@@ -24,7 +24,7 @@ namespace ExpressiveSharp.Generated.Interceptors
             var i0c_p_key = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "key");
             var i0c_p_names = global::System.Linq.Expressions.Expression.Parameter(typeof(global::System.Collections.Generic.IEnumerable<string>), "names");
             var __lambda3 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<string, global::System.Collections.Generic.IEnumerable<string>, string>>(i0c_p_key, i0c_p_key, i0c_p_names);
-            return global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
+            return global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                 global::System.Linq.Queryable.GroupBy(
                     (global::System.Linq.IQueryable<global::TestNs.Order>)source,
                     __lambda1,

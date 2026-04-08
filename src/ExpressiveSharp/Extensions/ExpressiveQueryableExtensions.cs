@@ -1,6 +1,6 @@
 using System.Linq;
 
-namespace ExpressiveSharp.Extensions
+namespace ExpressiveSharp
 {
     /// <summary>
     /// Entry-point extension methods for the <see cref="IExpressiveQueryable{T}"/> query chain.

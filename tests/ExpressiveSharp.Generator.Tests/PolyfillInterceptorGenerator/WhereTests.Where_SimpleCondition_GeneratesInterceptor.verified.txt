@@ -16,7 +16,7 @@ namespace ExpressiveSharp.Generated.Interceptors
             var i0_expr_2 = global::System.Linq.Expressions.Expression.Constant("urgent", typeof(string)); // "urgent"
             var i0_expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Equal, i0_expr_1, i0_expr_2);
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, bool>>(i0_expr_0, i0_p_o);
-            return global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
+            return global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                 global::System.Linq.Queryable.Where(
                     (global::System.Linq.IQueryable<global::TestNs.Order>)source,
                     __lambda));

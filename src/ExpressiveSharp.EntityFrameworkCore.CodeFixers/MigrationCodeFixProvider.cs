@@ -217,7 +217,7 @@ public sealed class MigrationCodeFixProvider : CodeFixProvider
     private static string? MapNamespace(string oldNamespace) => oldNamespace switch
     {
         "EntityFrameworkCore.Projectables" => "ExpressiveSharp",
-        "EntityFrameworkCore.Projectables.Extensions" => "ExpressiveSharp.Extensions",
+        "EntityFrameworkCore.Projectables.Extensions" => "ExpressiveSharp",
         // Infrastructure namespace (CompatibilityMode, ProjectableOptionsBuilder) has no equivalent
         "EntityFrameworkCore.Projectables.Infrastructure" => null,
         // Any other sub-namespace — map the root

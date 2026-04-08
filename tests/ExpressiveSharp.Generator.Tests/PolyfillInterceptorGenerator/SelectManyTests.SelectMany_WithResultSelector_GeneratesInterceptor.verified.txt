@@ -24,7 +24,7 @@ namespace ExpressiveSharp.Generated.Interceptors
             var i0b_expr_1 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), i0b_expr_2, i0b_expr_3);
             var i0b_expr_0 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), i0b_expr_1, i0b_p_t);
             var __lambda2 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, string, string>>(i0b_expr_0, i0b_p_o, i0b_p_t);
-            return global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
+            return global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                 global::System.Linq.Queryable.SelectMany(
                     (global::System.Linq.IQueryable<global::TestNs.Order>)source,
                     __lambda1,

@@ -4,7 +4,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 
-namespace ExpressiveSharp.Extensions
+namespace ExpressiveSharp
 {
     /// <summary>
     /// Delegate-based LINQ overloads on <see cref="IExpressiveQueryable{T}"/> that shadow the

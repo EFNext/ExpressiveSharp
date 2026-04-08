@@ -1,4 +1,3 @@
-using ExpressiveSharp.Extensions;
 using ExpressiveSharp.IntegrationTests.Scenarios.Store.Models;
 
 namespace ExpressiveSharp.IntegrationTests.Tests;

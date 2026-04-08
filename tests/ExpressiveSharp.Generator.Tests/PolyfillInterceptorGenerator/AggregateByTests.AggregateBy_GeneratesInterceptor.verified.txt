@@ -22,7 +22,7 @@ namespace ExpressiveSharp.Generated.Interceptors
             var i0b_expr_1 = global::System.Linq.Expressions.Expression.Property(i0b_p_o, typeof(global::TestNs.Order).GetProperty("Price")); // o.Price
             var i0b_expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, i0b_p_acc, i0b_expr_1);
             var __lambda2 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<decimal, global::TestNs.Order, decimal>>(i0b_expr_0, i0b_p_acc, i0b_p_o);
-            return global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
+            return global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                 global::System.Linq.Queryable.AggregateBy(
                     (global::System.Linq.IQueryable<global::TestNs.Order>)source,
                     __lambda1,

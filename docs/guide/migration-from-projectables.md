@@ -49,7 +49,7 @@ After installing the package, build your solution -- warnings will appear on all
 | Old | New |
 |---|---|
 | `using EntityFrameworkCore.Projectables;` | `using ExpressiveSharp;` |
-| `using EntityFrameworkCore.Projectables.Extensions;` | `using ExpressiveSharp.Extensions;` |
+| `using EntityFrameworkCore.Projectables.Extensions;` | `using ExpressiveSharp;` |
 | `using EntityFrameworkCore.Projectables.Infrastructure;` | *(removed)* |
 
 The EF Core extension methods (`UseExpressives`, `AsExpressiveDbSet`) live in the `Microsoft.EntityFrameworkCore` namespace, which you likely already import.

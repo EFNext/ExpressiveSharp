@@ -1,5 +1,4 @@
 using System.Linq.Expressions;
-using ExpressiveSharp.Extensions;
 using ExpressiveSharp.Services;
 using ExpressiveSharp.Tests.TestFixtures;
 

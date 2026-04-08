@@ -19,7 +19,7 @@ public class ExecuteUpdateTests : GeneratorTestBase
         using System.Threading;
         using System.Threading.Tasks;
         using ExpressiveSharp;
-        using ExpressiveSharp.Extensions;
+        using ExpressiveSharp;
 
         namespace TestNs
         {

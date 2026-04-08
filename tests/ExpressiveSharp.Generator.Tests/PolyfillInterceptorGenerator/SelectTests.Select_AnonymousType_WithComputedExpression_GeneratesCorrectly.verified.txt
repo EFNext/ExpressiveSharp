@@ -21,7 +21,7 @@ namespace ExpressiveSharp.Generated.Interceptors
             var i0_expr_0 = global::System.Linq.Expressions.Expression.New(i0_expr_6, new global::System.Linq.Expressions.Expression[] { i0_expr_1, i0_expr_2 }, new global::System.Reflection.MemberInfo[] { typeof(T1).GetProperty("Id"), typeof(T1).GetProperty("Total") });
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<T0, T1>>(i0_expr_0, i0_p_o);
             return (global::ExpressiveSharp.IExpressiveQueryable<T1>)(object)
-                global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
+                global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                     global::System.Linq.Queryable.Select(
                         (global::System.Linq.IQueryable<T0>)(object)source,
                         __lambda));

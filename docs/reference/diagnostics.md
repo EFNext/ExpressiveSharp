@@ -570,7 +570,7 @@ The IDE code fix replaces the namespace:
 | Old Namespace | New Namespace |
 |---|---|
 | `EntityFrameworkCore.Projectables` | `ExpressiveSharp` |
-| `EntityFrameworkCore.Projectables.Extensions` | `ExpressiveSharp.Extensions` |
+| `EntityFrameworkCore.Projectables.Extensions` | `ExpressiveSharp` |
 | `EntityFrameworkCore.Projectables.Infrastructure` | *(removed -- no equivalent)* |
 
 ---

@@ -1,5 +1,3 @@
-using ExpressiveSharp.Extensions;
-
 namespace ExpressiveSharp.Tests.Extensions;
 
 [TestClass]

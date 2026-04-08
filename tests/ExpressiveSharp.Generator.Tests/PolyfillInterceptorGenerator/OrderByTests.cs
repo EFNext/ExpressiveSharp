@@ -12,7 +12,7 @@ public class OrderByTests : GeneratorTestBase
     {
         var source = 
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -38,7 +38,7 @@ public class OrderByTests : GeneratorTestBase
     {
         var source = 
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {

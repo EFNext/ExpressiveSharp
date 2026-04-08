@@ -2,7 +2,8 @@
 // ExpressiveSharp lets us write natural C# (null-conditional ?., switch expressions,
 // computed properties) and have it all translate to SQL instead of evaluating client-side.
 
-using ExpressiveSharp.Extensions;
+
+using ExpressiveSharp;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 

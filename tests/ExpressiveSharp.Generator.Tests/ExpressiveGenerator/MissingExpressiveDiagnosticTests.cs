@@ -277,7 +277,7 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
     {
         var diagnostics = await RunAnalyzerAsync(
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs {
                 class Todo {
@@ -309,7 +309,7 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
     {
         var diagnostics = await RunAnalyzerAsync(
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs {
                 class Todo {
@@ -334,7 +334,7 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
     {
         var diagnostics = await RunAnalyzerAsync(
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs {
                 class Todo {
@@ -360,7 +360,7 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
     {
         var diagnostics = await RunAnalyzerAsync(
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs {
                 class Todo {
@@ -396,7 +396,7 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
     {
         var diagnostics = await RunAnalyzerAsync(
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs {
                 class Todo {
@@ -429,7 +429,7 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
     {
         var diagnostics = await RunAnalyzerAsync(
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs {
                 class Todo {
@@ -453,7 +453,7 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
     {
         var diagnostics = await RunAnalyzerAsync(
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs {
                 class Todo {
@@ -477,7 +477,7 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
     {
         var diagnostics = await RunAnalyzerAsync(
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs {
                 enum Priority { Low, Medium, High }

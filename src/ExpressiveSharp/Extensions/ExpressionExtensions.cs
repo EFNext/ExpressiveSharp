@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using ExpressiveSharp.Services;
 
-namespace ExpressiveSharp.Extensions;
+namespace ExpressiveSharp;
 
 public static class ExpressionExtensions
 {

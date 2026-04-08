@@ -14,7 +14,7 @@ namespace ExpressiveSharp.Generated.Interceptors
             var i0_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
             var i0_expr_0 = global::System.Linq.Expressions.Expression.Property(i0_p_o, typeof(global::TestNs.Order).GetProperty("Amount")); // o.Amount
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, int>>(i0_expr_0, i0_p_o);
-            return global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
+            return global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                 global::System.Linq.Queryable.OrderByDescending(
                     (global::System.Linq.IQueryable<global::TestNs.Order>)source,
                     __lambda));

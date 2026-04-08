@@ -30,7 +30,7 @@ namespace ExpressiveSharp.Generated.Interceptors
             var i0c_expr_4 = global::System.Linq.Expressions.Expression.Property(i0c_p_c, typeof(global::TestNs.Customer).GetProperty("Name")); // c.Name
             var i0c_expr_0 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), i0c_expr_1, i0c_expr_4);
             var __lambda3 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, global::TestNs.Customer, string>>(i0c_expr_0, i0c_p_o, i0c_p_c);
-            return global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
+            return global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                 global::System.Linq.Queryable.Join(
                     (global::System.Linq.IQueryable<global::TestNs.Order>)source,
                     inner,

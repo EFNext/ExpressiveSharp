@@ -4,7 +4,7 @@ using System.Linq.Expressions;
 using ExpressiveSharp;
 using ExpressiveSharp.EntityFrameworkCore;
 using ExpressiveSharp.EntityFrameworkCore.Infrastructure;
-using ExpressiveSharp.Extensions;
+
 
 // ReSharper disable once CheckNamespace — intentionally in Microsoft.EntityFrameworkCore for discoverability
 namespace Microsoft.EntityFrameworkCore;

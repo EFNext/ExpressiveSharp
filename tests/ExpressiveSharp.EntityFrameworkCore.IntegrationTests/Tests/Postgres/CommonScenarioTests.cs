@@ -1,7 +1,6 @@
 #if TEST_POSTGRES
 using System.Linq.Expressions;
 using ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Infrastructure;
-using ExpressiveSharp.Extensions;
 using ExpressiveSharp.IntegrationTests.Scenarios.Store.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
