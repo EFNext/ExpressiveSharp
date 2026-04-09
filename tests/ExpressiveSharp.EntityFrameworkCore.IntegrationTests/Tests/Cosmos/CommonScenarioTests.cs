@@ -86,7 +86,7 @@ public class CommonScenarioTests : CommonScenarioTestBase
             Context.Set<Order>().Add(cosmosOrder);
         }
 
-        await Context.SaveChangesAsync();
+        await RetryCosmosTransientAsync(() => Context.SaveChangesAsync());
     }
 
     // Cosmos DB does not support GROUP BY on computed expressions

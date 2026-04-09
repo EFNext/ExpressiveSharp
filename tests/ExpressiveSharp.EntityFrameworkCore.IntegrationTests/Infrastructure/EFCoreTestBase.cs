@@ -35,7 +35,9 @@ public abstract class EFCoreTestBase
         _handle = CreateContextHandle(out var ctx);
         Context = ctx;
         // EnsureCreatedAsync (not EnsureCreated) — Cosmos rejects all sync I/O.
-        await Context.Database.EnsureCreatedAsync();
+        // Retry for Cosmos emulator transient errors (401/503) when multiple
+        // TFMs run their own emulator containers in parallel during CI.
+        await RetryCosmosTransientAsync(() => Context.Database.EnsureCreatedAsync());
     }
 
     [TestCleanup]
@@ -43,5 +45,43 @@ public abstract class EFCoreTestBase
     {
         if (_handle is not null)
             await _handle.DisposeAsync();
+    }
+
+    /// <summary>
+    /// Retries an async operation up to <paramref name="maxRetries"/> times when the
+    /// Cosmos emulator returns transient errors (401 Unauthorized / MAC signature
+    /// mismatch, 503 Service Unavailable). These occur when multiple test processes
+    /// run emulator containers in parallel during CI. For non-Cosmos providers the
+    /// operation executes once with no overhead.
+    /// </summary>
+    protected static async Task RetryCosmosTransientAsync(Func<Task> action, int maxRetries = 3)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                await action();
+                return;
+            }
+            catch (Exception ex) when (attempt < maxRetries && IsCosmosTransient(ex))
+            {
+                await Task.Delay(TimeSpan.FromSeconds(2 * (attempt + 1)));
+            }
+        }
+    }
+
+    private static bool IsCosmosTransient(Exception ex)
+    {
+        // Walk the exception chain looking for Cosmos-specific transient errors
+        for (var current = ex; current != null; current = current.InnerException)
+        {
+            var msg = current.Message;
+            if (msg.Contains("Unauthorized (401)") ||
+                msg.Contains("ServiceUnavailable (503)") ||
+                msg.Contains("MAC signature") ||
+                msg.Contains("Request rate is large"))
+                return true;
+        }
+        return false;
     }
 }
