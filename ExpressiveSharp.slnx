@@ -21,5 +21,6 @@
     <Project Path="tests/ExpressiveSharp.IntegrationTests/ExpressiveSharp.IntegrationTests.csproj" />
     <Project Path="tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests.csproj" />
     <Project Path="tests/ExpressiveSharp.Tests/ExpressiveSharp.Tests.csproj" />
+    <File Path="tests/Directory.Build.props" />
   </Folder>
 </Solution>
