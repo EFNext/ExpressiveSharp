@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 namespace ExpressiveSharp.EntityFrameworkCore;
 
 /// <summary>
-/// A <see cref="DbSet{TEntity}"/> wrapper that also implements <see cref="IRewritableQueryable{T}"/>,
+/// A <see cref="DbSet{TEntity}"/> wrapper that also implements <see cref="IExpressiveQueryable{T}"/>,
 /// enabling delegate-based LINQ methods with modern C# syntax (e.g., <c>?.</c>) directly on the set.
 /// </summary>
 /// <example>
@@ -22,7 +22,7 @@ namespace ExpressiveSharp.EntityFrameworkCore;
 /// ctx.Orders.Where(o => o.Customer?.Name == "Alice")
 /// </code>
 /// </example>
-public class ExpressiveDbSet<TEntity> : DbSet<TEntity>, IRewritableQueryable<TEntity>
+public class ExpressiveDbSet<TEntity> : DbSet<TEntity>, IExpressiveQueryable<TEntity>
     where TEntity : class
 {
     private readonly DbSet<TEntity> _inner;

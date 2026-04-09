@@ -6,9 +6,9 @@ namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Infrastructure;
 
 /// <summary>
 /// Integration tests for Include/ThenInclude chain continuity via
-/// <see cref="IIncludableRewritableQueryable{TEntity, TProperty}"/>. Verifies
+/// <see cref="IIncludableExpressiveQueryable{TEntity, TProperty}"/>. Verifies
 /// that navigation loading works end-to-end after <c>Include</c> on a
-/// rewritable queryable.
+/// expressive queryable.
 /// </summary>
 public abstract class IncludeTestBase : EFCoreRelationalTestBase
 {

@@ -5,7 +5,7 @@ namespace ExpressiveSharp;
 /// instead of the default <see cref="System.Linq.Queryable"/>.
 /// </summary>
 /// <remarks>
-/// Apply this attribute to delegate-based <see cref="IRewritableQueryable{T}"/> stubs when the
+/// Apply this attribute to delegate-based <see cref="IExpressiveQueryable{T}"/> stubs when the
 /// matching <c>Expression&lt;Func&lt;…&gt;&gt;</c> overload lives in a type other than
 /// <see cref="System.Linq.Queryable"/> (e.g., EF Core's <c>EntityFrameworkQueryableExtensions</c>).
 /// </remarks>

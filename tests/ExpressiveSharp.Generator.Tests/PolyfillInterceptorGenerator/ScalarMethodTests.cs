@@ -14,7 +14,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -40,7 +40,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -68,7 +68,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -94,7 +94,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -122,7 +122,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -148,7 +148,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -174,7 +174,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -200,7 +200,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -226,7 +226,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -252,7 +252,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -280,7 +280,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -306,7 +306,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -332,7 +332,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -358,7 +358,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -386,7 +386,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -412,7 +412,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -438,7 +438,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -464,7 +464,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -490,7 +490,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -516,7 +516,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -542,7 +542,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -568,7 +568,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -594,7 +594,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -620,7 +620,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -648,7 +648,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -674,7 +674,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -700,7 +700,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -726,7 +726,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -752,7 +752,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -778,7 +778,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -804,7 +804,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -830,7 +830,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -856,7 +856,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -882,7 +882,7 @@ public class ScalarMethodTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {

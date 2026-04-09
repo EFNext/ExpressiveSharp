@@ -48,7 +48,7 @@ String interpolation with format specifiers like `$"{Price:F2}"` generates `ToSt
 
 ## ExpressiveDbSet\<T\>
 
-`ExpressiveDbSet<T>` is the primary API for using modern syntax directly on a `DbSet<T>`. It combines `[Expressive]` member expansion with `IRewritableQueryable<T>` modern syntax support:
+`ExpressiveDbSet<T>` is the primary API for using modern syntax directly on a `DbSet<T>`. It combines `[Expressive]` member expansion with `IExpressiveQueryable<T>` modern syntax support:
 
 ```csharp
 public class MyDbContext : DbContext
@@ -139,7 +139,7 @@ Supported async methods:
 
 ## Chain Continuity Stubs
 
-The following EF Core operations preserve the `ExpressiveDbSet<T>`/`IRewritableQueryable<T>` chain:
+The following EF Core operations preserve the `ExpressiveDbSet<T>`/`IExpressiveQueryable<T>` chain:
 
 ```csharp
 var orders = ctx.Orders
@@ -182,7 +182,7 @@ await ctx.Orders
 Switch expressions and null-conditional operators inside `SetProperty` value lambdas are normally rejected by the C# compiler in expression tree contexts. The source generator converts them to `CASE WHEN` and `COALESCE` SQL expressions.
 
 ::: info
-`ExecuteDelete` works on `IRewritableQueryable<T>` / `ExpressiveDbSet<T>` without any additional setup — it has no lambda parameter, so no interception is needed.
+`ExecuteDelete` works on `IExpressiveQueryable<T>` / `ExpressiveDbSet<T>` without any additional setup — it has no lambda parameter, so no interception is needed.
 :::
 
 ::: warning
@@ -302,6 +302,6 @@ var results = await ctx.Orders
 ## Next Steps
 
 - [Window Functions](./window-functions) -- SQL window functions via the RelationalExtensions package
-- [IRewritableQueryable\<T\>](./rewritable-queryable) -- modern syntax on any `IQueryable`
+- [IExpressiveQueryable\<T\>](./expressive-queryable) -- modern syntax on any `IQueryable`
 - [[Expressive] Properties](./expressive-properties) -- computed properties in depth
 - [Quick Start](./quickstart) -- minimal setup walkthrough

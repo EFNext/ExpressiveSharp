@@ -1,5 +1,4 @@
 using System.Linq.Expressions;
-using ExpressiveSharp.Extensions;
 using ExpressiveSharp.IntegrationTests.Infrastructure;
 using ExpressiveSharp.IntegrationTests.Scenarios.Store;
 using ExpressiveSharp.IntegrationTests.Scenarios.Store.Models;

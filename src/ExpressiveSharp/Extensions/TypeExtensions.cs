@@ -2,7 +2,7 @@ using System.Reflection;
 
 namespace ExpressiveSharp.Extensions;
 
-public static class TypeExtensions
+internal static class TypeExtensions
 {
     public static Type[] GetNestedTypePath(this Type type)
     {

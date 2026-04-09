@@ -21,7 +21,7 @@ dotnet add package ExpressiveSharp.EntityFrameworkCore
 
 | Package | Purpose |
 |---------|---------|
-| `ExpressiveSharp` | Core runtime -- expression expansion, transformers, `IRewritableQueryable<T>`, `ExpressionPolyfill` (includes everything from Abstractions) |
+| `ExpressiveSharp` | Core runtime -- expression expansion, transformers, `IExpressiveQueryable<T>`, `ExpressionPolyfill` (includes everything from Abstractions) |
 | `ExpressiveSharp.Abstractions` | Lightweight -- `[Expressive]` attribute, `[ExpressiveFor]`, `IExpressionTreeTransformer`, source generator only (no runtime services) |
 | `ExpressiveSharp.EntityFrameworkCore` | EF Core integration -- `UseExpressives()`, `ExpressiveDbSet<T>`, Include/ThenInclude, async methods, analyzers and code fixes |
 | `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` | SQL window functions -- ROW_NUMBER, RANK, DENSE_RANK, NTILE (experimental) |
@@ -218,4 +218,4 @@ var results = ctx.Orders
 - [[Expressive] Methods](./expressive-methods) -- parameterized query fragments
 - [Constructor Projections](./expressive-constructors) -- project DTOs directly in queries
 - [EF Core Integration](./ef-core-integration) -- full EF Core setup and features
-- [IRewritableQueryable\<T\>](./rewritable-queryable) -- modern syntax on any `IQueryable`
+- [IExpressiveQueryable\<T\>](./expressive-queryable) -- modern syntax on any `IQueryable`

@@ -30,7 +30,7 @@ Two Roslyn incremental source generators analyze your code:
 
 1. **ExpressiveGenerator** finds members decorated with `[Expressive]`, validates them, and emits `Expression.*` factory code that builds the equivalent expression tree. These are registered in a per-assembly expression registry.
 
-2. **PolyfillInterceptorGenerator** uses C# 13 method interceptors to rewrite `ExpressionPolyfill.Create()` calls and `IRewritableQueryable<T>` LINQ method calls, converting delegate lambdas into expression trees at their call sites.
+2. **PolyfillInterceptorGenerator** uses C# 13 method interceptors to rewrite `ExpressionPolyfill.Create()` calls and `IExpressiveQueryable<T>` LINQ method calls, converting delegate lambdas into expression trees at their call sites.
 
 ### Runtime (expression expansion)
 
@@ -54,7 +54,7 @@ Mark computed properties and methods with `[Expressive]` to generate companion e
 | Scenario | API |
 |---|---|
 | **EF Core** -- modern syntax + `[Expressive]` expansion on `DbSet` | [`ExpressiveDbSet<T>`](./ef-core-integration) (or [`UseExpressives()`](./ef-core-integration) for global expansion) |
-| **Any `IQueryable`** -- modern syntax + `[Expressive]` expansion | [`.AsExpressive()`](./rewritable-queryable) |
+| **Any `IQueryable`** -- modern syntax + `[Expressive]` expansion | [`.AsExpressive()`](./expressive-queryable) |
 | **EF Core** -- SQL window functions (ROW_NUMBER, RANK, etc.) | [`WindowFunction.*`](./window-functions) (install `RelationalExtensions` package) |
 | **Advanced** -- build an `Expression<T>` inline, no attribute needed | [`ExpressionPolyfill.Create`](./expression-polyfill) |
 | **Advanced** -- expand `[Expressive]` members in an existing expression tree | `.ExpandExpressives()` |
@@ -74,7 +74,7 @@ Mark computed properties and methods with `[Expressive]` to generate companion e
 | Block-bodied members | Yes (experimental) | Yes (experimental) | No | No |
 | Enum method expansion | Yes | Yes | No | No |
 | Inline expression creation | Yes (`ExpressionPolyfill.Create`) | No | No | No |
-| Modern syntax in LINQ chains | Yes (`IRewritableQueryable<T>`) | No | No | No |
+| Modern syntax in LINQ chains | Yes (`IExpressiveQueryable<T>`) | No | No | No |
 | SQL window functions | Yes (RelationalExtensions) | No | No | No |
 | String interpolation support | Yes | No | No | No |
 | Tuple literals support | Yes | No | No | No |

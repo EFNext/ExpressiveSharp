@@ -12,7 +12,7 @@ public class SelectManyTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -40,7 +40,7 @@ public class SelectManyTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {

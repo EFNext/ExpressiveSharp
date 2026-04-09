@@ -6,23 +6,23 @@ namespace ExpressiveSharp.Generated.Interceptors
     internal static class PolyfillInterceptors
     {
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
-        internal static global::ExpressiveSharp.IRewritableQueryable<T0> __Polyfill_DistinctBy_0<T0, T1>(
-            this global::ExpressiveSharp.IRewritableQueryable<T0> source,
+        internal static global::ExpressiveSharp.IExpressiveQueryable<T0> __Polyfill_DistinctBy_0<T0, T1>(
+            this global::ExpressiveSharp.IExpressiveQueryable<T0> source,
             global::System.Func<T0, T1> __func)
         {
             // Source: x => x.Category
             var i0_p_x = global::System.Linq.Expressions.Expression.Parameter(typeof(T0), "x");
             var i0_expr_0 = global::System.Linq.Expressions.Expression.Property(i0_p_x, typeof(T0).GetProperty("Category")); // x.Category
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<T0, T1>>(i0_expr_0, i0_p_x);
-            return (global::ExpressiveSharp.IRewritableQueryable<T0>)(object)
-                global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
+            return (global::ExpressiveSharp.IExpressiveQueryable<T0>)(object)
+                global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                     global::System.Linq.Queryable.DistinctBy(
                         (global::System.Linq.IQueryable<T0>)(object)source,
                         __lambda));
         }
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
-        internal static global::ExpressiveSharp.IRewritableQueryable<T1> __Polyfill_Select_1<T0, T1>(
-            this global::ExpressiveSharp.IRewritableQueryable<T0> source,
+        internal static global::ExpressiveSharp.IExpressiveQueryable<T1> __Polyfill_Select_1<T0, T1>(
+            this global::ExpressiveSharp.IExpressiveQueryable<T0> source,
             global::System.Func<T0, T1> __func)
         {
             // Source: o => new { o.Id, o.Category }
@@ -32,8 +32,8 @@ namespace ExpressiveSharp.Generated.Interceptors
             var i1_expr_3 = typeof(T1).GetConstructors()[0];
             var i1_expr_0 = global::System.Linq.Expressions.Expression.New(i1_expr_3, new global::System.Linq.Expressions.Expression[] { i1_expr_1, i1_expr_2 }, new global::System.Reflection.MemberInfo[] { typeof(T1).GetProperty("Id"), typeof(T1).GetProperty("Category") });
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<T0, T1>>(i1_expr_0, i1_p_o);
-            return (global::ExpressiveSharp.IRewritableQueryable<T1>)(object)
-                global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
+            return (global::ExpressiveSharp.IExpressiveQueryable<T1>)(object)
+                global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                     global::System.Linq.Queryable.Select(
                         (global::System.Linq.IQueryable<T0>)(object)source,
                         __lambda));

@@ -1,6 +1,6 @@
 using System.Linq.Expressions;
 using ExpressiveSharp;
-using ExpressiveSharp.Extensions;
+
 using ExpressiveSharp.Transformers;
 
 // ── The problem ──────────────────────────────────────────────────────────────

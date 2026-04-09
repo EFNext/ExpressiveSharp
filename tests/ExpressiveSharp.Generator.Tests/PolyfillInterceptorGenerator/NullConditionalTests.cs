@@ -12,7 +12,7 @@ public class NullConditionalTests : GeneratorTestBase
     {
         var source = 
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {

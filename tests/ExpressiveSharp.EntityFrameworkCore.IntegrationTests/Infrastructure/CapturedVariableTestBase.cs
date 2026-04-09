@@ -1,4 +1,3 @@
-using ExpressiveSharp.Extensions;
 using ExpressiveSharp.IntegrationTests.Scenarios.Store.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualStudio.TestTools.UnitTesting;

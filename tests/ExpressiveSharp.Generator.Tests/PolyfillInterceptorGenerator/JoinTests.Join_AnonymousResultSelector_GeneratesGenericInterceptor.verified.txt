@@ -6,8 +6,8 @@ namespace ExpressiveSharp.Generated.Interceptors
     internal static class PolyfillInterceptors
     {
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
-        internal static global::ExpressiveSharp.IRewritableQueryable<T3> __Polyfill_Join_0<T0, T1, T2, T3>(
-            this global::ExpressiveSharp.IRewritableQueryable<T0> source,
+        internal static global::ExpressiveSharp.IExpressiveQueryable<T3> __Polyfill_Join_0<T0, T1, T2, T3>(
+            this global::ExpressiveSharp.IExpressiveQueryable<T0> source,
             global::System.Collections.Generic.IEnumerable<T1> inner,
                     global::System.Func<T0, T2> __func1,
                     global::System.Func<T1, T2> __func2,
@@ -29,8 +29,8 @@ namespace ExpressiveSharp.Generated.Interceptors
             var i0c_expr_3 = typeof(T3).GetConstructors()[0];
             var i0c_expr_0 = global::System.Linq.Expressions.Expression.New(i0c_expr_3, new global::System.Linq.Expressions.Expression[] { i0c_expr_1, i0c_expr_2 }, new global::System.Reflection.MemberInfo[] { typeof(T3).GetProperty("Product"), typeof(T3).GetProperty("CustomerName") });
             var __lambda3 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<T0, T1, T3>>(i0c_expr_0, i0c_p_o, i0c_p_c);
-            return (global::ExpressiveSharp.IRewritableQueryable<T3>)(object)
-                global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
+            return (global::ExpressiveSharp.IExpressiveQueryable<T3>)(object)
+                global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                     global::System.Linq.Queryable.Join(
                         (global::System.Linq.IQueryable<T0>)(object)source,
                         inner,

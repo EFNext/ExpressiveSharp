@@ -43,7 +43,7 @@ CI targets both .NET 8.0 and .NET 10.0 SDKs.
 
 1. **Compile-time (source generation):** Two incremental generators in `ExpressiveSharp.Generator` (targets netstandard2.0):
    - `ExpressiveGenerator` — finds `[Expressive]` members, validates them via `ExpressiveInterpreter`, emits expression trees via `ExpressionTreeEmitter`, and builds a runtime registry via `ExpressionRegistryEmitter`
-   - `PolyfillInterceptorGenerator` — uses C# 13 `[InterceptsLocation]` to rewrite `ExpressionPolyfill.Create()` and `IRewritableQueryable<T>` LINQ call sites from delegate form to expression tree form. Supports all standard `Queryable` methods, multi-lambda methods (Join, GroupJoin, GroupBy overloads), non-lambda-first methods (Zip, ExceptBy, etc.), and custom target types via `[PolyfillTarget]` (e.g., EF Core's `EntityFrameworkQueryableExtensions` for async methods)
+   - `PolyfillInterceptorGenerator` — uses C# 13 `[InterceptsLocation]` to rewrite `ExpressionPolyfill.Create()` and `IExpressiveQueryable<T>` LINQ call sites from delegate form to expression tree form. Supports all standard `Queryable` methods, multi-lambda methods (Join, GroupJoin, GroupBy overloads), non-lambda-first methods (Zip, ExceptBy, etc.), and custom target types via `[PolyfillTarget]` (e.g., EF Core's `EntityFrameworkQueryableExtensions` for async methods)
 
 2. **Runtime:** `ExpressiveResolver` looks up generated expressions by (DeclaringType, MemberName, ParameterTypes). `ExpressiveReplacer` is an `ExpressionVisitor` that substitutes `[Expressive]` member accesses with the generated expression trees. Transformers (in `Transformers/`) post-process trees for provider compatibility.
 
@@ -55,9 +55,9 @@ CI targets both .NET 8.0 and .NET 10.0 SDKs.
 - `src/ExpressiveSharp.Generator/PolyfillInterceptorGenerator.cs` — interceptor generation. Dedicated emitters for complex methods (Join, GroupJoin, GroupBy multi-lambda), enhanced generic fallback (`EmitGenericSingleLambda`) for single-lambda methods with non-lambda arg forwarding, `[PolyfillTarget]` support for custom target types
 - `src/ExpressiveSharp/Services/ExpressiveResolver.cs` — runtime expression registry lookup
 - `src/ExpressiveSharp/PolyfillTargetAttribute.cs` — specifies a non-`Queryable` target type for interceptor forwarding (e.g., `EntityFrameworkQueryableExtensions`)
-- `src/ExpressiveSharp/Extensions/RewritableQueryableLinqExtensions.cs` — delegate-based LINQ stubs on `IRewritableQueryable<T>` (~85 intercepted + ~15 passthrough methods)
-- `src/ExpressiveSharp.EntityFrameworkCore/Extensions/RewritableQueryableEfCoreExtensions.cs` — EF Core-specific stubs: chain-continuity (AsNoTracking, TagWith, etc.), Include/ThenInclude, and async lambda methods (AnyAsync, SumAsync, etc.)
-- `src/ExpressiveSharp.EntityFrameworkCore/IIncludableRewritableQueryable.cs` — hybrid interface bridging `IIncludableQueryable` and `IRewritableQueryable` for Include/ThenInclude chain continuity
+- `src/ExpressiveSharp/Extensions/ExpressiveQueryableLinqExtensions.cs` — delegate-based LINQ stubs on `IExpressiveQueryable<T>` (~85 intercepted + ~15 passthrough methods)
+- `src/ExpressiveSharp.EntityFrameworkCore/Extensions/ExpressiveQueryableEfCoreExtensions.cs` — EF Core-specific stubs: chain-continuity (AsNoTracking, TagWith, etc.), Include/ThenInclude, and async lambda methods (AnyAsync, SumAsync, etc.)
+- `src/ExpressiveSharp.EntityFrameworkCore/IIncludableExpressiveQueryable.cs` — hybrid interface bridging `IIncludableQueryable` and `IExpressiveQueryable` for Include/ThenInclude chain continuity
 - `src/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions/WindowFunction.cs` — public marker methods for all SQL window functions (ranking, aggregate, navigation). All throw at runtime; translated to SQL by the method call translator
 - `src/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions/WindowDefinition.cs` — fluent builder types: `PartitionedWindowDefinition` → `OrderedWindowDefinition` → `FramedWindowDefinition`. Type-safe chain ensures ORDER BY before ranking, frame only on aggregates/value functions
 - `src/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions/WindowFrameBound.cs` — frame boundary markers: `UnboundedPreceding` (property), `Preceding(n)` (method), `CurrentRow` (property), `Following(n)` (method), `UnboundedFollowing` (property)
@@ -75,15 +75,22 @@ ExpressiveSharp.Abstractions (attributes + source generator, net8.0;net10.0)
 ExpressiveSharp (core runtime, net8.0;net10.0)
   └── ExpressiveSharp.Abstractions
   Provides: ExpressiveResolver, ExpressiveReplacer, expression transformers,
-      IRewritableQueryable<T>, ExpressionPolyfill, .ExpandExpressives(), .AsExpressive()
+      IExpressiveQueryable<T>, ExpressionPolyfill, .ExpandExpressives(), .AsExpressive()
 
 ExpressiveSharp.Generator (source generator, netstandard2.0)
   └── Microsoft.CodeAnalysis.CSharp 5.0.0
 
+ExpressiveSharp.MongoDB (net8.0;net10.0)
+  ├── ExpressiveSharp
+  ├── MongoDB.Driver 3.4.0
+  └── Provides: IRewritableMongoQueryable<T>, ExpressiveMongoCollection<T>,
+      ExpressiveMongoQueryProvider (decorating IQueryProvider/IMongoQueryProvider),
+      async lambda stubs with [PolyfillTarget(typeof(MongoQueryable))]
+
 ExpressiveSharp.EntityFrameworkCore (net8.0;net10.0)
   ├── ExpressiveSharp
   ├── EF Core 8.0.25 / 10.0.0
-  └── Provides: ExpressiveDbSet<T>, IIncludableRewritableQueryable<T,P>,
+  └── Provides: ExpressiveDbSet<T>, IIncludableExpressiveQueryable<T,P>,
       chain-continuity stubs, async lambda stubs with [PolyfillTarget]
 
 ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions (net8.0;net10.0)

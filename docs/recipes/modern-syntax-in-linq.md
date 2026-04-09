@@ -29,7 +29,7 @@ var results = dbContext.Orders
 
 ExpressiveSharp offers three ways to use modern syntax in LINQ chains. Each targets a different scenario.
 
-### 1. `IRewritableQueryable<T>` with `.AsExpressive()`
+### 1. `IExpressiveQueryable<T>` with `.AsExpressive()`
 
 Works with **any** `IQueryable<T>` -- not tied to EF Core:
 
@@ -52,11 +52,11 @@ var results = queryable
     .ToList();
 ```
 
-The source generator intercepts these calls at compile time and rewrites the delegate lambdas to expression trees. The chain continues as an `IRewritableQueryable<T>`, preserving the ability to use modern syntax in subsequent calls.
+The source generator intercepts these calls at compile time and rewrites the delegate lambdas to expression trees. The chain continues as an `IExpressiveQueryable<T>`, preserving the ability to use modern syntax in subsequent calls.
 
 ### 2. `ExpressiveDbSet<T>` -- For EF Core
 
-A shorthand for EF Core projects. `ExpressiveDbSet<T>` wraps a `DbSet<T>` and provides `IRewritableQueryable<T>` behavior automatically:
+A shorthand for EF Core projects. `ExpressiveDbSet<T>` wraps a `DbSet<T>` and provides `IExpressiveQueryable<T>` behavior automatically:
 
 ```csharp
 public class MyDbContext : DbContext
@@ -220,7 +220,7 @@ Use `[Expressive]` for shared business logic (computed properties, filters, clas
 
 ## Available LINQ Methods
 
-`IRewritableQueryable<T>` and `ExpressiveDbSet<T>` support most standard `Queryable` methods:
+`IExpressiveQueryable<T>` and `ExpressiveDbSet<T>` support most standard `Queryable` methods:
 
 **Filtering:** `Where`, `Any`, `All`, `Contains`
 

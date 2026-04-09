@@ -43,7 +43,7 @@ public class GlobalOptionsTests : GeneratorTestBase
     {
         var source = 
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -77,7 +77,7 @@ public class GlobalOptionsTests : GeneratorTestBase
         // Global says Ignore, but per-call AsExpressive says Rewrite — per-call wins.
         var source = 
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {

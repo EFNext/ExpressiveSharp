@@ -12,7 +12,7 @@ public class JoinTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -44,7 +44,7 @@ public class JoinTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -77,7 +77,7 @@ public class JoinTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -110,7 +110,7 @@ public class JoinTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {

@@ -1,6 +1,6 @@
-# IRewritableQueryable\<T\>
+# IExpressiveQueryable\<T\>
 
-`IRewritableQueryable<T>` enables modern C# syntax directly in LINQ chains -- null-conditional operators, switch expressions, and pattern matching work in `.Where()`, `.Select()`, `.OrderBy()`, and more, on any `IQueryable<T>`.
+`IExpressiveQueryable<T>` enables modern C# syntax directly in LINQ chains -- null-conditional operators, switch expressions, and pattern matching work in `.Where()`, `.Select()`, `.OrderBy()`, and more, on any `IQueryable<T>`.
 
 ## Basic Usage
 
@@ -21,7 +21,7 @@ The source generator intercepts these calls at compile time and rewrites the del
 
 ## How It Works
 
-When you call `.AsExpressive()`, you get back an `IRewritableQueryable<T>` wrapper. This wrapper exposes the same LINQ methods as `IQueryable<T>`, but they accept `Func<...>` delegates instead of `Expression<Func<...>>`.
+When you call `.AsExpressive()`, you get back an `IExpressiveQueryable<T>` wrapper. This wrapper exposes the same LINQ methods as `IQueryable<T>`, but they accept `Func<...>` delegates instead of `Expression<Func<...>>`.
 
 At compile time, the `PolyfillInterceptorGenerator` uses C# 13 method interceptors to replace each call site with code that:
 
@@ -58,7 +58,7 @@ Most common `Queryable` methods are supported:
 **Set operations:**
 `ExceptBy`, `IntersectBy`, `UnionBy`, `DistinctBy`
 
-**Chain-preserving operators** (return `IRewritableQueryable<T>`):
+**Chain-preserving operators** (return `IExpressiveQueryable<T>`):
 `Take`, `Skip`, `Distinct`, `Reverse`, `DefaultIfEmpty`, `Append`, `Prepend`, `Concat`, `Union`, `Intersect`, `Except`, `SkipWhile`, `TakeWhile`
 
 **Comparer overloads** (`IEqualityComparer<T>`, `IComparer<T>`) are also supported.
@@ -75,7 +75,7 @@ On .NET 10 and later, these additional methods are available:
 
 ## EF Core: Include and ThenInclude
 
-When using `IRewritableQueryable<T>` with EF Core, `Include` and `ThenInclude` are fully supported with chain continuity:
+When using `IExpressiveQueryable<T>` with EF Core, `Include` and `ThenInclude` are fully supported with chain continuity:
 
 ```csharp
 var orders = ctx.Set<Order>()
@@ -86,7 +86,7 @@ var orders = ctx.Set<Order>()
     .ToList();
 ```
 
-The `Include`/`ThenInclude` calls return `IIncludableRewritableQueryable<TEntity, TProperty>`, a hybrid interface that preserves both the includable chain and the rewritable chain.
+The `Include`/`ThenInclude` calls return `IIncludableExpressiveQueryable<TEntity, TProperty>`, a hybrid interface that preserves both the includable chain and the rewritable chain.
 
 ::: info
 `Include` and `ThenInclude` accept standard `Expression<Func<...>>` lambdas (not rewritten delegates), since navigation property paths do not typically need modern syntax. The chain continuity ensures you can seamlessly go from `Include`/`ThenInclude` back to rewritable LINQ methods like `Where` and `Select`.
@@ -94,7 +94,7 @@ The `Include`/`ThenInclude` calls return `IIncludableRewritableQueryable<TEntity
 
 ## EF Core: Async Lambda Methods
 
-All EF Core async methods that accept a lambda predicate or selector are supported on `IRewritableQueryable<T>`:
+All EF Core async methods that accept a lambda predicate or selector are supported on `IExpressiveQueryable<T>`:
 
 **Async predicates:**
 `AnyAsync`, `AllAsync`, `CountAsync`, `LongCountAsync`
@@ -123,7 +123,7 @@ These async methods are forwarded to `EntityFrameworkQueryableExtensions` at com
 
 ## EF Core: Chain Continuity Stubs
 
-The following EF Core operations preserve the `IRewritableQueryable<T>` chain, so you can continue using modern syntax after calling them:
+The following EF Core operations preserve the `IExpressiveQueryable<T>` chain, so you can continue using modern syntax after calling them:
 
 - `AsNoTracking()`, `AsNoTrackingWithIdentityResolution()`, `AsTracking()`
 - `IgnoreQueryFilters()`, `IgnoreAutoIncludes()`
@@ -146,7 +146,7 @@ var orders = ctx.Set<Order>()
 Requires the `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` package and `.UseExpressives(o => o.UseRelationalExtensions())` configuration. Available on EF Core 8 and 9. On EF Core 10+, `ExecuteUpdate` natively accepts delegates — use `ExpressionPolyfill.Create()` for modern syntax in individual `SetProperty` value expressions.
 :::
 
-`ExecuteUpdate` and `ExecuteUpdateAsync` are supported on `IRewritableQueryable<T>`, enabling modern C# syntax inside `SetProperty` value expressions — which is normally impossible in expression trees:
+`ExecuteUpdate` and `ExecuteUpdateAsync` are supported on `IExpressiveQueryable<T>`, enabling modern C# syntax inside `SetProperty` value expressions — which is normally impossible in expression trees:
 
 ```csharp
 ctx.ExpressiveSet<Product>()
@@ -162,7 +162,7 @@ ctx.ExpressiveSet<Product>()
 
 This generates a single SQL `UPDATE` with `CASE WHEN` and `COALESCE` expressions — no entity loading required.
 
-`ExecuteDelete` works out of the box on `IRewritableQueryable<T>` without any stubs (it has no lambda parameter):
+`ExecuteDelete` works out of the box on `IExpressiveQueryable<T>` without any stubs (it has no lambda parameter):
 
 ```csharp
 ctx.ExpressiveSet<Product>()
@@ -172,7 +172,7 @@ ctx.ExpressiveSet<Product>()
 
 ## IAsyncEnumerable Support
 
-`IRewritableQueryable<T>` supports `AsAsyncEnumerable()` for streaming results:
+`IExpressiveQueryable<T>` supports `AsAsyncEnumerable()` for streaming results:
 
 ```csharp
 await foreach (var order in ctx.Set<Order>()

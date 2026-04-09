@@ -108,9 +108,9 @@ LEFT JOIN "Cities" AS "c" ON "a"."CityId" = "c"."Id"
 
 Each `?.` in the chain produces a `LEFT JOIN`. The transformer strips all the ternaries, and the database handles null propagation naturally.
 
-## Using with IRewritableQueryable (Modern Syntax)
+## Using with IExpressiveQueryable (Modern Syntax)
 
-You do not need an `[Expressive]` property to use `?.` in queries. With `IRewritableQueryable<T>` or `ExpressiveDbSet<T>`, you can write null-conditional operators directly in your LINQ lambdas:
+You do not need an `[Expressive]` property to use `?.` in queries. With `IExpressiveQueryable<T>` or `ExpressiveDbSet<T>`, you can write null-conditional operators directly in your LINQ lambdas:
 
 ```csharp
 // Using ExpressiveDbSet<T> (EF Core)
@@ -126,7 +126,7 @@ var results = ctx.Orders
 ```
 
 ```csharp
-// Using IRewritableQueryable<T> (any IQueryable)
+// Using IExpressiveQueryable<T> (any IQueryable)
 var results = queryable
     .AsExpressive()
     .Where(o => o.Customer?.Email != null)

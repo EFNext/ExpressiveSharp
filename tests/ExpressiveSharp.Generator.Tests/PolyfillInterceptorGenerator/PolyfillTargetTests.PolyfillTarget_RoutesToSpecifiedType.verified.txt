@@ -7,7 +7,7 @@ namespace ExpressiveSharp.Generated.Interceptors
     {
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
         internal static global::System.Threading.Tasks.Task<bool> __Polyfill_AnyAsync_0(
-            this global::ExpressiveSharp.IRewritableQueryable<global::TestNs.Order> source,
+            this global::ExpressiveSharp.IExpressiveQueryable<global::TestNs.Order> source,
             global::System.Func<global::TestNs.Order, bool> __func,
                     global::System.Threading.CancellationToken cancellationToken)
         {

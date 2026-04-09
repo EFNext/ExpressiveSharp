@@ -1,7 +1,7 @@
 namespace ExpressiveSharp
 {
     /// <summary>
-    /// Options for controlling how inline lambdas in <c>IRewritableQueryable&lt;T&gt;</c> chains are processed.
+    /// Options for controlling how inline lambdas in <c>IExpressiveQueryable&lt;T&gt;</c> chains are processed.
     /// </summary>
     /// <remarks>
     /// Transformers listed here are applied at runtime to the expression trees

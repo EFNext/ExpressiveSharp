@@ -39,7 +39,7 @@ features:
 
   - icon: "\U0001F504"
     title: Modern Syntax in LINQ Chains
-    details: "IRewritableQueryable<T> enables ?. and switch expressions directly in .Where(), .Select(), and more. Full async method support for EF Core."
+    details: "IExpressiveQueryable<T> enables ?. and switch expressions directly in .Where(), .Select(), and more. Full async method support for EF Core."
 
   - icon: "\U0001F3D7\uFE0F"
     title: Constructor Projections
@@ -150,7 +150,7 @@ Computed properties are **inlined into SQL** — no client-side evaluation, no N
 
 | Package | Description |
 |---------|-------------|
-| [`ExpressiveSharp`](https://www.nuget.org/packages/ExpressiveSharp/) | Core runtime — expression expansion, transformers, `IRewritableQueryable<T>`, `ExpressionPolyfill` |
+| [`ExpressiveSharp`](https://www.nuget.org/packages/ExpressiveSharp/) | Core runtime — expression expansion, transformers, `IExpressiveQueryable<T>`, `ExpressionPolyfill` |
 | [`ExpressiveSharp.Abstractions`](https://www.nuget.org/packages/ExpressiveSharp.Abstractions/) | Lightweight — attributes (`[Expressive]`, `[ExpressiveFor]`), `IExpressionTreeTransformer`, source generator only |
 | [`ExpressiveSharp.EntityFrameworkCore`](https://www.nuget.org/packages/ExpressiveSharp.EntityFrameworkCore/) | EF Core integration — `UseExpressives()`, `ExpressiveDbSet<T>`, Include/ThenInclude, async methods |
 | [`ExpressiveSharp.EntityFrameworkCore.RelationalExtensions`](https://www.nuget.org/packages/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions/) | SQL window functions — ROW_NUMBER, RANK, DENSE_RANK, NTILE (experimental) |

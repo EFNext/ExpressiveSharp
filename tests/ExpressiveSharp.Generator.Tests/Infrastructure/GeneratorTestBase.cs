@@ -59,7 +59,7 @@ public abstract partial class GeneratorTestBase
             .References.All.ToList<MetadataReference>();
 
         references.Add(MetadataReference.CreateFromFile(typeof(ExpressiveAttribute).Assembly.Location));
-        references.Add(MetadataReference.CreateFromFile(typeof(IRewritableQueryable<>).Assembly.Location));
+        references.Add(MetadataReference.CreateFromFile(typeof(IExpressiveQueryable<>).Assembly.Location));
         return references;
     }
 

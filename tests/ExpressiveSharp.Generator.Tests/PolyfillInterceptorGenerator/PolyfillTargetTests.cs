@@ -18,7 +18,7 @@ public class PolyfillTargetTests : GeneratorTestBase
             using System.Threading;
             using System.Threading.Tasks;
             using ExpressiveSharp;
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -35,7 +35,7 @@ public class PolyfillTargetTests : GeneratorTestBase
                 {
                     [PolyfillTarget(typeof(MockEfExtensions))]
                     public static Task<bool> AnyAsync<T>(
-                        this IRewritableQueryable<T> source,
+                        this IExpressiveQueryable<T> source,
                         Func<T, bool> predicate,
                         CancellationToken cancellationToken = default)
                         => throw new System.Diagnostics.UnreachableException();
@@ -62,7 +62,7 @@ public class PolyfillTargetTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {

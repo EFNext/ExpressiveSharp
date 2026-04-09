@@ -12,7 +12,7 @@ public class WhereTests : GeneratorTestBase
     {
         var source = 
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -60,7 +60,7 @@ public class WhereTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -86,7 +86,7 @@ public class WhereTests : GeneratorTestBase
     {
         var source =
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {
@@ -114,7 +114,7 @@ public class WhereTests : GeneratorTestBase
     {
         var source = 
             """
-            using ExpressiveSharp.Extensions;
+            using ExpressiveSharp;
 
             namespace TestNs
             {

@@ -6,8 +6,8 @@ namespace ExpressiveSharp.Generated.Interceptors
     internal static class PolyfillInterceptors
     {
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
-        internal static global::ExpressiveSharp.IRewritableQueryable<string> __Polyfill_SelectMany_0(
-            this global::ExpressiveSharp.IRewritableQueryable<global::TestNs.Order> source,
+        internal static global::ExpressiveSharp.IExpressiveQueryable<string> __Polyfill_SelectMany_0(
+            this global::ExpressiveSharp.IExpressiveQueryable<global::TestNs.Order> source,
             global::System.Func<global::TestNs.Order, global::System.Collections.Generic.IEnumerable<string>> __func)
         {
             // Source: o => o.Tags
@@ -15,7 +15,7 @@ namespace ExpressiveSharp.Generated.Interceptors
             var i0_expr_0 = global::System.Linq.Expressions.Expression.Property(i0_p_o, typeof(global::TestNs.Order).GetProperty("Tags")); // o.Tags
             var i0_expr_1 = global::System.Linq.Expressions.Expression.Convert(i0_expr_0, typeof(global::System.Collections.Generic.IEnumerable<string>));
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, global::System.Collections.Generic.IEnumerable<string>>>(i0_expr_1, i0_p_o);
-            return global::ExpressiveSharp.Extensions.ExpressiveQueryableExtensions.AsExpressive(
+            return global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                 global::System.Linq.Queryable.SelectMany(
                     (global::System.Linq.IQueryable<global::TestNs.Order>)source,
                     __lambda));

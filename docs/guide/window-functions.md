@@ -287,5 +287,5 @@ Window functions are implemented as a plugin using the `IExpressivePlugin` archi
 ## Next Steps
 
 - [EF Core Integration](./ef-core-integration) -- full EF Core setup and features
-- [IRewritableQueryable\<T\>](./rewritable-queryable) -- modern syntax in LINQ chains
+- [IExpressiveQueryable\<T\>](./expressive-queryable) -- modern syntax in LINQ chains
 - [Introduction](./introduction) -- overview of all ExpressiveSharp APIs

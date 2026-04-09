@@ -7,7 +7,7 @@ namespace ExpressiveSharp.Generated.Interceptors
     {
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
         internal static global::TestNs.Order __Polyfill_First_0(
-            this global::ExpressiveSharp.IRewritableQueryable<global::TestNs.Order> source,
+            this global::ExpressiveSharp.IExpressiveQueryable<global::TestNs.Order> source,
             global::System.Func<global::TestNs.Order, bool> __func)
         {
             // Source: o => o.Active

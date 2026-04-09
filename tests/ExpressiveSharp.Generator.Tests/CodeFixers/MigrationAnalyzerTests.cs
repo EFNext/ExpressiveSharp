@@ -174,8 +174,8 @@ public sealed class MigrationAnalyzerTests : GeneratorTestBase
 
         var fixedSource = await ApplyMigrationFixAsync(source, "EXP1003");
 
-        Assert.IsTrue(fixedSource.Contains("using ExpressiveSharp.Extensions;"),
-            "Expected namespace to be replaced with ExpressiveSharp.Extensions");
+        Assert.IsTrue(fixedSource.Contains("using ExpressiveSharp;"),
+            "Expected namespace to be replaced with ExpressiveSharp");
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

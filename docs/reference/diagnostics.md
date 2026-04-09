@@ -268,7 +268,7 @@ Operator '{0}' is not supported in expression trees. A default value will be use
 Failed to generate interceptor for call site: {0}. The original delegate stub will be used at runtime.
 ```
 
-**Cause:** The polyfill interceptor generator could not produce an interceptor for a specific call site (e.g., on `IRewritableQueryable<T>` or `ExpressionPolyfill.Create`). The original delegate-based stub will be used instead.
+**Cause:** The polyfill interceptor generator could not produce an interceptor for a specific call site (e.g., on `IExpressiveQueryable<T>` or `ExpressionPolyfill.Create`). The original delegate-based stub will be used instead.
 
 **Fix:** This is typically an internal generator issue. If you encounter it, check that the call site uses supported syntax and consider filing an issue.
 
@@ -340,7 +340,7 @@ Member '{0}' is referenced in an [Expressive] expression but is not marked [Expr
 Adding [Expressive] would allow its body to be inlined into the expression tree.
 ```
 
-**Cause:** A member referenced inside an `[Expressive]` body, an `ExpressionPolyfill.Create()` lambda, or an `IRewritableQueryable` LINQ lambda has an expandable body (expression-bodied or block-bodied) but is not marked `[Expressive]`. Without the attribute, the member call remains opaque in the generated expression tree and cannot be translated by LINQ providers.
+**Cause:** A member referenced inside an `[Expressive]` body, an `ExpressionPolyfill.Create()` lambda, or an `IExpressiveQueryable` LINQ lambda has an expandable body (expression-bodied or block-bodied) but is not marked `[Expressive]`. Without the attribute, the member call remains opaque in the generated expression tree and cannot be translated by LINQ providers.
 
 **Fix:** {#exp0013-fix}
 
@@ -570,7 +570,7 @@ The IDE code fix replaces the namespace:
 | Old Namespace | New Namespace |
 |---|---|
 | `EntityFrameworkCore.Projectables` | `ExpressiveSharp` |
-| `EntityFrameworkCore.Projectables.Extensions` | `ExpressiveSharp.Extensions` |
+| `EntityFrameworkCore.Projectables.Extensions` | `ExpressiveSharp` |
 | `EntityFrameworkCore.Projectables.Infrastructure` | *(removed -- no equivalent)* |
 
 ---

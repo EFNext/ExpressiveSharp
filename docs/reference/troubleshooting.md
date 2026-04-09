@@ -264,7 +264,7 @@ If the generator is loaded but not producing output, check that you have at leas
 
 ### Interceptors not working {#interceptors-not-working}
 
-**Symptom:** `ExpressionPolyfill.Create()` returns a delegate at runtime instead of an expression tree. `IRewritableQueryable<T>` LINQ methods are not rewritten to expression form.
+**Symptom:** `ExpressionPolyfill.Create()` returns a delegate at runtime instead of an expression tree. `IExpressiveQueryable<T>` LINQ methods are not rewritten to expression form.
 
 **Why:** Method interceptors require the `InterceptorsNamespaces` MSBuild property to be set. The `ExpressiveSharp` NuGet package configures this automatically via its `.props` file.
 
@@ -324,7 +324,7 @@ public double TotalWithTax => Total * (1 + TaxRate);  // Total is inlined
 
 ### Is ExpressiveSharp EF Core specific?
 
-No. The core `ExpressiveSharp` package works with any LINQ provider or standalone expression tree use case. See [ExpressionPolyfill.Create](../guide/expression-polyfill) and [IRewritableQueryable](../guide/rewritable-queryable) for non-EF-Core usage.
+No. The core `ExpressiveSharp` package works with any LINQ provider or standalone expression tree use case. See [ExpressionPolyfill.Create](../guide/expression-polyfill) and [IExpressiveQueryable](../guide/expressive-queryable) for non-EF-Core usage.
 
 ### What .NET versions are supported?
 

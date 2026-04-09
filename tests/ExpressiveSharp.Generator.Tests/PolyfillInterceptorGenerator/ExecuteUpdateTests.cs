@@ -19,7 +19,7 @@ public class ExecuteUpdateTests : GeneratorTestBase
         using System.Threading;
         using System.Threading.Tasks;
         using ExpressiveSharp;
-        using ExpressiveSharp.Extensions;
+        using ExpressiveSharp;
 
         namespace TestNs
         {
@@ -50,18 +50,18 @@ public class ExecuteUpdateTests : GeneratorTestBase
                     => Task.FromResult(0);
             }
 
-            // IRewritableQueryable stubs (matching the real pattern)
+            // IExpressiveQueryable stubs (matching the real pattern)
             static class Stubs
             {
                 [PolyfillTarget(typeof(MockRelationalExtensions))]
                 public static int ExecuteUpdate<TSource>(
-                    this IRewritableQueryable<TSource> source,
+                    this IExpressiveQueryable<TSource> source,
                     Func<SetPropertyCalls<TSource>, SetPropertyCalls<TSource>> setPropertyCalls)
                     => throw new System.Diagnostics.UnreachableException();
 
                 [PolyfillTarget(typeof(MockRelationalExtensions))]
                 public static Task<int> ExecuteUpdateAsync<TSource>(
-                    this IRewritableQueryable<TSource> source,
+                    this IExpressiveQueryable<TSource> source,
                     Func<SetPropertyCalls<TSource>, SetPropertyCalls<TSource>> setPropertyCalls,
                     CancellationToken cancellationToken = default)
                     => throw new System.Diagnostics.UnreachableException();
