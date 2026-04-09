@@ -32,6 +32,11 @@ public class CommonScenarioTests : CommonScenarioTestBase
         // Cosmos models Customer/Address as owned types embedded in Order.
         // Seed by materializing the embedded graph rather than inserting
         // separate Customer/Address entities.
+        //
+        // Each order is saved individually so that transient-error retries
+        // are idempotent — a batch SaveChangesAsync can partially commit
+        // (Cosmos has no cross-partition transactions), and retrying the
+        // whole batch would cause 409 Conflict for already-saved documents.
         var addressLookup = SeedData.Addresses.ToDictionary(a => a.Id);
         var customerLookup = SeedData.Customers.ToDictionary(c => c.Id);
         var lineItemsByOrder = SeedData.LineItems
@@ -84,9 +89,8 @@ public class CommonScenarioTests : CommonScenarioTestBase
             }
 
             Context.Set<Order>().Add(cosmosOrder);
+            await RetryCosmosTransientAsync(() => Context.SaveChangesAsync());
         }
-
-        await RetryCosmosTransientAsync(() => Context.SaveChangesAsync());
     }
 
     // Cosmos DB does not support GROUP BY on computed expressions
@@ -227,25 +231,26 @@ public class CommonScenarioTests : CommonScenarioTestBase
         return Task.CompletedTask;
     }
 
-#if NET10_0_OR_GREATER
-    // EF Core 10 Cosmos provider drops rows from projections when
+    // EF Core 9+ Cosmos provider drops rows from projections when
     // null-conditional chains evaluate to null (returns fewer rows
     // instead of including null values in the result set).
+    // EF Core 8 handles this correctly.
+#if !NET8_0
     public override Task Select_CustomerName_ReturnsCorrectNullableValues()
     {
-        Assert.Inconclusive("EF Core 10 Cosmos provider drops null rows in null-conditional projections");
+        Assert.Inconclusive("EF Core 9+ Cosmos provider drops null rows in null-conditional projections");
         return Task.CompletedTask;
     }
 
     public override Task Select_TagLength_ReturnsCorrectNullableValues()
     {
-        Assert.Inconclusive("EF Core 10 Cosmos provider drops null rows in null-conditional projections");
+        Assert.Inconclusive("EF Core 9+ Cosmos provider drops null rows in null-conditional projections");
         return Task.CompletedTask;
     }
 
     public override Task Select_CustomerCountry_TwoLevelChain()
     {
-        Assert.Inconclusive("EF Core 10 Cosmos provider drops null rows in null-conditional projections");
+        Assert.Inconclusive("EF Core 9+ Cosmos provider drops null rows in null-conditional projections");
         return Task.CompletedTask;
     }
 #endif
