@@ -48,11 +48,8 @@ public sealed class AddExpressiveUsingCodeFixProvider : CodeFixProvider
 
         if (root is CompilationUnitSyntax compilationUnit)
         {
-            foreach (var usingDirective in compilationUnit.Usings)
-            {
-                if (usingDirective.Name?.ToString() == requiredNamespace)
-                    return root;
-            }
+            if (compilationUnit.Usings.Any(u => u.Name?.ToString() == requiredNamespace))
+                return root;
 
             var newUsing = SyntaxFactory.UsingDirective(
                 SyntaxFactory.ParseName(requiredNamespace))

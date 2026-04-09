@@ -166,7 +166,7 @@ public sealed class MissingExpressiveImportAnalyzerTests : GeneratorTestBase
 
     private async Task<ImmutableArray<Diagnostic>> GetDiagnosticsAsync(string source)
     {
-        var workspace = new Microsoft.CodeAnalysis.AdhocWorkspace();
+        using var workspace = new Microsoft.CodeAnalysis.AdhocWorkspace();
         var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
 
         var projectId = ProjectId.CreateNewId();

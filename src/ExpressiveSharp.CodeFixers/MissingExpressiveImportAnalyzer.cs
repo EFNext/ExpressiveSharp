@@ -90,19 +90,8 @@ public sealed class MissingExpressiveImportAnalyzer : DiagnosticAnalyzer
         method.ContainingType?.Name == "Queryable" &&
         method.ContainingType.ContainingNamespace?.ToDisplayString() == "System.Linq";
 
-    private static bool IsOrImplementsExpressiveQueryable(ITypeSymbol type)
-    {
-        if (IsExpressiveQueryableType(type))
-            return true;
-
-        foreach (var iface in type.AllInterfaces)
-        {
-            if (IsExpressiveQueryableType(iface))
-                return true;
-        }
-
-        return false;
-    }
+    private static bool IsOrImplementsExpressiveQueryable(ITypeSymbol type) =>
+        IsExpressiveQueryableType(type) || type.AllInterfaces.Any(IsExpressiveQueryableType);
 
     private static bool IsExpressiveQueryableType(ITypeSymbol type) =>
         type.Name == "IExpressiveQueryable" &&
