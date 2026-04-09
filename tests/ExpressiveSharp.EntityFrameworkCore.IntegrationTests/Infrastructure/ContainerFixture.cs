@@ -112,35 +112,56 @@ public static class ContainerFixture
         }
     }
 
+    /// <summary>
+    /// Retries container startup to handle transient Docker registry failures
+    /// (e.g. MCR rate limiting, image pull denials) that occur when multiple
+    /// TFMs pull images in parallel during CI.
+    /// </summary>
+    private static async Task StartWithRetryAsync(Func<Task> start, int maxRetries = 3)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                await start();
+                return;
+            }
+            catch when (attempt < maxRetries)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5 * (attempt + 1)));
+            }
+        }
+    }
+
 #if TEST_SQLSERVER
     private static async Task StartSqlServerAsync()
     {
-        await _sqlServer!.StartAsync();
-        SqlServerConnectionString = _sqlServer.GetConnectionString();
+        await StartWithRetryAsync(() => _sqlServer!.StartAsync());
+        SqlServerConnectionString = _sqlServer!.GetConnectionString();
     }
 #endif
 
 #if TEST_POSTGRES
     private static async Task StartPostgresAsync()
     {
-        await _postgres!.StartAsync();
-        PostgresConnectionString = _postgres.GetConnectionString();
+        await StartWithRetryAsync(() => _postgres!.StartAsync());
+        PostgresConnectionString = _postgres!.GetConnectionString();
     }
 #endif
 
 #if TEST_COSMOS
     private static async Task StartCosmosAsync()
     {
-        await _cosmos!.StartAsync();
-        CosmosConnectionString = _cosmos.GetConnectionString();
+        await StartWithRetryAsync(() => _cosmos!.StartAsync());
+        CosmosConnectionString = _cosmos!.GetConnectionString();
     }
 #endif
 
 #if TEST_POMELO_MYSQL && !NET10_0_OR_GREATER
     private static async Task StartMySqlAsync()
     {
-        await _mysql!.StartAsync();
-        MySqlConnectionString = _mysql.GetConnectionString();
+        await StartWithRetryAsync(() => _mysql!.StartAsync());
+        MySqlConnectionString = _mysql!.GetConnectionString();
     }
 #endif
 }
