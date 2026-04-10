@@ -61,7 +61,7 @@ jobs:
         with:
           name: test-results
           path: |
-            ./test-results/**/*.trx
+            ./test-results/*.trx
             ./test-results/**/coverage.xml
           retention-days: 14
 
@@ -78,7 +78,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           name: Test Results
-          path: ./test-results/**/*.trx
+          path: ./test-results/*.trx
           reporter: dotnet-trx
 
       - name: Pack
@@ -173,7 +173,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: container-test-results-${{ matrix.database }}
-          path: ./test-results/**/*.trx
+          path: ./test-results/*.trx
           retention-days: 14
 
       - name: Test report
@@ -181,5 +181,5 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           name: Container Test Results (${{ matrix.database }})
-          path: ./test-results/**/*.trx
+          path: ./test-results/*.trx
           reporter: dotnet-trx
