@@ -146,13 +146,27 @@ jobs:
           -p:TestDatabase=${{ matrix.database }}
 
       - name: Test
-        run: >-
-          dotnet test --no-build -c Release
-          --project tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests
-          -p:TestDatabase=${{ matrix.database }}
-          --
-          --report-trx --report-trx-filename results.trx
-          --results-directory ./test-results
+        run: |
+          if [ "${{ matrix.database }}" = "Cosmos" ]; then
+            # Run Cosmos tests one TFM at a time — the emulator is too
+            # resource-heavy for multiple instances to run concurrently.
+            for tfm in net8.0 net9.0 net10.0; do
+              dotnet test --no-build -c Release \
+                --project tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests \
+                -p:TestDatabase=${{ matrix.database }} \
+                -f "$tfm" \
+                -- \
+                --report-trx --report-trx-filename "results-$tfm.trx" \
+                --results-directory ./test-results
+            done
+          else
+            dotnet test --no-build -c Release \
+              --project tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests \
+              -p:TestDatabase=${{ matrix.database }} \
+              -- \
+              --report-trx --report-trx-filename results.trx \
+              --results-directory ./test-results
+          fi
 
       - name: Upload test results
         if: always()
