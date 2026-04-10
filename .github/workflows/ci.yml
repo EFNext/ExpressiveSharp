@@ -155,17 +155,17 @@ jobs:
                 --project tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests \
                 -p:TestDatabase=${{ matrix.database }} \
                 -f "$tfm" \
+                --results-directory ./test-results \
                 -- \
-                --report-trx --report-trx-filename "results-$tfm.trx" \
-                --results-directory ./test-results
+                --report-trx --report-trx-filename "results-$tfm.trx"
             done
           else
             dotnet test --no-build -c Release \
               --project tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests \
               -p:TestDatabase=${{ matrix.database }} \
+              --results-directory ./test-results \
               -- \
-              --report-trx --report-trx-filename results.trx \
-              --results-directory ./test-results
+              --report-trx --report-trx-filename results.trx
           fi
 
       - name: Upload test results
