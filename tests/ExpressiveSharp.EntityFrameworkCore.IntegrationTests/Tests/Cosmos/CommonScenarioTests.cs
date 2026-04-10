@@ -231,28 +231,24 @@ public class CommonScenarioTests : CommonScenarioTestBase
         return Task.CompletedTask;
     }
 
-    // EF Core 9+ Cosmos provider drops rows from projections when
-    // null-conditional chains evaluate to null (returns fewer rows
-    // instead of including null values in the result set).
-    // EF Core 8 handles this correctly.
-#if !NET8_0
+    // Cosmos DB drops rows from projections when null-conditional chains
+    // evaluate to null (returns fewer rows instead of including null values).
     public override Task Select_CustomerName_ReturnsCorrectNullableValues()
     {
-        Assert.Inconclusive("EF Core 9+ Cosmos provider drops null rows in null-conditional projections");
+        Assert.Inconclusive("Cosmos DB drops null rows in null-conditional projections");
         return Task.CompletedTask;
     }
 
     public override Task Select_TagLength_ReturnsCorrectNullableValues()
     {
-        Assert.Inconclusive("EF Core 9+ Cosmos provider drops null rows in null-conditional projections");
+        Assert.Inconclusive("Cosmos DB drops null rows in null-conditional projections");
         return Task.CompletedTask;
     }
 
     public override Task Select_CustomerCountry_TwoLevelChain()
     {
-        Assert.Inconclusive("EF Core 9+ Cosmos provider drops null rows in null-conditional projections");
+        Assert.Inconclusive("Cosmos DB drops null rows in null-conditional projections");
         return Task.CompletedTask;
     }
-#endif
 }
 #endif
