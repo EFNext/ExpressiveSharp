@@ -32,11 +32,6 @@ public class CommonScenarioTests : CommonScenarioTestBase
         // Cosmos models Customer/Address as owned types embedded in Order.
         // Seed by materializing the embedded graph rather than inserting
         // separate Customer/Address entities.
-        //
-        // Each order is saved individually so that transient-error retries
-        // are idempotent — a batch SaveChangesAsync can partially commit
-        // (Cosmos has no cross-partition transactions), and retrying the
-        // whole batch would cause 409 Conflict for already-saved documents.
         var addressLookup = SeedData.Addresses.ToDictionary(a => a.Id);
         var customerLookup = SeedData.Customers.ToDictionary(c => c.Id);
         var lineItemsByOrder = SeedData.LineItems
@@ -89,8 +84,9 @@ public class CommonScenarioTests : CommonScenarioTestBase
             }
 
             Context.Set<Order>().Add(cosmosOrder);
-            await RetryCosmosTransientAsync(() => Context.SaveChangesAsync());
         }
+
+        await Context.SaveChangesAsync();
     }
 
     // Cosmos DB does not support GROUP BY on computed expressions

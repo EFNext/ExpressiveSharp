@@ -148,10 +148,10 @@ jobs:
       - name: Test
         run: |
           if [ "${{ matrix.database }}" = "Cosmos" ]; then
-            # Run Cosmos tests one TFM at a time — the emulator is too
-            # resource-heavy for multiple instances to run concurrently.
-            # Reclaim Docker resources between runs so a previous emulator
-            # container doesn't starve the next.
+            # Cosmos vNext emulator binds host port 8081 (the .NET SDK
+            # connects to the gateway-advertised endpoint, which must
+            # match the host-side port), so only one emulator can run
+            # at a time. Run TFMs sequentially.
             for tfm in net8.0 net9.0 net10.0; do
               echo "::group::Cosmos tests ($tfm)"
               dotnet test --no-build -c Release \
@@ -161,14 +161,6 @@ jobs:
                 --results-directory ./test-results \
                 -- \
                 --report-trx --report-trx-filename "results-$tfm.trx"
-              echo "::endgroup::"
-              echo "::group::Docker cleanup after $tfm"
-              # Remove leftover containers, networks, and volumes — but keep
-              # cached images so we don't re-pull the 4GB Cosmos emulator.
-              docker ps -aq | xargs -r docker rm -f
-              docker network prune -f
-              docker volume prune -f
-              df -h /
               echo "::endgroup::"
             done
           else
