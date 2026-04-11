@@ -1,0 +1,63 @@
+# ExpressiveSharp
+
+> Modern C# syntax in LINQ expression trees — source-generated at compile time
+
+ExpressiveSharp is a Roslyn source generator that enables modern C# syntax (null-conditional ?., switch expressions, pattern matching) inside LINQ expression trees. It emits Expression<TDelegate> factory code at compile time from [Expressive]-decorated members and integrates with EF Core, MongoDB, and any IQueryable provider.
+
+## Table of Contents
+
+### Getting Started
+
+- [Introduction](https://efnext.github.io/ExpressiveSharp/guide/introduction.md)
+- [The Expression Tree Problem](https://efnext.github.io/ExpressiveSharp/guide/expression-tree-problem.md)
+- [Quick Start](https://efnext.github.io/ExpressiveSharp/guide/quickstart.md)
+
+### Core APIs
+
+- [\[Expressive] Properties](https://efnext.github.io/ExpressiveSharp/guide/expressive-properties.md)
+- [\[Expressive] Methods](https://efnext.github.io/ExpressiveSharp/guide/expressive-methods.md)
+- [Extension Members](https://efnext.github.io/ExpressiveSharp/guide/extension-members.md)
+- [Constructor Projections](https://efnext.github.io/ExpressiveSharp/guide/expressive-constructors.md)
+- [ExpressionPolyfill.Create](https://efnext.github.io/ExpressiveSharp/guide/expression-polyfill.md)
+- [IExpressiveQueryable\<T>](https://efnext.github.io/ExpressiveSharp/guide/expressive-queryable.md)
+- [EF Core Integration](https://efnext.github.io/ExpressiveSharp/guide/ef-core-integration.md)
+
+### Extensions
+
+- [Window Functions (SQL)](https://efnext.github.io/ExpressiveSharp/guide/window-functions.md)
+
+### Migration
+
+- [Migrating from Projectables](https://efnext.github.io/ExpressiveSharp/guide/migration-from-projectables.md)
+
+### Reference
+
+- [`[Expressive]` Attribute](https://efnext.github.io/ExpressiveSharp/reference/expressive-attribute.md)
+- [`[ExpressiveFor]` Mapping](https://efnext.github.io/ExpressiveSharp/reference/expressive-for.md)
+- [Null-Conditional Rewrite](https://efnext.github.io/ExpressiveSharp/reference/null-conditional-rewrite.md)
+- [Pattern Matching](https://efnext.github.io/ExpressiveSharp/reference/pattern-matching.md)
+- [Switch Expressions](https://efnext.github.io/ExpressiveSharp/reference/switch-expressions.md)
+- [Expression Transformers](https://efnext.github.io/ExpressiveSharp/reference/expression-transformers.md)
+- [Diagnostics & Code Fixes](https://efnext.github.io/ExpressiveSharp/reference/diagnostics.md)
+- [Troubleshooting](https://efnext.github.io/ExpressiveSharp/reference/troubleshooting.md)
+
+### Advanced
+
+- [How It Works](https://efnext.github.io/ExpressiveSharp/advanced/how-it-works.md)
+- [IOperation to Expression Mapping](https://efnext.github.io/ExpressiveSharp/advanced/ioperation-mapping.md)
+- [Block-Bodied Members](https://efnext.github.io/ExpressiveSharp/advanced/block-bodied-members.md)
+- [Custom Transformers](https://efnext.github.io/ExpressiveSharp/advanced/custom-transformers.md)
+- [Testing Strategy](https://efnext.github.io/ExpressiveSharp/advanced/testing-strategy.md)
+- [Limitations](https://efnext.github.io/ExpressiveSharp/advanced/limitations.md)
+
+### Recipes
+
+- [Computed Entity Properties](https://efnext.github.io/ExpressiveSharp/recipes/computed-properties.md)
+- [DTO Projections with Constructors](https://efnext.github.io/ExpressiveSharp/recipes/dto-projections.md)
+- [Scoring & Classification](https://efnext.github.io/ExpressiveSharp/recipes/scoring-classification.md)
+- [Nullable Navigation Properties](https://efnext.github.io/ExpressiveSharp/recipes/nullable-navigation.md)
+- [Reusable Query Filters](https://efnext.github.io/ExpressiveSharp/recipes/reusable-query-filters.md)
+- [External Member Mapping](https://efnext.github.io/ExpressiveSharp/recipes/external-member-mapping.md)
+- [Modern Syntax in LINQ Chains](https://efnext.github.io/ExpressiveSharp/recipes/modern-syntax-in-linq.md)
+- [Window Functions & Ranking](https://efnext.github.io/ExpressiveSharp/recipes/window-functions-ranking.md)
+
