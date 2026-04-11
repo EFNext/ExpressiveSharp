@@ -46,14 +46,25 @@ jobs:
         run: dotnet build --no-restore -c Release
 
       - name: Test
-        run: >-
-          dotnet test --no-build -c Release
-          --
-          --report-trx --report-trx-filename results.trx
-          --results-directory ./test-results
-          --coverage
-          --coverage-output-format cobertura
-          --coverage-output coverage.xml
+        # MongoDB integration tests run in the dedicated `mongodb-tests` job —
+        # list the non-Mongo projects explicitly so Build & Test doesn't need
+        # Docker or pay the container startup cost on every PR.
+        run: |
+          set -e
+          for proj in \
+            tests/ExpressiveSharp.Tests \
+            tests/ExpressiveSharp.IntegrationTests \
+            tests/ExpressiveSharp.Generator.Tests \
+            tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests; do
+            dotnet test --no-build -c Release \
+              --project "$proj" \
+              --results-directory ./test-results \
+              -- \
+              --report-trx --report-trx-filename "$(basename "$proj").trx" \
+              --coverage \
+              --coverage-output-format cobertura \
+              --coverage-output "$(basename "$proj").coverage.xml"
+          done
 
       - name: Upload test results
         if: always()
@@ -62,7 +73,7 @@ jobs:
           name: test-results
           path: |
             ./test-results/*.trx
-            ./test-results/**/coverage.xml
+            ./test-results/*.coverage.xml
           retention-days: 14
 
       - name: Upload coverage to Codecov
@@ -70,7 +81,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./test-results/**/coverage.xml
+          files: ./test-results/*.coverage.xml
           fail_ci_if_error: false
 
       - name: Test report
@@ -185,5 +196,69 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           name: Container Test Results (${{ matrix.database }})
+          path: ./test-results/*.trx
+          reporter: dotnet-trx
+
+  mongodb-tests:
+    name: Container Tests (MongoDB)
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    timeout-minutes: 10
+
+    env:
+      CI: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDKs
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-MongoDB-${{ hashFiles('**/*.csproj', 'Directory.Packages.props') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-MongoDB-
+            nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: >-
+          dotnet restore
+          tests/ExpressiveSharp.MongoDB.IntegrationTests/ExpressiveSharp.MongoDB.IntegrationTests.csproj
+
+      - name: Build
+        run: >-
+          dotnet build --no-restore -c Release
+          tests/ExpressiveSharp.MongoDB.IntegrationTests/ExpressiveSharp.MongoDB.IntegrationTests.csproj
+
+      - name: Test
+        run: >-
+          dotnet test --no-build -c Release
+          --project tests/ExpressiveSharp.MongoDB.IntegrationTests
+          --results-directory ./test-results
+          --
+          --report-trx --report-trx-filename results.trx
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-test-results-MongoDB
+          path: ./test-results/*.trx
+          retention-days: 14
+
+      - name: Test report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Container Test Results (MongoDB)
           path: ./test-results/*.trx
           reporter: dotnet-trx

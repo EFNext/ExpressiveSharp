@@ -9,7 +9,10 @@
 			]
 		},
 		"ghcr.io/devcontainers/features/node:1": {},
-		"ghcr.io/devcontainers/features/docker-in-docker:2": {}
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {
+			"dockerDashComposeVersion": "none",
+			"installDockerBuildx": false
+		}
 	},
 	"customizations": {
 		"vscode": {

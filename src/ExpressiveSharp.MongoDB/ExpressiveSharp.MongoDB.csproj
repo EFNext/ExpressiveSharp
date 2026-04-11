@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>MongoDB Driver integration for ExpressiveSharp — automatically expands [Expressive] members in MongoDB LINQ queries</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ExpressiveSharp.MongoDB.IntegrationTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MongoDB.Driver" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ExpressiveSharp\ExpressiveSharp.csproj" />
+  </ItemGroup>
+
+</Project>
