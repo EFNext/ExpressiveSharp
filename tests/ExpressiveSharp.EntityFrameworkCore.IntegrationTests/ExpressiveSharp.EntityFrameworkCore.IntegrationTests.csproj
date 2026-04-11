@@ -65,8 +65,10 @@
   </ItemGroup>
 
   <!-- Cosmos DB (conditional) -->
+  <!-- Uses the Linux vNext preview emulator via the generic Testcontainers
+       package; Testcontainers.CosmosDb only wraps the classic emulator. -->
   <ItemGroup Condition="'$(TestDatabase)' == 'Cosmos' or '$(TestDatabase)' == 'All'">
-    <PackageReference Include="Testcontainers.CosmosDb" />
+    <PackageReference Include="Testcontainers" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Cosmos"
                       Condition="'$(TargetFramework)' == 'net8.0'" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Cosmos"

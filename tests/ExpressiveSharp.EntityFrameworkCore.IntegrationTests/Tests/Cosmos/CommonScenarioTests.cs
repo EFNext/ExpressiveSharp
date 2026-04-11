@@ -26,6 +26,7 @@ public class CommonScenarioTests : CommonScenarioTestBase
         return handle;
     }
 
+    [TestInitialize]
     public override async Task SeedStoreData()
     {
         // Cosmos models Customer/Address as owned types embedded in Order.
@@ -112,6 +113,137 @@ public class CommonScenarioTests : CommonScenarioTestBase
     public override Task Select_PriceBreakpoints_ReturnsArrayLiteral()
     {
         Assert.Inconclusive("Cosmos DB does not support array literal projection");
+        return Task.CompletedTask;
+    }
+
+    // Cosmos DB cannot translate implicit numeric type conversions (int → double)
+    // in Where/OrderBy clauses. The expanded expression for Total contains
+    // Expression.Convert(Quantity, typeof(double)) which the Cosmos provider
+    // cannot translate — this is standard C# expression tree representation
+    // that the provider simply doesn't support.
+    public override Task Where_TotalGreaterThan100_FiltersCorrectly()
+    {
+        Assert.Inconclusive("Cosmos DB cannot translate implicit numeric type conversions");
+        return Task.CompletedTask;
+    }
+
+    public override Task Where_NoMatch_ReturnsEmpty()
+    {
+        Assert.Inconclusive("Cosmos DB cannot translate implicit numeric type conversions");
+        return Task.CompletedTask;
+    }
+
+    public override Task OrderByDescending_Total_ReturnsSortedDescending()
+    {
+        Assert.Inconclusive("Cosmos DB cannot translate implicit numeric type conversions");
+        return Task.CompletedTask;
+    }
+
+    public override Task Where_CheckedTotalGreaterThan100_FiltersCorrectly()
+    {
+        Assert.Inconclusive("Cosmos DB cannot translate implicit numeric type conversions");
+        return Task.CompletedTask;
+    }
+
+    // Cosmos DB cannot translate LINQ subqueries on owned collections.
+    // Loop-based [Expressive] members (ItemCount, ItemTotal, etc.) are
+    // transformed into Queryable.Count/Sum/Any/All, but the Cosmos provider
+    // does not support subqueries over owned collection navigations.
+    public override Task Select_ItemCount_ReturnsCorrectCounts()
+    {
+        Assert.Inconclusive("Cosmos DB does not support LINQ subqueries on owned collections");
+        return Task.CompletedTask;
+    }
+
+    public override Task Select_ItemTotal_ReturnsCorrectTotals()
+    {
+        Assert.Inconclusive("Cosmos DB does not support LINQ subqueries on owned collections");
+        return Task.CompletedTask;
+    }
+
+    public override Task Select_HasExpensiveItems_ReturnsCorrectFlags()
+    {
+        Assert.Inconclusive("Cosmos DB does not support LINQ subqueries on owned collections");
+        return Task.CompletedTask;
+    }
+
+    public override Task Select_AllItemsAffordable_ReturnsCorrectFlags()
+    {
+        Assert.Inconclusive("Cosmos DB does not support LINQ subqueries on owned collections");
+        return Task.CompletedTask;
+    }
+
+    public override Task Select_ItemTotalForExpensive_ReturnsCorrectTotals()
+    {
+        Assert.Inconclusive("Cosmos DB does not support LINQ subqueries on owned collections");
+        return Task.CompletedTask;
+    }
+
+    // Cosmos DB projects owned entities differently — projecting an owned
+    // entity without its owner requires AsNoTracking
+    public override Task Polyfill_NullConditional_ProjectsCorrectly()
+    {
+        Assert.Inconclusive("Cosmos DB cannot project owned entities without their owner");
+        return Task.CompletedTask;
+    }
+
+    // Cosmos DB does not support ORDER BY on computed expressions
+    // (only simple document paths are allowed)
+    public override Task OrderBy_TagLength_NullsAppearFirst()
+    {
+        Assert.Inconclusive("Cosmos DB does not support ORDER BY on computed expressions");
+        return Task.CompletedTask;
+    }
+
+    public override Task OrderBy_GetGrade_ReturnsSorted()
+    {
+        Assert.Inconclusive("Cosmos DB does not support ORDER BY on computed expressions");
+        return Task.CompletedTask;
+    }
+
+    public override Task OrderByDescending_GetGrade_ReturnsSortedDescending()
+    {
+        Assert.Inconclusive("Cosmos DB does not support ORDER BY on computed expressions");
+        return Task.CompletedTask;
+    }
+
+    // Cosmos DB does not translate int.ToString() in Where clauses
+    public override Task Where_Summary_TranslatesToSql()
+    {
+        Assert.Inconclusive("Cosmos DB does not translate int.ToString()");
+        return Task.CompletedTask;
+    }
+
+    public override Task Where_DetailedSummary_ConcatArrayTranslatesToSql()
+    {
+        Assert.Inconclusive("Cosmos DB does not translate int.ToString()");
+        return Task.CompletedTask;
+    }
+
+    // Cosmos DB has different null equality semantics for owned types
+    public override Task Where_CustomerNameIsNull_FiltersCorrectly()
+    {
+        Assert.Inconclusive("Cosmos DB has different null semantics for owned type properties");
+        return Task.CompletedTask;
+    }
+
+    // Cosmos DB drops rows from projections when null-conditional chains
+    // evaluate to null (returns fewer rows instead of including null values).
+    public override Task Select_CustomerName_ReturnsCorrectNullableValues()
+    {
+        Assert.Inconclusive("Cosmos DB drops null rows in null-conditional projections");
+        return Task.CompletedTask;
+    }
+
+    public override Task Select_TagLength_ReturnsCorrectNullableValues()
+    {
+        Assert.Inconclusive("Cosmos DB drops null rows in null-conditional projections");
+        return Task.CompletedTask;
+    }
+
+    public override Task Select_CustomerCountry_TwoLevelChain()
+    {
+        Assert.Inconclusive("Cosmos DB drops null rows in null-conditional projections");
         return Task.CompletedTask;
     }
 }

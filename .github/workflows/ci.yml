@@ -61,7 +61,7 @@ jobs:
         with:
           name: test-results
           path: |
-            ./test-results/**/*.trx
+            ./test-results/*.trx
             ./test-results/**/coverage.xml
           retention-days: 14
 
@@ -78,7 +78,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           name: Test Results
-          path: ./test-results/**/*.trx
+          path: ./test-results/*.trx
           reporter: dotnet-trx
 
       - name: Pack
@@ -146,20 +146,38 @@ jobs:
           -p:TestDatabase=${{ matrix.database }}
 
       - name: Test
-        run: >-
-          dotnet test --no-build -c Release
-          --project tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests
-          -p:TestDatabase=${{ matrix.database }}
-          --
-          --report-trx --report-trx-filename results.trx
-          --results-directory ./test-results
+        run: |
+          if [ "${{ matrix.database }}" = "Cosmos" ]; then
+            # Cosmos vNext emulator binds host port 8081 (the .NET SDK
+            # connects to the gateway-advertised endpoint, which must
+            # match the host-side port), so only one emulator can run
+            # at a time. Run TFMs sequentially.
+            for tfm in net8.0 net9.0 net10.0; do
+              echo "::group::Cosmos tests ($tfm)"
+              dotnet test --no-build -c Release \
+                --project tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests \
+                -p:TestDatabase=${{ matrix.database }} \
+                -f "$tfm" \
+                --results-directory ./test-results \
+                -- \
+                --report-trx --report-trx-filename "results-$tfm.trx"
+              echo "::endgroup::"
+            done
+          else
+            dotnet test --no-build -c Release \
+              --project tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests \
+              -p:TestDatabase=${{ matrix.database }} \
+              --results-directory ./test-results \
+              -- \
+              --report-trx --report-trx-filename results.trx
+          fi
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: container-test-results-${{ matrix.database }}
-          path: ./test-results/**/*.trx
+          path: ./test-results/*.trx
           retention-days: 14
 
       - name: Test report
@@ -167,5 +185,5 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           name: Container Test Results (${{ matrix.database }})
-          path: ./test-results/**/*.trx
+          path: ./test-results/*.trx
           reporter: dotnet-trx

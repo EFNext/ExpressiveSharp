@@ -31,7 +31,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     }
 
     [TestMethod]
-    public async Task Where_TotalGreaterThan100_FiltersCorrectly()
+    public virtual async Task Where_TotalGreaterThan100_FiltersCorrectly()
     {
         Expression<Func<Order, double>> totalExpr = o => o.Total;
         var expanded = (Expression<Func<Order, double>>)totalExpr.ExpandExpressives();
@@ -47,7 +47,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     }
 
     [TestMethod]
-    public async Task Where_NoMatch_ReturnsEmpty()
+    public virtual async Task Where_NoMatch_ReturnsEmpty()
     {
         Expression<Func<Order, double>> totalExpr = o => o.Total;
         var expanded = (Expression<Func<Order, double>>)totalExpr.ExpandExpressives();
@@ -62,7 +62,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     }
 
     [TestMethod]
-    public async Task OrderByDescending_Total_ReturnsSortedDescending()
+    public virtual async Task OrderByDescending_Total_ReturnsSortedDescending()
     {
         Expression<Func<Order, double>> totalExpr = o => o.Total;
         var expanded = (Expression<Func<Order, double>>)totalExpr.ExpandExpressives();
@@ -280,7 +280,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     // ── Loop Tests ──────────────────────────────────────────────────────────
 
     [TestMethod]
-    public async Task Select_ItemCount_ReturnsCorrectCounts()
+    public virtual async Task Select_ItemCount_ReturnsCorrectCounts()
     {
         Expression<Func<Order, int>> expr = o => o.ItemCount();
         var expanded = (Expression<Func<Order, int>>)expr.ExpandExpressives();
@@ -291,7 +291,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     }
 
     [TestMethod]
-    public async Task Select_ItemTotal_ReturnsCorrectTotals()
+    public virtual async Task Select_ItemTotal_ReturnsCorrectTotals()
     {
         Expression<Func<Order, double>> expr = o => o.ItemTotal();
         var expanded = (Expression<Func<Order, double>>)expr.ExpandExpressives();
@@ -302,7 +302,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     }
 
     [TestMethod]
-    public async Task Select_HasExpensiveItems_ReturnsCorrectFlags()
+    public virtual async Task Select_HasExpensiveItems_ReturnsCorrectFlags()
     {
         Expression<Func<Order, bool>> expr = o => o.HasExpensiveItems();
         var expanded = (Expression<Func<Order, bool>>)expr.ExpandExpressives();
@@ -313,7 +313,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     }
 
     [TestMethod]
-    public async Task Select_AllItemsAffordable_ReturnsCorrectFlags()
+    public virtual async Task Select_AllItemsAffordable_ReturnsCorrectFlags()
     {
         Expression<Func<Order, bool>> expr = o => o.AllItemsAffordable();
         var expanded = (Expression<Func<Order, bool>>)expr.ExpandExpressives();
@@ -324,7 +324,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     }
 
     [TestMethod]
-    public async Task Select_ItemTotalForExpensive_ReturnsCorrectTotals()
+    public virtual async Task Select_ItemTotalForExpensive_ReturnsCorrectTotals()
     {
         Expression<Func<Order, double>> expr = o => o.ItemTotalForExpensive();
         var expanded = (Expression<Func<Order, double>>)expr.ExpandExpressives();
@@ -337,7 +337,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     // ── Null Conditional ────────────────────────────────────────────────────
 
     [TestMethod]
-    public async Task Select_CustomerName_ReturnsCorrectNullableValues()
+    public virtual async Task Select_CustomerName_ReturnsCorrectNullableValues()
     {
         Expression<Func<Order, string?>> expr = o => o.CustomerName;
         var expanded = (Expression<Func<Order, string?>>)expr.ExpandExpressives();
@@ -348,7 +348,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     }
 
     [TestMethod]
-    public async Task Select_TagLength_ReturnsCorrectNullableValues()
+    public virtual async Task Select_TagLength_ReturnsCorrectNullableValues()
     {
         Expression<Func<Order, int?>> expr = o => o.TagLength;
         var expanded = (Expression<Func<Order, int?>>)expr.ExpandExpressives();
@@ -375,7 +375,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     }
 
     [TestMethod]
-    public async Task Where_CustomerNameIsNull_FiltersCorrectly()
+    public virtual async Task Where_CustomerNameIsNull_FiltersCorrectly()
     {
         Expression<Func<Order, string?>> nameExpr = o => o.CustomerName;
         var expanded = (Expression<Func<Order, string?>>)nameExpr.ExpandExpressives();
@@ -411,7 +411,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     // ── Nullable Chain ──────────────────────────────────────────────────────
 
     [TestMethod]
-    public async Task Select_CustomerCountry_TwoLevelChain()
+    public virtual async Task Select_CustomerCountry_TwoLevelChain()
     {
         Expression<Func<Order, string?>> expr = o => o.CustomerCountry;
         var expanded = (Expression<Func<Order, string?>>)expr.ExpandExpressives();
@@ -526,7 +526,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     }
 
     [TestMethod]
-    public async Task Polyfill_NullConditional_ProjectsCorrectly()
+    public virtual async Task Polyfill_NullConditional_ProjectsCorrectly()
     {
         var expr = ExpressionPolyfill.Create((Order o) => o.Customer != null ? o.Customer.Name : null);
 
@@ -607,7 +607,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     }
 
     [TestMethod]
-    public async Task Where_Summary_TranslatesToSql()
+    public virtual async Task Where_Summary_TranslatesToSql()
     {
         // Summary uses string.Concat(string, string, string, string).
         // This verifies the 4-arg overload translates to SQL (Where throws if not).
@@ -621,7 +621,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     }
 
     [TestMethod]
-    public async Task Where_DetailedSummary_ConcatArrayTranslatesToSql()
+    public virtual async Task Where_DetailedSummary_ConcatArrayTranslatesToSql()
     {
         // DetailedSummary has 7 string parts, so the emitter produces string.Concat(string[]).
         // FlattenConcatArrayCalls rewrites it to chained Concat calls for EF Core.
@@ -649,7 +649,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     }
 
     [TestMethod]
-    public async Task OrderBy_GetGrade_ReturnsSorted()
+    public virtual async Task OrderBy_GetGrade_ReturnsSorted()
     {
         Expression<Func<Order, string>> gradeExpr = o => o.GetGrade();
         var expandedGrade = (Expression<Func<Order, string>>)gradeExpr.ExpandExpressives();
@@ -664,7 +664,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     }
 
     [TestMethod]
-    public async Task OrderByDescending_GetGrade_ReturnsSortedDescending()
+    public virtual async Task OrderByDescending_GetGrade_ReturnsSortedDescending()
     {
         Expression<Func<Order, string>> gradeExpr = o => o.GetGrade();
         var expandedGrade = (Expression<Func<Order, string>>)gradeExpr.ExpandExpressives();
