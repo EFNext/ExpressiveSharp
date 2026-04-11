@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Text;
 using ExpressiveSharp.Generator.Infrastructure;
 using Microsoft.CodeAnalysis;
@@ -3165,12 +3166,12 @@ internal sealed class ExpressionTreeEmitter
             float f => float.IsPositiveInfinity(f) ? "float.PositiveInfinity"
                 : float.IsNegativeInfinity(f) ? "float.NegativeInfinity"
                 : float.IsNaN(f) ? "float.NaN"
-                : $"{f}f",
+                : f.ToString("R", CultureInfo.InvariantCulture) + "f",
             double d => double.IsPositiveInfinity(d) ? "double.PositiveInfinity"
                 : double.IsNegativeInfinity(d) ? "double.NegativeInfinity"
                 : double.IsNaN(d) ? "double.NaN"
-                : $"{d}d",
-            decimal m => $"{m}m",
+                : d.ToString("R", CultureInfo.InvariantCulture) + "d",
+            decimal m => m.ToString(CultureInfo.InvariantCulture) + "m",
             long l => $"{l}L",
             ulong ul => $"{ul}UL",
             uint ui => $"{ui}U",
