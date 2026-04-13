@@ -1,0 +1,37 @@
+MSSharedLib1024.snk — Microsoft's public-key open shared signing key
+====================================================================
+
+What this is
+------------
+This is a .snk file containing ONLY the public key (no private key) of
+Microsoft's open shared assembly signing key, originally distributed as
+"35MSSharedLib1024.snk". It is openly published in the dotnet/arcade repo
+at:
+
+  https://github.com/dotnet/arcade/blob/main/src/Microsoft.DotNet.Arcade.Sdk/tools/snk/35MSSharedLib1024.snk
+
+Source SHA-256: 6fe03f0bbe162b4b24d9f9ba0b07204d8325f15533f9b276b58a4e0db0b24cd1
+Size: 160 bytes (PUBLICKEYBLOB format)
+
+Why it's checked in
+-------------------
+The ExpressiveSharp.Docs.Playground.WasmWorkspaceShim project needs to
+impersonate `Microsoft.CodeAnalysis.Workspaces.UnitTests` so that Roslyn's
+[InternalsVisibleTo("Microsoft.CodeAnalysis.Workspaces.UnitTests", PublicKey=...)]
+attribute lets us import the internal `IPersistentStorageConfiguration`
+type. The PublicKey clause references this exact 1024-bit public key.
+With <PublicSign>true</PublicSign>, MSBuild signs the shim assembly's
+metadata with the public-key fingerprint without needing the private key.
+
+This is the same approach used by Mono, ILSpy, and other open-source
+projects that need to access Roslyn / .NET Framework internals. Microsoft
+distributes this key precisely so that test/tooling projects can perform
+this kind of public-key impersonation.
+
+Security note
+-------------
+This is a PUBLIC KEY ONLY. There is no security risk in checking it in.
+You cannot forge a signed assembly with it — only the matching private
+key (held by Microsoft) can produce real signatures. We use it solely to
+let the JIT/loader/Roslyn's InternalsVisibleTo check accept our shim's
+public-key fingerprint as a match.

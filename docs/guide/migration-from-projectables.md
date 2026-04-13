@@ -156,17 +156,17 @@ static string FullNameExpr(MyEntity e) => e.FirstName + " " + e.LastName;
 
 `[ExpressiveFor]` also enables a use case that `UseMemberBody` never supported -- providing expression tree bodies for methods on types you do not own:
 
-```csharp
-using ExpressiveSharp.Mapping;
-
-// Make Math.Clamp usable in EF Core queries
-[ExpressiveFor(typeof(Math), nameof(Math.Clamp))]
-static double Clamp(double value, double min, double max)
-    => value < min ? min : (value > max ? max : value);
-
-// Now this translates to SQL instead of throwing:
-db.Orders.Where(o => Math.Clamp(o.Price, 20, 100) > 50)
-```
+::: expressive-sample
+db.LineItems.Where(i => Math.Clamp((double)i.UnitPrice, 20, 100) > 50)
+---setup---
+public static class MathExpressives
+{
+    // Make Math.Clamp usable in EF Core queries
+    [ExpressiveSharp.Mapping.ExpressiveFor(typeof(Math), nameof(Math.Clamp))]
+    static double Clamp(double value, double min, double max)
+        => value < min ? min : (value > max ? max : value);
+}
+:::
 
 **Scenario 3: Constructors**
 
@@ -256,12 +256,11 @@ After migrating, you gain access to features that Projectables never had. Here a
 
 Use `IExpressiveQueryable<T>` or `ExpressiveDbSet<T>` to write LINQ queries with modern C# syntax:
 
-```csharp
-var results = ctx.Orders
-    .Where(o => o.Customer?.Email != null)
-    .Select(o => new { o.Id, Name = o.Customer?.Name ?? "Unknown" })
-    .ToList();
-```
+::: expressive-sample
+db.Orders
+    .Where(o => o.Customer.Email != null)
+    .Select(o => new { o.Id, Name = o.Customer.Name ?? "Unknown" })
+:::
 
 See [Modern Syntax in LINQ Chains](/recipes/modern-syntax-in-linq).
 
@@ -269,58 +268,83 @@ See [Modern Syntax in LINQ Chains](/recipes/modern-syntax-in-linq).
 
 Create expression trees inline without needing an attribute:
 
-```csharp
-var expr = ExpressionPolyfill.Create((Order o) => o.Tag?.Length);
-```
+::: expressive-sample
+db.Customers.Where(ExpressionPolyfill.Create((Customer c) => c.Email?.Length > 5))
+:::
 
 ### Switch Expressions and Pattern Matching
 
-```csharp
-[Expressive]
-public string GetGrade() => Price switch
+::: expressive-sample
+db.Products.Select(p => new { p.Name, Grade = p.GetGrade() })
+---setup---
+public static class ProductExt
 {
-    >= 100 => "Premium",
-    >= 50  => "Standard",
-    _      => "Budget",
-};
+    [Expressive]
+    public static string GetGrade(this Product p) => p.ListPrice switch
+    {
+        >= 100m => "Premium",
+        >= 50m  => "Standard",
+        _       => "Budget",
+    };
+}
+:::
 
-[Expressive]
-public bool IsSpecialOrder => this is { Quantity: > 100, Price: >= 50 };
-```
+::: expressive-sample
+db.LineItems.Where(i => i.IsSpecialLine())
+---setup---
+public static class LineItemExt
+{
+    [Expressive]
+    public static bool IsSpecialLine(this LineItem i) => i is { Quantity: > 100, UnitPrice: >= 50m };
+}
+:::
 
 See [Scoring and Classification](/recipes/scoring-classification).
 
 ### Constructor Projections
 
-```csharp
-public class OrderSummary
+::: expressive-sample
+db.Orders.Select(o => OrderSummaryBuilder.From(o))
+---setup---
+public sealed class OrderSummary
+{
+    public int Id { get; init; }
+    public decimal Total { get; init; }
+}
+
+public static class OrderSummaryBuilder
 {
     [Expressive]
-    public OrderSummary(Order o)
+    public static OrderSummary From(Order o) => new OrderSummary
     {
-        Id = o.Id;
-        Total = o.Price * o.Quantity;
-    }
+        Id = o.Id,
+        Total = o.Items.Sum(i => i.UnitPrice * i.Quantity),
+    };
 }
-```
+:::
 
 See [DTO Projections with Constructors](/recipes/dto-projections).
 
 ### External Member Mapping
 
-```csharp
-using ExpressiveSharp.Mapping;
-
-[ExpressiveFor(typeof(Math), nameof(Math.Abs))]
-static int Abs(int value) => value < 0 ? -value : value;
-```
+::: expressive-sample
+db.LineItems.Where(i => Math.Abs(i.Quantity) > 0)
+---setup---
+public static class MathExpressives
+{
+    [ExpressiveSharp.Mapping.ExpressiveFor(typeof(Math), nameof(Math.Abs))]
+    static int Abs(int value) => value < 0 ? -value : value;
+}
+:::
 
 See [External Member Mapping](/recipes/external-member-mapping).
 
 ### Custom Transformers
 
-```csharp
-public class MyTransformer : IExpressionTreeTransformer
+::: expressive-sample
+db.LineItems.Select(i => new { i.Id, Adjusted = i.AdjustedTotal() })
+---setup---
+public class MyTransformer : ExpressiveSharp.IExpressionTreeTransformer
 {
     public Expression Transform(Expression expression)
     {
@@ -328,9 +352,12 @@ public class MyTransformer : IExpressionTreeTransformer
     }
 }
 
-[Expressive(Transformers = new[] { typeof(MyTransformer) })]
-public double AdjustedTotal => Price * Quantity * 1.1;
-```
+public static class LineItemExt
+{
+    [Expressive(Transformers = new[] { typeof(MyTransformer) })]
+    public static decimal AdjustedTotal(this LineItem i) => i.UnitPrice * i.Quantity * 1.1m;
+}
+:::
 
 ### SQL Window Functions
 
@@ -342,7 +369,7 @@ var ranked = dbContext.Orders.Select(o => new
     o.Id,
     Rank = WindowFunction.Rank(
         Window.PartitionBy(o.CustomerId)
-              .OrderByDescending(o.GrandTotal))
+              .OrderByDescending(o.PlacedAt))
 });
 ```
 

@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "ExpressiveSharp"
   text: "Modern C# syntax in LINQ expression trees"
-  tagline: Write null-conditional operators, switch expressions, and pattern matching in your queries — source-generated at compile time with zero runtime overhead.
+  tagline: Write null-conditional operators, switch expressions, and pattern matching in your queries — source-generated at compile time with zero runtime overhead. Works with EF Core, MongoDB, and any IQueryable provider.
   actions:
     - theme: brand
       text: Introduction
@@ -26,8 +26,8 @@ features:
     details: "Null-conditional ?., switch expressions, pattern matching, string interpolation, tuples, list patterns, and more — all valid inside expression trees."
 
   - icon: "\U0001F310"
-    title: Not Just EF Core
-    details: Works with any LINQ provider or standalone. ExpressionPolyfill.Create gives you inline expression trees with modern syntax, no EF Core required.
+    title: Provider-Agnostic
+    details: Works with EF Core (every provider — SQL Server, Postgres, SQLite, Cosmos, …), MongoDB, and any IQueryable. One library, every backend.
 
   - icon: "\u26A1"
     title: Zero Runtime Overhead
@@ -43,7 +43,7 @@ features:
 
   - icon: "\U0001F3D7\uFE0F"
     title: Constructor Projections
-    details: "Mark a constructor with [Expressive] to project DTOs directly in queries — new OrderDto(o) translates to a full SQL projection."
+    details: "Mark a constructor with [Expressive] to project DTOs directly in queries — new OrderDto(o) translates to a full provider projection."
 
   - icon: "\U0001F4CA"
     title: SQL Window Functions
@@ -51,7 +51,7 @@ features:
 
   - icon: "\U0001F527"
     title: Customizable Transformer Pipeline
-    details: "Four built-in transformers adapt expression trees for SQL providers, plus plugin-contributed transformers. Implement IExpressionTreeTransformer for custom rewrites."
+    details: "Built-in transformers adapt expression trees for your provider, plus plugin-contributed transformers. Implement IExpressionTreeTransformer for custom rewrites."
 
   - icon: "\U0001FA7A"
     title: Roslyn Analyzers & Code Fixes
@@ -63,15 +63,14 @@ features:
 **Without ExpressiveSharp** — you hit two walls immediately:
 
 ```csharp
-// Problem 1: Computed properties are opaque to EF Core
+// Problem 1: Computed properties are opaque to LINQ providers
 public class Order
 {
-    public double Price { get; set; }
+    public decimal Price { get; set; }
     public int Quantity { get; set; }
-    public Customer? Customer { get; set; }
 
-    // EF Core can't see inside this — it throws or silently fetches everything
-    public double Total => Price * Quantity;
+    // The provider can't see inside this — it throws or silently fetches everything
+    public decimal Total => Price * Quantity;
 }
 
 // Problem 2: Modern C# syntax is illegal in expression trees
@@ -85,66 +84,29 @@ db.Orders
 
 You end up duplicating formulas as inline expressions and writing ugly ternary chains.
 
-**With ExpressiveSharp** — write natural C#, the source generator handles the rest:
+**With ExpressiveSharp** — write natural C#. The source generator handles it, and your provider (EF Core / MongoDB / your own `IQueryable`) gets a clean, translatable expression tree. Every doc page's live samples render the same query for SQLite, Postgres, SQL Server, Cosmos, MongoDB, and the generator output side-by-side — so you see exactly how it translates for your stack.
 
-```csharp
-public class Order
+::: expressive-sample
+db.Orders
+    .Where(o => o.Customer.Email != null && o.Total() > 500m)
+    .Select(o => new { o.Id, Total = o.Total(), Grade = o.Grade(), Email = o.Customer.Email })
+---setup---
+public static class OrderExt
 {
-    public double Price { get; set; }
-    public int Quantity { get; set; }
-    public Customer? Customer { get; set; }
+    [Expressive]
+    public static decimal Total(this Order o) => o.Items.Sum(i => i.UnitPrice * i.Quantity);
 
     [Expressive]
-    public double Total => Price * Quantity;      // translated to SQL
-
-    [Expressive]
-    public string GetGrade() => Price switch      // switch expression -> SQL CASE
+    public static string Grade(this Order o) => o.Total() switch
     {
-        >= 100 => "Premium",
-        >= 50  => "Standard",
-        _      => "Budget",
+        >= 1000m => "Premium",
+        >= 100m  => "Standard",
+        _        => "Budget",
     };
 }
+:::
 
-// Extension methods and C# 14 extension properties work too
-public static class OrderExtensions
-{
-    [Expressive]
-    public static bool IsHighValue(this Order o) => o.Total > 500;
-}
-
-// C# 14 extension members (.NET 10+)
-public static class OrderReviewExtensions
-{
-    extension(Order o)
-    {
-        [Expressive]
-        public bool NeedsReview => o.Customer?.Email == null && o.Total > 100;
-    }
-}
-
-// ?. syntax, computed properties, switch expressions — all translated to SQL
-var results = db.Orders
-    .AsExpressiveDbSet()
-    .Where(o => o.Customer?.Email != null && o.IsHighValue())
-    .Select(o => new { o.Id, o.Total, Grade = o.GetGrade(), o.NeedsReview })
-    .ToList();
-```
-
-```sql
-SELECT "o"."Id",
-       "o"."Price" * CAST("o"."Quantity" AS REAL) AS "Total",
-       CASE
-           WHEN "o"."Price" >= 100.0 THEN 'Premium'
-           WHEN "o"."Price" >= 50.0 THEN 'Standard'
-           ELSE 'Budget'
-       END AS "Grade"
-FROM "Orders" AS "o"
-LEFT JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
-WHERE "c"."Email" IS NOT NULL
-```
-
-Computed properties are **inlined into SQL** — no client-side evaluation, no N+1. Modern syntax **just works**.
+Computed properties are **inlined into the provider's native query language** — no client-side evaluation, no N+1. Modern syntax **just works**.
 
 ## NuGet Packages
 
@@ -153,4 +115,5 @@ Computed properties are **inlined into SQL** — no client-side evaluation, no N
 | [`ExpressiveSharp`](https://www.nuget.org/packages/ExpressiveSharp/) | Core runtime — expression expansion, transformers, `IExpressiveQueryable<T>`, `ExpressionPolyfill` |
 | [`ExpressiveSharp.Abstractions`](https://www.nuget.org/packages/ExpressiveSharp.Abstractions/) | Lightweight — attributes (`[Expressive]`, `[ExpressiveFor]`), `IExpressionTreeTransformer`, source generator only |
 | [`ExpressiveSharp.EntityFrameworkCore`](https://www.nuget.org/packages/ExpressiveSharp.EntityFrameworkCore/) | EF Core integration — `UseExpressives()`, `ExpressiveDbSet<T>`, Include/ThenInclude, async methods |
+| [`ExpressiveSharp.MongoDB`](https://www.nuget.org/packages/ExpressiveSharp.MongoDB/) | MongoDB integration — `.AsExpressive()` on `IMongoCollection<T>`, MQL translation |
 | [`ExpressiveSharp.EntityFrameworkCore.RelationalExtensions`](https://www.nuget.org/packages/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions/) | SQL window functions — ROW_NUMBER, RANK, DENSE_RANK, NTILE (experimental) |

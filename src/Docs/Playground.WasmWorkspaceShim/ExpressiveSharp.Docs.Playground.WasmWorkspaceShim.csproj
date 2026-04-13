@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- WorkspaceShim — a tiny shim assembly whose <AssemblyName> impersonates
+       Microsoft.CodeAnalysis.Workspaces.UnitTests so that Roslyn's
+       [InternalsVisibleTo("Microsoft.CodeAnalysis.Workspaces.UnitTests", PublicKey=...)]
+       attribute lets us reference the internal IPersistentStorageConfiguration
+       type. The single class we export, NoOpPersistentStorageConfiguration,
+       prevents Roslyn's DefaultPersistentStorageConfiguration..cctor() from
+       running — that cctor calls Process.GetCurrentProcess() which throws
+       PlatformNotSupportedException on Blazor WebAssembly.
+
+       This is the proven DotNetLab pattern, scoped down to just the one shim
+       we need (DotNetLab ships four such projects for additional internal
+       API access we don't require). See MSSharedLib1024.snk.txt next to the
+       .snk for why we check Microsoft's public-key SNK directly into the repo. -->
+
+  <PropertyGroup>
+    <!-- Override Directory.Build.props' multi-target default. -->
+    <TargetFrameworks></TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
+
+    <!-- The actual on-disk DLL name must exactly match the name in Roslyn's
+         [InternalsVisibleTo] attribute. The C# namespace is unrelated. -->
+    <AssemblyName>Microsoft.CodeAnalysis.Workspaces.UnitTests</AssemblyName>
+
+    <!-- Public-sign with Microsoft's open shared key. PublicSign uses the
+         public key fingerprint without needing the private key — sufficient
+         because Roslyn's IVT check looks at the public key, not a real
+         signature. -->
+    <SignAssembly>true</SignAssembly>
+    <PublicSign>true</PublicSign>
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)MSSharedLib1024.snk</AssemblyOriginatorKeyFile>
+
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+
+    <!-- CS8002: referenced assembly does not have a strong name. The Wasm host
+         consumes this shim but is itself unsigned, which is fine — IVT goes
+         the other direction (Roslyn → us, not us → consumers). -->
+    <NoWarn>$(NoWarn);CS8002</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Brings in IPersistentStorageConfiguration, MefConstruction,
+         ExportWorkspaceServiceAttribute, ServiceLayer, etc. The IVT
+         impersonation gives us access to the internal types in this
+         package's transitively-referenced workspace assemblies. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" />
+  </ItemGroup>
+
+</Project>

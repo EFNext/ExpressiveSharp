@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The fresh, doc-friendly demo data model the Playground operates on.
+       Single-targets net10.0 to match the Blazor WASM playground host. -->
+
+  <PropertyGroup>
+    <Description>Sample data model used by the ExpressiveSharp Playground (interactive docs).</Description>
+    <TargetFrameworks></TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>ExpressiveSharp.Docs.PlaygroundModel</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- EF Core 10. The PlaygroundDbContext is constructed in the WASM host
+         to back ToQueryString(); we never open a real connection so the
+         provider's native deps don't matter at the model level. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore"
+                      VersionOverride="10.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\ExpressiveSharp\ExpressiveSharp.csproj" />
+    <ProjectReference Include="..\..\ExpressiveSharp.EntityFrameworkCore\ExpressiveSharp.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\ExpressiveSharp.Abstractions\ExpressiveSharp.Abstractions.csproj" />
+
+    <!-- This project intentionally has NO [Expressive] members. The entities
+         are plain POCOs and samples introduce their own [Expressive] extension
+         methods inline via the `setup` attribute on the playground component.
+         Therefore the ExpressiveSharp.Generator analyzer reference is not
+         needed here — runtime registries are emitted by the generator running
+         at runtime against each snippet's compilation in the WASM host. -->
+  </ItemGroup>
+
+</Project>

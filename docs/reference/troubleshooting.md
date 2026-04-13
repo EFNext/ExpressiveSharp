@@ -195,7 +195,7 @@ services.AddDbContext<MyDbContext>(options =>
            .UseExpressives());
 ```
 
-See [EF Core Integration](../guide/ef-core-integration) for the full setup guide.
+See [EF Core Integration](../guid./integrations/ef-core) for the full setup guide.
 
 ---
 

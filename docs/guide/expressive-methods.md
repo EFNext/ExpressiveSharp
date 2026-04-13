@@ -4,7 +4,7 @@ Expressive methods work like expressive properties but accept parameters, making
 
 ## Defining an Expressive Method
 
-Add `[Expressive]` to any **expression-bodied method** on an entity:
+Add `[Expressive]` to any **expression-bodied method**:
 
 ```csharp
 using ExpressiveSharp;
@@ -22,120 +22,105 @@ public class Order
 
 The source generator emits a companion `Expression<Func<Order, double, bool>>` at compile time. When the method is called in a LINQ query, the expression tree is substituted automatically.
 
+The webshop entities in these samples don't have built-in `[Expressive]` methods, so the examples below define them as extension methods in `---setup---` blocks. The behavior is identical to instance methods.
+
 ## Using Expressive Methods in Queries
 
-```csharp
-// Pass runtime values as arguments
-var expensive = ctx.Orders
-    .Where(o => o.IsExpensive(100))
-    .ToList();
+::: expressive-sample
+db.Orders
+    .Where(o => o.IsExpensive(500m))
+    .Select(o => new { o.Id, Expensive = o.IsExpensive(1000m) })
+---setup---
+public static class OrderExt
+{
+    [Expressive]
+    public static bool IsExpensive(this Order o, decimal threshold) =>
+        o.Items.Sum(i => i.UnitPrice * i.Quantity) > threshold;
+}
+:::
 
-// Use in Select
-var summary = ctx.Orders
-    .Select(o => new { o.Id, Expensive = o.IsExpensive(50) })
-    .ToList();
-```
-
-The method argument (`100` or `50`) is captured and translated into the generated SQL expression.
+The method argument (`500m` or `1000m`) is captured and translated into the generated expression for each provider.
 
 ## Methods with Multiple Parameters
 
-```csharp
-public class Product
+::: expressive-sample
+db.Products.Select(p => new
 {
-    public double ListPrice { get; set; }
-    public double DiscountRate { get; set; }
-
+    p.Id,
+    FinalPrice = p.CalculatePrice(0.05m, 10),
+})
+---setup---
+public static class ProductExt
+{
     [Expressive]
-    public double CalculatePrice(double additionalDiscount, int quantity) =>
-        ListPrice * (1 - DiscountRate - additionalDiscount) * quantity;
+    public static decimal CalculatePrice(this Product p, decimal additionalDiscount, int quantity) =>
+        p.ListPrice * (1 - additionalDiscount) * quantity;
 }
-
-// Usage
-var prices = ctx.Products
-    .Select(p => new
-    {
-        p.Id,
-        FinalPrice = p.CalculatePrice(0.05, 10)
-    })
-    .ToList();
-```
+:::
 
 ## Switch Expressions in Methods
 
 Switch expressions and pattern matching work inside `[Expressive]` methods -- this is one of the key features that plain expression trees cannot do:
 
-```csharp
-public class Order
+::: expressive-sample
+db.Orders.Select(o => new { o.Id, Grade = o.GetGrade() })
+---setup---
+public static class OrderExt
 {
-    public double Price { get; set; }
-
     [Expressive]
-    public string GetGrade() => Price switch
-    {
-        >= 100 => "Premium",
-        >= 50  => "Standard",
-        _      => "Budget",
-    };
+    public static string GetGrade(this Order o) =>
+        o.Items.Sum(i => i.UnitPrice * i.Quantity) switch
+        {
+            >= 100m => "Premium",
+            >= 50m  => "Standard",
+            _       => "Budget",
+        };
 }
+:::
 
-var graded = ctx.Orders
-    .Select(o => new { o.Id, Grade = o.GetGrade() })
-    .ToList();
-```
-
-Generated SQL:
-```sql
-SELECT "o"."Id",
-       CASE
-           WHEN "o"."Price" >= 100.0 THEN 'Premium'
-           WHEN "o"."Price" >= 50.0 THEN 'Standard'
-           ELSE 'Budget'
-       END AS "Grade"
-FROM "Orders" AS "o"
-```
+The query tabs above show how each provider translates the switch expression (typically as a CASE expression for SQL providers).
 
 ## Composing Methods and Properties
 
-Expressive methods can call expressive properties and vice versa. The runtime expander resolves the entire chain:
+Expressive methods can call other expressive members and vice versa. The runtime expander resolves the entire chain:
 
-```csharp
-public class Order
+::: expressive-sample
+db.Orders.Where(o => o.ExceedsThreshold(500m)).Select(o => o.Id)
+---setup---
+public static class OrderExt
 {
-    public double Price { get; set; }
-    public int Quantity { get; set; }
-    public double TaxRate { get; set; }
+    [Expressive]
+    public static decimal Subtotal(this Order o) =>
+        o.Items.Sum(i => i.UnitPrice * i.Quantity);
 
     [Expressive]
-    public double Subtotal => Price * Quantity;
+    public static decimal Tax(this Order o, decimal rate) =>
+        o.Subtotal() * rate;
 
     [Expressive]
-    public double Tax => Subtotal * TaxRate;
-
-    // Method calling expressive properties
-    [Expressive]
-    public bool ExceedsThreshold(double threshold) =>
-        (Subtotal + Tax) > threshold;
+    public static bool ExceedsThreshold(this Order o, decimal threshold) =>
+        (o.Subtotal() + o.Tax(0.21m)) > threshold;
 }
-
-var highValue = ctx.Orders
-    .Where(o => o.ExceedsThreshold(500))
-    .ToList();
-```
+:::
 
 ## Block-Bodied Methods
 
 Methods can use traditional block bodies when `AllowBlockBody = true`:
 
-```csharp
-[Expressive(AllowBlockBody = true)]
-public string GetCategory()
+::: expressive-sample
+db.Orders.Select(o => new { o.Id, Category = o.GetCategory() })
+---setup---
+public static class OrderExt
 {
-    var threshold = Quantity * 10;
-    if (threshold > 100) return "Bulk";
-    return "Regular";
+    [Expressive(AllowBlockBody = true)]
+    public static string GetCategory(this Order o)
+    {
+        var totalQty = o.Items.Sum(i => i.Quantity);
+        if (totalQty > 10) return "Bulk";
+        return "Regular";
+    }
 }
-```
+:::
 
 Block bodies support:
 - Local variable declarations (inlined at each usage point)
@@ -158,16 +143,22 @@ You can also enable block bodies globally for a project:
 
 ## Static Methods
 
-`[Expressive]` can be applied to static methods as well:
+`[Expressive]` can be applied to static methods as well. Here, `CalculateLinePrice` is a pure static helper with no receiver:
 
-```csharp
+::: expressive-sample
+db.LineItems.Select(i => new
+{
+    i.Id,
+    Discounted = OrderHelpers.CalculateLinePrice(i.UnitPrice, i.Quantity),
+})
+---setup---
 public static class OrderHelpers
 {
     [Expressive]
-    public static double CalculateDiscount(double price, int quantity) =>
-        price * quantity > 1000 ? 0.1 : 0.0;
+    public static decimal CalculateLinePrice(decimal price, int quantity) =>
+        price * quantity > 1000m ? price * quantity * 0.9m : price * quantity;
 }
-```
+:::
 
 ## Important Rules
 

@@ -382,6 +382,6 @@ Some databases do not support `WHERE` directly on window function results. EF Co
 
 ## See Also
 
-- [Computed Entity Properties](/recipes/computed-properties) -- combine computed properties with window functions
-- [Modern Syntax in LINQ Chains](/recipes/modern-syntax-in-linq) -- modern syntax alongside window functions
-- [Scoring and Classification](/recipes/scoring-classification) -- CASE expressions and window-based ranking together
+- [Computed Entity Properties](./computed-properties) -- combine computed properties with window functions
+- [Modern Syntax in LINQ Chains](./modern-syntax-in-linq) -- modern syntax alongside window functions
+- [Scoring and Classification](./scoring-classification) -- CASE expressions and window-based ranking together

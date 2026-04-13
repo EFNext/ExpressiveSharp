@@ -22,6 +22,35 @@ namespace ExpressiveSharp.Services
         private readonly static ConcurrentDictionary<MemberInfo, LambdaExpression> _expressionCache = new();
 
         /// <summary>
+        /// Clears all process-level caches built up by the resolver. Intended for test harnesses
+        /// and the docs prerenderer, where many short-lived assemblies are loaded in sequence and
+        /// accumulated <c>[ExpressiveFor]</c> registrations across them would cause false "multiple
+        /// mappings" errors. Not part of the public production API surface.
+        /// </summary>
+        public static void ResetAllCaches()
+        {
+            _assemblyRegistries.Clear();
+            _expressionCache.Clear();
+            _reflectionCache.Clear();
+            _lastScannedAssemblyCount = 0;
+            _assemblyScanFilter = null;
+        }
+
+        private static Func<Assembly, bool>? _assemblyScanFilter;
+
+        /// <summary>
+        /// Restricts <see cref="EnsureAllRegistriesLoaded"/> to assemblies matching the given filter.
+        /// Used by the docs prerenderer to register only the currently-rendering snippet's assembly
+        /// instead of every previously-loaded snippet assembly still in the AppDomain.
+        /// Pass <c>null</c> to remove the filter.
+        /// </summary>
+        public static void SetAssemblyScanFilter(Func<Assembly, bool>? filter)
+        {
+            _assemblyScanFilter = filter;
+            _lastScannedAssemblyCount = 0;
+        }
+
+        /// <summary>
         /// Caches <see cref="Type"/> → C#-formatted name strings, since the same parameter types
         /// appear repeatedly across different expressive members.
         /// </summary>
@@ -97,7 +126,22 @@ namespace ExpressiveSharp.Services
                 if (ReferenceEquals(kvp.Value, _nullRegistry))
                     continue;
 
-                var result = kvp.Value(memberInfo);
+                LambdaExpression? result;
+                try
+                {
+                    result = kvp.Value(memberInfo);
+                }
+                catch (TypeInitializationException)
+                {
+                    // The registry's static type initializer failed — typically
+                    // because a generated *_Expression() factory threw (e.g. a
+                    // malformed lambda built from an unsupported IOperation).
+                    // Mark this registry as broken so we stop probing it for
+                    // every subsequent member lookup.
+                    _assemblyRegistries[kvp.Key] = _nullRegistry;
+                    continue;
+                }
+
                 if (result is null)
                     continue;
 
@@ -113,30 +157,39 @@ namespace ExpressiveSharp.Services
             return found;
         }
 
-        private static volatile bool _allRegistriesScanned;
+        private static int _lastScannedAssemblyCount;
         private static readonly object _scanLock = new();
 
         /// <summary>
-        /// Scans all loaded assemblies once to discover expression registries.
-        /// This is a one-time cost on the first <see cref="FindExternalExpression"/> call.
+        /// Scans loaded assemblies for expression registries. Rescans on demand
+        /// whenever new assemblies have been loaded into the AppDomain since the
+        /// previous scan — this matters for runtime-compiled assemblies (e.g.
+        /// the docs prerenderer) where the first scan happens before later
+        /// samples' assemblies are loaded.
         /// </summary>
         private static void EnsureAllRegistriesLoaded()
         {
-            if (_allRegistriesScanned) return;
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            if (assemblies.Length == _lastScannedAssemblyCount) return;
 
             lock (_scanLock)
             {
-                if (_allRegistriesScanned) return;
+                assemblies = AppDomain.CurrentDomain.GetAssemblies();
+                if (assemblies.Length == _lastScannedAssemblyCount) return;
 
-                foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+                var filter = _assemblyScanFilter;
+                foreach (var assembly in assemblies)
                 {
                     if (assembly.IsDynamic)
+                        continue;
+
+                    if (filter is not null && !filter(assembly))
                         continue;
 
                     GetAssemblyRegistry(assembly);
                 }
 
-                _allRegistriesScanned = true;
+                _lastScannedAssemblyCount = assemblies.Length;
             }
         }
 

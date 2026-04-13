@@ -31,15 +31,20 @@ Enables block-bodied member support. Without this flag, using a block body (`{ }
 
 When not explicitly set on the attribute, the MSBuild property `Expressive_AllowBlockBody` is used as the global default (also defaults to `false`).
 
-```csharp
-[Expressive(AllowBlockBody = true)]
-public string GetCategory()
+::: expressive-sample
+db.Orders.Select(o => o.GetCategory())
+---setup---
+public static class OrderBlockExt
 {
-    var threshold = Quantity * 10;
-    if (threshold > 100) return "Bulk";
-    return "Regular";
+    [Expressive(AllowBlockBody = true)]
+    public static string GetCategory(this Order o)
+    {
+        var threshold = o.Items.Count() * 10;
+        if (threshold > 100) return "Bulk";
+        return "Regular";
+    }
 }
-```
+:::
 
 Or enable globally for the entire project:
 
@@ -58,10 +63,15 @@ Or enable globally for the entire project:
 
 Specifies additional `IExpressionTreeTransformer` types to apply at runtime when the expression is resolved. Each type must have a parameterless constructor.
 
-```csharp
-[Expressive(Transformers = new[] { typeof(RemoveNullConditionalPatterns) })]
-public string? CustomerName => Customer?.Name;
-```
+::: expressive-sample
+db.Orders.Select(o => o.CustomerName())
+---setup---
+public static class OrderTransformerExt
+{
+    [Expressive(Transformers = new[] { typeof(ExpressiveSharp.Transformers.RemoveNullConditionalPatterns) })]
+    public static string? CustomerName(this Order o) => o.Customer?.Name;
+}
+:::
 
 See [Expression Transformers](./expression-transformers) for the full list of built-in transformers and how to create custom ones.
 
@@ -92,25 +102,25 @@ ExpressiveSharp does not have a compatibility mode setting. Expression expansion
 After marking members with `[Expressive]`, you can manually expand them in expression trees using the `.ExpandExpressives()` extension method:
 
 ```csharp
-Expression<Func<Order, double>> expr = o => o.Total;
-// expr body is: o.Total (opaque property access)
+Expression<Func<Order, decimal>> expr = o => o.Total();
+// expr body is: o.Total() (opaque method call)
 
 var expanded = expr.ExpandExpressives();
-// expanded body is: o.Price * o.Quantity (translatable by EF Core / other providers)
+// expanded body is: o.Items.Sum(i => i.UnitPrice * i.Quantity) (translatable by your provider)
 ```
 
 This replaces `[Expressive]` member references with their generated expression trees. Expansion is recursive -- if `TotalWithTax` references `Total`, both are expanded:
 
 ```csharp
 [Expressive]
-public double Total => Price * Quantity;
+public static decimal Total(this Order o) => o.Items.Sum(i => i.UnitPrice * i.Quantity);
 
 [Expressive]
-public double TotalWithTax => Total * (1 + TaxRate);
+public static decimal TotalWithTax(this Order o) => o.Total() * 1.08m;
 
-Expression<Func<Order, double>> expr = o => o.TotalWithTax;
+Expression<Func<Order, decimal>> expr = o => o.TotalWithTax();
 var expanded = expr.ExpandExpressives();
-// expanded body is: (o.Price * o.Quantity) * (1 + o.TaxRate)
+// expanded body is: o.Items.Sum(i => i.UnitPrice * i.Quantity) * 1.08m
 ```
 
 You can also pass transformers to `ExpandExpressives()`:
@@ -128,93 +138,67 @@ expr.ExpandExpressives(); // RemoveNullConditionalPatterns applied automatically
 
 ## Complete Example
 
-```csharp
-public class Order
+::: expressive-sample
+db.Orders
+    .Where(o => o.CustomerEmail() != null)
+    .Select(o => new OrderSummaryDto(o.Id, o.SafeTag(), o.Total()))
+---setup---
+public static class OrderComplete
 {
-    public int Id { get; set; }
-    public double Price { get; set; }
-    public int Quantity { get; set; }
-    public string? Tag { get; set; }
-    public Customer? Customer { get; set; }
-
-    // Simple computed property
+    // Simple computed method
     [Expressive]
-    public double Total => Price * Quantity;
+    public static decimal Total(this Order o) => o.Items.Sum(i => i.UnitPrice * i.Quantity);
 
     // Composing expressives
     [Expressive]
-    public double TotalWithTax => Total * (1 + 0.08);
+    public static decimal TotalWithTax(this Order o) => o.Total() * 1.08m;
 
     // Null-conditional operators -- always generates faithful ternary
     [Expressive]
-    public string? CustomerEmail => Customer?.Email;
+    public static string? CustomerEmail(this Order o) => o.Customer?.Email;
 
     // Switch expressions with pattern matching
     [Expressive]
-    public string GetGrade() => Price switch
+    public static string GetGrade(this Order o) => o.Items.Count() switch
     {
-        >= 100 => "Premium",
-        >= 50  => "Standard",
-        _      => "Budget",
+        >= 10 => "Premium",
+        >= 5  => "Standard",
+        _     => "Budget",
     };
 
     // Per-member transformer
-    [Expressive(Transformers = new[] { typeof(RemoveNullConditionalPatterns) })]
-    public string? CustomerName => Customer?.Name;
+    [Expressive(Transformers = new[] { typeof(ExpressiveSharp.Transformers.RemoveNullConditionalPatterns) })]
+    public static string? CustomerNameSafe(this Order o) => o.Customer?.Name;
 
     // Block body (opt-in)
     [Expressive(AllowBlockBody = true)]
-    public string GetCategory()
+    public static string GetCategory(this Order o)
     {
-        var threshold = Quantity * 10;
+        var threshold = o.Items.Count() * 10;
         if (threshold > 100) return "Bulk";
         return "Regular";
     }
-}
 
-// Extension methods must be in a static class
-public static class OrderExtensions
-{
+    // Extension method with null-coalescing
     [Expressive]
-    public static string? SafeTag(this Order o) => o.Tag ?? "N/A";
+    public static string SafeTag(this Order o) => o.Customer != null ? o.Customer.Name : "N/A";
 }
 
 public class OrderSummaryDto
 {
     public int Id { get; set; }
     public string Description { get; set; } = "";
-    public double Total { get; set; }
+    public decimal Total { get; set; }
 
     public OrderSummaryDto() { }
 
-    // Constructor projection -- translates to SQL MemberInit
+    // Constructor projection -- translates to MemberInit
     [Expressive]
-    public OrderSummaryDto(int id, string description, double total)
+    public OrderSummaryDto(int id, string description, decimal total)
     {
         Id = id;
         Description = description;
         Total = total;
     }
 }
-```
-
-Usage in an EF Core query:
-
-```csharp
-var results = db.Orders
-    .AsExpressiveDbSet()
-    .Where(o => o.Customer?.Email != null)
-    .Select(o => new OrderSummaryDto(o.Id, o.Tag ?? "N/A", o.Total))
-    .ToList();
-```
-
-Generated SQL:
-
-```sql
-SELECT "o"."Id",
-       COALESCE("o"."Tag", 'N/A') AS "Description",
-       "o"."Price" * CAST("o"."Quantity" AS REAL) AS "Total"
-FROM "Orders" AS "o"
-LEFT JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
-WHERE "c"."Email" IS NOT NULL
-```
+:::
