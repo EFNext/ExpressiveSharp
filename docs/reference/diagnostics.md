@@ -29,6 +29,14 @@ See [Troubleshooting](./troubleshooting) for symptom-oriented guidance -- find t
 | [EXP0017](#exp0017) | Error | `[ExpressiveFor]` return type mismatch | -- |
 | [EXP0019](#exp0019) | Error | `[ExpressiveFor]` conflicts with `[Expressive]` | -- |
 | [EXP0020](#exp0020) | Error | Duplicate `[ExpressiveFor]` mapping | -- |
+| [EXP0021](#exp0021) | Error | Projectable requires writable accessor | -- |
+| [EXP0022](#exp0022) | Error | Projectable get accessor pattern | -- |
+| [EXP0023](#exp0023) | Error | Projectable setter must store to backing field | -- |
+| [EXP0024](#exp0024) | Error | Projectable requires non-nullable property type | -- |
+| [EXP0025](#exp0025) | Error | Projectable backing field type mismatch | -- |
+| [EXP0026](#exp0026) | Error | Projectable incompatible with `required` | -- |
+| [EXP0028](#exp0028) | Error | Projectable not allowed on interface property | -- |
+| [EXP0029](#exp0029) | Error | Projectable not allowed on override | -- |
 | [EXP1001](#exp1001) | Warning | Replace `[Projectable]` with `[Expressive]` | [Replace attribute](#exp1001-fix) |
 | [EXP1002](#exp1002) | Warning | Replace `UseProjectables()` with `UseExpressives()` | [Replace method call](#exp1002-fix) |
 | [EXP1003](#exp1003) | Warning | Replace Projectables namespace | [Replace namespace](#exp1003-fix) |
@@ -490,6 +498,249 @@ Duplicate [ExpressiveFor] mapping for member '{0}' on type '{1}'; only one stub 
 **Cause:** Two or more `[ExpressiveFor]` stubs target the same member on the same type.
 
 **Fix:** Remove the duplicate. Only one mapping per target member is allowed.
+
+---
+
+## Projectable Diagnostics (EXP0021--EXP0029)
+
+These diagnostics apply only to properties decorated with `[Expressive(Projectable = true)]`. See [Projectable Properties](./projectable-properties) for the full feature reference.
+
+### EXP0021 -- Projectable requires writable accessor {#exp0021}
+
+**Severity:** Error
+**Category:** Design
+
+**Message:**
+```
+[Expressive(Projectable = true)] requires '{0}' to declare a 'set' or 'init' accessor
+```
+
+**Cause:** A Projectable property has only a getter. Projection middlewares (HotChocolate, AutoMapper) require a writable member to emit a binding, so Projectable properties must declare `init` or `set`.
+
+**Fix:** Add an `init` or `set` accessor:
+
+```csharp
+// Error: get-only
+[Expressive(Projectable = true)]
+public string FullName => field ?? (LastName + ", " + FirstName);
+
+// Fixed
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => field ?? (LastName + ", " + FirstName);
+    init => field = value;
+}
+```
+
+---
+
+### EXP0022 -- Projectable get accessor pattern {#exp0022}
+
+**Severity:** Error
+**Category:** Design
+
+**Message:**
+```
+The get accessor of a Projectable property must be of the form '=> field ?? (<formula>)'
+or '=> _backingField ?? (<formula>)' where _backingField is a private nullable field on
+the same type. Found: {0}.
+```
+
+**Cause:** The get accessor doesn't match the expected `<field> ?? (<formula>)` shape. ExpressiveSharp extracts the formula by locating the right operand of a top-level `??` coalesce, so alternative shapes (ternary `a != null ? a : b`, multi-statement block bodies, expression bodies without coalesce) are rejected.
+
+**Fix:** Rewrite the get accessor to use `??`:
+
+```csharp
+// Error: ternary
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => _full != null ? _full : (LastName + ", " + FirstName);
+    init => _full = value;
+}
+
+// Fixed: use ?? instead
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => _full ?? (LastName + ", " + FirstName);
+    init => _full = value;
+}
+```
+
+If you need flexibility the `??` pattern can't express, use [`[ExpressiveFor]`](./expressive-for) instead.
+
+---
+
+### EXP0023 -- Projectable setter must store to backing field {#exp0023}
+
+**Severity:** Error
+**Category:** Design
+
+**Message:**
+```
+The init/set accessor of a Projectable property must store the incoming value into the same
+backing field referenced by the get accessor. Found: {0}.
+```
+
+**Cause:** The init/set accessor does something other than a plain `field = value` assignment — for example `field = value?.Trim()`, a different field, or a multi-statement block.
+
+**Fix:** Use a plain assignment:
+
+```csharp
+// Error: transforms the value
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => field ?? (LastName + ", " + FirstName);
+    init => field = value?.Trim() ?? "";
+}
+
+// Fixed
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => field ?? (LastName + ", " + FirstName);
+    init => field = value;
+}
+```
+
+This restriction may be relaxed in a future version. If you need to transform the materialized value, consider applying the transformation in the get accessor's formula instead.
+
+---
+
+### EXP0024 -- Projectable requires non-nullable property type {#exp0024}
+
+**Severity:** Error
+**Category:** Design
+
+**Message:**
+```
+[Expressive(Projectable = true)] cannot be applied to a property with a nullable type ('{0}').
+Nullable types prevent distinguishing 'not materialized' from 'materialized to null'.
+```
+
+**Cause:** The property type is nullable (`string?`, `int?`). The Projectable pattern uses `field ?? formula` to distinguish "not yet materialized" from "materialized to a value" — but if the property itself is nullable, "materialized to null" and "not materialized" are indistinguishable.
+
+**Fix:** Make the property non-nullable:
+
+```csharp
+// Error
+[Expressive(Projectable = true)]
+public string? FullName { get => field ?? ...; init => field = value; }
+
+// Fixed
+[Expressive(Projectable = true)]
+public string FullName { get => field ?? ...; init => field = value; }
+```
+
+If you need nullable-result semantics, use plain `[Expressive]` on a read-only property and `[ExpressiveFor]` for the projection-middleware case.
+
+---
+
+### EXP0025 -- Projectable backing field type mismatch {#exp0025}
+
+**Severity:** Error
+**Category:** Design
+
+**Message:**
+```
+The backing field referenced in the get accessor of '{0}' must be of type '{1}?'
+(Nullable<{1}>) to support the '??' coalesce. Found: {2}.
+```
+
+**Cause:** The manually declared backing field's type doesn't match the property's type wrapped in `Nullable<T>`. For a `string` property, the backing field must be `string?`. For an `int` property, it must be `int?` / `Nullable<int>`.
+
+**Fix:** Correct the backing field's type:
+
+```csharp
+// Error: backing field is 'int?' but property is 'string'
+private int? _wrong;
+
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => _wrong.ToString() ?? ...;
+    init => field = value;
+}
+
+// Fixed: use 'field' keyword (preferred) or a matching nullable backing field
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => field ?? (LastName + ", " + FirstName);
+    init => field = value;
+}
+```
+
+---
+
+### EXP0026 -- Projectable incompatible with `required` {#exp0026}
+
+**Severity:** Error
+**Category:** Design
+
+**Message:**
+```
+[Expressive(Projectable = true)] cannot be combined with the 'required' modifier on '{0}';
+remove 'required' since EF will materialize the value from query results
+```
+
+**Cause:** The property has both `required` and `Projectable = true`. With `required`, every caller constructing the entity must set the property — but Projectable properties are designed to be left unset so the formula fires, with EF populating the value via `init` during materialization.
+
+**Fix:** Remove the `required` modifier:
+
+```csharp
+// Error
+[Expressive(Projectable = true)]
+public required string FullName
+{
+    get => field ?? (LastName + ", " + FirstName);
+    init => field = value;
+}
+
+// Fixed
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => field ?? (LastName + ", " + FirstName);
+    init => field = value;
+}
+```
+
+---
+
+### EXP0028 -- Projectable not allowed on interface property {#exp0028}
+
+**Severity:** Error
+**Category:** Design
+
+**Message:**
+```
+[Expressive(Projectable = true)] is not supported on interface members
+```
+
+**Cause:** The Projectable pattern relies on a backing field on the instance. Interfaces cannot declare instance fields, so the pattern is not representable on an interface property.
+
+**Fix:** Move the Projectable property to the concrete type that implements the interface. If the interface needs to expose the member, declare an abstract `{ get; }` on the interface and override it on the concrete type with the Projectable pattern.
+
+---
+
+### EXP0029 -- Projectable not allowed on override {#exp0029}
+
+**Severity:** Error
+**Category:** Design
+
+**Message:**
+```
+[Expressive(Projectable = true)] is not supported on override properties; declare it on the
+base property instead
+```
+
+**Cause:** The property is `override`. Projectable semantics interact ambiguously with inheritance — the base class might already have its own `[Expressive]` registration and the registry key resolution would need to flow through virtual dispatch. This scenario is not supported in v1.
+
+**Fix:** Move `[Expressive(Projectable = true)]` to the base class, or flatten the hierarchy. If you need inheritance-like behavior, use composition instead.
 
 ---
 

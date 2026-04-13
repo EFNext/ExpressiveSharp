@@ -129,9 +129,39 @@ Both the old `Ignore` and `Rewrite` behaviors converge to the same result in Exp
 
 ### Migrating `UseMemberBody`
 
-In Projectables, `UseMemberBody` let you point one member's expression body at another member -- typically to work around syntax limitations or to provide an expression-tree-friendly alternative.
+In Projectables, `UseMemberBody` let you point one member's expression body at another member -- typically to work around syntax limitations or to provide an expression-tree-friendly alternative for projection middleware (HotChocolate, AutoMapper) that required a writable target.
 
-ExpressiveSharp replaces this with `[ExpressiveFor]` (in the `ExpressiveSharp.Mapping` namespace), which is more explicit and works for external types too.
+ExpressiveSharp offers **two replacement options**, depending on your scenario:
+
+- **`[Expressive(Projectable = true)]`** -- the ergonomic fit when your goal was specifically to participate in projection middleware. Keeps the formula on the property itself via the `field ?? (<formula>)` pattern. Closest to Projectables' intent.
+- **`[ExpressiveFor]`** -- the verbose but explicit alternative. Works for external types too (scenarios `UseMemberBody` never supported).
+
+Either is correct; pick based on ergonomic preference and whether you need the cross-type capability.
+
+::: info About the `Projectable` name overlap
+ExpressiveSharp's `Projectable` attribute property and the EFCore.Projectables library's `[Projectable]` attribute share a name because both describe the same capability -- a computed property that participates in LINQ projections. They are different mechanisms; the shared word is intentional to reduce migration friction.
+:::
+
+**Option A -- `[Expressive(Projectable = true)]`** (single declaration):
+
+```csharp
+// Before (Projectables)
+[Projectable(UseMemberBody = nameof(FullNameProjection))]
+public string FullName { get; init; }
+private string FullNameProjection => LastName + ", " + FirstName;
+
+// After (ExpressiveSharp) -- formula lives on the property
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => field ?? (LastName + ", " + FirstName);
+    init => field = value;
+}
+```
+
+See the [Projectable Properties reference](../reference/projectable-properties) and the [Projection Middleware recipe](../recipes/projection-middleware) for the complete feature.
+
+**Option B -- `[ExpressiveFor]`** (separate stub, supports cross-type mapping):
 
 **Scenario 1: Same-type member with an alternative body**
 

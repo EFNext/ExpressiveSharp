@@ -1,4 +1,5 @@
 using ExpressiveSharp.MongoDB.Extensions;
+using ExpressiveSharp.MongoDB.Infrastructure;
 using ExpressiveSharp.Services;
 using MongoDB.Driver;
 
@@ -38,6 +39,10 @@ public class ExpressiveMongoCollection<TDocument>
     {
         _inner = inner ?? throw new ArgumentNullException(nameof(inner));
         _options = options ?? MongoExpressiveOptions.CreateDefault();
+
+        // Unmap [Expressive] (including Projectable) properties from BSON serialization
+        // so the backing field is not persisted to documents.
+        ExpressiveMongoIgnoreConvention.EnsureRegistered();
     }
 
     /// <summary>

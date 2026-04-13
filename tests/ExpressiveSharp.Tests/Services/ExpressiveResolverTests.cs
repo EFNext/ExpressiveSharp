@@ -85,6 +85,74 @@ public class ExpressiveResolverTests
             "Expected Product.Total expression to contain a Multiply node");
     }
 
+    // ── [Expressive(Projectable = true)] ────────────────────────────────────
+    //
+    // The most load-bearing correctness point in the Projectable design: the generator must
+    // register the formula lambda under the property's getter MethodHandle, not under the
+    // backing field's. If the registry were keyed off the backing field, `ExpressiveReplacer`
+    // would never find a match at runtime (it looks up via `PropertyInfo.GetMethod`) and the
+    // rewrite would silently never fire.
+
+    [TestMethod]
+    public void FindGeneratedExpression_ProjectableProperty_ResolvesByPropertyGetter()
+    {
+        var propertyInfo = typeof(ProjectableCustomer).GetProperty(nameof(ProjectableCustomer.FullName))!;
+
+        var result = _resolver.FindGeneratedExpression(propertyInfo);
+
+        Assert.IsNotNull(result, "Resolver must return a lambda for a Projectable property");
+        Assert.IsInstanceOfType<LambdaExpression>(result);
+    }
+
+    [TestMethod]
+    public void FindGeneratedExpression_ProjectableProperty_BodyIsFormulaOnly()
+    {
+        var propertyInfo = typeof(ProjectableCustomer).GetProperty(nameof(ProjectableCustomer.FullName))!;
+
+        var result = _resolver.FindGeneratedExpression(propertyInfo);
+
+        Assert.IsNotNull(result);
+        // The body must be the formula (string.Concat chain) — NOT the raw accessor body,
+        // which would have had a CoalesceExpression wrapping a field reference.
+        Assert.IsFalse(ContainsNodeType(result.Body, ExpressionType.Coalesce),
+            "Projectable expression body must be the formula only, not the wrapping '??' coalesce");
+        Assert.IsTrue(ContainsMemberAccess(result.Body, nameof(ProjectableCustomer.LastName))
+                      && ContainsMemberAccess(result.Body, nameof(ProjectableCustomer.FirstName)),
+            "Projectable expression body must reference both dependencies of the formula");
+    }
+
+    [TestMethod]
+    public void FindGeneratedExpression_ProjectableProperty_BackingFieldIsNotInRegistry()
+    {
+        // Reflect across the compiler-synthesized backing field for FullName. Calling
+        // FindGeneratedExpressionViaReflection on it should return null — the registry is
+        // keyed on the property's getter, not on the backing field.
+        var backingField = typeof(ProjectableCustomer).GetFields(BindingFlags.Instance | BindingFlags.NonPublic)
+            .FirstOrDefault(f => f.Name.Contains("FullName"));
+
+        if (backingField is null)
+        {
+            Assert.Inconclusive("Backing field not found via reflection; skipping.");
+            return;
+        }
+
+        var result = ExpressiveResolver.FindGeneratedExpressionViaReflection(backingField);
+
+        Assert.IsNull(result, "Registry must NOT resolve an entry for the backing field");
+    }
+
+    private static bool ContainsMemberAccess(Expression expr, string memberName) => expr switch
+    {
+        MemberExpression m when m.Member.Name == memberName => true,
+        MemberExpression m => m.Expression is not null && ContainsMemberAccess(m.Expression, memberName),
+        BinaryExpression b => ContainsMemberAccess(b.Left, memberName) || ContainsMemberAccess(b.Right, memberName),
+        UnaryExpression u => ContainsMemberAccess(u.Operand, memberName),
+        LambdaExpression l => ContainsMemberAccess(l.Body, memberName),
+        MethodCallExpression mc => mc.Arguments.Any(a => ContainsMemberAccess(a, memberName))
+            || (mc.Object is not null && ContainsMemberAccess(mc.Object, memberName)),
+        _ => false
+    };
+
     private static bool ContainsNodeType(Expression expr, ExpressionType nodeType)
     {
         if (expr.NodeType == nodeType)
@@ -95,7 +163,26 @@ public class ExpressiveResolverTests
             BinaryExpression b => ContainsNodeType(b.Left, nodeType) || ContainsNodeType(b.Right, nodeType),
             UnaryExpression u => ContainsNodeType(u.Operand, nodeType),
             LambdaExpression l => ContainsNodeType(l.Body, nodeType),
+            MethodCallExpression mc => mc.Arguments.Any(a => ContainsNodeType(a, nodeType))
+                || (mc.Object is not null && ContainsNodeType(mc.Object, nodeType)),
             _ => false
         };
+    }
+}
+
+/// <summary>
+/// Test-local fixture for Projectable resolver tests. Declared here (not in the shared
+/// <c>TestFixtures</c>) to keep the Projectable-specific dependency contained.
+/// </summary>
+public class ProjectableCustomer
+{
+    public string FirstName { get; set; } = "";
+    public string LastName { get; set; } = "";
+
+    [Expressive(Projectable = true)]
+    public string FullName
+    {
+        get => field ?? (LastName + ", " + FirstName);
+        init => field = value;
     }
 }

@@ -57,6 +57,7 @@ const sidebar: DefaultTheme.Sidebar = {
       text: 'Reference',
       items: [
         { text: '[Expressive] Attribute', link: '/reference/expressive-attribute' },
+        { text: 'Projectable Properties', link: '/reference/projectable-properties' },
         { text: '[ExpressiveFor] Mapping', link: '/reference/expressive-for' },
         { text: 'Null-Conditional Rewrite', link: '/reference/null-conditional-rewrite' },
         { text: 'Pattern Matching', link: '/reference/pattern-matching' },
@@ -85,6 +86,7 @@ const sidebar: DefaultTheme.Sidebar = {
       text: 'Recipes',
       items: [
         { text: 'Computed Entity Properties', link: '/recipes/computed-properties' },
+        { text: 'Projection Middleware (HotChocolate, AutoMapper)', link: '/recipes/projection-middleware' },
         { text: 'DTO Projections with Constructors', link: '/recipes/dto-projections' },
         { text: 'Scoring & Classification', link: '/recipes/scoring-classification' },
         { text: 'Nullable Navigation Properties', link: '/recipes/nullable-navigation' },
