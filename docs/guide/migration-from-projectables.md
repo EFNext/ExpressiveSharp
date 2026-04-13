@@ -122,7 +122,7 @@ Both the old `Ignore` and `Rewrite` behaviors converge to the same result in Exp
 
 | Old Property | Migration |
 |---|---|
-| `UseMemberBody = "SomeMethod"` | Replace with `[ExpressiveFor]`. See [Migrating UseMemberBody](#migrating-usememberbody) below. |
+| `UseMemberBody = "SomeMethod"` | Replace with `[Expressive(Projectable = true)]` or `[ExpressiveFor]`. See [Migrating UseMemberBody](#migrating-usememberbody) below. |
 | `AllowBlockBody = true` | Keep -- block bodies remain opt-in. Set per-member or globally via `Expressive_AllowBlockBody` MSBuild property. |
 | `ExpandEnumMethods = true` | Remove -- enum method expansion is enabled by default. |
 | `CompatibilityMode.Full / .Limited` | Remove -- only the full approach exists. |

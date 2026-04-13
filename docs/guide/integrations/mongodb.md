@@ -43,6 +43,12 @@ db.Customers
 
 No custom MQL is emitted — MongoDB's own translator does all the heavy lifting after ExpressiveSharp has normalized the tree.
 
+## `[Expressive]` Properties Are Unmapped from BSON
+
+ExpressiveSharp registers a MongoDB `IClassMapConvention` that unmaps every `[Expressive]`-decorated property from the BSON class map, so the property's backing field is not persisted to documents. This matters most for [Projectable properties](../../reference/projectable-properties), which have a writable `init` accessor and would otherwise be serialized as a real BSON field.
+
+The convention is registered automatically the first time you construct an `ExpressiveMongoCollection<T>` or call `.AsExpressive()` on a collection. No opt-in is required.
+
 ## Async Methods
 
 All MongoDB async LINQ methods (from `MongoQueryable`) work with modern syntax via interceptors. They are stubs on `IExpressiveMongoQueryable<T>` that forward to their `MongoQueryable` counterparts:
