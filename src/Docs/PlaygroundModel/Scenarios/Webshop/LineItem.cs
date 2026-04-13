@@ -1,8 +1,7 @@
 namespace ExpressiveSharp.Docs.PlaygroundModel.Webshop;
 
-public class LineItem
+public class LineItem : WebshopEntity
 {
-    public int Id { get; set; }
     public int OrderId { get; set; }
     public Order Order { get; set; } = null!;
     public int ProductId { get; set; }

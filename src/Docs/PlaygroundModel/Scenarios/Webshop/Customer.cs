@@ -5,9 +5,8 @@
 
 namespace ExpressiveSharp.Docs.PlaygroundModel.Webshop;
 
-public class Customer
+public class Customer : WebshopEntity
 {
-    public int Id { get; set; }
     public string Name { get; set; } = "";
     public string? Email { get; set; }
     public string? Country { get; set; }

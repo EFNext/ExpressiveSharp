@@ -399,6 +399,11 @@ namespace ExpressiveSharp
             => Queryable.Index(source).AsExpressive();
 #endif
 
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static IExpressiveQueryable<TResult> OfType<T, TResult>(
+            this IExpressiveQueryable<T> source)
+            => Queryable.OfType<TResult>(source).AsExpressive();
+
         // ── Non-lambda-first intercepted methods ─────────────────────────────
 
         [EditorBrowsable(EditorBrowsableState.Never)]

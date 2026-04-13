@@ -1,8 +1,7 @@
 namespace ExpressiveSharp.Docs.PlaygroundModel.Webshop;
 
-public class Order
+public class Order : WebshopEntity
 {
-    public int Id { get; set; }
     public int CustomerId { get; set; }
     public Customer Customer { get; set; } = null!;
     public DateTime PlacedAt { get; set; }

@@ -37,7 +37,7 @@ internal sealed class SampleRenderer : IAsyncDisposable
             .EnableServiceProviderCaching(false)
             .Options);
 
-    private static WebshopDbContext BuildCosmosContext() =>
+    private static WebshopCosmosDbContext BuildCosmosContext() =>
         new(new DbContextOptionsBuilder<WebshopDbContext>()
             .UseCosmos("AccountEndpoint=https://localhost:8081/;AccountKey=dW5pdHRlc3Q=", "playground")
             .UseExpressives()
@@ -62,6 +62,19 @@ internal sealed class SampleRenderer : IAsyncDisposable
         public IExpressiveQueryable<Order> Orders => _ctx.Orders;
         public IExpressiveQueryable<Product> Products => _ctx.Products;
         public IExpressiveQueryable<LineItem> LineItems => _ctx.LineItems;
+    }
+
+    // Cosmos roots: every entity lives in the same container and is filtered
+    // via OfType<T>() on the single DbSet<WebshopEntity>, keeping the query
+    // tree rooted at one entity type.
+    private sealed class CosmosDbContextRoots : IWebshopQueryRoots
+    {
+        private readonly WebshopCosmosDbContext _ctx;
+        public CosmosDbContextRoots(WebshopCosmosDbContext ctx) { _ctx = ctx; }
+        public IExpressiveQueryable<Customer> Customers => _ctx.Entities.AsExpressive().OfType<WebshopEntity, Customer>();
+        public IExpressiveQueryable<Order> Orders => _ctx.Entities.AsExpressive().OfType<WebshopEntity, Order>();
+        public IExpressiveQueryable<Product> Products => _ctx.Entities.AsExpressive().OfType<WebshopEntity, Product>();
+        public IExpressiveQueryable<LineItem> LineItems => _ctx.Entities.AsExpressive().OfType<WebshopEntity, LineItem>();
     }
 
     private sealed class MongoRootsImpl : IWebshopQueryRoots
@@ -156,7 +169,7 @@ internal sealed class SampleRenderer : IAsyncDisposable
             RenderPrerendererTarget(targets, invoke, "sqlserver", "EF Core + SQL Server", "sql",
                 new DbContextRoots(sqlServer), static (q, _) => q.ToQueryString());
             RenderPrerendererTarget(targets, invoke, "cosmos", "EF Core + Cosmos DB", "sql",
-                new DbContextRoots(cosmos), static (q, _) => q.ToQueryString());
+                new CosmosDbContextRoots(cosmos), static (q, _) => q.ToQueryString());
             RenderPrerendererTarget(targets, invoke, "mongodb", "MongoDB", "javascript",
                 BuildMongoRoots(), static (q, _) => FormatMongoOutput(q.ToString()!));
         }
