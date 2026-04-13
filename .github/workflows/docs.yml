@@ -79,8 +79,8 @@ jobs:
             ! -name 'dev' \
             -exec rm -rf {} +
 
-          # Copy new VitePress build output
-          cp -r ../docs/.vitepress/dist/* .
+          # Copy new VitePress build output (dist/. form to include dotfiles like .nojekyll)
+          cp -rT ../docs/.vitepress/dist .
 
           # Configure git
           git config user.name "github-actions[bot]"
