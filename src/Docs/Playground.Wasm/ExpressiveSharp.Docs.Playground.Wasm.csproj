@@ -14,15 +14,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
 
-    <!-- Roslyn + EF Core trim incompatibly. -->
+    <!-- Roslyn + EF Core trim incompatibly, so PublishTrimmed stays off. .NET 10
+         wasm-tools requires trimming for AOT, so AOT is disabled too — the
+         playground runs interpreted, which trades Roslyn startup speed for a
+         working build. -->
     <PublishTrimmed>false</PublishTrimmed>
-
-    <!-- AOT compilation via wasm-tools workload — significantly faster Roslyn
-         execution at runtime. Only applied on Release publish. We can't strip
-         IL after AOT because PlaygroundReferences feeds the .dll files back
-         into Roslyn as MetadataReference instances for compile-time type
-         resolution — MetadataReference.CreateFromImage needs real PE bytes. -->
-    <RunAOTCompilation Condition="'$(Configuration)' == 'Release'">true</RunAOTCompilation>
 
     <!-- WebCIL packaging + content-hashed asset names off so SnippetCompiler
          can fetch reference DLLs from /_framework/<name>.dll via HttpClient. -->
