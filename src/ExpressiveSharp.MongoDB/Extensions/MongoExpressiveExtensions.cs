@@ -25,6 +25,12 @@ public static class MongoExpressiveExtensions
         this IQueryable<T> source,
         ExpressiveOptions? options = null)
     {
+        // Idempotent; cheap on subsequent calls via an Interlocked.Exchange guard.
+        // Registering here (rather than in ExpressiveMongoCollection's constructor)
+        // guarantees the BSON class-map convention fires on the common
+        // `collection.AsExpressive()` entry point too.
+        ExpressiveMongoIgnoreConvention.EnsureRegistered();
+
         var mongoProvider = source.Provider as IMongoQueryProvider
             ?? throw new ArgumentException(
                 "The source queryable's Provider must implement IMongoQueryProvider. " +
@@ -52,6 +58,13 @@ public static class MongoExpressiveExtensions
         ExpressiveOptions? options = null,
         AggregateOptions? aggregateOptions = null)
     {
+        // MongoDB's AsQueryable() builds the BSON class map eagerly to prepare the
+        // aggregation pipeline. We must register our ignore convention *before* that
+        // call, otherwise the class map for T is constructed with the default auto-map
+        // behavior that includes writable [Expressive] properties as BSON fields —
+        // persisting backing-field state to the document.
+        ExpressiveMongoIgnoreConvention.EnsureRegistered();
+
         var queryable = aggregateOptions is not null
             ? collection.AsQueryable(aggregateOptions)
             : collection.AsQueryable();

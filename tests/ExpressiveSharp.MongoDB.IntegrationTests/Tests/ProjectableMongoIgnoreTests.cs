@@ -26,7 +26,12 @@ public class ProjectableMongoIgnoreTests
         if (!MongoContainerFixture.IsDockerAvailable)
             Assert.Inconclusive("Docker not available");
 
-        // Register the ignore convention BEFORE any class map could be implicitly built.
+        // IMPORTANT: The ignore convention must be registered BEFORE the first call to
+        // IMongoDatabase.GetCollection<T>(), which builds and caches the BSON class map for
+        // T eagerly. A convention registered afterward would not apply to the cached map.
+        // Users who want [Expressive] properties unmapped from BSON must either call
+        // EnsureRegistered() before accessing collections, or go through
+        // ExpressiveMongoCollection<T>/AsExpressive() *before* the first GetCollection<T>.
         ExpressiveMongoIgnoreConvention.EnsureRegistered();
 
         _client = new MongoClient(MongoContainerFixture.ConnectionString);

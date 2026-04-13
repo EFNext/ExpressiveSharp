@@ -40,8 +40,10 @@ public class ExpressiveMongoCollection<TDocument>
         _inner = inner ?? throw new ArgumentNullException(nameof(inner));
         _options = options ?? MongoExpressiveOptions.CreateDefault();
 
-        // Unmap [Expressive] (including Projectable) properties from BSON serialization
-        // so the backing field is not persisted to documents.
+        // Idempotent registration; belt-and-braces for code paths that access
+        // `Inner` directly for writes (InsertOne/ReplaceOne/…) without ever
+        // going through `AsQueryable`. The `AsExpressive` extension registers
+        // the convention on the query path.
         ExpressiveMongoIgnoreConvention.EnsureRegistered();
     }
 

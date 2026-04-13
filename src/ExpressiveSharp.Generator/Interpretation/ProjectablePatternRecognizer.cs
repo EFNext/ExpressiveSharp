@@ -148,8 +148,11 @@ static internal class ProjectablePatternRecognizer
             return true;
         }
 
-        // Pattern B: manually declared private nullable backing field on the same type.
-        if (field.DeclaredAccessibility != Accessibility.Private
+        // Pattern B: manually declared private *instance* nullable backing field on the same type.
+        // A static backing field is explicitly rejected because it would share materialized state
+        // across all instances of the containing type, breaking per-entity materialization semantics.
+        if (field.IsStatic
+            || field.DeclaredAccessibility != Accessibility.Private
             || !SymbolEqualityComparer.Default.Equals(field.ContainingType, property.ContainingType))
         {
             ReportGetAccessorPattern(context, diagnosticLocation,

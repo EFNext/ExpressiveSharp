@@ -264,6 +264,36 @@ public class ProjectableTests : GeneratorTestBase
     }
 
     [TestMethod]
+    public void StaticBackingField_EXP0022()
+    {
+        // A static backing field would share materialized state across all instances.
+        // It must be rejected so per-entity semantics are preserved.
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class User {
+                    public string FirstName { get; set; } = "";
+                    public string LastName  { get; set; } = "";
+
+                    private static string? _shared;
+
+                    [Expressive(Projectable = true)]
+                    public string FullName
+                    {
+                        get => _shared ?? (LastName + ", " + FirstName);
+                        init => _shared = value;
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.IsTrue(
+            result.Diagnostics.Any(d => d.Id == "EXP0022"),
+            "Static backing fields must be rejected with EXP0022 (pattern mismatch)");
+    }
+
+    [TestMethod]
     public void RequiredModifier_EXP0026()
     {
         var compilation = CreateCompilation(

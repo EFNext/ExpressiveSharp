@@ -45,9 +45,24 @@ No custom MQL is emitted — MongoDB's own translator does all the heavy lifting
 
 ## `[Expressive]` Properties Are Unmapped from BSON
 
-ExpressiveSharp registers a MongoDB `IClassMapConvention` that unmaps every `[Expressive]`-decorated property from the BSON class map, so the property's backing field is not persisted to documents. This matters most for [Projectable properties](../../reference/projectable-properties), which have a writable `init` accessor and would otherwise be serialized as a real BSON field.
+ExpressiveSharp provides a MongoDB `IClassMapConvention` that unmaps every `[Expressive]`-decorated property from the BSON class map, so the property's backing field is not persisted to documents. This matters most for [Projectable properties](../../reference/projectable-properties), which have a writable `init` accessor and would otherwise be serialized as a real BSON field.
 
-The convention is registered automatically the first time you construct an `ExpressiveMongoCollection<T>` or call `.AsExpressive()` on a collection. No opt-in is required.
+::: warning Ordering constraint
+MongoDB builds and caches a class map the first time you call `IMongoDatabase.GetCollection<T>()` for a given `T`. A convention registered *after* that call does not apply to the cached map. If any of your document types use `[Expressive]`, register the convention before the first `GetCollection<T>` call:
+
+```csharp
+using ExpressiveSharp.MongoDB.Infrastructure;
+
+// At application startup, before any GetCollection<T>:
+ExpressiveMongoIgnoreConvention.EnsureRegistered();
+
+var client = new MongoClient(connectionString);
+var db = client.GetDatabase("shop");
+var customers = db.GetCollection<Customer>("customers");  // class map built now
+```
+
+The convention is also registered automatically when you construct `ExpressiveMongoCollection<T>` or call `collection.AsExpressive()` — but only if that happens before any `GetCollection<T>` call for a type with `[Expressive]` properties. The explicit `EnsureRegistered()` call is the most reliable pattern.
+:::
 
 ## Async Methods
 
