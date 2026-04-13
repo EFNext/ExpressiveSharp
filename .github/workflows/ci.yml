@@ -39,10 +39,6 @@ jobs:
           restore-keys: |
             nuget-${{ runner.os }}-
 
-      # Required by Playground.Wasm's Release AOT compilation.
-      - name: Install wasm-tools workload
-        run: dotnet workload install wasm-tools
-
       - name: Restore
         run: dotnet restore
 
