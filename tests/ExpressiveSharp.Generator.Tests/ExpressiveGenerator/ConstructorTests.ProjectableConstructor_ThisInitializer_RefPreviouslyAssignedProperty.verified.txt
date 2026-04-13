@@ -14,7 +14,8 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<string, global::Foo.PersonDto>> _ctor_P0_string_Expression() 
         {
             var p_firstName = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "firstName");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PersonDto).GetConstructor(new global::System.Type[] {  }));
+            var expr_1 = global::System.Linq.Expressions.Expression.Constant("Doe", typeof(string)); // "Doe"
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PersonDto).GetConstructor(new global::System.Type[] { typeof(string), typeof(string) }), p_firstName, expr_1);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<string, global::Foo.PersonDto>>(expr_0, p_firstName);
         }
     }

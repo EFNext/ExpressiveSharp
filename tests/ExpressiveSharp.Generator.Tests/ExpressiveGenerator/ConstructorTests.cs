@@ -625,6 +625,56 @@ public class ConstructorTests : GeneratorTestBase
     }
 
     [TestMethod]
+    public Task ProjectableConstructor_ThisInitializer_RecordPrimaryCtor_NoParameterlessCtor()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                public sealed record OrderSummary(int Id, decimal Total) {
+                    public OrderSummary(int id) : this(id, 0m) { }
+
+                    [Expressive]
+                    public OrderSummary(int id, int unit, int qty) : this(id, unit * qty) { }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task ProjectableConstructor_TupleDeconstructionAssignment()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class Src { public int Id; public decimal Total; }
+
+                class OrderSummary {
+                    public int Id { get; set; }
+                    public decimal Total { get; set; }
+
+                    public OrderSummary() { }
+
+                    [Expressive]
+                    public OrderSummary(Src o) =>
+                        (Id, Total) = (o.Id, o.Total * 2m);
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
     public void ProjectableConstructor_WithoutParameterlessConstructor_EmitsDiagnostic()
     {
         var compilation = CreateCompilation(

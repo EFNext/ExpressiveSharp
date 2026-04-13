@@ -28,7 +28,7 @@ namespace ExpressiveSharp.Generated
             var p_title = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "title");
             var p_tag = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "tag");
             var p_urgency = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "urgency");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.EventDto).GetConstructor(new global::System.Type[] {  }));
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.EventDto).GetConstructor(new global::System.Type[] { typeof(string), typeof(string) }), p_title, p_tag);
             var expr_1 = global::System.Linq.Expressions.Expression.Constant("Critical", typeof(string)); // "Critical"
             var expr_2 = global::System.Linq.Expressions.Expression.Constant("High", typeof(string)); // "High"
             var expr_3 = global::System.Linq.Expressions.Expression.Constant("Normal", typeof(string)); // "Normal"

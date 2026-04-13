@@ -8,6 +8,66 @@ namespace ExpressiveSharp.Generator.Tests.ExpressiveGenerator;
 public class SwitchPatternTests : GeneratorTestBase
 {
     [TestMethod]
+    public void UnsupportedOperationAtRoot_UsesOuterReturnTypeForDefault()
+    {
+        // A `try` at the root of a block-bodied method is an unsupported op. Before the fix,
+        // EmitUnsupported emitted Default(object) which made Lambda<Func<_, string>>(...)
+        // throw at registry load time. Confirm the generated code now uses Default(string)
+        // so the lambda constructs successfully.
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    [Expressive(AllowBlockBody = true)]
+                    public string Unsupported()
+                    {
+                        try { return "x"; } catch { return "y"; }
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        var generated = result.GeneratedTrees[0].ToString();
+        Assert.IsTrue(generated.Contains("Expression.Default(typeof(string))"),
+            "Unsupported-op fallback should emit Default of the outer return type, got:\n" + generated);
+        Assert.IsFalse(generated.Contains("Expression.Default(typeof(object))"),
+            "Unsupported-op fallback must not emit Default(object) when a concrete return type is known.");
+    }
+
+    [TestMethod]
+    public Task SwitchStatementWithReturnArms()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                enum OrderStatus { Pending = 0, Paid = 1 }
+                class Order {
+                    public OrderStatus Status { get; set; }
+                }
+                static class Labels {
+                    [Expressive(AllowBlockBody = true)]
+                    public static string GetLabel(this Order o)
+                    {
+                        switch (o.Status)
+                        {
+                            case OrderStatus.Pending: return "New";
+                            case OrderStatus.Paid: return "Active";
+                            default: return "Unknown";
+                        }
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
     public Task SwitchExpressionWithConstantPattern()
     {
         var compilation = CreateCompilation(

@@ -167,6 +167,45 @@ public class CommonScenarioTests
         Assert.AreEqual(30.0, order3.Total);
     }
 
+    [TestMethod]
+    public void Select_StatusLabelFromSwitchStatement_ReturnsCorrectValues()
+    {
+        Expression<Func<Order, string>> expr = o => o.GetStatusLabelSwitchStatement();
+        var expanded = (Expression<Func<Order, string>>)expr.ExpandExpressives();
+
+        var results = _runner.Select<Order, string>(expanded);
+
+        CollectionAssert.AreEquivalent(
+            new[] { "Active", "New", "Unknown", "New" },
+            results);
+    }
+
+    [TestMethod]
+    public void Select_OrderSummaryRecord_ChainsPrimaryCtor()
+    {
+        Expression<Func<Order, OrderSummaryRecord>> expr = o => new OrderSummaryRecord(o);
+        var expanded = (Expression<Func<Order, OrderSummaryRecord>>)expr.ExpandExpressives();
+
+        var results = _runner.Select<Order, OrderSummaryRecord>(expanded);
+
+        Assert.AreEqual(4, results.Count);
+        Assert.AreEqual(240.0, results.Single(r => r.Id == 1).Total);
+        Assert.AreEqual(1500.0, results.Single(r => r.Id == 2).Total);
+    }
+
+    [TestMethod]
+    public void Select_OrderSummaryDeconstructed_AssignsViaTupleDeconstruction()
+    {
+        Expression<Func<Order, OrderSummaryDeconstructed>> expr = o => new OrderSummaryDeconstructed(o);
+        var expanded = (Expression<Func<Order, OrderSummaryDeconstructed>>)expr.ExpandExpressives();
+
+        var results = _runner.Select<Order, OrderSummaryDeconstructed>(expanded);
+
+        Assert.AreEqual(4, results.Count);
+        Assert.AreEqual(240.0, results.Single(r => r.Id == 1).Total);
+        Assert.AreEqual(1500.0, results.Single(r => r.Id == 2).Total);
+    }
+
     // ── Enum Expansion ──────────────────────────────────────────────────────
 
     [TestMethod]

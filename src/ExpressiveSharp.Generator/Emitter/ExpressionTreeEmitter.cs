@@ -54,6 +54,14 @@ internal sealed class ExpressionTreeEmitter
     private readonly Dictionary<ITypeSymbol, string> _typeAliases = new(SymbolEqualityComparer.Default);
     private readonly string _varPrefix;
     private readonly string? _delegateVarName;
+    /// <summary>
+    /// The fully-qualified return type of the outer lambda currently being emitted. Set by
+    /// <see cref="Emit"/> and <see cref="EmitConstructor"/>. Used by <see cref="EmitUnsupported"/>
+    /// to emit a type-compatible <c>Default</c> stub when an operation has no inferable type —
+    /// without this, unsupported top-level ops wrap <c>Default(object)</c> in a typed
+    /// <c>Lambda&lt;Func&lt;…, T&gt;&gt;</c> and blow up the registry's static initializer at load time.
+    /// </summary>
+    private string? _outerReturnTypeFqn;
 
     public ExpressionTreeEmitter(
         SemanticModel semanticModel,
@@ -92,6 +100,7 @@ internal sealed class ExpressionTreeEmitter
         string delegateTypeFqn,
         string? assignToVariable = null)
     {
+        _outerReturnTypeFqn = returnTypeFqn;
         // Emit parameter declarations
         var paramVarNames = new List<string>();
         foreach (var param in parameters)
@@ -167,8 +176,10 @@ internal sealed class ExpressionTreeEmitter
         string returnTypeFqn,
         string delegateTypeFqn,
         INamedTypeSymbol containingType,
-        IReadOnlyList<(IPropertySymbol Property, SyntaxNode ValueSyntax)> delegatedBindings)
+        IMethodSymbol? chainedTargetCtor = null,
+        IReadOnlyList<SyntaxNode>? chainedArgExpressions = null)
     {
+        _outerReturnTypeFqn = returnTypeFqn;
         // Emit parameter declarations
         var paramVarNames = new List<string>();
         foreach (var param in parameters)
@@ -181,31 +192,64 @@ internal sealed class ExpressionTreeEmitter
                 _symbolToVar[param.Symbol] = varName;
         }
 
-        // Get the parameterless constructor
-        var parameterlessCtor = containingType.Constructors
-            .FirstOrDefault(c => !c.IsStatic && c.Parameters.IsEmpty);
-        var ctorField = parameterlessCtor is not null
-            ? _fieldCache.EnsureConstructorInfo(parameterlessCtor)
-            : null;
-
         var newVar = NextVar();
-        if (ctorField is not null)
+        if (chainedTargetCtor is { Parameters.Length: > 0 } && chainedArgExpressions is not null)
         {
-            AppendLine($"var {newVar} = {Expr}.New({ctorField});");
+            // `: this(args)` chain → invoke the target ctor directly so its bindings (including
+            // record primary-ctor positional parameters) flow through.
+            var argVars = new List<string>();
+            foreach (var argSyntax in chainedArgExpressions)
+            {
+                var argOp = _semanticModel.GetOperation(UnwrapTransparentSyntax(argSyntax));
+                if (argOp is null)
+                {
+                    var fallback = NextVar();
+                    AppendLine($"var {fallback} = {Expr}.Default(typeof(object));");
+                    argVars.Add(fallback);
+                }
+                else
+                {
+                    argVars.Add(EmitOperation(argOp));
+                }
+            }
+            var chainedCtorField = _fieldCache.EnsureConstructorInfo(chainedTargetCtor);
+            var argsExpr = string.Join(", ", argVars);
+            AppendLine($"var {newVar} = {Expr}.New({chainedCtorField}, {argsExpr});");
         }
         else
         {
-            AppendLine($"var {newVar} = {Expr}.New(typeof({returnTypeFqn}));");
+            // Parameterless ctor path (no chain, or `: this()` with no args).
+            var parameterlessCtor = containingType.Constructors
+                .FirstOrDefault(c => !c.IsStatic && c.Parameters.IsEmpty);
+            var ctorField = parameterlessCtor is not null
+                ? _fieldCache.EnsureConstructorInfo(parameterlessCtor)
+                : null;
+
+            if (ctorField is not null)
+            {
+                AppendLine($"var {newVar} = {Expr}.New({ctorField});");
+            }
+            else
+            {
+                AppendLine($"var {newVar} = {Expr}.New(typeof({returnTypeFqn}));");
+            }
         }
 
         // Accumulate property assignments: propName → (symbol, emitted value var)
         var propertyAssignments = new Dictionary<string, (ISymbol Symbol, string ValueVar)>();
 
-        // Process the constructor body, collecting property assignments
+        // Process the constructor body, collecting property assignments.
+        // Block-bodied ctors produce an IBlockOperation; expression-bodied ctors produce the
+        // body's operation directly (e.g. a bare ISimpleAssignmentOperation or
+        // IDeconstructionAssignmentOperation).
         var operation = _semanticModel.GetOperation(UnwrapTransparentSyntax(bodySyntax));
         if (operation is IBlockOperation block)
         {
             ProcessConstructorStatements(block.Operations, propertyAssignments);
+        }
+        else if (operation is not null)
+        {
+            ProcessConstructorStatement(operation, propertyAssignments);
         }
 
         // Build MemberInit bindings from accumulated assignments
@@ -262,54 +306,122 @@ internal sealed class ExpressionTreeEmitter
     {
         foreach (var op in operations)
         {
-            switch (op)
-            {
-                case IExpressionStatementOperation { Operation: ISimpleAssignmentOperation assignment }:
-                    ProcessConstructorAssignment(assignment, assignments);
-                    break;
-
-                case IConditionalOperation conditional:
-                    ProcessConstructorConditional(conditional, assignments);
-                    break;
-
-                case IVariableDeclarationGroupOperation varDecl:
-                    foreach (var declaration in varDecl.Declarations)
-                    {
-                        foreach (var declarator in declaration.Declarators)
-                        {
-                            var localSymbol = declarator.Symbol;
-                            var localTypeFqn = localSymbol.Type.ToDisplayString(_fqnFormat);
-                            var localVar = NextVar();
-                            AppendLine($"var {localVar} = {Expr}.Variable(typeof({localTypeFqn}), \"{localSymbol.Name}\");");
-                            _localToVar[localSymbol] = localVar;
-
-                            if (declarator.Initializer is not null)
-                            {
-                                var initVar = EmitOperation(declarator.Initializer.Value);
-                                // For constructor local variables, store the value expression
-                                // so it can be referenced later (e.g. in conditions)
-                                var assignVar = NextVar();
-                                AppendLine($"var {assignVar} = {Expr}.Assign({localVar}, {initVar});");
-                            }
-                        }
-                    }
-                    break;
-
-                case IReturnOperation:
-                    // Early returns in constructors — stop processing further statements
-                    return;
-
-                case IBlockOperation nestedBlock:
-                    // Nested block scope (e.g. { if (...) { ... } })
-                    ProcessConstructorStatements(nestedBlock.Operations, assignments);
-                    break;
-
-                default:
-                    // Skip other statement types
-                    break;
-            }
+            if (!ProcessConstructorStatement(op, assignments))
+                return;
         }
     }
+
+    /// <summary>
+    /// Processes a single constructor-body statement. Returns false when processing should stop
+    /// (e.g., after an early <c>return</c>).
+    /// </summary>
+    private bool ProcessConstructorStatement(
+        IOperation op,
+        Dictionary<string, (ISymbol Symbol, string ValueVar)> assignments)
+    {
+        switch (op)
+        {
+            case IExpressionStatementOperation { Operation: ISimpleAssignmentOperation assignment }:
+                ProcessConstructorAssignment(assignment, assignments);
+                return true;
+
+            case IExpressionStatementOperation { Operation: IDeconstructionAssignmentOperation decon }:
+                ProcessConstructorDeconstruction(decon, assignments);
+                return true;
+
+            case IDeconstructionAssignmentOperation deconRoot:
+                // Expression-bodied ctor: `public Ctor(X o) => (A, B) = (o.A, o.B);`
+                ProcessConstructorDeconstruction(deconRoot, assignments);
+                return true;
+
+            case ISimpleAssignmentOperation bareAssignment:
+                // Expression-bodied ctor with a single `A = x` body.
+                ProcessConstructorAssignment(bareAssignment, assignments);
+                return true;
+
+            case IConditionalOperation conditional:
+                ProcessConstructorConditional(conditional, assignments);
+                return true;
+
+            case IVariableDeclarationGroupOperation varDecl:
+                foreach (var declaration in varDecl.Declarations)
+                {
+                    foreach (var declarator in declaration.Declarators)
+                    {
+                        var localSymbol = declarator.Symbol;
+                        var localTypeFqn = localSymbol.Type.ToDisplayString(_fqnFormat);
+                        var localVar = NextVar();
+                        AppendLine($"var {localVar} = {Expr}.Variable(typeof({localTypeFqn}), \"{localSymbol.Name}\");");
+                        _localToVar[localSymbol] = localVar;
+
+                        if (declarator.Initializer is not null)
+                        {
+                            var initVar = EmitOperation(declarator.Initializer.Value);
+                            // For constructor local variables, store the value expression
+                            // so it can be referenced later (e.g. in conditions)
+                            var assignVar = NextVar();
+                            AppendLine($"var {assignVar} = {Expr}.Assign({localVar}, {initVar});");
+                        }
+                    }
+                }
+                return true;
+
+            case IReturnOperation:
+                // Early returns in constructors — stop processing further statements
+                return false;
+
+            case IBlockOperation nestedBlock:
+                // Nested block scope (e.g. { if (...) { ... } })
+                ProcessConstructorStatements(nestedBlock.Operations, assignments);
+                return true;
+
+            default:
+                // Skip other statement types
+                return true;
+        }
+    }
+
+    private void ProcessConstructorDeconstruction(
+        IDeconstructionAssignmentOperation decon,
+        Dictionary<string, (ISymbol Symbol, string ValueVar)> assignments)
+    {
+        // The walker has already validated the shape: both sides are tuple literals of equal
+        // arity and every left-side element is a property/field reference on `this`. We
+        // synthesize one assignment per pair.
+        var target = UnwrapConversions(decon.Target);
+        var value = UnwrapConversions(decon.Value);
+        if (target is not ITupleOperation targetTuple || value is not ITupleOperation valueTuple
+            || targetTuple.Elements.Length != valueTuple.Elements.Length)
+        {
+            return;
+        }
+
+        for (var i = 0; i < targetTuple.Elements.Length; i++)
+        {
+            var leftOp = UnwrapConversions(targetTuple.Elements[i]);
+            var rightOp = valueTuple.Elements[i];
+
+            ISymbol? memberSymbol = leftOp switch
+            {
+                IPropertyReferenceOperation p => p.Property,
+                IFieldReferenceOperation f => f.Field,
+                _ => null
+            };
+            var memberName = memberSymbol?.Name;
+            if (memberSymbol is null || memberName is null) continue;
+
+            var valueVar = EmitOperation(rightOp);
+            assignments[memberName] = (memberSymbol, valueVar);
+        }
+    }
+
+    private static IOperation UnwrapConversions(IOperation operation)
+    {
+        while (operation is IConversionOperation conv)
+            operation = conv.Operand;
+        return operation;
+    }
+
 
     private void ProcessConstructorAssignment(
         ISimpleAssignmentOperation assignment,
@@ -447,6 +559,7 @@ internal sealed class ExpressionTreeEmitter
             ITupleBinaryOperation tupleBinary => EmitTupleBinary(tupleBinary),
             IIsPatternOperation isPattern => EmitIsPattern(isPattern),
             ISwitchExpressionOperation switchExpr => EmitSwitchExpression(switchExpr),
+            ISwitchOperation switchStmt => EmitSwitchStatement(switchStmt),
             IConditionalAccessOperation condAccess => EmitConditionalAccess(condAccess),
             IConditionalAccessInstanceOperation => EmitConditionalAccessInstance(),
             IBlockOperation block => EmitBlock(block),
@@ -1902,6 +2015,122 @@ internal sealed class ExpressionTreeEmitter
 
     // ── Switch expressions ──────────────────────────────────────────────────
 
+    /// <summary>
+    /// Translates a <c>switch (expr) { case X: return ...; default: return ...; }</c> statement
+    /// into a nested-ternary expression equivalent to the corresponding switch expression.
+    /// Each case clause must be a single-value constant pattern and each case body must be a
+    /// single <c>return</c> statement. Fall-through, <c>goto case</c>, and non-return bodies
+    /// are not supported and fall back to the default-stub behavior.
+    /// </summary>
+    private string EmitSwitchStatement(ISwitchOperation switchStmt)
+    {
+        var governingVar = EmitOperation(switchStmt.Value);
+
+        var arms = new List<(string ConditionVar, string ValueVar, IReturnOperation Return)>();
+        string? defaultValueVar = null;
+        ITypeSymbol? resultType = null;
+
+        foreach (var switchCase in switchStmt.Cases)
+        {
+            var returnOp = FindCaseReturn(switchCase);
+            if (returnOp is null || returnOp.ReturnedValue is null)
+            {
+                return EmitUnsupported(switchStmt);
+            }
+
+            resultType ??= returnOp.ReturnedValue.Type;
+            var armValueVar = EmitOperation(returnOp.ReturnedValue);
+
+            var isDefault = switchCase.Clauses.Any(c => c.CaseKind == CaseKind.Default);
+            if (isDefault)
+            {
+                defaultValueVar = armValueVar;
+                continue;
+            }
+
+            // Combine all non-default clauses into a single `||` condition.
+            string? orVar = null;
+            foreach (var clause in switchCase.Clauses)
+            {
+                if (clause is not ISingleValueCaseClauseOperation single || single.Value is null)
+                {
+                    return EmitUnsupported(switchStmt);
+                }
+                var valueVar = EmitOperation(single.Value);
+                var eqVar = NextVar();
+                AppendLine($"var {eqVar} = {Expr}.Equal({governingVar}, {valueVar});");
+                if (orVar is null)
+                {
+                    orVar = eqVar;
+                }
+                else
+                {
+                    var combined = NextVar();
+                    AppendLine($"var {combined} = {Expr}.OrElse({orVar}, {eqVar});");
+                    orVar = combined;
+                }
+            }
+            if (orVar is null)
+            {
+                return EmitUnsupported(switchStmt);
+            }
+
+            arms.Add((orVar, armValueVar, returnOp));
+        }
+
+        var typeFqn = resultType is not null ? ResolveTypeFqn(resultType) : "object";
+
+        string currentVar;
+        if (defaultValueVar is not null)
+        {
+            currentVar = defaultValueVar;
+        }
+        else
+        {
+            currentVar = NextVar();
+            AppendLine($"var {currentVar} = {Expr}.Default(typeof({typeFqn}));");
+        }
+
+        // Fold arms in reverse so the first matching arm wins.
+        for (var i = arms.Count - 1; i >= 0; i--)
+        {
+            var (condVar, valueVar, _) = arms[i];
+            var ternaryVar = NextVar();
+            AppendLine($"var {ternaryVar} = {Expr}.Condition({condVar}, {valueVar}, {currentVar}, typeof({typeFqn}));");
+            currentVar = ternaryVar;
+        }
+
+        return currentVar;
+    }
+
+    /// <summary>
+    /// Returns the single <see cref="IReturnOperation"/> inside a switch case's body, or null
+    /// if the body does not reduce to a single return (e.g. multiple statements, break-only,
+    /// goto case, throw).
+    /// </summary>
+    private static IReturnOperation? FindCaseReturn(ISwitchCaseOperation switchCase)
+    {
+        foreach (var op in switchCase.Body)
+        {
+            switch (op)
+            {
+                case IReturnOperation ret:
+                    return ret;
+                case IBlockOperation block:
+                    foreach (var inner in block.Operations)
+                    {
+                        if (inner is IReturnOperation innerRet) return innerRet;
+                        // Anything other than the return means we don't support this shape.
+                        return null;
+                    }
+                    return null;
+                default:
+                    return null;
+            }
+        }
+        return null;
+    }
+
     private string EmitSwitchExpression(ISwitchExpressionOperation switchExpr)
     {
         var governingVar = EmitOperation(switchExpr.Value);
@@ -3053,7 +3282,15 @@ internal sealed class ExpressionTreeEmitter
             operation.Kind.ToString());
 
         var resultVar = NextVar();
-        var typeFqn = operation.Type is not null ? ResolveTypeFqn(operation.Type) : "object";
+        // Prefer the operation's own type. For statements (switch, block, return, …) the
+        // IOperation type is either null or void — falling back to the enclosing lambda's
+        // declared return type avoids a Lambda<Func<T,R>>(Default(object), …) mismatch that
+        // would throw at ExpressionRegistry static-init time and poison the whole assembly.
+        var isUsableType = operation.Type is not null
+            && operation.Type.SpecialType != SpecialType.System_Void;
+        var typeFqn = isUsableType
+            ? ResolveTypeFqn(operation.Type!)
+            : (_outerReturnTypeFqn ?? "object");
         AppendLine($"/* Unsupported IOperation: {operation.Kind} */");
         AppendLine($"var {resultVar} = {Expr}.Default(typeof({typeFqn}));");
         return resultVar;

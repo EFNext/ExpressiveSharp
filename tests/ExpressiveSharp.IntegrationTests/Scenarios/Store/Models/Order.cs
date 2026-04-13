@@ -42,6 +42,17 @@ public class Order
     };
 
     [Expressive(AllowBlockBody = true)]
+    public string GetStatusLabelSwitchStatement()
+    {
+        switch (Status)
+        {
+            case OrderStatus.Approved: return "Active";
+            case OrderStatus.Pending: return "New";
+            default: return "Unknown";
+        }
+    }
+
+    [Expressive(AllowBlockBody = true)]
     public string GetCategory()
     {
         var threshold = Quantity * 10;

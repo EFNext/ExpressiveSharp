@@ -17,7 +17,7 @@ namespace ExpressiveSharp.Generated
             var p_id = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "id");
             var p_name = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "name");
             var p_suffix = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "suffix");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.Child).GetConstructor(new global::System.Type[] {  }));
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.Child).GetConstructor(new global::System.Type[] { typeof(int), typeof(string) }), p_id, p_name);
             var p___this = global::System.Linq.Expressions.Expression.Parameter(typeof(object), "@this"); // Name
             var expr_2 = global::System.Linq.Expressions.Expression.Property(p___this, typeof(global::Foo.Child).GetProperty("Name"));
             var expr_1 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_2, p_suffix);

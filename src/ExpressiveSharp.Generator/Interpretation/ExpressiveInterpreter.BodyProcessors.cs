@@ -339,21 +339,61 @@ static internal partial class ExpressiveInterpreter
         descriptor.ReturnTypeName = fullTypeName;
         ApplyParameterList(constructorDeclarationSyntax.ParameterList, declarationSyntaxRewriter, descriptor);
 
-        // Verify parameterless constructor exists
-        var hasAccessibleParameterlessConstructor = containingType.Constructors
-            .Any(c => !c.IsStatic
-                      && c.Parameters.IsEmpty
-                      && c.DeclaredAccessibility is Accessibility.Public
-                          or Accessibility.Internal
-                          or Accessibility.ProtectedOrInternal);
+        // Detect `: this(...)` chaining to a parameterized ctor (records' primary ctor or any
+        // `this(args)` overload). In that case we emit Expression.New(targetCtor, args) so the
+        // target ctor is invoked with the caller's values — the parameterless requirement is
+        // then irrelevant because we never synthesize `new T()`.
+        IMethodSymbol? chainedTargetCtor = null;
+        List<SyntaxNode>? chainedArgExpressions = null;
+        if (constructorDeclarationSyntax.Initializer is { } initializer
+            && initializer.ThisOrBaseKeyword.IsKind(SyntaxKind.ThisKeyword))
+        {
+            if (semanticModel.GetSymbolInfo(initializer).Symbol is IMethodSymbol target
+                && target.Parameters.Length > 0)
+            {
+                chainedTargetCtor = target;
+                chainedArgExpressions = initializer.ArgumentList.Arguments
+                    .Select(a => (SyntaxNode)a.Expression)
+                    .ToList();
+            }
+        }
 
-        if (!hasAccessibleParameterlessConstructor)
+        // Verify parameterless constructor exists — skip when chaining to a parameterized ctor.
+        if (chainedTargetCtor is null)
+        {
+            var hasAccessibleParameterlessConstructor = containingType.Constructors
+                .Any(c => !c.IsStatic
+                          && c.Parameters.IsEmpty
+                          && c.DeclaredAccessibility is Accessibility.Public
+                              or Accessibility.Internal
+                              or Accessibility.ProtectedOrInternal);
+
+            if (!hasAccessibleParameterlessConstructor)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Diagnostics.MissingParameterlessConstructor,
+                    constructorDeclarationSyntax.GetLocation(),
+                    containingType.Name));
+                return false;
+            }
+        }
+
+        // Preserve EXP0003: report when a `: base(...)` initializer targets a ctor with no
+        // available source (e.g. BCL exception base classes). The expression tree cannot
+        // represent a call to such a ctor — we still emit the outer body's bindings via the
+        // parameterless ctor, but users should be warned that the base-ctor side effects are
+        // not captured.
+        if (constructorDeclarationSyntax.Initializer is { } baseInit
+            && baseInit.ThisOrBaseKeyword.IsKind(SyntaxKind.BaseKeyword)
+            && semanticModel.GetSymbolInfo(baseInit).Symbol is IMethodSymbol baseTarget
+            && !baseTarget.DeclaringSyntaxReferences.Any(r => r.GetSyntax() is ConstructorDeclarationSyntax))
         {
             context.ReportDiagnostic(Diagnostic.Create(
-                Diagnostics.MissingParameterlessConstructor,
-                constructorDeclarationSyntax.GetLocation(),
-                containingType.Name));
-            return false;
+                Diagnostics.NoSourceAvailableForDelegatedConstructor,
+                baseTarget.Locations.FirstOrDefault() ?? Location.None,
+                baseTarget.ToDisplayString(),
+                baseTarget.ContainingType?.ToDisplayString() ?? "<unknown>",
+                memberSymbol.Name));
         }
 
         // Pass the constructor body to the emitter — it will emit the block as-is.
@@ -374,17 +414,6 @@ static internal partial class ExpressiveInterpreter
             return ReportRequiresBodyAndFail(context, constructorDeclarationSyntax, memberSymbol.Name);
         }
 
-        // Collect assignments from base/this delegated constructors
-        var delegatedBindings = new List<(IPropertySymbol Property, SyntaxNode ValueSyntax)>();
-        if (constructorDeclarationSyntax.Initializer is { } initializer && compilation is not null)
-        {
-            var initializerSymbol = semanticModel.GetSymbolInfo(initializer).Symbol as IMethodSymbol;
-            if (initializerSymbol is not null)
-            {
-                CollectDelegatedBindings(initializerSymbol, compilation, delegatedBindings, context, memberSymbol.Name);
-            }
-        }
-
         var emitter = new ExpressionTreeEmitter(semanticModel, context);
 
         // Build emitter parameters (constructor params, no @this)
@@ -403,74 +432,9 @@ static internal partial class ExpressiveInterpreter
 
         descriptor.ExpressionTreeEmission = emitter.EmitConstructor(
             bodySyntax, emitterParams, descriptor.ReturnTypeName!, delegateTypeFqn,
-            containingType, delegatedBindings);
+            containingType, chainedTargetCtor, chainedArgExpressions);
 
         return true;
-    }
-
-    /// <summary>
-    /// Recursively collects property assignments from a delegated constructor chain.
-    /// </summary>
-    private static void CollectDelegatedBindings(
-        IMethodSymbol delegatedCtor,
-        Compilation compilation,
-        List<(IPropertySymbol Property, SyntaxNode ValueSyntax)> bindings,
-        SourceProductionContext context,
-        string memberName)
-    {
-        var syntax = delegatedCtor.DeclaringSyntaxReferences
-            .Select(r => r.GetSyntax())
-            .OfType<ConstructorDeclarationSyntax>()
-            .FirstOrDefault();
-
-        if (syntax is null)
-        {
-            context.ReportDiagnostic(Diagnostic.Create(
-                Diagnostics.NoSourceAvailableForDelegatedConstructor,
-                delegatedCtor.Locations.FirstOrDefault() ?? Location.None,
-                delegatedCtor.ToDisplayString(),
-                delegatedCtor.ContainingType?.ToDisplayString() ?? "<unknown>",
-                memberName));
-            return;
-        }
-
-        // Follow the chain recursively
-        if (syntax.Initializer is { } initializer)
-        {
-            var delegatedSemanticModel = compilation.GetSemanticModel(syntax.SyntaxTree);
-            var initializerSymbol = delegatedSemanticModel.GetSymbolInfo(initializer).Symbol as IMethodSymbol;
-            if (initializerSymbol is not null)
-            {
-                CollectDelegatedBindings(initializerSymbol, compilation, bindings, context, memberName);
-            }
-        }
-
-        // Collect property assignments from this constructor's body
-        if (syntax.Body is not null)
-        {
-            var ctorSemanticModel = compilation.GetSemanticModel(syntax.SyntaxTree);
-            foreach (var statement in syntax.Body.Statements)
-            {
-                if (statement is ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax assignment }
-                    && assignment.Left is MemberAccessExpressionSyntax memberAccess)
-                {
-                    var symbol = ctorSemanticModel.GetSymbolInfo(memberAccess).Symbol;
-                    if (symbol is IPropertySymbol prop)
-                    {
-                        bindings.Add((prop, assignment.Right));
-                    }
-                }
-                else if (statement is ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax simpleAssignment }
-                    && simpleAssignment.Left is IdentifierNameSyntax identifierName)
-                {
-                    var symbol = ctorSemanticModel.GetSymbolInfo(identifierName).Symbol;
-                    if (symbol is IPropertySymbol prop)
-                    {
-                        bindings.Add((prop, simpleAssignment.Right));
-                    }
-                }
-            }
-        }
     }
 
     /// <summary>
@@ -628,11 +592,17 @@ static internal partial class ExpressiveInterpreter
                     memberName, "??= operator"));
                 return;
 
-            case IDeconstructionAssignmentOperation:
-                context.ReportDiagnostic(Diagnostic.Create(
-                    Diagnostics.UnsupportedStatementInBlockBody,
-                    operation.Syntax?.GetLocation() ?? Location.None,
-                    memberName, "deconstruction assignment"));
+            case IDeconstructionAssignmentOperation decon:
+                // Accept the tuple-literal-to-tuple-literal shape (e.g. `(A, B) = (x, y);`) —
+                // the ctor-body emitter decomposes it into individual property bindings.
+                // Reject everything else (Deconstruct method calls, nested tuples, discards, etc.).
+                if (!IsSimpleTupleLiteralDeconstruction(decon))
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        Diagnostics.UnsupportedStatementInBlockBody,
+                        operation.Syntax?.GetLocation() ?? Location.None,
+                        memberName, "deconstruction assignment"));
+                }
                 return;
 
             case IDynamicInvocationOperation or IDynamicMemberReferenceOperation
@@ -649,5 +619,38 @@ static internal partial class ExpressiveInterpreter
         {
             WalkOperations(child, memberName, context);
         }
+    }
+
+    /// <summary>
+    /// Returns true when the deconstruction has the shape
+    /// <c>(member, member, ...) = (value, value, ...)</c> — two tuple literals of equal arity
+    /// with the left side referencing only properties or fields of <c>this</c>. Only this shape
+    /// is supported by the constructor-body emitter.
+    /// </summary>
+    private static bool IsSimpleTupleLiteralDeconstruction(IDeconstructionAssignmentOperation decon)
+    {
+        var target = UnwrapConversions(decon.Target);
+        var value = UnwrapConversions(decon.Value);
+
+        if (target is not ITupleOperation targetTuple || value is not ITupleOperation valueTuple
+            || targetTuple.Elements.Length != valueTuple.Elements.Length)
+        {
+            return false;
+        }
+
+        foreach (var element in targetTuple.Elements)
+        {
+            var unwrapped = UnwrapConversions(element);
+            if (unwrapped is not IPropertyReferenceOperation && unwrapped is not IFieldReferenceOperation)
+                return false;
+        }
+        return true;
+    }
+
+    private static IOperation UnwrapConversions(IOperation operation)
+    {
+        while (operation is IConversionOperation conv)
+            operation = conv.Operand;
+        return operation;
     }
 }

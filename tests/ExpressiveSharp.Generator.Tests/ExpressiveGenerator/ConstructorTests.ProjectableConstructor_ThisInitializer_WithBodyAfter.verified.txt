@@ -17,7 +17,7 @@ namespace ExpressiveSharp.Generated
             var p_fn = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "fn");
             var p_ln = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "ln");
             var p_upper = global::System.Linq.Expressions.Expression.Parameter(typeof(bool), "upper");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PersonDto).GetConstructor(new global::System.Type[] {  }));
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PersonDto).GetConstructor(new global::System.Type[] { typeof(string), typeof(string) }), p_fn, p_ln);
             var p___this = global::System.Linq.Expressions.Expression.Parameter(typeof(object), "@this"); // FirstName
             var expr_5 = global::System.Linq.Expressions.Expression.Property(p___this, typeof(global::Foo.PersonDto).GetProperty("FirstName"));
             var expr_6 = global::System.Linq.Expressions.Expression.Constant(" ", typeof(string)); // " "
