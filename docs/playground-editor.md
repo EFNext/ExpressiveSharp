@@ -24,6 +24,9 @@ function isDark() {
   return document.documentElement.classList.contains('dark')
 }
 
+let resizeHandler = null
+let observer = null
+
 onMounted(() => {
   const frame = document.getElementById('playground-frame')
   if (!frame) return
@@ -33,20 +36,23 @@ onMounted(() => {
   const hash = location.hash || ''
   frame.setAttribute('src', `${base}?theme=${theme}${hash}`)
 
-  // Auto-resize iframe to fit its content
-  window.addEventListener('message', (e) => {
+  resizeHandler = (e) => {
     if (e.data?.type === 'playground-resize') {
       frame.style.height = e.data.height + 'px'
     }
-  })
+  }
+  window.addEventListener('message', resizeHandler)
 
-  // Sync theme toggle
-  const observer = new MutationObserver(() => {
+  observer = new MutationObserver(() => {
     if (frame.contentWindow) {
       frame.contentWindow.postMessage(isDark() ? 'theme:dark' : 'theme:light', '*')
     }
   })
   observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
-  onUnmounted(() => observer.disconnect())
+})
+
+onUnmounted(() => {
+  if (resizeHandler) window.removeEventListener('message', resizeHandler)
+  if (observer) observer.disconnect()
 })
 </script>

@@ -70,9 +70,6 @@ internal sealed class PlaygroundReferences : IPlaygroundReferences
 
     private async Task<MetadataReference?> FetchAsync(string assemblyName)
     {
-        // Try the standard _framework/ path first. If Blazor's BaseAddress
-        // doesn't point at the playground subdirectory (e.g., the web component
-        // is hosted on a VitePress page), fall back to the playground/ prefix.
         var url = $"_framework/{assemblyName}.dll";
         try
         {
@@ -81,9 +78,7 @@ internal sealed class PlaygroundReferences : IPlaygroundReferences
         }
         catch (HttpRequestException)
         {
-            // The runtime sometimes splits an assembly into multiple package
-            // ones — if a logical name doesn't resolve to a file in /_framework,
-            // skip it. Roslyn will surface a "missing reference" diagnostic
+            // Missing DLL → skip; Roslyn surfaces a "missing reference" diagnostic
             // later if the snippet actually needs the type.
             return null;
         }

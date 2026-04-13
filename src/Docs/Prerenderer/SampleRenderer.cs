@@ -221,7 +221,7 @@ internal sealed class SampleRenderer : IAsyncDisposable
         public void Dispose()
         {
             try { Instance.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
-            catch { /* best-effort */ }
+            catch (Exception) { /* best-effort */ }
         }
     }
 

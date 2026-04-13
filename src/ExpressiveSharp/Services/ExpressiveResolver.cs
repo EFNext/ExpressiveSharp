@@ -25,12 +25,12 @@ namespace ExpressiveSharp.Services
         /// Clears all process-level caches built up by the resolver. Intended for test harnesses
         /// and the docs prerenderer, where many short-lived snippet assemblies are loaded in sequence.
         /// </summary>
-        public static void ResetAllCaches()
+        internal static void ResetAllCaches()
         {
             _assemblyRegistries.Clear();
             _expressionCache.Clear();
             _reflectionCache.Clear();
-            _lastScannedAssemblyCount = 0;
+            Volatile.Write(ref _lastScannedAssemblyCount, 0);
             _assemblyScanFilter = null;
         }
 
@@ -40,10 +40,10 @@ namespace ExpressiveSharp.Services
         /// Restricts <see cref="EnsureAllRegistriesLoaded"/> to assemblies matching the given filter.
         /// Pass <c>null</c> to remove the filter.
         /// </summary>
-        public static void SetAssemblyScanFilter(Func<Assembly, bool>? filter)
+        internal static void SetAssemblyScanFilter(Func<Assembly, bool>? filter)
         {
             _assemblyScanFilter = filter;
-            _lastScannedAssemblyCount = 0;
+            Volatile.Write(ref _lastScannedAssemblyCount, 0);
         }
 
         /// <summary>
@@ -159,7 +159,7 @@ namespace ExpressiveSharp.Services
         private static void EnsureAllRegistriesLoaded()
         {
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-            if (assemblies.Length == _lastScannedAssemblyCount) return;
+            if (assemblies.Length == Volatile.Read(ref _lastScannedAssemblyCount)) return;
 
             lock (_scanLock)
             {
@@ -178,7 +178,7 @@ namespace ExpressiveSharp.Services
                     GetAssemblyRegistry(assembly);
                 }
 
-                _lastScannedAssemblyCount = assemblies.Length;
+                Volatile.Write(ref _lastScannedAssemblyCount, assemblies.Length);
             }
         }
 
