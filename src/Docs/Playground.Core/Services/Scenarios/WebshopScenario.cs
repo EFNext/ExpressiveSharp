@@ -52,7 +52,7 @@ public sealed class WebshopScenario : IPlaygroundScenario
     {
         new ScenarioRenderTarget(
             Id: "sqlite",
-            Label: "EF Core + SQLite",
+            Label: "EF + SQLite",
             OutputLanguage: "sql",
             Render: static (queryable, _) => queryable.ToQueryString())
         {
@@ -61,7 +61,7 @@ public sealed class WebshopScenario : IPlaygroundScenario
 
         new ScenarioRenderTarget(
             Id: "postgres",
-            Label: "EF Core + PostgreSQL",
+            Label: "EF + PostgreSQL",
             OutputLanguage: "sql",
             Render: static (queryable, _) => queryable.ToQueryString())
         {

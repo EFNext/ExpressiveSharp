@@ -10,7 +10,7 @@ ExpressiveSharp is provider-agnostic. It layers on top of `IQueryable<T>` and in
 - **MongoDB** — via `ExpressiveSharp.MongoDB`, translating to MQL aggregation pipelines
 - **Any `IQueryable<T>`** — wrap with `.AsExpressive()` and you get modern syntax on your own provider or any third-party one
 
-The samples throughout these docs show the same query rendered against SQLite, PostgreSQL, SQL Server, Cosmos DB, and MongoDB side by side — so you always see how the construct translates for your target.
+The samples throughout these docs show the same query rendered against SQLite, PostgreSQL, SQL Server, and MongoDB side by side — so you always see how the construct translates for your target.
 
 ## The Two Problems
 

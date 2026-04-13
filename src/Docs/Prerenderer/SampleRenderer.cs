@@ -37,13 +37,6 @@ internal sealed class SampleRenderer : IAsyncDisposable
             .EnableServiceProviderCaching(false)
             .Options);
 
-    private static WebshopDbContext BuildCosmosContext() =>
-        new(new DbContextOptionsBuilder<WebshopDbContext>()
-            .UseCosmos("AccountEndpoint=https://localhost:8081/;AccountKey=dW5pdHRlc3Q=", "playground")
-            .UseExpressives()
-            .EnableServiceProviderCaching(false)
-            .Options);
-
     private static IWebshopQueryRoots BuildMongoRoots()
     {
         var db = new MongoClient("mongodb://localhost:27017").GetDatabase("playground");
@@ -152,11 +145,8 @@ internal sealed class SampleRenderer : IAsyncDisposable
         if (scenario.Id == "webshop")
         {
             using var sqlServer = BuildSqlServerContext();
-            using var cosmos = BuildCosmosContext();
-            RenderPrerendererTarget(targets, invoke, "sqlserver", "EF Core + SQL Server", "sql",
+            RenderPrerendererTarget(targets, invoke, "sqlserver", "EF + SQL Server", "sql",
                 new DbContextRoots(sqlServer), static (q, _) => q.ToQueryString());
-            RenderPrerendererTarget(targets, invoke, "cosmos", "EF Core + Cosmos DB", "sql",
-                new DbContextRoots(cosmos), static (q, _) => q.ToQueryString());
             RenderPrerendererTarget(targets, invoke, "mongodb", "MongoDB", "javascript",
                 BuildMongoRoots(), static (q, _) => FormatMongoOutput(q.ToString()!));
         }

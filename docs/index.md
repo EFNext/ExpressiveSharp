@@ -27,7 +27,7 @@ features:
 
   - icon: "\U0001F310"
     title: Provider-Agnostic
-    details: Works with EF Core (every provider — SQL Server, Postgres, SQLite, Cosmos, …), MongoDB, and any IQueryable. One library, every backend.
+    details: Works with EF Core (every provider — SQL Server, Postgres, SQLite, MySQL, Oracle, …), MongoDB, and any IQueryable. One library, every backend.
 
   - icon: "\u26A1"
     title: Zero Runtime Overhead
@@ -84,7 +84,7 @@ db.Orders
 
 You end up duplicating formulas as inline expressions and writing ugly ternary chains.
 
-**With ExpressiveSharp** — write natural C#. The source generator handles it, and your provider (EF Core / MongoDB / your own `IQueryable`) gets a clean, translatable expression tree. Every doc page's live samples render the same query for SQLite, Postgres, SQL Server, Cosmos, MongoDB, and the generator output side-by-side — so you see exactly how it translates for your stack.
+**With ExpressiveSharp** — write natural C#. The source generator handles it, and your provider (EF Core / MongoDB / your own `IQueryable`) gets a clean, translatable expression tree. Every doc page's live samples render the same query for SQLite, Postgres, SQL Server, MongoDB, and the generator output side-by-side — so you see exactly how it translates for your stack.
 
 ::: expressive-sample
 db.Orders

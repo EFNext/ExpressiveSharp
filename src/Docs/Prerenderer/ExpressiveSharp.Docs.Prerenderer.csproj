@@ -17,8 +17,6 @@
                       VersionOverride="10.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer"
                       VersionOverride="10.0.5" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Cosmos"
-                      VersionOverride="10.0.5" />
     <PackageReference Include="MongoDB.Driver" />
   </ItemGroup>
 

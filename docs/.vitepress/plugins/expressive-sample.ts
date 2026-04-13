@@ -149,7 +149,7 @@ export function expressiveSamplePlugin(md: MarkdownIt): void {
 
         // Output tabs
         const outputTabs: HighlightedTab[] = []
-        for (const targetId of ['sqlite', 'postgres', 'sqlserver', 'cosmos', 'mongodb', 'generator']) {
+        for (const targetId of ['sqlite', 'postgres', 'sqlserver', 'mongodb', 'generator']) {
           const target = sample.targets[targetId]
           if (target) {
             outputTabs.push({
