@@ -1,5 +1,11 @@
 import {defineConfig, type DefaultTheme, type HeadConfig} from 'vitepress'
 import llmstxt from 'vitepress-plugin-llms'
+import {expressiveSamplePlugin} from './plugins/expressive-sample'
+import {readFileSync, existsSync} from 'fs'
+import {resolve, dirname} from 'path'
+import {fileURLToPath} from 'url'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const base = '/ExpressiveSharp/'
 
@@ -99,11 +105,57 @@ const headers = process.env.GITHUB_ACTIONS === "true" ?
     [...baseHeaders, umamiScript] :
     baseHeaders;
 
+// Vite plugin: serve _playground/app.htm as raw HTML in dev mode.
+// VitePress's dev server applies its SPA transform to all HTML files in
+// public/, which breaks the Blazor WASM app. This middleware intercepts
+// requests to _playground/app.htm and serves the raw file directly.
+const mimeTypes: Record<string, string> = {
+  '.htm': 'text/html', '.html': 'text/html', '.js': 'application/javascript',
+  '.mjs': 'application/javascript', '.css': 'text/css', '.json': 'application/json',
+  '.wasm': 'application/wasm', '.dll': 'application/octet-stream',
+  '.dat': 'application/octet-stream', '.br': 'application/octet-stream',
+  '.gz': 'application/octet-stream', '.woff': 'font/woff', '.woff2': 'font/woff2',
+}
+
+function servePlaygroundPlugin() {
+  return {
+    name: 'serve-playground',
+    configureServer(server: any) {
+      // Serve everything under /_playground/ as raw static files so VitePress's
+      // SPA transform and module system don't intercept Blazor WASM resources.
+      server.middlewares.use((req: any, res: any, next: any) => {
+        const prefix = '/ExpressiveSharp/_playground/'
+        if (!req.url?.startsWith(prefix)) return next()
+
+        const relPath = req.url.slice(prefix.length).split('?')[0]
+        const filePath = resolve(__dirname, '../public/_playground', relPath)
+        if (!existsSync(filePath)) return next()
+
+        const ext = '.' + relPath.split('.').pop()
+        res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream')
+        res.end(readFileSync(filePath))
+      })
+    }
+  }
+}
+
 export default defineConfig({
   title: "ExpressiveSharp",
   description: "Modern C# syntax in LINQ expression trees — source-generated at compile time",
   base,
   head: headers,
+  markdown: {
+    config: (md) => {
+      md.use(expressiveSamplePlugin)
+    }
+  },
+  vue: {
+    template: {
+      compilerOptions: {
+        isCustomElement: (tag) => tag === 'expressive-playground',
+      }
+    }
+  },
   themeConfig: {
     logo: '/logo.png',
     nav: [
@@ -112,6 +164,7 @@ export default defineConfig({
       { text: 'Reference', link: '/reference/expressive-attribute' },
       { text: 'Advanced', link: '/advanced/how-it-works' },
       { text: 'Recipes', link: '/recipes/computed-properties' },
+      { text: 'Playground', link: '/playground-editor' },
       { text: 'Benchmarks', link: 'https://efnext.github.io/ExpressiveSharp/dev/bench/' },
     ],
 
@@ -132,6 +185,7 @@ export default defineConfig({
   },
   vite: {
     plugins: [
+      servePlaygroundPlugin(),
       llmstxt({
         domain: 'https://efnext.github.io',
         description: 'Modern C# syntax in LINQ expression trees — source-generated at compile time',

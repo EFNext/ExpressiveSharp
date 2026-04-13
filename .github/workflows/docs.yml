@@ -5,6 +5,10 @@ on:
     branches: [main]
     paths:
       - 'docs/**'
+      - 'src/ExpressiveSharp.Docs.Playground.Wasm/**'
+      - 'src/ExpressiveSharp.Docs.PlaygroundModel/**'
+      - 'src/ExpressiveSharp.Docs.Playground.Core/**'
+      - 'src/ExpressiveSharp.Docs.Prerenderer/**'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
 
@@ -19,6 +23,36 @@ jobs:
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish ExpressiveSharp Playground (Blazor WASM)
+        run: |
+          dotnet publish src/ExpressiveSharp.Docs.Playground.Wasm/ExpressiveSharp.Docs.Playground.Wasm.csproj \
+            -c Release \
+            -o .artifacts/playground
+          # Drop the Blazor publish output into VitePress' static asset folder
+          # so it ships as part of the site under /playground/.
+          rm -rf docs/public/_playground
+          mkdir -p docs/public/_playground
+          cp -r .artifacts/playground/wwwroot/. docs/public/_playground/
+          # Rename to app.html so it doesn't collide with VitePress's route resolution
+          mv docs/public/_playground/index.html docs/public/_playground/app.htm
+          sed -i 's|<base href="/" />|<base href="/ExpressiveSharp/_playground/" />|' docs/public/_playground/app.htm
+          # Copy _content/ to docs root so Blazor's dynamic imports resolve
+          # when the web component is hosted directly on the VitePress page
+          cp -r docs/public/_playground/_content docs/public/_content
+          # Remove BlazorMonaco static assets (no longer used)
+          rm -rf docs/public/_content/BlazorMonaco docs/public/_playground/_content/BlazorMonaco
+
+      - name: Pre-render doc samples
+        run: |
+          dotnet run --project src/ExpressiveSharp.Docs.Prerenderer \
+            -c Release \
+            -- --docs-root docs
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

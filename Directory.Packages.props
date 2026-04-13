@@ -6,6 +6,10 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.0.0" />
+    <!-- Roslyn IntelliSense (CompletionService, QuickInfoService). Pinned to the
+         same 5.0.0 stable wave as the rest of our Roslyn surface — Features 5.0.0
+         requires Microsoft.CodeAnalysis.Workspaces.Common = 5.0.0 exactly. -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Features" Version="5.0.0" />
     <PackageVersion Include="Verify.MSTest" Version="31.13.5" />
     <PackageVersion Include="Basic.Reference.Assemblies.Net80" Version="1.8.4" />
     <PackageVersion Include="Basic.Reference.Assemblies.Net100" Version="1.8.4" />
@@ -14,6 +18,7 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="8.0.25" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.25" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.25" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite.Core" Version="8.0.25" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.25" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
     <PackageVersion Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.3" />
@@ -27,5 +32,11 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Cosmos" Version="8.0.25" />
     <PackageVersion Include="MongoDB.Driver" Version="3.0.0" />
     <PackageVersion Include="Testcontainers.MongoDb" Version="4.3.0" />
+    <!-- Blazor WebAssembly host for the docs playground. -->
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.5" />
+    <!-- Lets the playground register itself as an <expressive-playground>
+         custom element so VitePress markdown can drop it inline. -->
+    <PackageVersion Include="Microsoft.AspNetCore.Components.CustomElements" Version="10.0.5" />
   </ItemGroup>
 </Project>
