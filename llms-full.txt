@@ -1869,7 +1869,17 @@ public static class OrderExt
 **Generated SQL:**
 
 ```sql
-Expression of type 'System.Object' cannot be used for return type 'System.String'
+.param set @Pending 0
+.param set @Paid 1
+.param set @Delivered 3
+
+SELECT "o"."Id", CASE
+    WHEN "o"."Status" = @Pending THEN 'New'
+    WHEN "o"."Status" = @Paid THEN 'Active'
+    WHEN "o"."Status" = @Delivered THEN 'Closed'
+    ELSE 'Unknown'
+END AS "Label"
+FROM "Orders" AS "o"
 ```
 
 ***
@@ -6825,7 +6835,7 @@ ExpressiveSharp is provider-agnostic. It layers on top of `IQueryable<T>` and in
 * **MongoDB** — via `ExpressiveSharp.MongoDB`, translating to MQL aggregation pipelines
 * **Any `IQueryable<T>`** — wrap with `.AsExpressive()` and you get modern syntax on your own provider or any third-party one
 
-The samples throughout these docs show the same query rendered against SQLite, PostgreSQL, SQL Server, Cosmos DB, and MongoDB side by side — so you always see how the construct translates for your target.
+The samples throughout these docs show the same query rendered against SQLite, PostgreSQL, SQL Server, and MongoDB side by side — so you always see how the construct translates for your target.
 
 ## The Two Problems
 

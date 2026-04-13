@@ -362,7 +362,17 @@ public static class OrderExt
 **Generated SQL:**
 
 ```sql
-Expression of type 'System.Object' cannot be used for return type 'System.String'
+.param set @Pending 0
+.param set @Paid 1
+.param set @Delivered 3
+
+SELECT "o"."Id", CASE
+    WHEN "o"."Status" = @Pending THEN 'New'
+    WHEN "o"."Status" = @Paid THEN 'Active'
+    WHEN "o"."Status" = @Delivered THEN 'Closed'
+    ELSE 'Unknown'
+END AS "Label"
+FROM "Orders" AS "o"
 ```
 
 ***
