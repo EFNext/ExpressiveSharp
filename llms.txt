@@ -38,6 +38,7 @@ ExpressiveSharp is a Roslyn source generator that enables modern C# syntax (null
 ### Reference
 
 - [`[Expressive]` Attribute](https://efnext.github.io/ExpressiveSharp/reference/expressive-attribute.md)
+- [Projectable Properties](https://efnext.github.io/ExpressiveSharp/reference/projectable-properties.md)
 - [`[ExpressiveFor]` Mapping](https://efnext.github.io/ExpressiveSharp/reference/expressive-for.md)
 - [Null-Conditional Rewrite](https://efnext.github.io/ExpressiveSharp/reference/null-conditional-rewrite.md)
 - [Pattern Matching](https://efnext.github.io/ExpressiveSharp/reference/pattern-matching.md)
@@ -58,6 +59,7 @@ ExpressiveSharp is a Roslyn source generator that enables modern C# syntax (null
 ### Recipes
 
 - [Computed Entity Properties](https://efnext.github.io/ExpressiveSharp/recipes/computed-properties.md)
+- [Computed Properties in Projection Middleware](https://efnext.github.io/ExpressiveSharp/recipes/projection-middleware.md)
 - [DTO Projections with Constructors](https://efnext.github.io/ExpressiveSharp/recipes/dto-projections.md)
 - [Scoring & Classification](https://efnext.github.io/ExpressiveSharp/recipes/scoring-classification.md)
 - [Nullable Navigation Properties](https://efnext.github.io/ExpressiveSharp/recipes/nullable-navigation.md)

@@ -896,6 +896,28 @@ Or enable globally for the entire project:
 
 ***
 
+### `Projectable`
+
+**Type:** `bool`
+**Default:** `false`
+
+Opts the property into **dual-direction semantics**: in-memory reads evaluate the formula, while values materialized from query results (e.g. by EF Core or HotChocolate's projection middleware) are stored and returned verbatim. Enables the property to participate as a binding target in projections of the form `Select(src => new T { Member = src.Member, ... })`.
+
+Requires a specific accessor shape:
+
+```csharp
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => field ?? (LastName + ", " + FirstName);   // `field ?? (formula)` is required
+    init => field = value;                           // or `set => field = value`
+}
+```
+
+See [Projectable Properties](./projectable-properties) for the full reference, including the list of restrictions, runtime semantics, and HotChocolate / AutoMapper integration details.
+
+***
+
 ### `Transformers`
 
 **Type:** `Type[]?`
@@ -2662,6 +2684,181 @@ If a computed member references navigation properties, make sure to structure yo
 ---
 
 ---
+url: 'https://efnext.github.io/ExpressiveSharp/recipes/projection-middleware.md'
+---
+# Computed Properties in Projection Middleware
+
+If your computed property returns an empty value -- or is silently dropped from the response -- when consumed by **HotChocolate**, **AutoMapper's `ProjectTo`**, **Mapperly's projection mode**, or any other framework that emits `Select(src => new Entity { Member = src.Member, ... })` over your entity type, this recipe is the fix.
+
+## Why plain `[Expressive]` isn't enough
+
+HotChocolate's `[UseProjection]` middleware (and similar mechanisms in other libraries) generates a projection expression from the GraphQL selection set. Empirically, when the GraphQL query asks for only `fullName`:
+
+```graphql
+query { users { fullName } }
+```
+
+HotChocolate inspects the `User.FullName` property, finds it is **read-only** (no setter), and silently drops it from the projection. The generated SQL is `SELECT 1 FROM Users` -- nothing is fetched. At materialization time, HC constructs fresh `User` instances with all fields at their defaults (`FirstName = ""`, `LastName = ""`), calls the `FullName` getter, and the formula returns `", "`. The response looks successful but the data is wrong.
+
+The same mechanism affects AutoMapper's `ProjectTo<Entity>`, Mapperly's generated projections, and any hand-rolled `Select(u => new User { ... })` that projects into the source type itself.
+
+## The fix: `[Expressive(Projectable = true)]`
+
+Turning on `Projectable = true` makes the property writable (so the projection middleware emits a binding) while still registering the formula for SQL translation. The dual-direction runtime behavior is:
+
+* **In memory**, reading the property evaluates the formula from dependencies (same as plain `[Expressive]`).
+* **After materialization from SQL**, reading the property returns the stored value (which the middleware's binding wrote via the `init` accessor).
+
+## Before and after
+
+**Before** -- plain `[Expressive]` on a read-only property. Broken for projection middleware.
+
+```csharp
+public class User
+{
+    public string FirstName { get; set; } = "";
+    public string LastName  { get; set; } = "";
+
+    [Expressive]
+    public string FullName => LastName + ", " + FirstName;
+}
+```
+
+GraphQL response: `{ "users": [{ "fullName": ", " }, { "fullName": ", " }] }` -- wrong.
+SQL emitted: `SELECT 1 FROM Users` -- nothing fetched.
+
+**After** -- `Projectable = true`.
+
+```csharp
+public class User
+{
+    public string FirstName { get; set; } = "";
+    public string LastName  { get; set; } = "";
+
+    [Expressive(Projectable = true)]
+    public string FullName
+    {
+        get => field ?? (LastName + ", " + FirstName);
+        init => field = value;
+    }
+}
+```
+
+GraphQL response: `{ "users": [{ "fullName": "Lovelace, Ada" }, { "fullName": "Turing, Alan" }] }` -- correct.
+SQL emitted: `SELECT u.LastName || ', ' || u.FirstName AS "FullName" FROM Users u` -- formula pushed into SQL.
+
+No HC glue code is required beyond the normal `.UseExpressives()` on the DbContext options. The convention auto-ignores the property in EF's model (so no `FullName` column is created), and the projection rewrite happens automatically when the query compiler intercepts.
+
+## Full HotChocolate example
+
+```csharp
+// Entity
+public class User
+{
+    public int Id { get; set; }
+    public string FirstName { get; set; } = "";
+    public string LastName  { get; set; } = "";
+    public string Email     { get; set; } = "";
+
+    [Expressive(Projectable = true)]
+    public string FullName
+    {
+        get => field ?? (LastName + ", " + FirstName);
+        init => field = value;
+    }
+
+    [Expressive(Projectable = true)]
+    public string DisplayLabel
+    {
+        get => field ?? (FullName + " <" + Email + ">");
+        init => field = value;
+    }
+}
+
+// DbContext
+public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+{
+    public DbSet<User> Users => Set<User>();
+}
+
+// Program.cs
+builder.Services.AddDbContext<AppDbContext>(o => o
+    .UseSqlServer(connectionString)
+    .UseExpressives());
+
+builder.Services
+    .AddGraphQLServer()
+    .AddQueryType<Query>()
+    .AddProjections();
+
+// Query type
+public class Query
+{
+    [UseProjection]
+    public IQueryable<User> GetUsers([Service] AppDbContext db) => db.Users;
+}
+```
+
+A GraphQL query for `{ users { displayLabel } }` now produces:
+
+```sql
+SELECT (u.LastName || ', ' || u.FirstName) || ' <' || u.Email || '>' AS "DisplayLabel"
+FROM Users u
+```
+
+Notice how `DisplayLabel` composes with `FullName` (which is itself Projectable) -- the transitive rewrite is handled automatically by the expression resolver.
+
+## Full AutoMapper example
+
+AutoMapper's `ProjectTo<T>()` emits the same `new T { ... }` pattern as HotChocolate, so Projectable members work the same way:
+
+```csharp
+var config = new MapperConfiguration(cfg =>
+{
+    cfg.CreateMap<User, User>();  // same-type projection
+});
+
+var users = await db.Users
+    .ProjectTo<User>(config)
+    .ToListAsync();
+
+// SQL emitted: SELECT u.Id, u.FirstName, u.LastName, u.Email,
+//              (u.LastName || ', ' || u.FirstName) AS "FullName",
+//              (... || u.Email || '>') AS "DisplayLabel"
+//              FROM Users u
+```
+
+## When to use `[ExpressiveFor]` instead
+
+If your class can't use the C# 14 `field` keyword, or you want to keep the formula in a separate mapping class, the [`[ExpressiveFor]`](../reference/expressive-for) pattern is a verbose alternative:
+
+```csharp
+public class User
+{
+    public string FirstName { get; set; } = "";
+    public string LastName  { get; set; } = "";
+    public string FullName  { get; set; } = "";   // plain auto-property
+}
+
+internal static class UserMappings
+{
+    [ExpressiveFor(typeof(User), nameof(User.FullName))]
+    private static string FullName(User u) => u.LastName + ", " + u.FirstName;
+}
+```
+
+Both approaches produce the same SQL and work identically with HotChocolate / AutoMapper. The `Projectable` form is more concise and keeps the formula on the property itself; the `ExpressiveFor` form is explicit about the separation. See the [migration guide](../guide/migration-from-projectables) for a side-by-side comparison.
+
+## See Also
+
+* [Projectable Properties](../reference/projectable-properties) -- full reference including restrictions and runtime semantics
+* [`[ExpressiveFor]` Mapping](../reference/expressive-for) -- alternative pattern for scenarios where you can't modify the entity type
+* [Migrating from Projectables](../guide/migration-from-projectables) -- side-by-side migration paths for `UseMemberBody`
+* [Computed Entity Properties](./computed-properties) -- plain `[Expressive]` computed values for DTO projections
+
+---
+
+---
 url: 'https://efnext.github.io/ExpressiveSharp/guide/expressive-constructors.md'
 ---
 # Constructor Projections
@@ -3368,6 +3565,14 @@ See [Troubleshooting](./troubleshooting) for symptom-oriented guidance -- find t
 | [EXP0017](#exp0017) | Error | `[ExpressiveFor]` return type mismatch | -- |
 | [EXP0019](#exp0019) | Error | `[ExpressiveFor]` conflicts with `[Expressive]` | -- |
 | [EXP0020](#exp0020) | Error | Duplicate `[ExpressiveFor]` mapping | -- |
+| [EXP0021](#exp0021) | Error | Projectable requires writable accessor | -- |
+| [EXP0022](#exp0022) | Error | Projectable get accessor pattern | -- |
+| [EXP0023](#exp0023) | Error | Projectable setter must store to backing field | -- |
+| [EXP0024](#exp0024) | Error | Projectable requires non-nullable property type | -- |
+| [EXP0025](#exp0025) | Error | Projectable backing field type mismatch | -- |
+| [EXP0026](#exp0026) | Error | Projectable incompatible with `required` | -- |
+| [EXP0028](#exp0028) | Error | Projectable not allowed on interface property | -- |
+| [EXP0029](#exp0029) | Error | Projectable not allowed on override | -- |
 | [EXP1001](#exp1001) | Warning | Replace `[Projectable]` with `[Expressive]` | [Replace attribute](#exp1001-fix) |
 | [EXP1002](#exp1002) | Warning | Replace `UseProjectables()` with `UseExpressives()` | [Replace method call](#exp1002-fix) |
 | [EXP1003](#exp1003) | Warning | Replace Projectables namespace | [Replace namespace](#exp1003-fix) |
@@ -3847,6 +4052,257 @@ Duplicate [ExpressiveFor] mapping for member '{0}' on type '{1}'; only one stub 
 **Cause:** Two or more `[ExpressiveFor]` stubs target the same member on the same type.
 
 **Fix:** Remove the duplicate. Only one mapping per target member is allowed.
+
+***
+
+## Projectable Diagnostics (EXP0021--EXP0029)
+
+These diagnostics apply only to properties decorated with `[Expressive(Projectable = true)]`. See [Projectable Properties](./projectable-properties) for the full feature reference.
+
+### EXP0021 -- Projectable requires writable accessor {#exp0021}
+
+**Severity:** Error
+**Category:** Design
+
+**Message:**
+
+```
+[Expressive(Projectable = true)] requires '{0}' to declare a 'set' or 'init' accessor
+```
+
+**Cause:** A Projectable property has only a getter. Projection middlewares (HotChocolate, AutoMapper) require a writable member to emit a binding, so Projectable properties must declare `init` or `set`.
+
+**Fix:** Add an `init` or `set` accessor:
+
+```csharp
+// Error: get-only
+[Expressive(Projectable = true)]
+public string FullName => field ?? (LastName + ", " + FirstName);
+
+// Fixed
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => field ?? (LastName + ", " + FirstName);
+    init => field = value;
+}
+```
+
+***
+
+### EXP0022 -- Projectable get accessor pattern {#exp0022}
+
+**Severity:** Error
+**Category:** Design
+
+**Message:**
+
+```
+The get accessor of a Projectable property must be of the form '=> field ?? (<formula>)'
+or '=> _backingField ?? (<formula>)' where _backingField is a private nullable field on
+the same type. Found: {0}.
+```
+
+**Cause:** The get accessor doesn't match the expected `<field> ?? (<formula>)` shape. ExpressiveSharp extracts the formula by locating the right operand of a top-level `??` coalesce, so alternative shapes (ternary `a != null ? a : b`, multi-statement block bodies, expression bodies without coalesce) are rejected.
+
+**Fix:** Rewrite the get accessor to use `??`:
+
+```csharp
+// Error: ternary
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => _full != null ? _full : (LastName + ", " + FirstName);
+    init => _full = value;
+}
+
+// Fixed: use ?? instead
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => _full ?? (LastName + ", " + FirstName);
+    init => _full = value;
+}
+```
+
+If you need flexibility the `??` pattern can't express, use [`[ExpressiveFor]`](./expressive-for) instead.
+
+***
+
+### EXP0023 -- Projectable setter must store to backing field {#exp0023}
+
+**Severity:** Error
+**Category:** Design
+
+**Message:**
+
+```
+The init/set accessor of a Projectable property must store the incoming value into the same
+backing field referenced by the get accessor. Found: {0}.
+```
+
+**Cause:** The init/set accessor does something other than a plain `field = value` assignment — for example `field = value?.Trim()`, a different field, or a multi-statement block.
+
+**Fix:** Use a plain assignment:
+
+```csharp
+// Error: transforms the value
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => field ?? (LastName + ", " + FirstName);
+    init => field = value?.Trim() ?? "";
+}
+
+// Fixed
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => field ?? (LastName + ", " + FirstName);
+    init => field = value;
+}
+```
+
+This restriction may be relaxed in a future version. If you need to transform the materialized value, consider applying the transformation in the get accessor's formula instead.
+
+***
+
+### EXP0024 -- Projectable requires non-nullable property type {#exp0024}
+
+**Severity:** Error
+**Category:** Design
+
+**Message:**
+
+```
+[Expressive(Projectable = true)] cannot be applied to a property with a nullable type ('{0}').
+Nullable types prevent distinguishing 'not materialized' from 'materialized to null'.
+```
+
+**Cause:** The property type is nullable (`string?`, `int?`). The Projectable pattern uses `field ?? formula` to distinguish "not yet materialized" from "materialized to a value" — but if the property itself is nullable, "materialized to null" and "not materialized" are indistinguishable.
+
+**Fix:** Make the property non-nullable:
+
+```csharp
+// Error
+[Expressive(Projectable = true)]
+public string? FullName { get => field ?? ...; init => field = value; }
+
+// Fixed
+[Expressive(Projectable = true)]
+public string FullName { get => field ?? ...; init => field = value; }
+```
+
+If you need nullable-result semantics, use plain `[Expressive]` on a read-only property and `[ExpressiveFor]` for the projection-middleware case.
+
+***
+
+### EXP0025 -- Projectable backing field type mismatch {#exp0025}
+
+**Severity:** Error
+**Category:** Design
+
+**Message:**
+
+```
+The backing field referenced in the get accessor of '{0}' must be of type '{1}?'
+(Nullable<{1}>) to support the '??' coalesce. Found: {2}.
+```
+
+**Cause:** The manually declared backing field's type doesn't match the property's type wrapped in `Nullable<T>`. For a `string` property, the backing field must be `string?`. For an `int` property, it must be `int?` / `Nullable<int>`.
+
+**Fix:** Correct the backing field's type:
+
+```csharp
+// Error: backing field is 'int?' but property is 'string'
+private int? _wrong;
+
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => _wrong.ToString() ?? ...;
+    init => field = value;
+}
+
+// Fixed: use 'field' keyword (preferred) or a matching nullable backing field
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => field ?? (LastName + ", " + FirstName);
+    init => field = value;
+}
+```
+
+***
+
+### EXP0026 -- Projectable incompatible with `required` {#exp0026}
+
+**Severity:** Error
+**Category:** Design
+
+**Message:**
+
+```
+[Expressive(Projectable = true)] cannot be combined with the 'required' modifier on '{0}';
+remove 'required' since EF will materialize the value from query results
+```
+
+**Cause:** The property has both `required` and `Projectable = true`. With `required`, every caller constructing the entity must set the property — but Projectable properties are designed to be left unset so the formula fires, with EF populating the value via `init` during materialization.
+
+**Fix:** Remove the `required` modifier:
+
+```csharp
+// Error
+[Expressive(Projectable = true)]
+public required string FullName
+{
+    get => field ?? (LastName + ", " + FirstName);
+    init => field = value;
+}
+
+// Fixed
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => field ?? (LastName + ", " + FirstName);
+    init => field = value;
+}
+```
+
+***
+
+### EXP0028 -- Projectable not allowed on interface property {#exp0028}
+
+**Severity:** Error
+**Category:** Design
+
+**Message:**
+
+```
+[Expressive(Projectable = true)] is not supported on interface members
+```
+
+**Cause:** The Projectable pattern relies on a backing field on the instance. Interfaces cannot declare instance fields, so the pattern is not representable on an interface property.
+
+**Fix:** Move the Projectable property to the concrete type that implements the interface. If the interface needs to expose the member, declare an abstract `{ get; }` on the interface and override it on the concrete type with the Projectable pattern.
+
+***
+
+### EXP0029 -- Projectable not allowed on override {#exp0029}
+
+**Severity:** Error
+**Category:** Design
+
+**Message:**
+
+```
+[Expressive(Projectable = true)] is not supported on override properties; declare it on the
+base property instead
+```
+
+**Cause:** The property is `override`. Projectable semantics interact ambiguously with inheritance — the base class might already have its own `[Expressive]` registration and the registry key resolution would need to flow through virtual dispatch. This scenario is not supported in v1.
+
+**Fix:** Move `[Expressive(Projectable = true)]` to the base class, or flatten the hierarchy. If you need inheritance-like behavior, use composition instead.
 
 ***
 
@@ -7021,16 +7477,46 @@ Both the old `Ignore` and `Rewrite` behaviors converge to the same result in Exp
 
 | Old Property | Migration |
 |---|---|
-| `UseMemberBody = "SomeMethod"` | Replace with `[ExpressiveFor]`. See [Migrating UseMemberBody](#migrating-usememberbody) below. |
+| `UseMemberBody = "SomeMethod"` | Replace with `[Expressive(Projectable = true)]` or `[ExpressiveFor]`. See [Migrating UseMemberBody](#migrating-usememberbody) below. |
 | `AllowBlockBody = true` | Keep -- block bodies remain opt-in. Set per-member or globally via `Expressive_AllowBlockBody` MSBuild property. |
 | `ExpandEnumMethods = true` | Remove -- enum method expansion is enabled by default. |
 | `CompatibilityMode.Full / .Limited` | Remove -- only the full approach exists. |
 
 ### Migrating `UseMemberBody`
 
-In Projectables, `UseMemberBody` let you point one member's expression body at another member -- typically to work around syntax limitations or to provide an expression-tree-friendly alternative.
+In Projectables, `UseMemberBody` let you point one member's expression body at another member -- typically to work around syntax limitations or to provide an expression-tree-friendly alternative for projection middleware (HotChocolate, AutoMapper) that required a writable target.
 
-ExpressiveSharp replaces this with `[ExpressiveFor]` (in the `ExpressiveSharp.Mapping` namespace), which is more explicit and works for external types too.
+ExpressiveSharp offers **two replacement options**, depending on your scenario:
+
+* **`[Expressive(Projectable = true)]`** -- the ergonomic fit when your goal was specifically to participate in projection middleware. Keeps the formula on the property itself via the `field ?? (<formula>)` pattern. Closest to Projectables' intent.
+* **`[ExpressiveFor]`** -- the verbose but explicit alternative. Works for external types too (scenarios `UseMemberBody` never supported).
+
+Either is correct; pick based on ergonomic preference and whether you need the cross-type capability.
+
+::: info About the `Projectable` name overlap
+ExpressiveSharp's `Projectable` attribute property and the EFCore.Projectables library's `[Projectable]` attribute share a name because both describe the same capability -- a computed property that participates in LINQ projections. They are different mechanisms; the shared word is intentional to reduce migration friction.
+:::
+
+**Option A -- `[Expressive(Projectable = true)]`** (single declaration):
+
+```csharp
+// Before (Projectables)
+[Projectable(UseMemberBody = nameof(FullNameProjection))]
+public string FullName { get; init; }
+private string FullNameProjection => LastName + ", " + FirstName;
+
+// After (ExpressiveSharp) -- formula lives on the property
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => field ?? (LastName + ", " + FirstName);
+    init => field = value;
+}
+```
+
+See the [Projectable Properties reference](../reference/projectable-properties) and the [Projection Middleware recipe](../recipes/projection-middleware) for the complete feature.
+
+**Option B -- `[ExpressiveFor]`** (separate stub, supports cross-type mapping):
 
 **Scenario 1: Same-type member with an alternative body**
 
@@ -8055,6 +8541,27 @@ WHERE "c"."Email" IS NOT NULL AND (
 
 No custom MQL is emitted — MongoDB's own translator does all the heavy lifting after ExpressiveSharp has normalized the tree.
 
+## `[Expressive]` Properties Are Unmapped from BSON
+
+ExpressiveSharp provides a MongoDB `IClassMapConvention` that unmaps every `[Expressive]`-decorated property from the BSON class map, so the property's backing field is not persisted to documents. This matters most for [Projectable properties](../../reference/projectable-properties), which have a writable `init` accessor and would otherwise be serialized as a real BSON field.
+
+::: warning Ordering constraint
+MongoDB builds and caches a class map the first time you call `IMongoDatabase.GetCollection<T>()` for a given `T`. A convention registered *after* that call does not apply to the cached map. If any of your document types use `[Expressive]`, register the convention before the first `GetCollection<T>` call:
+
+```csharp
+using ExpressiveSharp.MongoDB.Infrastructure;
+
+// At application startup, before any GetCollection<T>:
+ExpressiveMongoIgnoreConvention.EnsureRegistered();
+
+var client = new MongoClient(connectionString);
+var db = client.GetDatabase("shop");
+var customers = db.GetCollection<Customer>("customers");  // class map built now
+```
+
+The convention is also registered automatically when you construct `ExpressiveMongoCollection<T>` or call `collection.AsExpressive()` — but only if that happens before any `GetCollection<T>` call for a type with `[Expressive]` properties. The explicit `EnsureRegistered()` call is the most reliable pattern.
+:::
+
 ## Async Methods
 
 All MongoDB async LINQ methods (from `MongoQueryable`) work with modern syntax via interceptors. They are stubs on `IExpressiveMongoQueryable<T>` that forward to their `MongoQueryable` counterparts:
@@ -9063,6 +9570,239 @@ Keep patterns reasonably simple for translation. Very deeply nested patterns pro
 url: 'https://efnext.github.io/ExpressiveSharp/playground-editor.md'
 ---
 
+
+---
+
+---
+url: 'https://efnext.github.io/ExpressiveSharp/reference/projectable-properties.md'
+---
+# Projectable Properties
+
+## The problem
+
+You have a computed property on your entity:
+
+```csharp
+public class User
+{
+    public string FirstName { get; set; } = "";
+    public string LastName  { get; set; } = "";
+
+    [Expressive]
+    public string FullName => LastName + ", " + FirstName;
+}
+```
+
+This works fine in direct LINQ (`db.Users.Select(u => u.FullName)`) and in DTO projections (`Select(u => new UserDto { Name = u.FullName })`). It **breaks** when something in your stack generates a projection that materializes back into the **same entity type**:
+
+```csharp
+// What HotChocolate's [UseProjection] middleware generates for `query { users { fullName } }`:
+db.Users.Select(src => new User { FullName = src.FullName });
+```
+
+What happens next, silently:
+
+* HotChocolate checks whether `FullName` is writable (it looks at `PropertyInfo.CanWrite`). It isn't -- getter only.
+* HC **drops** the `FullName = src.FullName` binding from the projection. No warning, no error.
+* EF emits `SELECT 1 FROM Users` -- nothing is fetched because the projection is empty.
+* HC constructs `User` instances with all fields at their defaults (`FirstName = ""`, `LastName = ""`), then reads `user.FullName`.
+* The getter evaluates `"" + ", " + ""` and returns `", "`.
+* Your GraphQL response is `{ "users": [{ "fullName": ", " }, { "fullName": ", " }] }`.
+
+The response looks valid but the data is garbage. This is the single most common trap when migrating from EFCore.Projectables or wiring up GraphQL against EF Core. The same mechanism affects **AutoMapper's `ProjectTo`**, **Mapperly's projection mode**, and any hand-rolled `Select(u => new User { ... })` that projects into the source type.
+
+## The fix
+
+Turn the property into a Projectable:
+
+```csharp
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => field ?? (LastName + ", " + FirstName);
+    init => field = value;
+}
+```
+
+Now the property is **writable** (via `init`), so the projection middleware emits the binding. The formula still gets pushed down into SQL because ExpressiveSharp extracts it from the right operand of `??`. After the round trip, the response is correct:
+
+```
+{ "users": [{ "fullName": "Lovelace, Ada" }, { "fullName": "Turing, Alan" }] }
+```
+
+SQL emitted:
+
+```sql
+SELECT u.LastName || ', ' || u.FirstName AS "FullName" FROM Users u
+```
+
+No glue code beyond `UseExpressives()` on the DbContext. The property is auto-ignored by the EF model convention, so no column is created.
+
+## How it works
+
+A Projectable property has two states, distinguished by the backing field's value:
+
+| State | `field` value | What the getter returns | How it gets here |
+|---|---|---|---|
+| **Not materialized** | `null` | Evaluates the formula from dependencies | In-memory construction (`new User { FirstName = "Ada" }`) |
+| **Materialized** | non-null | The stored value | EF / HC wrote to `init` after computing the formula in SQL |
+
+The `??` operator picks between the two. In both cases, reading `user.FullName` returns the correct value -- the difference is only *where* the value came from.
+
+```csharp
+// State 1 -- in memory, field is null, formula fires
+var u1 = new User { FirstName = "Ada", LastName = "Lovelace" };
+u1.FullName;  // "Lovelace, Ada" (computed)
+
+// State 2 -- after SQL materialization, stored value wins
+var u2 = await db.Users.FirstAsync();
+u2.FullName;  // "Lovelace, Ada" (stored, originally computed server-side)
+
+// Mutation behavior differs between states
+u1.FirstName = "Augusta"; u1.FullName;  // "Lovelace, Augusta" -- formula reruns
+u2.FirstName = "Augusta"; u2.FullName;  // "Lovelace, Ada" -- stored value wins
+```
+
+The mutation-after-materialization behavior mirrors how EF's change tracking works: once a value is loaded, it stays put until something deliberately writes to it.
+
+### Gotcha: stale values after dependency mutation
+
+Once the backing field has been written -- which happens every time the property is materialized from a SQL projection -- mutating the formula's dependencies does **not** update the stored value. This can surprise users coming from [EFCore.Projectables](https://github.com/koenbeuk/EntityFrameworkCore.Projectables), where the formula always reruns on every read.
+
+```csharp
+// Loaded via EF/HC projection that included FullName -- `field` is now populated.
+var user = await db.Users.FirstAsync(u => u.Id == 1);
+user.FullName;  // "Lovelace, Ada"
+
+user.FirstName = "Augusta";
+user.FullName;  // Still "Lovelace, Ada" -- the stored value wins, formula is not rerun.
+```
+
+**Why this behaves this way**: the stored value is authoritative. ExpressiveSharp treats a materialized property the same way EF treats any loaded property -- if you want a change reflected, you write it explicitly. This keeps the two states (in-memory-computed vs. SQL-materialized) from silently disagreeing with each other.
+
+**The staleness applies only to materialized instances.** Two cases where the formula still fires on every read:
+
+* **Constructed in memory** (`new User { FirstName = "Ada", LastName = "Lovelace" }`) -- `field` is null, mutations to `FirstName`/`LastName` propagate as you'd expect.
+* **Loaded without projecting the property** (e.g. `db.Users.FirstAsync()` without a `Select` that includes `FullName`) -- the `init` accessor was never called, so `field` is still null.
+
+**If you need the formula to rerun after dependency mutation on a materialized instance**, you have a few options:
+
+1. **Re-fetch the entity** -- let EF re-run the query with the new values.
+2. **Use plain `[Expressive]` with a DTO projection** -- if you're not going through projection middleware, a read-only `[Expressive]` on a DTO type is simpler and has no staleness.
+3. **Expose a reset method** -- for example `public void ResetFullName() { typeof(User).GetField(...).SetValue(this, null); }` to null out the backing field and let the formula fire again on the next read. This is rarely worth the complexity; options 1 and 2 cover the common cases.
+
+## When to use it vs. plain `[Expressive]`
+
+Only turn `Projectable = true` on when you actually have the problem above. The quick test:
+
+> *Does anything in my stack generate `Select(src => new Entity { ... })` over this entity type?*
+
+If you can answer yes (HotChocolate with `[UseProjection]`, AutoMapper `ProjectTo<SameType>`, Mapperly projections, hand-rolled patterns), the property needs to be Projectable. If not -- if you only ever project into DTOs or read the property directly -- plain `[Expressive]` is simpler and has no restrictions.
+
+## Syntax
+
+### Required shape
+
+```csharp
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => field ?? (LastName + ", " + FirstName);
+    init => field = value;
+}
+```
+
+* **Get accessor**: must be `=> <backingField> ?? (<formula>)`. The generator matches this exact shape -- ternaries (`a != null ? a : b`), block bodies with `if`/`return`, and other forms are rejected with [EXP0022](./diagnostics#exp0022).
+* **Init/set accessor**: must be `=> <backingField> = value`. Transformations like `value?.Trim()` are rejected with [EXP0023](./diagnostics#exp0023).
+* **Class does not need to be `partial`.** **Property does not need to be `partial`.**
+
+### Backing field options
+
+Either the C# 14 `field` keyword (preferred) or a manually declared private nullable field works:
+
+```csharp
+// Option A -- `field` keyword (C# 14+)
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => field ?? (LastName + ", " + FirstName);
+    init => field = value;
+}
+
+// Option B -- manual backing field
+private string? _fullName;
+
+[Expressive(Projectable = true)]
+public string FullName
+{
+    get => _fullName ?? (LastName + ", " + FirstName);
+    init => _fullName = value;
+}
+```
+
+The manual field must be **private**, **on the same type as the property**, and **nullable** (`string?` for reference types, `Nullable<T>` for value types). The `??` needs a distinguishable "not materialized" state.
+
+### `init` vs. `set`
+
+Both are accepted. Pick based on whether callers should be able to override the stored value after construction:
+
+* `init` -- value can only be set through object initializers (EF, HC) or the constructor. Recommended default.
+* `set` -- callers can also assign `user.FullName = "..."` directly. Useful if you want to support manual overrides.
+
+## Restrictions
+
+The generator enforces these at compile time. Each maps to a specific diagnostic for the exact error message:
+
+| Restriction | Diagnostic |
+|---|---|
+| Property must declare `set` or `init`. | [EXP0021](./diagnostics#exp0021) |
+| Get accessor must match `<field> ?? (<formula>)`. | [EXP0022](./diagnostics#exp0022) |
+| Init/set must be `<field> = value` (no transformations in v1). | [EXP0023](./diagnostics#exp0023) |
+| Property type must be non-nullable. | [EXP0024](./diagnostics#exp0024) |
+| Manual backing field must match `Nullable<PropertyType>`. | [EXP0025](./diagnostics#exp0025) |
+| Cannot combine with `required`. | [EXP0026](./diagnostics#exp0026) |
+| Not allowed on interface properties. | [EXP0028](./diagnostics#exp0028) |
+| Not allowed on `override` properties. | [EXP0029](./diagnostics#exp0029) |
+
+## EF Core integration
+
+With `UseExpressives()` on the DbContext options, the `ExpressivePropertiesNotMappedConvention` auto-ignores the property:
+
+* **No column is created.** Migrations generated against the DbContext will not include a `FullName` column.
+* **Queries work as expected.** `db.Users.Select(u => u.FullName)` emits SQL with the inlined formula.
+* **Projections materialize correctly.** `Select(u => new User { FullName = u.FullName })` produces SQL like `SELECT LastName || ', ' || FirstName AS FullName FROM Users` and writes the result through `init`.
+
+No `[NotMapped]` annotation or manual `modelBuilder.Ignore(...)` call is required.
+
+## Comparison with `[ExpressiveFor]`
+
+`[ExpressiveFor]` is the verbose alternative -- the formula lives in a separate static stub instead of on the property:
+
+```csharp
+public class User
+{
+    public string FullName { get; set; } = "";
+}
+
+internal static class UserMappings
+{
+    [ExpressiveFor(typeof(User), nameof(User.FullName))]
+    private static string FullName(User u) => u.LastName + ", " + u.FirstName;
+}
+```
+
+Both produce identical SQL and both work with HC/AutoMapper. Pick based on preference:
+
+* **`[Expressive(Projectable = true)]`** -- formula lives on the property. Single declaration site. Recommended default.
+* **`[ExpressiveFor]`** -- formula in a separate class. More explicit. Required when you can't modify the entity type (third-party code) or need to map cross-type.
+
+See the [migration guide](../guide/migration-from-projectables#migrating-usememberbody) for side-by-side examples.
+
+## Further reading
+
+* [Projection Middleware recipe](../recipes/projection-middleware) -- end-to-end HotChocolate + AutoMapper examples.
+* [`[Expressive]` Attribute reference](./expressive-attribute) -- base attribute.
+* [`[ExpressiveFor]` reference](./expressive-for) -- verbose alternative.
 
 ---
 
