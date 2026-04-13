@@ -25,6 +25,7 @@ namespace ExpressiveSharp.Services
         /// Clears all process-level caches built up by the resolver. Intended for test harnesses
         /// and the docs prerenderer, where many short-lived snippet assemblies are loaded in sequence.
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         internal static void ResetAllCaches()
         {
             _assemblyRegistries.Clear();
@@ -40,6 +41,7 @@ namespace ExpressiveSharp.Services
         /// Restricts <see cref="EnsureAllRegistriesLoaded"/> to assemblies matching the given filter.
         /// Pass <c>null</c> to remove the filter.
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         internal static void SetAssemblyScanFilter(Func<Assembly, bool>? filter)
         {
             _assemblyScanFilter = filter;
