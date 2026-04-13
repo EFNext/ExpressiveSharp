@@ -166,4 +166,72 @@ static internal class Diagnostics
         category: "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    // ── [Expressive(Projectable = true)] Diagnostics ────────────────────────
+
+    public readonly static DiagnosticDescriptor ProjectableRequiresWritableAccessor = new DiagnosticDescriptor(
+        id: "EXP0021",
+        title: "Projectable requires writable accessor",
+        messageFormat: "[Expressive(Projectable = true)] requires '{0}' to declare a 'set' or 'init' accessor",
+        category: "Design",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public readonly static DiagnosticDescriptor ProjectableGetAccessorPattern = new DiagnosticDescriptor(
+        id: "EXP0022",
+        title: "Projectable get accessor pattern",
+        messageFormat: "The get accessor of a Projectable property must be of the form '=> field ?? (<formula>)' or '=> _backingField ?? (<formula>)' where _backingField is a private nullable field on the same type. Found: {0}.",
+        category: "Design",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public readonly static DiagnosticDescriptor ProjectableSetterMustStoreToBackingField = new DiagnosticDescriptor(
+        id: "EXP0023",
+        title: "Projectable setter must store to backing field",
+        messageFormat: "The init/set accessor of a Projectable property must store the incoming value into the same backing field referenced by the get accessor. Found: {0}.",
+        category: "Design",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public readonly static DiagnosticDescriptor ProjectableRequiresNonNullablePropertyType = new DiagnosticDescriptor(
+        id: "EXP0024",
+        title: "Projectable requires non-nullable property type",
+        messageFormat: "[Expressive(Projectable = true)] cannot be applied to a property with a nullable type ('{0}'). Nullable types prevent distinguishing 'not materialized' from 'materialized to null'.",
+        category: "Design",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public readonly static DiagnosticDescriptor ProjectableBackingFieldTypeMismatch = new DiagnosticDescriptor(
+        id: "EXP0025",
+        title: "Projectable backing field type mismatch",
+        messageFormat: "The backing field referenced in the get accessor of '{0}' must be of type '{1}?' (Nullable<{1}>) to support the '??' coalesce. Found: {2}.",
+        category: "Design",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public readonly static DiagnosticDescriptor ProjectableIncompatibleWithRequired = new DiagnosticDescriptor(
+        id: "EXP0026",
+        title: "Projectable incompatible with required",
+        messageFormat: "[Expressive(Projectable = true)] cannot be combined with the 'required' modifier on '{0}'; remove 'required' since EF will materialize the value from query results",
+        category: "Design",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    // NOTE: EXP0027 is reserved for future use.
+
+    public readonly static DiagnosticDescriptor ProjectableNotAllowedOnInterface = new DiagnosticDescriptor(
+        id: "EXP0028",
+        title: "Projectable not allowed on interface property",
+        messageFormat: "[Expressive(Projectable = true)] is not supported on interface members",
+        category: "Design",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public readonly static DiagnosticDescriptor ProjectableNotAllowedOnOverride = new DiagnosticDescriptor(
+        id: "EXP0029",
+        title: "Projectable not allowed on override",
+        messageFormat: "[Expressive(Projectable = true)] is not supported on override properties; declare it on the base property instead",
+        category: "Design",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }

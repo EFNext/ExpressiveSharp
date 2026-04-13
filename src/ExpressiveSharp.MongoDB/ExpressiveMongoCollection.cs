@@ -1,4 +1,5 @@
 using ExpressiveSharp.MongoDB.Extensions;
+using ExpressiveSharp.MongoDB.Infrastructure;
 using ExpressiveSharp.Services;
 using MongoDB.Driver;
 
@@ -38,6 +39,12 @@ public class ExpressiveMongoCollection<TDocument>
     {
         _inner = inner ?? throw new ArgumentNullException(nameof(inner));
         _options = options ?? MongoExpressiveOptions.CreateDefault();
+
+        // Idempotent registration; belt-and-braces for code paths that access
+        // `Inner` directly for writes (InsertOne/ReplaceOne/…) without ever
+        // going through `AsQueryable`. The `AsExpressive` extension registers
+        // the convention on the query path.
+        ExpressiveMongoIgnoreConvention.EnsureRegistered();
     }
 
     /// <summary>

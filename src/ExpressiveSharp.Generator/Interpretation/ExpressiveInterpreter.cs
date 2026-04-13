@@ -51,6 +51,10 @@ static internal partial class ExpressiveInterpreter
                 TryApplyMethodBody(methodDecl, memberSymbol, semanticModel,
                     declarationSyntaxRewriter, context, descriptor, allowBlockBody),
 
+            PropertyDeclarationSyntax propDecl when expressiveAttribute.Projectable =>
+                TryApplyProjectablePropertyBody(propDecl, memberSymbol, semanticModel,
+                    declarationSyntaxRewriter, context, descriptor),
+
             PropertyDeclarationSyntax propDecl =>
                 TryApplyPropertyBody(propDecl, memberSymbol, semanticModel,
                     declarationSyntaxRewriter, context, descriptor, allowBlockBody),
