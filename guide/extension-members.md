@@ -3,50 +3,86 @@ url: 'https://efnext.github.io/ExpressiveSharp/guide/extension-members.md'
 ---
 # Extension Members
 
-ExpressiveSharp supports `[Expressive]` on both traditional extension methods (any .NET version) and C# 14 extension members (.NET 10+). This lets you define query logic outside of your entity classes — useful for keeping entities clean, applying logic to types you don't own, or grouping related query helpers.
+ExpressiveSharp supports `[Expressive]` on both traditional extension methods (any .NET version) and C# 14 extension members (.NET 10+). This lets you define query logic outside of your entity classes -- useful for keeping entities clean, applying logic to types you don't own, or grouping related query helpers.
 
 ## Extension Methods
 
-Add `[Expressive]` to any extension method in a **static class**:
+Add `[Expressive]` to any extension method in a **static class** and use it inside your queries:
+
+::: expressive-sample
+db.Orders
+.Where(o => o.IsHighValue(500m))
+.Select(o => new { o.Id, Email = o.SafeCustomerEmail() })
+\---setup---
+public static class OrderExtensions
+{
+\[Expressive]
+public static bool IsHighValue(this Order order, decimal threshold)
+\=> order.Items.Sum(i => i.UnitPrice \* i.Quantity) > threshold;
+
+```
+[Expressive]
+public static string? SafeCustomerEmail(this Order order)
+    => order.Customer != null ? order.Customer.Email : null;
+```
+
+}
+:::
 
 ```csharp
-using ExpressiveSharp;
+db
+    .Orders
+    .Where(o => o.IsHighValue(500m))
+    .Select(o => new { o.Id, Email = o.SafeCustomerEmail() })
 
+// Setup
 public static class OrderExtensions
 {
     [Expressive]
-    public static bool IsHighValue(this Order order, double threshold)
-        => order.Price * order.Quantity > threshold;
+    public static bool IsHighValue(this Order order, decimal threshold)
+        => order.Items.Sum(i => i.UnitPrice * i.Quantity) > threshold;
 
     [Expressive]
     public static string? SafeCustomerEmail(this Order order)
-        => order.Customer?.Email;
+        => order.Customer != null ? order.Customer.Email : null;
 }
 ```
 
-Use them in queries just like regular extension methods:
+**Generated SQL:**
 
-```csharp
-var results = db.Orders
-    .AsExpressiveDbSet()
-    .Where(o => o.IsHighValue(500))
-    .Select(o => new { o.Id, Email = o.SafeCustomerEmail() })
-    .ToList();
+```sql
+SELECT "o"."Id", "c"."Email"
+FROM "Orders" AS "o"
+INNER JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
+WHERE ef_compare((
+    SELECT COALESCE(ef_sum(ef_multiply("l"."UnitPrice", CAST("l"."Quantity" AS TEXT))), '0.0')
+    FROM "LineItems" AS "l"
+    WHERE "o"."Id" = "l"."OrderId"), '500.0') > 0
 ```
 
-The extension method body is inlined into the expression tree — EF Core sees `o.Price * o.Quantity > 500`, not a method call.
+The extension method body is inlined into the expression tree -- the provider sees the expanded arithmetic and member access, not a method call. The query tabs above show how each provider translates the result.
 
 ## Extension Methods on Non-Entity Types
 
 Extension methods work on **any type**, not just entities:
 
-```csharp
-public static class IntExtensions
+::: expressive-sample
+db.Products.Where(p => p.Name.ContainsIgnoreCase("widget"))
+\---setup---
+public static class StringExtensions
 {
-    [Expressive]
-    public static int Squared(this int i) => i * i;
+\[Expressive]
+public static bool ContainsIgnoreCase(this string source, string value)
+\=> source.ToLower().Contains(value.ToLower());
 }
+:::
 
+```csharp
+db
+    .Products
+    .Where(p => p.Name.ContainsIgnoreCase("widget"))
+
+// Setup
 public static class StringExtensions
 {
     [Expressive]
@@ -55,35 +91,98 @@ public static class StringExtensions
 }
 ```
 
-Usage in queries:
+**Generated SQL:**
+
+```sql
+SELECT "p"."Id", "p"."Category", "p"."ListPrice", "p"."Name", "p"."StockQuantity"
+FROM "Products" AS "p"
+WHERE instr(lower("p"."Name"), 'widget') > 0
+```
+
+Primitive extensions compose the same way:
+
+::: expressive-sample
+db.LineItems.Select(i => new { i.Id, SquaredQty = i.Quantity.Squared() })
+\---setup---
+public static class IntExtensions
+{
+\[Expressive]
+public static int Squared(this int i) => i \* i;
+}
+:::
 
 ```csharp
-var results = db.Players
-    .AsExpressiveDbSet()
-    .Select(p => new { p.Name, SquaredScore = p.Score.Squared() })
-    .ToList();
+db
+    .LineItems
+    .Select(i => new { i.Id, SquaredQty = i.Quantity.Squared() })
 
-var widgets = db.Products
-    .AsExpressiveDbSet()
-    .Where(p => p.Name.ContainsIgnoreCase("widget"))
-    .ToList();
+// Setup
+public static class IntExtensions
+{
+    [Expressive]
+    public static int Squared(this int i) => i * i;
+}
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "l"."Id", "l"."Quantity" * "l"."Quantity" AS "SquaredQty"
+FROM "LineItems" AS "l"
 ```
 
 ## Composing Extension Methods
 
-Extension methods can reference other `[Expressive]` members — properties, methods, or other extension methods. `ExpandExpressives()` resolves them transitively:
+Extension methods can reference other `[Expressive]` members -- properties, methods, or other extension methods. `ExpandExpressives()` resolves them transitively:
+
+::: expressive-sample
+db.Customers.Where(c => c.IsVip())
+\---setup---
+public static class CustomerExtensions
+{
+\[Expressive]
+public static decimal TotalSpent(this Customer c)
+\=> c.Orders.Sum(o => o.Items.Sum(i => i.UnitPrice \* i.Quantity));
+
+```
+[Expressive]
+public static bool IsVip(this Customer c)
+    => c.TotalSpent() > 10000m;   // calls another [Expressive] extension
+```
+
+}
+:::
 
 ```csharp
-public static class UserExtensions
+db
+    .Customers
+    .Where(c => c.IsVip())
+
+// Setup
+public static class CustomerExtensions
 {
     [Expressive]
-    public static double TotalSpent(this User user)
-        => user.Orders.Sum(o => o.Total);   // Total is [Expressive] on Order
+    public static decimal TotalSpent(this Customer c)
+        => c.Orders.Sum(o => o.Items.Sum(i => i.UnitPrice * i.Quantity));
 
     [Expressive]
-    public static bool IsVip(this User user)
-        => user.TotalSpent() > 10000;       // calls another [Expressive] extension
+    public static bool IsVip(this Customer c)
+        => c.TotalSpent() > 10000m;   // calls another [Expressive] extension
 }
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "c"."Id", "c"."Country", "c"."Email", "c"."JoinedAt", "c"."Name"
+FROM "Customers" AS "c"
+WHERE ef_compare((
+    SELECT COALESCE(ef_sum((
+        SELECT COALESCE(ef_sum(ef_multiply("l"."UnitPrice", CAST("l"."Quantity" AS TEXT))), '0.0')
+        FROM "LineItems" AS "l"
+        WHERE "o"."Id" = "l"."OrderId")), '0.0')
+    FROM "Orders" AS "o"
+    WHERE "c"."Id" = "o"."CustomerId"), '10000.0') > 0
 ```
 
 ## C# 14 Extension Members (.NET 10+)
@@ -96,30 +195,25 @@ public static class OrderExtensions
     extension(Order o)
     {
         [Expressive]
-        public double Total => o.Price * o.Quantity;
+        public decimal Total => o.Items.Sum(i => i.UnitPrice * i.Quantity);
 
         [Expressive]
-        public string Grade => o.Price switch
+        public string Grade => o.Items.Sum(i => i.UnitPrice * i.Quantity) switch
         {
-            >= 100 => "Premium",
-            >= 50  => "Standard",
-            _      => "Budget",
+            >= 1000m => "Premium",
+            >= 100m  => "Standard",
+            _        => "Budget",
         };
 
         [Expressive]
-        public int ScaledQuantity(int factor) => o.Quantity * factor;
+        public int ScaledItemCount(int factor) => o.Items.Count() * factor;
     }
 }
-```
 
-These are used like regular properties and methods on the extended type:
-
-```csharp
-var results = db.Orders
-    .AsExpressiveDbSet()
-    .Where(o => o.Total > 500)
-    .Select(o => new { o.Id, o.Total, o.Grade })
-    .ToList();
+// Use like any other property/method:
+var orders = db.Orders
+    .Where(o => o.Total > 500m)
+    .Select(o => new { o.Id, o.Total, o.Grade });
 ```
 
 ### Extension Members on Primitives and Interfaces
@@ -136,35 +230,28 @@ public static class IntExtensions
     }
 }
 
-public static class EntityExtensions
-{
-    extension(IEntity e)
-    {
-        [Expressive]
-        public string Label => e.Id + ": " + e.Name;
-    }
-}
+db.LineItems.Select(i => new { i.Id, SquaredQty = i.Quantity.Squared });
 ```
 
 ### Block Bodies and Switch Expressions
 
-C# 14 extension members support all the same features as regular `[Expressive]` members — block bodies, switch expressions, pattern matching, and null-conditional operators:
+C# 14 extension members support all the same features as regular `[Expressive]` members -- block bodies, switch expressions, pattern matching, and null-conditional operators:
 
 ```csharp
-public static class EntityExtensions
+public static class OrderExtensions
 {
-    extension(Entity e)
+    extension(Order o)
     {
         [Expressive(AllowBlockBody = true)]
         public string GetStatus()
         {
-            if (e.IsActive && e.Value > 0)
-                return "Active";
-            return "Inactive";
+            if (o.Status == OrderStatus.Delivered && o.Items.Count() > 0)
+                return "Completed";
+            return "In Progress";
         }
 
         [Expressive]
-        public bool IsHighValue => e.Value is > 100;
+        public bool IsHighValue => o.Items.Sum(i => i.UnitPrice * i.Quantity) is > 100m;
     }
 }
 ```
@@ -194,7 +281,7 @@ See [\[ExpressiveFor\] Mapping](/reference/expressive-for) for details on mappin
 
 ## See Also
 
-* [\[Expressive\] Properties](./expressive-properties) — defining computed properties on entities directly
-* [\[Expressive\] Methods](./expressive-methods) — defining computed methods on entities
-* [Reusable Query Filters](/recipes/reusable-query-filters) — practical example of extension methods as reusable filters
-* [\[ExpressiveFor\] Mapping](/reference/expressive-for) — mapping existing methods on types you don't own
+* [\[Expressive\] Properties](./expressive-properties) -- defining computed properties on entities directly
+* [\[Expressive\] Methods](./expressive-methods) -- defining computed methods on entities
+* [Reusable Query Filters](/recipes/reusable-query-filters) -- practical example of extension methods as reusable filters
+* [\[ExpressiveFor\] Mapping](/reference/expressive-for) -- mapping existing methods on types you don't own

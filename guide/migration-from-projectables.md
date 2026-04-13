@@ -159,16 +159,43 @@ static string FullNameExpr(MyEntity e) => e.FirstName + " " + e.LastName;
 
 `[ExpressiveFor]` also enables a use case that `UseMemberBody` never supported -- providing expression tree bodies for methods on types you do not own:
 
-```csharp
-using ExpressiveSharp.Mapping;
-
+::: expressive-sample
+db.LineItems.Where(i => Math.Clamp((double)i.UnitPrice, 20, 100) > 50)
+\---setup---
+public static class MathExpressives
+{
 // Make Math.Clamp usable in EF Core queries
-[ExpressiveFor(typeof(Math), nameof(Math.Clamp))]
+\[ExpressiveSharp.Mapping.ExpressiveFor(typeof(Math), nameof(Math.Clamp))]
 static double Clamp(double value, double min, double max)
-    => value < min ? min : (value > max ? max : value);
+\=> value < min ? min : (value > max ? max : value);
+}
+:::
 
-// Now this translates to SQL instead of throwing:
-db.Orders.Where(o => Math.Clamp(o.Price, 20, 100) > 50)
+```csharp
+db
+    .LineItems
+    .Where(i => Math.Clamp((double)i.UnitPrice, 20, 100) > 50)
+
+// Setup
+public static class MathExpressives
+{
+    // Make Math.Clamp usable in EF Core queries
+    [ExpressiveSharp.Mapping.ExpressiveFor(typeof(Math), nameof(Math.Clamp))]
+    static double Clamp(double value, double min, double max)
+        => value < min ? min : (value > max ? max : value);
+}
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "l"."Id", "l"."OrderId", "l"."ProductId", "l"."Quantity", "l"."UnitPrice"
+FROM "LineItems" AS "l"
+WHERE CASE
+    WHEN CAST("l"."UnitPrice" AS REAL) < 20.0 THEN 20.0
+    WHEN CAST("l"."UnitPrice" AS REAL) > 100.0 THEN 100.0
+    ELSE CAST("l"."UnitPrice" AS REAL)
+END > 50.0
 ```
 
 **Scenario 3: Constructors**
@@ -259,11 +286,26 @@ After migrating, you gain access to features that Projectables never had. Here a
 
 Use `IExpressiveQueryable<T>` or `ExpressiveDbSet<T>` to write LINQ queries with modern C# syntax:
 
+::: expressive-sample
+db.Orders
+.Where(o => o.Customer.Email != null)
+.Select(o => new { o.Id, Name = o.Customer.Name ?? "Unknown" })
+:::
+
 ```csharp
-var results = ctx.Orders
-    .Where(o => o.Customer?.Email != null)
-    .Select(o => new { o.Id, Name = o.Customer?.Name ?? "Unknown" })
-    .ToList();
+db
+    .Orders
+    .Where(o => o.Customer.Email != null)
+    .Select(o => new { o.Id, Name = o.Customer.Name ?? "Unknown" })
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "o"."Id", "c"."Name"
+FROM "Orders" AS "o"
+INNER JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
+WHERE "c"."Email" IS NOT NULL
 ```
 
 See [Modern Syntax in LINQ Chains](/recipes/modern-syntax-in-linq).
@@ -272,58 +314,225 @@ See [Modern Syntax in LINQ Chains](/recipes/modern-syntax-in-linq).
 
 Create expression trees inline without needing an attribute:
 
+::: expressive-sample
+db.Customers.Where(ExpressionPolyfill.Create((Customer c) => c.Email?.Length > 5))
+:::
+
 ```csharp
-var expr = ExpressionPolyfill.Create((Order o) => o.Tag?.Length);
+db
+    .Customers
+    .Where(ExpressionPolyfill.Create((Customer c) => c.Email?.Length > 5))
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "c"."Id", "c"."Country", "c"."Email", "c"."JoinedAt", "c"."Name"
+FROM "Customers" AS "c"
+WHERE length("c"."Email") > 5
 ```
 
 ### Switch Expressions and Pattern Matching
 
-```csharp
-[Expressive]
-public string GetGrade() => Price switch
+::: expressive-sample
+db.Products.Select(p => new { p.Name, Grade = p.GetGrade() })
+\---setup---
+public static class ProductExt
 {
-    >= 100 => "Premium",
-    >= 50  => "Standard",
-    _      => "Budget",
+\[Expressive]
+public static string GetGrade(this Product p) => p.ListPrice switch
+{
+\>= 100m => "Premium",
+\>= 50m  => "Standard",
+\_       => "Budget",
 };
+}
+:::
 
-[Expressive]
-public bool IsSpecialOrder => this is { Quantity: > 100, Price: >= 50 };
+```csharp
+db
+    .Products
+    .Select(p => new { p.Name, Grade = p.GetGrade() })
+
+// Setup
+public static class ProductExt
+{
+    [Expressive]
+    public static string GetGrade(this Product p) => p.ListPrice switch
+    {
+        >= 100m => "Premium",
+        >= 50m  => "Standard",
+        _       => "Budget",
+    };
+}
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "p"."Name", CASE
+    WHEN ef_compare("p"."ListPrice", '100.0') >= 0 THEN 'Premium'
+    WHEN ef_compare("p"."ListPrice", '50.0') >= 0 THEN 'Standard'
+    ELSE 'Budget'
+END AS "Grade"
+FROM "Products" AS "p"
+```
+
+::: expressive-sample
+db.LineItems.Where(i => i.IsSpecialLine())
+\---setup---
+public static class LineItemExt
+{
+\[Expressive]
+public static bool IsSpecialLine(this LineItem i) => i is { Quantity: > 100, UnitPrice: >= 50m };
+}
+:::
+
+```csharp
+db
+    .LineItems
+    .Where(i => i.IsSpecialLine())
+
+// Setup
+public static class LineItemExt
+{
+    [Expressive]
+    public static bool IsSpecialLine(this LineItem i) => i is { Quantity: > 100, UnitPrice: >= 50m };
+}
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "l"."Id", "l"."OrderId", "l"."ProductId", "l"."Quantity", "l"."UnitPrice"
+FROM "LineItems" AS "l"
+WHERE "l"."Quantity" > 100 AND ef_compare("l"."UnitPrice", '50.0') >= 0
 ```
 
 See [Scoring and Classification](/recipes/scoring-classification).
 
 ### Constructor Projections
 
+::: expressive-sample
+db.Orders.Select(o => OrderSummaryBuilder.From(o))
+\---setup---
+public sealed class OrderSummary
+{
+public int Id { get; init; }
+public decimal Total { get; init; }
+}
+
+public static class OrderSummaryBuilder
+{
+\[Expressive]
+public static OrderSummary From(Order o) => new OrderSummary
+{
+Id = o.Id,
+Total = o.Items.Sum(i => i.UnitPrice \* i.Quantity),
+};
+}
+:::
+
 ```csharp
-public class OrderSummary
+db
+    .Orders
+    .Select(o => OrderSummaryBuilder.From(o))
+
+// Setup
+public sealed class OrderSummary
+{
+    public int Id { get; init; }
+    public decimal Total { get; init; }
+}
+
+public static class OrderSummaryBuilder
 {
     [Expressive]
-    public OrderSummary(Order o)
+    public static OrderSummary From(Order o) => new OrderSummary
     {
-        Id = o.Id;
-        Total = o.Price * o.Quantity;
-    }
+        Id = o.Id,
+        Total = o.Items.Sum(i => i.UnitPrice * i.Quantity),
+    };
 }
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "o"."Id", (
+    SELECT COALESCE(ef_sum(ef_multiply("l"."UnitPrice", CAST("l"."Quantity" AS TEXT))), '0.0')
+    FROM "LineItems" AS "l"
+    WHERE "o"."Id" = "l"."OrderId") AS "Total"
+FROM "Orders" AS "o"
 ```
 
 See [DTO Projections with Constructors](/recipes/dto-projections).
 
 ### External Member Mapping
 
-```csharp
-using ExpressiveSharp.Mapping;
-
-[ExpressiveFor(typeof(Math), nameof(Math.Abs))]
+::: expressive-sample
+db.LineItems.Where(i => Math.Abs(i.Quantity) > 0)
+\---setup---
+public static class MathExpressives
+{
+\[ExpressiveSharp.Mapping.ExpressiveFor(typeof(Math), nameof(Math.Abs))]
 static int Abs(int value) => value < 0 ? -value : value;
+}
+:::
+
+```csharp
+db
+    .LineItems
+    .Where(i => Math.Abs(i.Quantity) > 0)
+
+// Setup
+public static class MathExpressives
+{
+    [ExpressiveSharp.Mapping.ExpressiveFor(typeof(Math), nameof(Math.Abs))]
+    static int Abs(int value) => value < 0 ? -value : value;
+}
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "l"."Id", "l"."OrderId", "l"."ProductId", "l"."Quantity", "l"."UnitPrice"
+FROM "LineItems" AS "l"
+WHERE CASE
+    WHEN "l"."Quantity" < 0 THEN -"l"."Quantity"
+    ELSE "l"."Quantity"
+END > 0
 ```
 
 See [External Member Mapping](/recipes/external-member-mapping).
 
 ### Custom Transformers
 
+::: expressive-sample
+db.LineItems.Select(i => new { i.Id, Adjusted = i.AdjustedTotal() })
+\---setup---
+public class MyTransformer : ExpressiveSharp.IExpressionTreeTransformer
+{
+public Expression Transform(Expression expression)
+{
+return expression; // your custom transformation
+}
+}
+
+public static class LineItemExt
+{
+\[Expressive(Transformers = new\[] { typeof(MyTransformer) })]
+public static decimal AdjustedTotal(this LineItem i) => i.UnitPrice \* i.Quantity \* 1.1m;
+}
+:::
+
 ```csharp
-public class MyTransformer : IExpressionTreeTransformer
+db
+    .LineItems
+    .Select(i => new { i.Id, Adjusted = i.AdjustedTotal() })
+
+// Setup
+public class MyTransformer : ExpressiveSharp.IExpressionTreeTransformer
 {
     public Expression Transform(Expression expression)
     {
@@ -331,8 +540,18 @@ public class MyTransformer : IExpressionTreeTransformer
     }
 }
 
-[Expressive(Transformers = new[] { typeof(MyTransformer) })]
-public double AdjustedTotal => Price * Quantity * 1.1;
+public static class LineItemExt
+{
+    [Expressive(Transformers = new[] { typeof(MyTransformer) })]
+    public static decimal AdjustedTotal(this LineItem i) => i.UnitPrice * i.Quantity * 1.1m;
+}
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "l"."Id", ef_multiply(ef_multiply("l"."UnitPrice", CAST("l"."Quantity" AS TEXT)), '1.1') AS "Adjusted"
+FROM "LineItems" AS "l"
 ```
 
 ### SQL Window Functions
@@ -345,7 +564,7 @@ var ranked = dbContext.Orders.Select(o => new
     o.Id,
     Rank = WindowFunction.Rank(
         Window.PartitionBy(o.CustomerId)
-              .OrderByDescending(o.GrandTotal))
+              .OrderByDescending(o.PlacedAt))
 });
 ```
 

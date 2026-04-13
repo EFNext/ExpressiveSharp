@@ -28,200 +28,455 @@ If the mapping changes you must update every `Select` that uses it.
 
 Mark a constructor with `[Expressive]` and call it directly in your query. The source generator emits a `MemberInit` expression that EF Core translates to SQL:
 
+::: expressive-sample
+db.Customers
+.Where(c => c.Country != null)
+.Select(c => new CustomerDto(c))
+\---setup---
+public class CustomerDto
+{
+public int Id { get; set; }
+public string Name { get; set; } = "";
+public string? Country { get; set; }
+public int OrderCount { get; set; }
+
+```
+public CustomerDto() { }
+
+[Expressive]
+public CustomerDto(Customer c)
+{
+    Id = c.Id;
+    Name = c.Name;
+    Country = c.Country;
+    OrderCount = c.Orders.Count();
+}
+```
+
+}
+:::
+
 ```csharp
+db
+    .Customers
+    .Where(c => c.Country != null)
+    .Select(c => new CustomerDto(c))
+
+// Setup
 public class CustomerDto
 {
     public int Id { get; set; }
-    public string FullName { get; set; } = "";
-    public bool IsActive { get; set; }
+    public string Name { get; set; } = "";
+    public string? Country { get; set; }
     public int OrderCount { get; set; }
 
-    public CustomerDto() { }   // parameterless constructor required
+    public CustomerDto() { }
 
     [Expressive]
     public CustomerDto(Customer c)
     {
         Id = c.Id;
-        FullName = c.FirstName + " " + c.LastName;
-        IsActive = c.IsActive;
+        Name = c.Name;
+        Country = c.Country;
         OrderCount = c.Orders.Count();
     }
 }
 ```
 
-```csharp
-// Clean -- mapping defined once, used everywhere
-var customers = dbContext.Customers
-    .Where(c => c.IsActive)
-    .Select(c => new CustomerDto(c))
-    .ToList();
+**Generated SQL:**
+
+```sql
+SELECT "c"."Id", "c"."Name", "c"."Country", (
+    SELECT COUNT(*)
+    FROM "Orders" AS "o"
+    WHERE "c"."Id" = "o"."CustomerId") AS "OrderCount"
+FROM "Customers" AS "c"
+WHERE "c"."Country" IS NOT NULL
 ```
 
 The constructor body is inlined as SQL -- no data is fetched to memory for the projection.
-
-Generated SQL (SQLite):
-
-```sql
-SELECT "c"."Id",
-       "c"."FirstName" || ' ' || "c"."LastName" AS "FullName",
-       "c"."IsActive",
-       (SELECT COUNT(*)
-        FROM "Orders" AS "o"
-        WHERE "c"."Id" = "o"."CustomerId") AS "OrderCount"
-FROM "Customers" AS "c"
-WHERE "c"."IsActive"
-```
 
 ## Basic Constructor Projection: OrderSummaryDto
 
 A straightforward example showing how constructor parameters map to SQL expressions:
 
+::: expressive-sample
+db.Orders
+.Select(o => new OrderSummaryDto(o.Id, o.Status.ToString(), o.ItemCount()))
+\---setup---
+public static class OrderExt
+{
+\[Expressive]
+public static int ItemCount(this Order o) => o.Items.Count();
+}
+
+public class OrderSummaryDto
+{
+public int Id { get; set; }
+public string Description { get; set; } = "";
+public int Items { get; set; }
+
+```
+public OrderSummaryDto() { }
+
+[Expressive]
+public OrderSummaryDto(int id, string description, int items)
+{
+    Id = id;
+    Description = description;
+    Items = items;
+}
+```
+
+}
+:::
+
 ```csharp
+db
+    .Orders
+    .Select(o => new OrderSummaryDto(o.Id, o.Status.ToString(), o.ItemCount()))
+
+// Setup
+public static class OrderExt
+{
+    [Expressive]
+    public static int ItemCount(this Order o) => o.Items.Count();
+}
+
 public class OrderSummaryDto
 {
     public int Id { get; set; }
     public string Description { get; set; } = "";
-    public double Total { get; set; }
+    public int Items { get; set; }
 
     public OrderSummaryDto() { }
 
     [Expressive]
-    public OrderSummaryDto(int id, string description, double total)
+    public OrderSummaryDto(int id, string description, int items)
     {
         Id = id;
         Description = description;
-        Total = total;
+        Items = items;
     }
 }
 ```
 
-```csharp
-var dtos = dbContext.Orders
-    .Select(o => new OrderSummaryDto(o.Id, o.Tag ?? "N/A", o.Total))
-    .ToList();
-```
-
-Generated SQL (SQLite):
+**Generated SQL:**
 
 ```sql
-SELECT "o"."Id",
-       COALESCE("o"."Tag", 'N/A') AS "Description",
-       "o"."Price" * CAST("o"."Quantity" AS REAL) AS "Total"
+SELECT "o"."Id", CASE
+    WHEN "o"."Status" = 0 THEN 'Pending'
+    WHEN "o"."Status" = 1 THEN 'Paid'
+    WHEN "o"."Status" = 2 THEN 'Shipped'
+    WHEN "o"."Status" = 3 THEN 'Delivered'
+    WHEN "o"."Status" = 4 THEN 'Refunded'
+END AS "Description", (
+    SELECT COUNT(*)
+    FROM "LineItems" AS "l"
+    WHERE "o"."Id" = "l"."OrderId") AS "Items"
 FROM "Orders" AS "o"
 ```
 
 ::: tip
-Notice that `o.Total` is an `[Expressive]` property -- it gets expanded to `Price * Quantity` automatically. Constructor projections compose naturally with computed properties.
+Notice that `o.ItemCount()` is an `[Expressive]` extension method -- it gets expanded to `o.Items.Count()` automatically. Constructor projections compose naturally with computed members.
 :::
 
 ## Inheritance Chains with Base Initializers
 
 When your DTOs form an inheritance hierarchy, use `: base(...)` to avoid duplicating base-class assignments. The generator inlines both the base and derived assignments:
 
-```csharp
-public class PersonDto
+::: expressive-sample
+db.Customers.Select(c => new PremiumCustomerDto(c))
+\---setup---
+public class CustomerBaseDto
 {
-    public string FullName { get; set; } = "";
-    public string Email { get; set; } = "";
+public int Id { get; set; }
+public string Name { get; set; } = "";
 
-    public PersonDto() { }
+```
+public CustomerBaseDto() { }
+
+[Expressive]
+public CustomerBaseDto(Customer c)
+{
+    Id = c.Id;
+    Name = c.Name;
+}
+```
+
+}
+
+public class PremiumCustomerDto : CustomerBaseDto
+{
+public string Country { get; set; } = "";
+public string Tier { get; set; } = "";
+
+```
+public PremiumCustomerDto() { }
+
+[Expressive]
+public PremiumCustomerDto(Customer c) : base(c)
+{
+    Country = c.Country ?? "Unknown";
+    Tier = c.Orders.Count() >= 10 ? "Gold" : "Standard";
+}
+```
+
+}
+:::
+
+```csharp
+db
+    .Customers
+    .Select(c => new PremiumCustomerDto(c))
+
+// Setup
+public class CustomerBaseDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+
+    public CustomerBaseDto() { }
 
     [Expressive]
-    public PersonDto(Person p)
+    public CustomerBaseDto(Customer c)
     {
-        FullName = p.FirstName + " " + p.LastName;
-        Email = p.Email;
+        Id = c.Id;
+        Name = c.Name;
     }
 }
 
-public class EmployeeDto : PersonDto
+public class PremiumCustomerDto : CustomerBaseDto
 {
-    public string Department { get; set; } = "";
-    public string Grade { get; set; } = "";
+    public string Country { get; set; } = "";
+    public string Tier { get; set; } = "";
 
-    public EmployeeDto() { }
+    public PremiumCustomerDto() { }
 
     [Expressive]
-    public EmployeeDto(Employee e) : base(e)   // PersonDto assignments inlined automatically
+    public PremiumCustomerDto(Customer c) : base(c)
     {
-        Department = e.Department.Name;
-        Grade = e.YearsOfService >= 10 ? "Senior" : "Junior";
+        Country = c.Country ?? "Unknown";
+        Tier = c.Orders.Count() >= 10 ? "Gold" : "Standard";
     }
 }
 ```
 
-```csharp
-var employees = dbContext.Employees
-    .Select(e => new EmployeeDto(e))
-    .ToList();
-```
-
-Generated SQL (SQLite):
+**Generated SQL:**
 
 ```sql
-SELECT "e"."FirstName" || ' ' || "e"."LastName" AS "FullName",
-       "e"."Email",
-       "d"."Name" AS "Department",
-       CASE
-           WHEN "e"."YearsOfService" >= 10 THEN 'Senior'
-           ELSE 'Junior'
-       END AS "Grade"
-FROM "Employees" AS "e"
-INNER JOIN "Departments" AS "d" ON "e"."DepartmentId" = "d"."Id"
+SELECT COALESCE("c"."Country", 'Unknown') AS "Country", CASE
+    WHEN (
+        SELECT COUNT(*)
+        FROM "Orders" AS "o"
+        WHERE "c"."Id" = "o"."CustomerId") >= 10 THEN 'Gold'
+    ELSE 'Standard'
+END AS "Tier"
+FROM "Customers" AS "c"
 ```
 
-All fields -- `FullName`, `Email`, `Department`, and `Grade` -- are projected in a single query.
+All fields -- `Id`, `Name`, `Country`, and `Tier` -- are projected in a single query.
 
 ## Constructor Overloads
 
 If you need different projections from the same DTO, use constructor overloads. Each gets its own generated expression:
 
+::: expressive-sample
+db.Orders.Select(o => new OrderDto(o))
+\---setup---
+public class OrderDto
+{
+public int Id { get; set; }
+public int ItemCount { get; set; }
+public string? CustomerName { get; set; }
+
+```
+public OrderDto() { }
+
+// Full projection (with customer name -- requires navigation join)
+[Expressive]
+public OrderDto(Order o)
+{
+    Id = o.Id;
+    ItemCount = o.Items.Count();
+    CustomerName = o.Customer.Name;
+}
+
+// Lightweight projection (no navigation join needed)
+[Expressive]
+public OrderDto(Order o, bool lightweight)
+{
+    Id = o.Id;
+    ItemCount = o.Items.Count();
+    CustomerName = null;
+}
+```
+
+}
+:::
+
 ```csharp
-public class OrderSummaryDto
+db
+    .Orders
+    .Select(o => new OrderDto(o))
+
+// Setup
+public class OrderDto
 {
     public int Id { get; set; }
-    public double Total { get; set; }
+    public int ItemCount { get; set; }
     public string? CustomerName { get; set; }
 
-    public OrderSummaryDto() { }
+    public OrderDto() { }
 
     // Full projection (with customer name -- requires navigation join)
     [Expressive]
-    public OrderSummaryDto(Order o)
+    public OrderDto(Order o)
     {
         Id = o.Id;
-        Total = o.GrandTotal;
-        CustomerName = o.Customer.FirstName + " " + o.Customer.LastName;
+        ItemCount = o.Items.Count();
+        CustomerName = o.Customer.Name;
     }
 
     // Lightweight projection (no navigation join needed)
     [Expressive]
-    public OrderSummaryDto(Order o, bool lightweight)
+    public OrderDto(Order o, bool lightweight)
     {
         Id = o.Id;
-        Total = o.GrandTotal;
+        ItemCount = o.Items.Count();
         CustomerName = null;
     }
 }
 ```
 
-```csharp
-// Full projection -- joins Customer table
-var full = dbContext.Orders
-    .Select(o => new OrderSummaryDto(o))
-    .ToList();
+**Generated SQL:**
 
-// Lightweight projection -- no join
-var light = dbContext.Orders
-    .Select(o => new OrderSummaryDto(o, true))
-    .ToList();
+```sql
+SELECT "o"."Id", (
+    SELECT COUNT(*)
+    FROM "LineItems" AS "l"
+    WHERE "o"."Id" = "l"."OrderId") AS "ItemCount", "c"."Name" AS "CustomerName"
+FROM "Orders" AS "o"
+INNER JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
+```
+
+The lightweight variant is called the same way, just with the extra argument:
+
+::: expressive-sample
+db.Orders.Select(o => new OrderDto(o, true))
+\---setup---
+public class OrderDto
+{
+public int Id { get; set; }
+public int ItemCount { get; set; }
+public string? CustomerName { get; set; }
+
+```
+public OrderDto() { }
+
+[Expressive]
+public OrderDto(Order o)
+{
+    Id = o.Id;
+    ItemCount = o.Items.Count();
+    CustomerName = o.Customer.Name;
+}
+
+[Expressive]
+public OrderDto(Order o, bool lightweight)
+{
+    Id = o.Id;
+    ItemCount = o.Items.Count();
+    CustomerName = null;
+}
+```
+
+}
+:::
+
+```csharp
+db
+    .Orders
+    .Select(o => new OrderDto(o, true))
+
+// Setup
+public class OrderDto
+{
+    public int Id { get; set; }
+    public int ItemCount { get; set; }
+    public string? CustomerName { get; set; }
+
+    public OrderDto() { }
+
+    [Expressive]
+    public OrderDto(Order o)
+    {
+        Id = o.Id;
+        ItemCount = o.Items.Count();
+        CustomerName = o.Customer.Name;
+    }
+
+    [Expressive]
+    public OrderDto(Order o, bool lightweight)
+    {
+        Id = o.Id;
+        ItemCount = o.Items.Count();
+        CustomerName = null;
+    }
+}
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "o"."Id", (
+    SELECT COUNT(*)
+    FROM "LineItems" AS "l"
+    WHERE "o"."Id" = "l"."OrderId") AS "ItemCount", NULL AS "CustomerName"
+FROM "Orders" AS "o"
 ```
 
 ## Using Switch Expressions in Constructors
 
 Constructor bodies support the same modern C# syntax as other `[Expressive]` members:
 
+::: expressive-sample
+db.Products.Select(p => new ProductDto(p))
+\---setup---
+public class ProductDto
+{
+public int Id { get; set; }
+public string Name { get; set; } = "";
+public decimal Price { get; set; }
+public string PriceTier { get; set; } = "";
+
+```
+public ProductDto() { }
+
+[Expressive]
+public ProductDto(Product p)
+{
+    Id = p.Id;
+    Name = p.Name;
+    Price = p.ListPrice;
+    PriceTier = p.ListPrice switch
+    {
+        > 500m => "Premium",
+        > 100m => "Standard",
+        _      => "Budget"
+    };
+}
+```
+
+}
+:::
+
 ```csharp
+db
+    .Products
+    .Select(p => new ProductDto(p))
+
+// Setup
 public class ProductDto
 {
     public int Id { get; set; }
@@ -236,28 +491,25 @@ public class ProductDto
     {
         Id = p.Id;
         Name = p.Name;
-        Price = p.SalePrice;
-        PriceTier = p.SalePrice switch
+        Price = p.ListPrice;
+        PriceTier = p.ListPrice switch
         {
-            > 500 => "Premium",
-            > 100 => "Standard",
-            _     => "Budget"
+            > 500m => "Premium",
+            > 100m => "Standard",
+            _      => "Budget"
         };
     }
 }
 ```
 
-Generated SQL (SQLite):
+**Generated SQL:**
 
 ```sql
-SELECT "p"."Id",
-       "p"."Name",
-       "p"."ListPrice" * (1 - "p"."DiscountRate") AS "Price",
-       CASE
-           WHEN "p"."ListPrice" * (1 - "p"."DiscountRate") > 500 THEN 'Premium'
-           WHEN "p"."ListPrice" * (1 - "p"."DiscountRate") > 100 THEN 'Standard'
-           ELSE 'Budget'
-       END AS "PriceTier"
+SELECT "p"."Id", "p"."Name", "p"."ListPrice" AS "Price", CASE
+    WHEN ef_compare("p"."ListPrice", '500.0') > 0 THEN 'Premium'
+    WHEN ef_compare("p"."ListPrice", '100.0') > 0 THEN 'Standard'
+    ELSE 'Budget'
+END AS "PriceTier"
 FROM "Products" AS "p"
 ```
 
@@ -273,7 +525,7 @@ static ExternalOrderDto CreateDto(int id, string name)
     => new ExternalOrderDto { Id = id, Name = name };
 ```
 
-See [External Member Mapping](/recipes/external-member-mapping) for details.
+See [External Member Mapping](./external-member-mapping) for details.
 
 ## Tips
 
@@ -291,6 +543,6 @@ Constructor bodies are block-bodied by nature, but they do **not** require `Allo
 
 ## See Also
 
-* [Computed Entity Properties](/recipes/computed-properties) -- reusable computed values referenced in constructor projections
-* [External Member Mapping](/recipes/external-member-mapping) -- `[ExpressiveForConstructor]` for types you do not own
-* [Scoring and Classification](/recipes/scoring-classification) -- switch expressions and pattern matching in projections
+* [Computed Entity Properties](./computed-properties) -- reusable computed values referenced in constructor projections
+* [External Member Mapping](./external-member-mapping) -- `[ExpressiveForConstructor]` for types you do not own
+* [Scoring and Classification](./scoring-classification) -- switch expressions and pattern matching in projections

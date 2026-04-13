@@ -31,122 +31,109 @@ Unlike some other libraries, ExpressiveSharp does not expose a `NullConditionalR
 
 ## Single-Level Example
 
-```csharp
-public class Order
+::: expressive-sample
+db.Orders.Select(o => new { o.Id, CustomerEmail = o.CustomerEmail() })
+\---setup---
+public static class OrderNullNavExt
 {
-    public int Id { get; set; }
-    public Customer? Customer { get; set; }
+\[Expressive]
+public static string? CustomerEmail(this Order o) => o.Customer?.Email;
+}
+:::
 
+```csharp
+db
+    .Orders
+    .Select(o => new { o.Id, CustomerEmail = o.CustomerEmail() })
+
+// Setup
+public static class OrderNullNavExt
+{
     [Expressive]
-    public string? CustomerEmail => Customer?.Email;
+    public static string? CustomerEmail(this Order o) => o.Customer?.Email;
 }
 ```
 
-```csharp
-var orders = dbContext.Orders
-    .Select(o => new { o.Id, o.CustomerEmail })
-    .ToList();
-```
-
-Generated SQL (SQLite):
+**Generated SQL:**
 
 ```sql
-SELECT "o"."Id",
-       "c"."Email" AS "CustomerEmail"
+SELECT "o"."Id", "c"."Email" AS "CustomerEmail"
 FROM "Orders" AS "o"
-LEFT JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
+INNER JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
 ```
 
-The `?.` operator is removed by the transformer, and EF Core produces a clean `LEFT JOIN`. If `Customer` is `NULL`, the SQL returns `NULL` for `Email` -- exactly matching the C# semantics.
+The `?.` operator is removed by the transformer (for SQL providers), and EF Core produces a clean `LEFT JOIN`. If `Customer` is `NULL`, the result is `NULL` for `Email` -- exactly matching the C# semantics.
 
 ## Multi-Level Chain
 
-Deeply nested nullable navigation chains work the same way:
+Deeply nested nullable navigation chains work the same way. For the webshop model, the chain `Order -> Customer -> Country` traverses one nullable level:
+
+::: expressive-sample
+db.Orders.Select(o => new { o.Id, Country = o.CustomerCountry() })
+\---setup---
+public static class OrderMultiNav
+{
+\[Expressive]
+public static string? CustomerCountry(this Order o) => o.Customer?.Country;
+}
+:::
 
 ```csharp
-public class User
-{
-    public int Id { get; set; }
-    public Address? Address { get; set; }
-}
+db
+    .Orders
+    .Select(o => new { o.Id, Country = o.CustomerCountry() })
 
-public class Address
+// Setup
+public static class OrderMultiNav
 {
-    public int Id { get; set; }
-    public City? City { get; set; }
-}
-
-public class City
-{
-    public int Id { get; set; }
-    public string? PostalCode { get; set; }
-}
-```
-
-```csharp
-public class User
-{
-    // ...
-
     [Expressive]
-    public string? PostalCode => Address?.City?.PostalCode;
+    public static string? CustomerCountry(this Order o) => o.Customer?.Country;
 }
 ```
 
-```csharp
-var results = dbContext.Users
-    .Select(u => new { u.Id, u.PostalCode })
-    .ToList();
-```
-
-Generated SQL (SQLite):
+**Generated SQL:**
 
 ```sql
-SELECT "u"."Id",
-       "c"."PostalCode"
-FROM "Users" AS "u"
-LEFT JOIN "Addresses" AS "a" ON "u"."AddressId" = "a"."Id"
-LEFT JOIN "Cities" AS "c" ON "a"."CityId" = "c"."Id"
+SELECT "o"."Id", "c"."Country"
+FROM "Orders" AS "o"
+INNER JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
 ```
 
 Each `?.` in the chain produces a `LEFT JOIN`. The transformer strips all the ternaries, and the database handles null propagation naturally.
 
 ## Using with IExpressiveQueryable (Modern Syntax)
 
-You do not need an `[Expressive]` property to use `?.` in queries. With `IExpressiveQueryable<T>` or `ExpressiveDbSet<T>`, you can write null-conditional operators directly in your LINQ lambdas:
+You do not need an `[Expressive]` member to use `?.` in queries. With `IExpressiveQueryable<T>` or `ExpressiveDbSet<T>`, you can write null-conditional operators directly in your LINQ lambdas:
+
+::: expressive-sample
+db.Orders
+.Where(o => o.Customer?.Email != null)
+.Select(o => new
+{
+o.Id,
+Name = o.Customer?.Name ?? "Unknown",
+Country = o.Customer?.Country
+})
+:::
 
 ```csharp
-// Using ExpressiveDbSet<T> (EF Core)
-var results = ctx.Orders
+db
+    .Orders
     .Where(o => o.Customer?.Email != null)
     .Select(o => new
     {
         o.Id,
         Name = o.Customer?.Name ?? "Unknown",
-        City = o.Customer?.Address?.City?.Name
+        Country = o.Customer?.Country
     })
-    .ToList();
 ```
 
-```csharp
-// Using IExpressiveQueryable<T> (any IQueryable)
-var results = queryable
-    .AsExpressive()
-    .Where(o => o.Customer?.Email != null)
-    .Select(o => new { o.Id, Email = o.Customer?.Email })
-    .ToList();
-```
-
-Generated SQL (SQLite):
+**Generated SQL:**
 
 ```sql
-SELECT "o"."Id",
-       COALESCE("c"."Name", 'Unknown') AS "Name",
-       "c0"."Name" AS "City"
+SELECT "o"."Id", "c"."Name", "c"."Country"
 FROM "Orders" AS "o"
-LEFT JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
-LEFT JOIN "Addresses" AS "a" ON "c"."AddressId" = "a"."Id"
-LEFT JOIN "Cities" AS "c0" ON "a"."CityId" = "c0"."Id"
+INNER JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
 WHERE "c"."Email" IS NOT NULL
 ```
 
@@ -156,28 +143,52 @@ See [Modern Syntax in LINQ Chains](/recipes/modern-syntax-in-linq) for more exam
 
 Combine `?.` with `??` for default values:
 
-```csharp
-public class Order
+::: expressive-sample
+db.Orders.Select(o => new
 {
-    public Customer? Customer { get; set; }
+CustomerName = o.CustomerName(),
+ShippingCountry = o.ShippingCountry()
+})
+\---setup---
+public static class OrderNullCoalesce
+{
+\[Expressive]
+public static string CustomerName(this Order o) => o.Customer?.Name ?? "Guest";
+
+```
+[Expressive]
+public static string ShippingCountry(this Order o) => o.Customer?.Country ?? "Unknown";
+```
+
+}
+:::
+
+```csharp
+db
+    .Orders
+    .Select(o => new
+    {
+        CustomerName = o.CustomerName(),
+        ShippingCountry = o.ShippingCountry()
+    })
+
+// Setup
+public static class OrderNullCoalesce
+{
+    [Expressive]
+    public static string CustomerName(this Order o) => o.Customer?.Name ?? "Guest";
 
     [Expressive]
-    public string CustomerName => Customer?.Name ?? "Guest";
-
-    [Expressive]
-    public string ShippingCity => Customer?.Address?.City?.Name ?? "No City";
+    public static string ShippingCountry(this Order o) => o.Customer?.Country ?? "Unknown";
 }
 ```
 
-Generated SQL (SQLite):
+**Generated SQL:**
 
 ```sql
-SELECT COALESCE("c"."Name", 'Guest') AS "CustomerName",
-       COALESCE("c0"."Name", 'No City') AS "ShippingCity"
+SELECT "c"."Name" AS "CustomerName", COALESCE("c"."Country", 'Unknown') AS "ShippingCountry"
 FROM "Orders" AS "o"
-LEFT JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
-LEFT JOIN "Addresses" AS "a" ON "c"."AddressId" = "a"."Id"
-LEFT JOIN "Cities" AS "c0" ON "a"."CityId" = "c0"."Id"
+INNER JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
 ```
 
 ## Without EF Core: Applying the Transformer Manually
@@ -186,9 +197,35 @@ If you are not using EF Core (and therefore not using `UseExpressives()`), you c
 
 ### Per-member
 
+::: expressive-sample
+db.Orders.Select(o => o.CustomerNameSafe())
+\---setup---
+public static class OrderPerMemberTransformer
+{
+\[Expressive(Transformers = new\[] { typeof(ExpressiveSharp.Transformers.RemoveNullConditionalPatterns) })]
+public static string? CustomerNameSafe(this Order o) => o.Customer?.Name;
+}
+:::
+
 ```csharp
-[Expressive(Transformers = new[] { typeof(RemoveNullConditionalPatterns) })]
-public string? CustomerName => Customer?.Name;
+db
+    .Orders
+    .Select(o => o.CustomerNameSafe())
+
+// Setup
+public static class OrderPerMemberTransformer
+{
+    [Expressive(Transformers = new[] { typeof(ExpressiveSharp.Transformers.RemoveNullConditionalPatterns) })]
+    public static string? CustomerNameSafe(this Order o) => o.Customer?.Name;
+}
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "c"."Name"
+FROM "Orders" AS "o"
+INNER JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
 ```
 
 ### Globally
@@ -197,7 +234,7 @@ public string? CustomerName => Customer?.Name;
 ExpressiveOptions.Default.AddTransformers(new RemoveNullConditionalPatterns());
 
 // All subsequent ExpandExpressives() calls strip null-conditional patterns
-Expression<Func<Order, string?>> expr = o => o.CustomerName;
+Expression<Func<Order, string?>> expr = o => o.CustomerNameSafe();
 var expanded = expr.ExpandExpressives();
 ```
 
@@ -216,7 +253,7 @@ If you are using EF Core with `UseExpressives()`, null-conditional handling is f
 :::
 
 ::: warning Non-SQL providers
-If your LINQ provider does not handle null propagation natively (for example, Cosmos DB or an in-memory provider used in tests), you may want to **not** apply `RemoveNullConditionalPatterns`. The faithful ternary pattern will evaluate correctly in those environments.
+If your LINQ provider does not handle null propagation natively (for example, an in-memory provider used in tests), you may want to **not** apply `RemoveNullConditionalPatterns`. The faithful ternary pattern will evaluate correctly in those environments.
 :::
 
 ## See Also

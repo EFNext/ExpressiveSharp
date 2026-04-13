@@ -23,7 +23,7 @@ var results = dbContext.Orders
     {
         o.Id,
         Name = o.Customer != null ? o.Customer.Name : "Unknown",
-        Grade = o.Price >= 100 ? "Premium" : (o.Price >= 50 ? "Standard" : "Budget")
+        Grade = o.Items.Count() >= 10 ? "Premium" : (o.Items.Count() >= 5 ? "Standard" : "Budget")
     })
     .ToList();
 ```
@@ -36,23 +36,59 @@ ExpressiveSharp offers three ways to use modern syntax in LINQ chains. Each targ
 
 Works with **any** `IQueryable<T>` -- not tied to EF Core:
 
+::: expressive-sample
+db.Orders
+.Where(o => o.Customer?.Email != null)
+.Select(o => new
+{
+o.Id,
+Name = o.Customer?.Name ?? "Unknown",
+Grade = o.Items.Count() switch
+{
+\>= 10 => "Premium",
+\>= 5  => "Standard",
+\_     => "Budget"
+}
+})
+.OrderBy(x => x.Name)
+:::
+
 ```csharp
-var results = queryable
-    .AsExpressive()
+db
+    .Orders
     .Where(o => o.Customer?.Email != null)
     .Select(o => new
     {
         o.Id,
         Name = o.Customer?.Name ?? "Unknown",
-        Grade = o.Price switch
+        Grade = o.Items.Count() switch
         {
-            >= 100 => "Premium",
-            >= 50  => "Standard",
-            _      => "Budget"
+            >= 10 => "Premium",
+            >= 5 => "Standard",
+            _ => "Budget"
         }
     })
-    .OrderBy(o => o.Name)
-    .ToList();
+    .OrderBy(x => x.Name)
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "o"."Id", "c"."Name", CASE
+    WHEN (
+        SELECT COUNT(*)
+        FROM "LineItems" AS "l"
+        WHERE "o"."Id" = "l"."OrderId") >= 10 THEN 'Premium'
+    WHEN (
+        SELECT COUNT(*)
+        FROM "LineItems" AS "l0"
+        WHERE "o"."Id" = "l0"."OrderId") >= 5 THEN 'Standard'
+    ELSE 'Budget'
+END AS "Grade"
+FROM "Orders" AS "o"
+INNER JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
+WHERE "c"."Email" IS NOT NULL
+ORDER BY "c"."Name"
 ```
 
 The source generator intercepts these calls at compile time and rewrites the delegate lambdas to expression trees. The chain continues as an `IExpressiveQueryable<T>`, preserving the ability to use modern syntax in subsequent calls.
@@ -69,17 +105,81 @@ public class MyDbContext : DbContext
 }
 ```
 
+::: expressive-sample
+db.Orders
+.Where(o => o.Customer?.Email != null)
+.Select(o => new
+{
+o.Id,
+Total = o.Total(),
+Grade = o.GetGrade()
+})
+\---setup---
+public static class OrderDbSetExt
+{
+\[Expressive]
+public static decimal Total(this Order o) => o.Items.Sum(i => i.UnitPrice \* i.Quantity);
+
+```
+[Expressive]
+public static string GetGrade(this Order o) => o.Items.Count() switch
+{
+    >= 10 => "Premium",
+    >= 5  => "Standard",
+    _     => "Budget"
+};
+```
+
+}
+:::
+
 ```csharp
-// Modern syntax works directly -- no .AsExpressive() needed
-var results = ctx.Orders
+db
+    .Orders
     .Where(o => o.Customer?.Email != null)
     .Select(o => new
     {
         o.Id,
-        o.Total,
+        Total = o.Total(),
         Grade = o.GetGrade()
     })
-    .ToList();
+
+// Setup
+public static class OrderDbSetExt
+{
+    [Expressive]
+    public static decimal Total(this Order o) => o.Items.Sum(i => i.UnitPrice * i.Quantity);
+
+    [Expressive]
+    public static string GetGrade(this Order o) => o.Items.Count() switch
+    {
+        >= 10 => "Premium",
+        >= 5  => "Standard",
+        _     => "Budget"
+    };
+}
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "o"."Id", (
+    SELECT COALESCE(ef_sum(ef_multiply("l"."UnitPrice", CAST("l"."Quantity" AS TEXT))), '0.0')
+    FROM "LineItems" AS "l"
+    WHERE "o"."Id" = "l"."OrderId") AS "Total", CASE
+    WHEN (
+        SELECT COUNT(*)
+        FROM "LineItems" AS "l0"
+        WHERE "o"."Id" = "l0"."OrderId") >= 10 THEN 'Premium'
+    WHEN (
+        SELECT COUNT(*)
+        FROM "LineItems" AS "l1"
+        WHERE "o"."Id" = "l1"."OrderId") >= 5 THEN 'Standard'
+    ELSE 'Budget'
+END AS "Grade"
+FROM "Orders" AS "o"
+INNER JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
+WHERE "c"."Email" IS NOT NULL
 ```
 
 `ExpressiveDbSet<T>` also preserves chain continuity for EF Core-specific operations:
@@ -87,10 +187,9 @@ var results = ctx.Orders
 ```csharp
 var result = await ctx.Orders
     .Include(o => o.Customer)
-    .ThenInclude(c => c.Address)
     .AsNoTracking()
     .Where(o => o.Customer?.Name == "Alice")
-    .FirstOrDefaultAsync(o => o.Total > 100);
+    .FirstOrDefaultAsync(o => o.Items.Count() > 3);
 ```
 
 ### 3. `ExpressionPolyfill.Create` -- For Standalone Expression Trees
@@ -99,10 +198,10 @@ When you need an `Expression<TDelegate>` without a queryable at all:
 
 ```csharp
 // Returns Expression<Func<Order, int?>> -- intercepted at compile time
-var expr = ExpressionPolyfill.Create((Order o) => o.Tag?.Length);
+var expr = ExpressionPolyfill.Create((Order o) => o.Customer?.Name!.Length);
 
 // With transformers
-var expr = ExpressionPolyfill.Create(
+var expr2 = ExpressionPolyfill.Create(
     (Order o) => o.Customer?.Email,
     new RemoveNullConditionalPatterns());
 ```
@@ -113,98 +212,226 @@ This is useful for building expression trees that you pass to other APIs, or for
 
 ### Null-Conditional in Where
 
+::: expressive-sample
+db.Orders
+.Where(o => o.Customer?.Email != null)
+.Where(o => o.Customer?.Country == "US")
+:::
+
 ```csharp
-var results = ctx.Orders
+db
+    .Orders
     .Where(o => o.Customer?.Email != null)
-    .Where(o => o.Customer?.Address?.City == "Seattle")
-    .ToList();
+    .Where(o => o.Customer?.Country == "US")
 ```
 
-Generated SQL (SQLite):
+**Generated SQL:**
 
 ```sql
-SELECT "o".*
+SELECT "o"."Id", "o"."CustomerId", "o"."PlacedAt", "o"."Status"
 FROM "Orders" AS "o"
-LEFT JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
-LEFT JOIN "Addresses" AS "a" ON "c"."AddressId" = "a"."Id"
-WHERE "c"."Email" IS NOT NULL
-  AND "a"."City" = 'Seattle'
+INNER JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
+WHERE "c"."Email" IS NOT NULL AND "c"."Country" = 'US'
 ```
 
 ### Switch Expressions in Select
 
+::: expressive-sample
+db.Orders
+.Select(o => new
+{
+o.Id,
+Tier = o.Items.Count() switch
+{
+\>= 10 => "Premium",
+\>= 5  => "Standard",
+\_     => "Budget"
+},
+Priority = o.Status switch
+{
+OrderStatus.Pending => "Urgent",
+OrderStatus.Paid    => "Normal",
+\_                   => "Low"
+}
+})
+:::
+
 ```csharp
-var results = ctx.Orders
+db
+    .Orders
     .Select(o => new
     {
         o.Id,
-        Tier = o.Price switch
+        Tier = o.Items.Count() switch
         {
-            >= 100 => "Premium",
-            >= 50  => "Standard",
-            _      => "Budget"
+            >= 10 => "Premium",
+            >= 5 => "Standard",
+            _ => "Budget"
         },
-        Priority = o.Quantity switch
+        Priority = o.Status switch
         {
-            >= 100 => "Bulk",
-            >= 10  => "Normal",
-            _      => "Small"
+            OrderStatus.Pending => "Urgent",
+            OrderStatus.Paid => "Normal",
+            _ => "Low"
         }
     })
-    .ToList();
 ```
 
-Generated SQL (SQLite):
+**Generated SQL:**
 
 ```sql
-SELECT "o"."Id",
-       CASE
-           WHEN "o"."Price" >= 100.0 THEN 'Premium'
-           WHEN "o"."Price" >= 50.0 THEN 'Standard'
-           ELSE 'Budget'
-       END AS "Tier",
-       CASE
-           WHEN "o"."Quantity" >= 100 THEN 'Bulk'
-           WHEN "o"."Quantity" >= 10 THEN 'Normal'
-           ELSE 'Small'
-       END AS "Priority"
+.param set @Pending 0
+.param set @Paid 1
+
+SELECT "o"."Id", CASE
+    WHEN (
+        SELECT COUNT(*)
+        FROM "LineItems" AS "l"
+        WHERE "o"."Id" = "l"."OrderId") >= 10 THEN 'Premium'
+    WHEN (
+        SELECT COUNT(*)
+        FROM "LineItems" AS "l0"
+        WHERE "o"."Id" = "l0"."OrderId") >= 5 THEN 'Standard'
+    ELSE 'Budget'
+END AS "Tier", CASE
+    WHEN "o"."Status" = @Pending THEN 'Urgent'
+    WHEN "o"."Status" = @Paid THEN 'Normal'
+    ELSE 'Low'
+END AS "Priority"
 FROM "Orders" AS "o"
 ```
 
 ### Pattern Matching in OrderBy
 
+::: expressive-sample
+db.Orders
+.OrderBy(o => o.Items.Count() switch
+{
+\>= 10 => 1,
+\>= 5  => 2,
+\_     => 3
+})
+.ThenBy(o => o.Customer!.Name ?? "ZZZ")
+:::
+
 ```csharp
-var results = ctx.Orders
-    .OrderBy(o => o.Price switch
+db
+    .Orders
+    .OrderBy(o => o.Items.Count() switch
     {
-        >= 100 => 1,
-        >= 50  => 2,
-        _      => 3
+        >= 10 => 1,
+        >= 5 => 2,
+        _ => 3
     })
-    .ThenBy(o => o.Customer?.Name ?? "ZZZ")
-    .ToList();
+    .ThenBy(o => o.Customer!.Name ?? "ZZZ")
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "o"."Id", "o"."CustomerId", "o"."PlacedAt", "o"."Status"
+FROM "Orders" AS "o"
+INNER JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
+ORDER BY CASE
+    WHEN (
+        SELECT COUNT(*)
+        FROM "LineItems" AS "l"
+        WHERE "o"."Id" = "l"."OrderId") >= 10 THEN 1
+    WHEN (
+        SELECT COUNT(*)
+        FROM "LineItems" AS "l0"
+        WHERE "o"."Id" = "l0"."OrderId") >= 5 THEN 2
+    ELSE 3
+END, "c"."Name"
 ```
 
 ### Combining \[Expressive] Members with Inline Modern Syntax
 
 The two approaches compose naturally. `[Expressive]` members are expanded, and inline modern syntax is rewritten, all in the same query:
 
+::: expressive-sample
+db.Orders
+.Where(o => o.IsRecent() && o.Customer!.Country == "US")
+.Select(o => new
+{
+o.Id,
+Total = o.Total(),                    // \[Expressive] method
+CustomerEmail = o.CustomerEmail(),    // \[Expressive] method with ?.
+Tier = o.Total() switch               // inline switch on \[Expressive] result
+{
+\>= 1000m => "Premium",
+\>= 250m  => "Standard",
+\_        => "Basic"
+}
+})
+\---setup---
+public static class OrderCombinedExt
+{
+\[Expressive]
+public static bool IsRecent(this Order o) => o.PlacedAt >= new DateTime(2024, 1, 1);
+
+```
+[Expressive]
+public static decimal Total(this Order o) => o.Items.Sum(i => i.UnitPrice * i.Quantity);
+
+[Expressive]
+public static string? CustomerEmail(this Order o) => o.Customer?.Email;
+```
+
+}
+:::
+
 ```csharp
-var results = ctx.Orders
-    .Where(o => o.IsRecent && o.Customer?.Region == "US")
+db
+    .Orders
+    .Where(o => o.IsRecent() && o.Customer!.Country == "US")
     .Select(o => new
     {
         o.Id,
-        o.Total,                          // [Expressive] property
-        o.CustomerEmail,                  // [Expressive] property with ?.
-        Tier = o.Total switch             // inline switch on [Expressive] result
+        Total = o.Total(),                    // [Expressive] method
+        CustomerEmail = o.CustomerEmail(),    // [Expressive] method with ?.
+        Tier = o.Total() switch               // inline switch on [Expressive] result
         {
-            >= 1000 => "Premium",
-            >= 250  => "Standard",
-            _       => "Basic"
+            >= 1000m => "Premium",
+            >= 250m => "Standard",
+            _ => "Basic"
         }
     })
-    .ToList();
+
+// Setup
+public static class OrderCombinedExt
+{
+    [Expressive]
+    public static bool IsRecent(this Order o) => o.PlacedAt >= new DateTime(2024, 1, 1);
+
+    [Expressive]
+    public static decimal Total(this Order o) => o.Items.Sum(i => i.UnitPrice * i.Quantity);
+
+    [Expressive]
+    public static string? CustomerEmail(this Order o) => o.Customer?.Email;
+}
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "o"."Id", (
+    SELECT COALESCE(ef_sum(ef_multiply("l"."UnitPrice", CAST("l"."Quantity" AS TEXT))), '0.0')
+    FROM "LineItems" AS "l"
+    WHERE "o"."Id" = "l"."OrderId") AS "Total", "c"."Email" AS "CustomerEmail", CASE
+    WHEN ef_compare((
+        SELECT COALESCE(ef_sum(ef_multiply("l0"."UnitPrice", CAST("l0"."Quantity" AS TEXT))), '0.0')
+        FROM "LineItems" AS "l0"
+        WHERE "o"."Id" = "l0"."OrderId"), '1000.0') >= 0 THEN 'Premium'
+    WHEN ef_compare((
+        SELECT COALESCE(ef_sum(ef_multiply("l1"."UnitPrice", CAST("l1"."Quantity" AS TEXT))), '0.0')
+        FROM "LineItems" AS "l1"
+        WHERE "o"."Id" = "l1"."OrderId"), '250.0') >= 0 THEN 'Standard'
+    ELSE 'Basic'
+END AS "Tier"
+FROM "Orders" AS "o"
+INNER JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
+WHERE "o"."PlacedAt" >= '2024-01-01 00:00:00' AND "c"."Country" = 'US'
 ```
 
 ## When to Use Which Approach
@@ -254,7 +481,7 @@ The source generator rewrites calls at their exact call site in your source code
 :::
 
 ::: tip ToQueryString() for debugging
-Use `.ToQueryString()` to inspect the generated SQL and verify that your modern syntax is being translated correctly.
+Use `.ToQueryString()` to inspect the generated query text and verify that your modern syntax is being translated correctly.
 :::
 
 ## See Also

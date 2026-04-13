@@ -11,132 +11,210 @@ Define your filtering criteria as `[Expressive]` members that return `bool`. Use
 
 ## Example: Active Entity Filter
 
-```csharp
-public class User
+::: expressive-sample
+db.Customers.Where(c => c.IsActive())
+\---setup---
+public static class CustomerActiveExt
 {
-    public int Id { get; set; }
-    public bool IsDeleted { get; set; }
-    public DateTime? LastLoginDate { get; set; }
-    public DateTime? EmailVerifiedDate { get; set; }
-    public bool IsAdmin { get; set; }
+\[Expressive]
+public static bool IsActive(this Customer c) =>
+c.Email != null
+&& c.JoinedAt >= new DateTime(2023, 1, 1);
+}
+:::
 
+```csharp
+db
+    .Customers
+    .Where(c => c.IsActive())
+
+// Setup
+public static class CustomerActiveExt
+{
     [Expressive]
-    public bool IsActive =>
-        !IsDeleted
-        && EmailVerifiedDate != null
-        && LastLoginDate >= DateTime.UtcNow.AddDays(-90);
+    public static bool IsActive(this Customer c) =>
+        c.Email != null
+        && c.JoinedAt >= new DateTime(2023, 1, 1);
 }
 ```
 
-```csharp
-// Reuse everywhere
-var activeUsers = dbContext.Users.Where(u => u.IsActive).ToList();
-var activeAdmins = dbContext.Users.Where(u => u.IsActive && u.IsAdmin).ToList();
-var activeCount = dbContext.Users.Count(u => u.IsActive);
-```
-
-Generated SQL (SQLite):
+**Generated SQL:**
 
 ```sql
-SELECT *
-FROM "Users" AS "u"
-WHERE "u"."IsDeleted" = 0
-  AND "u"."EmailVerifiedDate" IS NOT NULL
-  AND "u"."LastLoginDate" >= DATETIME('now', '-90 days')
+SELECT "c"."Id", "c"."Country", "c"."Email", "c"."JoinedAt", "c"."Name"
+FROM "Customers" AS "c"
+WHERE "c"."Email" IS NOT NULL AND "c"."JoinedAt" >= '2023-01-01 00:00:00'
+```
+
+Reuse everywhere:
+
+::: expressive-sample
+db.Customers.Where(c => c.IsActive() && c.Country == "US").Select(c => c.Id)
+\---setup---
+public static class CustomerActiveExt2
+{
+\[Expressive]
+public static bool IsActive(this Customer c) =>
+c.Email != null
+&& c.JoinedAt >= new DateTime(2023, 1, 1);
+}
+:::
+
+```csharp
+db
+    .Customers
+    .Where(c => c.IsActive() && c.Country == "US")
+    .Select(c => c.Id)
+
+// Setup
+public static class CustomerActiveExt2
+{
+    [Expressive]
+    public static bool IsActive(this Customer c) =>
+        c.Email != null
+        && c.JoinedAt >= new DateTime(2023, 1, 1);
+}
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "c"."Id"
+FROM "Customers" AS "c"
+WHERE "c"."Email" IS NOT NULL AND "c"."JoinedAt" >= '2023-01-01 00:00:00' AND "c"."Country" = 'US'
 ```
 
 ## Example: Parameterized Filters with Extension Methods
 
 Extension methods are ideal for filters that accept parameters:
 
+::: expressive-sample
+db.Orders
+.Where(o => o.IsWithinDateRange(new DateTime(2024, 1, 1), new DateTime(2024, 12, 31)))
+.Where(o => o.IsHighValue(500m))
+\---setup---
+public static class OrderParamFilters
+{
+\[Expressive]
+public static bool IsWithinDateRange(this Order order, DateTime from, DateTime to) =>
+order.PlacedAt >= from && order.PlacedAt <= to;
+
+```
+[Expressive]
+public static bool IsHighValue(this Order order, decimal threshold) =>
+    order.Items.Sum(i => i.UnitPrice * i.Quantity) >= threshold;
+
+[Expressive]
+public static bool BelongsToCountry(this Order order, string country) =>
+    order.Customer != null && order.Customer.Country == country;
+```
+
+}
+:::
+
 ```csharp
-public static class OrderExtensions
+db
+    .Orders
+    .Where(o => o.IsWithinDateRange(new DateTime(2024, 1, 1), new DateTime(2024, 12, 31)))
+    .Where(o => o.IsHighValue(500m))
+
+// Setup
+public static class OrderParamFilters
 {
     [Expressive]
     public static bool IsWithinDateRange(this Order order, DateTime from, DateTime to) =>
-        order.CreatedDate >= from && order.CreatedDate <= to;
+        order.PlacedAt >= from && order.PlacedAt <= to;
 
     [Expressive]
     public static bool IsHighValue(this Order order, decimal threshold) =>
-        order.GrandTotal >= threshold;
+        order.Items.Sum(i => i.UnitPrice * i.Quantity) >= threshold;
 
     [Expressive]
-    public static bool BelongsToRegion(this Order order, string region) =>
-        order.ShippingAddress != null && order.ShippingAddress.Region == region;
+    public static bool BelongsToCountry(this Order order, string country) =>
+        order.Customer != null && order.Customer.Country == country;
 }
 ```
 
-```csharp
-var from = DateTime.UtcNow.AddMonths(-1);
-var to = DateTime.UtcNow;
-
-var recentHighValueOrders = dbContext.Orders
-    .Where(o => o.IsWithinDateRange(from, to))
-    .Where(o => o.IsHighValue(500m))
-    .ToList();
-```
-
-Generated SQL (SQLite):
+**Generated SQL:**
 
 ```sql
-SELECT *
+SELECT "o"."Id", "o"."CustomerId", "o"."PlacedAt", "o"."Status"
 FROM "Orders" AS "o"
-WHERE "o"."CreatedDate" >= @from
-  AND "o"."CreatedDate" <= @to
-  AND "o"."GrandTotal" >= 500.0
+WHERE "o"."PlacedAt" >= '2024-01-01 00:00:00' AND "o"."PlacedAt" <= '2024-12-31 00:00:00' AND ef_compare((
+    SELECT COALESCE(ef_sum(ef_multiply("l"."UnitPrice", CAST("l"."Quantity" AS TEXT))), '0.0')
+    FROM "LineItems" AS "l"
+    WHERE "o"."Id" = "l"."OrderId"), '500.0') >= 0
 ```
 
 ::: tip
-Parameters (`from`, `to`, `500m`) are captured as SQL parameters -- there is no string concatenation or SQL injection risk.
+Parameters (`from`, `to`, `500m`) are captured as provider parameters -- there is no string concatenation or SQL injection risk.
 :::
 
 ## Example: Composing Filters
 
 Build complex filters by composing simpler `[Expressive]` members:
 
-```csharp
-public class Order
+::: expressive-sample
+db.Orders.Where(o => o.IsRecentPaidOrder())
+\---setup---
+public static class OrderComposedFilters
 {
-    public int Id { get; set; }
-    public DateTime CreatedDate { get; set; }
-    public DateTime? FulfilledDate { get; set; }
-    public bool HasOpenReturnRequest { get; set; }
+\[Expressive]
+public static bool IsPaid(this Order o) => o.Status == OrderStatus.Paid;
+
+```
+[Expressive]
+public static bool IsRecent(this Order o) => o.PlacedAt >= new DateTime(2024, 1, 1);
+
+// Composed from simpler [Expressive] members
+[Expressive]
+public static bool IsRecentPaidOrder(this Order o) => o.IsPaid() && o.IsRecent();
+
+[Expressive]
+public static bool IsEligibleForReturn(this Order order) =>
+    order.Status == OrderStatus.Delivered
+    && order.PlacedAt >= new DateTime(2024, 1, 1);
+```
+
+}
+:::
+
+```csharp
+db
+    .Orders
+    .Where(o => o.IsRecentPaidOrder())
+
+// Setup
+public static class OrderComposedFilters
+{
+    [Expressive]
+    public static bool IsPaid(this Order o) => o.Status == OrderStatus.Paid;
 
     [Expressive]
-    public bool IsFulfilled => FulfilledDate != null;
-
-    [Expressive]
-    public bool IsRecent => CreatedDate >= DateTime.UtcNow.AddDays(-30);
+    public static bool IsRecent(this Order o) => o.PlacedAt >= new DateTime(2024, 1, 1);
 
     // Composed from simpler [Expressive] members
     [Expressive]
-    public bool IsRecentFulfilledOrder => IsFulfilled && IsRecent;
-}
+    public static bool IsRecentPaidOrder(this Order o) => o.IsPaid() && o.IsRecent();
 
-public static class OrderExtensions
-{
     [Expressive]
     public static bool IsEligibleForReturn(this Order order) =>
-        order.IsFulfilled
-        && order.FulfilledDate >= DateTime.UtcNow.AddDays(-30)
-        && !order.HasOpenReturnRequest;
+        order.Status == OrderStatus.Delivered
+        && order.PlacedAt >= new DateTime(2024, 1, 1);
 }
 ```
 
-```csharp
-// Dashboard query
-var fulfilledRecently = dbContext.Orders
-    .Where(o => o.IsRecentFulfilledOrder)
-    .ToList();
+**Generated SQL:**
 
-// Return eligibility check
-var returnable = dbContext.Orders
-    .Where(o => o.IsEligibleForReturn())
-    .Select(o => new { o.Id, o.FulfilledDate })
-    .ToList();
+```sql
+.param set @Paid 1
+
+SELECT "o"."Id", "o"."CustomerId", "o"."PlacedAt", "o"."Status"
+FROM "Orders" AS "o"
+WHERE "o"."Status" = @Paid AND "o"."PlacedAt" >= '2024-01-01 00:00:00'
 ```
 
-The composed filters are expanded recursively -- `IsRecentFulfilledOrder` references `IsFulfilled` and `IsRecent`, which are both expanded to their underlying expressions before SQL translation.
+The composed filters are expanded recursively -- `IsRecentPaidOrder` references `IsPaid` and `IsRecent`, which are both expanded to their underlying expressions before translation.
 
 ## Example: Global Query Filters with EF Core
 
@@ -145,13 +223,13 @@ The composed filters are expanded recursively -- `IsRecentFulfilledOrder` refere
 ```csharp
 protected override void OnModelCreating(ModelBuilder modelBuilder)
 {
-    // Soft-delete global filter using an [Expressive] property
+    // Active-order global filter using an [Expressive] extension
     modelBuilder.Entity<Order>()
-        .HasQueryFilter(o => !o.IsDeleted);
+        .HasQueryFilter(o => o.Status != OrderStatus.Refunded);
 
     // Tenant isolation filter
     modelBuilder.Entity<Order>()
-        .HasQueryFilter(o => o.TenantId == _currentTenantId);
+        .HasQueryFilter(o => o.CustomerId == _currentCustomerId);
 }
 ```
 
@@ -170,61 +248,135 @@ var allOrders = dbContext.Orders
 
 `[Expressive]` members pair naturally with the Specification pattern:
 
+::: expressive-sample
+db.Orders.Where(o => o.RequiresAttention()).Select(o => o.Id)
+\---setup---
+public static class OrderSpecifications
+{
+\[Expressive]
+public static bool IsActive(this Order order) =>
+order.Status != OrderStatus.Refunded;
+
+```
+[Expressive]
+public static bool IsOverdue(this Order order) =>
+    order.IsActive()
+    && order.PlacedAt < new DateTime(2024, 6, 1)
+    && order.Status == OrderStatus.Pending;
+
+[Expressive]
+public static bool RequiresAttention(this Order order) =>
+    order.IsOverdue()
+    || order.Status == OrderStatus.Pending;
+```
+
+}
+:::
+
 ```csharp
+db
+    .Orders
+    .Where(o => o.RequiresAttention())
+    .Select(o => o.Id)
+
+// Setup
 public static class OrderSpecifications
 {
     [Expressive]
     public static bool IsActive(this Order order) =>
-        !order.IsCancelled && !order.IsDeleted;
+        order.Status != OrderStatus.Refunded;
 
     [Expressive]
     public static bool IsOverdue(this Order order) =>
         order.IsActive()
-        && order.DueDate < DateTime.UtcNow
-        && !order.IsFulfilled;
+        && order.PlacedAt < new DateTime(2024, 6, 1)
+        && order.Status == OrderStatus.Pending;
 
     [Expressive]
     public static bool RequiresAttention(this Order order) =>
         order.IsOverdue()
-        || order.HasOpenDispute
-        || order.PaymentStatus == PaymentStatus.Failed;
+        || order.Status == OrderStatus.Pending;
 }
 ```
 
-```csharp
-// Dashboard: count orders requiring attention
-var attentionCount = await dbContext.Orders
-    .Where(o => o.RequiresAttention())
-    .CountAsync();
+**Generated SQL:**
 
-// Alert users with overdue orders
-var overdueUserIds = await dbContext.Orders
-    .Where(o => o.IsOverdue())
-    .Select(o => o.UserId)
-    .Distinct()
-    .ToListAsync();
+```sql
+.param set @Refunded 4
+.param set @Pending 0
+
+SELECT "o"."Id"
+FROM "Orders" AS "o"
+WHERE ("o"."Status" <> @Refunded AND "o"."PlacedAt" < '2024-06-01 00:00:00' AND "o"."Status" = @Pending) OR "o"."Status" = @Pending
 ```
 
-All specification methods are expanded recursively -- `RequiresAttention` calls `IsOverdue`, which calls `IsActive`. The entire chain becomes a flat SQL `WHERE` clause.
+All specification methods are expanded recursively -- `RequiresAttention` calls `IsOverdue`, which calls `IsActive`. The entire chain becomes a flat `WHERE` clause.
 
 ## Using Filters with ExpressiveDbSet
 
 With `ExpressiveDbSet<T>`, you can combine `[Expressive]` filters with inline modern syntax:
 
+::: expressive-sample
+db.Orders
+.Where(o => o.IsActive() && o.Customer.Country == "US")
+.Select(o => new
+{
+o.Id,
+StatusLabel = o.Status switch
+{
+OrderStatus.Paid    => "Paid",
+OrderStatus.Pending => "Pending",
+\_                   => "Other"
+}
+})
+\---setup---
+public static class OrderActiveForDbSet
+{
+\[Expressive]
+public static bool IsActive(this Order order) =>
+order.Status != OrderStatus.Refunded;
+}
+:::
+
 ```csharp
-var results = ctx.Orders
-    .Where(o => o.IsActive() && o.Customer?.Region == "US")
+db
+    .Orders
+    .Where(o => o.IsActive() && o.Customer.Country == "US")
     .Select(o => new
     {
         o.Id,
-        Status = o.PaymentStatus switch
+        StatusLabel = o.Status switch
         {
-            PaymentStatus.Paid    => "Paid",
-            PaymentStatus.Pending => "Pending",
-            _                     => "Other"
+            OrderStatus.Paid => "Paid",
+            OrderStatus.Pending => "Pending",
+            _ => "Other"
         }
     })
-    .ToList();
+
+// Setup
+public static class OrderActiveForDbSet
+{
+    [Expressive]
+    public static bool IsActive(this Order order) =>
+        order.Status != OrderStatus.Refunded;
+}
+```
+
+**Generated SQL:**
+
+```sql
+.param set @Paid 1
+.param set @Pending 0
+.param set @Refunded 4
+
+SELECT "o"."Id", CASE
+    WHEN "o"."Status" = @Paid THEN 'Paid'
+    WHEN "o"."Status" = @Pending THEN 'Pending'
+    ELSE 'Other'
+END AS "StatusLabel"
+FROM "Orders" AS "o"
+INNER JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
+WHERE "o"."Status" <> @Refunded AND "c"."Country" = 'US'
 ```
 
 See [Modern Syntax in LINQ Chains](/recipes/modern-syntax-in-linq) for more on this approach.
@@ -244,7 +396,7 @@ Use extension methods for cross-entity or parameterized filters.
 :::
 
 ::: warning Keep filters pure
-Filter members should only read data, never modify it. Everything in the body must be translatable to SQL.
+Filter members should only read data, never modify it. Everything in the body must be translatable by your provider.
 :::
 
 ## See Also

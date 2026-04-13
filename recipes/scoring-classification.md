@@ -3,174 +3,281 @@ url: 'https://efnext.github.io/ExpressiveSharp/recipes/scoring-classification.md
 ---
 # Scoring & Classification
 
-This recipe shows how to use C# pattern matching -- switch expressions, `is` patterns, relational patterns, and more -- inside `[Expressive]` members to compute scores, grades, tiers, and labels directly in SQL.
+This recipe shows how to use C# pattern matching -- switch expressions, `is` patterns, relational patterns, and more -- inside `[Expressive]` members to compute scores, tiers, and labels directly in SQL.
 
-## Grading with Relational Patterns
+## Banding with Relational Patterns
 
-Classic grading logic maps numeric ranges to labels. The switch expression reads naturally and the generator translates it to a SQL `CASE` expression:
+Mapping numeric ranges to labels reads naturally as a switch expression and translates to a SQL `CASE`:
+
+::: expressive-sample
+db.Products
+.GroupBy(p => p.PriceBand())
+.Select(g => new { Band = g.Key, Count = g.Count() })
+.OrderBy(x => x.Band)
+\---setup---
+public static class ProductBand
+{
+\[Expressive]
+public static string PriceBand(this Product p) => p.ListPrice switch
+{
+\>= 500m => "A",
+\>= 200m => "B",
+\>= 100m => "C",
+\>= 50m  => "D",
+\_       => "E"
+};
+
+```
+[Expressive]
+public static bool IsPremium(this Product p) => p.ListPrice >= 500m;
+```
+
+}
+:::
 
 ```csharp
-public class Student
-{
-    public int Id { get; set; }
-    public int Score { get; set; }
+db
+    .Products
+    .GroupBy(p => p.PriceBand())
+    .Select(g => new { Band = g.Key, Count = g.Count() })
+    .OrderBy(x => x.Band)
 
+// Setup
+public static class ProductBand
+{
     [Expressive]
-    public string Grade => Score switch
+    public static string PriceBand(this Product p) => p.ListPrice switch
     {
-        >= 90 => "A",
-        >= 80 => "B",
-        >= 70 => "C",
-        >= 60 => "D",
-        _     => "F"
+        >= 500m => "A",
+        >= 200m => "B",
+        >= 100m => "C",
+        >= 50m  => "D",
+        _       => "E"
     };
 
     [Expressive]
-    public bool IsPassing => Score >= 60;
-
-    [Expressive]
-    public bool IsHonors => Score >= 90;
+    public static bool IsPremium(this Product p) => p.ListPrice >= 500m;
 }
 ```
 
-```csharp
-// Grade distribution report
-var distribution = dbContext.Students
-    .GroupBy(s => s.Grade)
-    .Select(g => new { Grade = g.Key, Count = g.Count() })
-    .OrderBy(x => x.Grade)
-    .ToList();
-```
-
-Generated SQL (SQLite):
+**Generated SQL:**
 
 ```sql
-SELECT CASE
-    WHEN "s"."Score" >= 90 THEN 'A'
-    WHEN "s"."Score" >= 80 THEN 'B'
-    WHEN "s"."Score" >= 70 THEN 'C'
-    WHEN "s"."Score" >= 60 THEN 'D'
-    ELSE 'F'
-END AS "Grade",
-COUNT(*) AS "Count"
-FROM "Students" AS "s"
-GROUP BY CASE
-    WHEN "s"."Score" >= 90 THEN 'A'
-    WHEN "s"."Score" >= 80 THEN 'B'
-    WHEN "s"."Score" >= 70 THEN 'C'
-    WHEN "s"."Score" >= 60 THEN 'D'
-    ELSE 'F'
-END
-ORDER BY "Grade"
+SELECT "p0"."Key" AS "Band", COUNT(*) AS "Count"
+FROM (
+    SELECT CASE
+        WHEN ef_compare("p"."ListPrice", '500.0') >= 0 THEN 'A'
+        WHEN ef_compare("p"."ListPrice", '200.0') >= 0 THEN 'B'
+        WHEN ef_compare("p"."ListPrice", '100.0') >= 0 THEN 'C'
+        WHEN ef_compare("p"."ListPrice", '50.0') >= 0 THEN 'D'
+        ELSE 'E'
+    END AS "Key"
+    FROM "Products" AS "p"
+) AS "p0"
+GROUP BY "p0"."Key"
+ORDER BY "p0"."Key"
 ```
 
 ## Customer Tiers with `and` / `or` Patterns
 
 Use `and` and `or` patterns to express range bands cleanly:
 
-```csharp
-public class Customer
+::: expressive-sample
+db.Customers
+.GroupBy(c => c.Tier())
+.Select(g => new { Tier = g.Key, Count = g.Count() })
+\---setup---
+public static class CustomerTier
 {
-    public int Id { get; set; }
-    public int LifetimeOrderCount { get; set; }
-    public decimal LifetimeSpend { get; set; }
+\[Expressive]
+public static int OrderCount(this Customer c) => c.Orders.Count();
+
+```
+[Expressive]
+public static string Tier(this Customer c) => c.OrderCount() switch
+{
+    >= 50             => "Platinum",
+    >= 20 and < 50    => "Gold",
+    >= 5 and < 20     => "Silver",
+    _                 => "Bronze"
+};
+
+[Expressive]
+public static bool IsLoyalty(this Customer c) => c.OrderCount() >= 10;
+```
+
+}
+:::
+
+```csharp
+db
+    .Customers
+    .GroupBy(c => c.Tier())
+    .Select(g => new { Tier = g.Key, Count = g.Count() })
+
+// Setup
+public static class CustomerTier
+{
+    [Expressive]
+    public static int OrderCount(this Customer c) => c.Orders.Count();
 
     [Expressive]
-    public string Tier => LifetimeSpend switch
+    public static string Tier(this Customer c) => c.OrderCount() switch
     {
-        >= 10_000              => "Platinum",
-        >= 5_000 and < 10_000  => "Gold",
-        >= 1_000 and < 5_000   => "Silver",
-        _                      => "Bronze"
+        >= 50             => "Platinum",
+        >= 20 and < 50    => "Gold",
+        >= 5 and < 20     => "Silver",
+        _                 => "Bronze"
     };
 
     [Expressive]
-    public bool IsLoyalty => LifetimeOrderCount >= 10;
+    public static bool IsLoyalty(this Customer c) => c.OrderCount() >= 10;
 }
 ```
 
-```csharp
-// Segment customers for a marketing campaign
-var segments = dbContext.Customers
-    .GroupBy(c => c.Tier)
-    .Select(g => new { Tier = g.Key, Count = g.Count(), TotalSpend = g.Sum(c => c.LifetimeSpend) })
-    .ToList();
-```
-
-Generated SQL (SQLite):
+**Generated SQL:**
 
 ```sql
-SELECT CASE
-    WHEN "c"."LifetimeSpend" >= 10000 THEN 'Platinum'
-    WHEN "c"."LifetimeSpend" >= 5000 AND "c"."LifetimeSpend" < 10000 THEN 'Gold'
-    WHEN "c"."LifetimeSpend" >= 1000 AND "c"."LifetimeSpend" < 5000 THEN 'Silver'
-    ELSE 'Bronze'
-END AS "Tier",
-COUNT(*) AS "Count",
-COALESCE(SUM("c"."LifetimeSpend"), 0) AS "TotalSpend"
-FROM "Customers" AS "c"
-GROUP BY CASE
-    WHEN "c"."LifetimeSpend" >= 10000 THEN 'Platinum'
-    WHEN "c"."LifetimeSpend" >= 5000 AND "c"."LifetimeSpend" < 10000 THEN 'Gold'
-    WHEN "c"."LifetimeSpend" >= 1000 AND "c"."LifetimeSpend" < 5000 THEN 'Silver'
-    ELSE 'Bronze'
-END
+SELECT "c0"."Key" AS "Tier", COUNT(*) AS "Count"
+FROM (
+    SELECT CASE
+        WHEN (
+            SELECT COUNT(*)
+            FROM "Orders" AS "o"
+            WHERE "c"."Id" = "o"."CustomerId") >= 50 THEN 'Platinum'
+        WHEN (
+            SELECT COUNT(*)
+            FROM "Orders" AS "o0"
+            WHERE "c"."Id" = "o0"."CustomerId") >= 20 AND (
+            SELECT COUNT(*)
+            FROM "Orders" AS "o1"
+            WHERE "c"."Id" = "o1"."CustomerId") < 50 THEN 'Gold'
+        WHEN (
+            SELECT COUNT(*)
+            FROM "Orders" AS "o2"
+            WHERE "c"."Id" = "o2"."CustomerId") >= 5 AND (
+            SELECT COUNT(*)
+            FROM "Orders" AS "o3"
+            WHERE "c"."Id" = "o3"."CustomerId") < 20 THEN 'Silver'
+        ELSE 'Bronze'
+    END AS "Key"
+    FROM "Customers" AS "c"
+) AS "c0"
+GROUP BY "c0"."Key"
 ```
 
-## Risk Scoring with Property Patterns
+## Multi-Field Classification with Property Patterns
 
 Property patterns match on multiple fields of the current instance simultaneously. This is useful for multi-dimensional classification:
 
-```csharp
-public class Loan
+::: expressive-sample
+db.Products
+.Select(p => new { p.Id, p.Name, Category = p.StockCategory() })
+\---setup---
+public static class StockClassifier
 {
-    public int Id { get; set; }
-    public int CreditScore { get; set; }
-    public decimal DebtToIncomeRatio { get; set; }
-    public decimal LoanAmount { get; set; }
+\[Expressive]
+public static string StockCategory(this Product p) => p switch
+{
+{ StockQuantity: 0 }                        => "OutOfStock",
+{ StockQuantity: < 10, ListPrice: >= 500m } => "LowStockPremium",
+{ StockQuantity: < 10 }                     => "LowStock",
+{ StockQuantity: >= 100 }                   => "WellStocked",
+\_                                           => "Normal"
+};
+}
+:::
 
+```csharp
+db
+    .Products
+    .Select(p => new { p.Id, p.Name, Category = p.StockCategory() })
+
+// Setup
+public static class StockClassifier
+{
     [Expressive]
-    public string RiskCategory => this switch
+    public static string StockCategory(this Product p) => p switch
     {
-        { CreditScore: >= 750, DebtToIncomeRatio: < 0.3m } => "Low",
-        { CreditScore: >= 700 }                             => "Medium",
-        { CreditScore: >= 600 }                             => "High",
-        _                                                    => "Very High"
+        { StockQuantity: 0 }                        => "OutOfStock",
+        { StockQuantity: < 10, ListPrice: >= 500m } => "LowStockPremium",
+        { StockQuantity: < 10 }                     => "LowStock",
+        { StockQuantity: >= 100 }                   => "WellStocked",
+        _                                           => "Normal"
     };
 }
 ```
 
-```csharp
-// Risk distribution across the loan portfolio
-var riskReport = dbContext.Loans
-    .GroupBy(l => l.RiskCategory)
-    .Select(g => new
-    {
-        Risk = g.Key,
-        Count = g.Count(),
-        TotalExposure = g.Sum(l => l.LoanAmount)
-    })
-    .ToList();
-```
-
-Generated SQL (SQLite):
+**Generated SQL:**
 
 ```sql
-SELECT CASE
-    WHEN "l"."CreditScore" >= 750 AND "l"."DebtToIncomeRatio" < 0.3 THEN 'Low'
-    WHEN "l"."CreditScore" >= 700 THEN 'Medium'
-    WHEN "l"."CreditScore" >= 600 THEN 'High'
-    ELSE 'Very High'
-END AS "Risk",
-COUNT(*) AS "Count",
-COALESCE(SUM("l"."LoanAmount"), 0) AS "TotalExposure"
-FROM "Loans" AS "l"
-GROUP BY CASE
-    WHEN "l"."CreditScore" >= 750 AND "l"."DebtToIncomeRatio" < 0.3 THEN 'Low'
-    WHEN "l"."CreditScore" >= 700 THEN 'Medium'
-    WHEN "l"."CreditScore" >= 600 THEN 'High'
-    ELSE 'Very High'
-END
+SELECT "p"."Id", "p"."Name", CASE
+    WHEN "p"."StockQuantity" = 0 THEN 'OutOfStock'
+    WHEN "p"."StockQuantity" < 10 AND ef_compare("p"."ListPrice", '500.0') >= 0 THEN 'LowStockPremium'
+    WHEN "p"."StockQuantity" < 10 THEN 'LowStock'
+    WHEN "p"."StockQuantity" >= 100 THEN 'WellStocked'
+    ELSE 'Normal'
+END AS "Category"
+FROM "Products" AS "p"
+```
+
+## `is` Patterns for Boolean Flags
+
+Use `is` patterns for concise Boolean members:
+
+::: expressive-sample
+db.Products
+.Where(p => p.IsInStock() && p.IsBudget())
+.Select(p => new { p.Id, p.Name, p.ListPrice })
+\---setup---
+public static class ProductFlags
+{
+\[Expressive]
+public static bool IsInStock(this Product p) => p.StockQuantity is > 0;
+
+```
+[Expressive]
+public static bool NeedsReorder(this Product p) => p.StockQuantity is >= 0 and <= 5;
+
+[Expressive]
+public static bool IsBudget(this Product p) => p.ListPrice is > 0m and < 50m;
+
+[Expressive]
+public static bool HasNoStock(this Product p) => p.StockQuantity is 0;
+```
+
+}
+:::
+
+```csharp
+db
+    .Products
+    .Where(p => p.IsInStock() && p.IsBudget())
+    .Select(p => new { p.Id, p.Name, p.ListPrice })
+
+// Setup
+public static class ProductFlags
+{
+    [Expressive]
+    public static bool IsInStock(this Product p) => p.StockQuantity is > 0;
+
+    [Expressive]
+    public static bool NeedsReorder(this Product p) => p.StockQuantity is >= 0 and <= 5;
+
+    [Expressive]
+    public static bool IsBudget(this Product p) => p.ListPrice is > 0m and < 50m;
+
+    [Expressive]
+    public static bool HasNoStock(this Product p) => p.StockQuantity is 0;
+}
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "p"."Id", "p"."Name", "p"."ListPrice"
+FROM "Products" AS "p"
+WHERE "p"."StockQuantity" > 0 AND ef_compare("p"."ListPrice", '0.0') > 0 AND ef_compare("p"."ListPrice", '50.0') < 0
 ```
 
 ## Positional Patterns
@@ -199,33 +306,8 @@ public class Location
     public string Hemisphere => Position switch
     {
         (>= 0, _) => "Northern",
-        _          => "Southern"
+        _         => "Southern"
     };
-}
-```
-
-## `is` Patterns for Boolean Flags
-
-Use `is` patterns for concise Boolean properties:
-
-```csharp
-public class Product
-{
-    public int Stock { get; set; }
-    public decimal Price { get; set; }
-    public int ReorderPoint { get; set; }
-
-    [Expressive]
-    public bool IsInStock => Stock is > 0;
-
-    [Expressive]
-    public bool NeedsReorder => Stock is >= 0 and <= ReorderPoint;
-
-    [Expressive]
-    public bool IsBudget => Price is > 0 and < 25;
-
-    [Expressive]
-    public bool HasNoStock => Stock is 0;
 }
 ```
 
@@ -253,63 +335,147 @@ public class Measurement
 
 ## Combining Classification with Aggregation
 
-Compose `[Expressive]` classification properties to build rich query results:
+Compose `[Expressive]` classification members to build rich query results:
+
+::: expressive-sample
+db.Orders
+.Where(o => o.IsRecent())
+.GroupBy(o => o.ValueBand())
+.Select(g => new { Band = g.Key, Count = g.Count(), Total = g.Sum(o => o.GrandTotal()) })
+.OrderBy(x => x.Band)
+\---setup---
+public static class OrderScoring
+{
+\[Expressive]
+public static decimal GrandTotal(this Order o)
+\=> o.Items.Sum(i => i.UnitPrice \* i.Quantity);
+
+```
+[Expressive]
+public static string ValueBand(this Order o) => o.GrandTotal() switch
+{
+    >= 1000m => "High",
+    >= 250m  => "Medium",
+    _        => "Low"
+};
+
+[Expressive]
+public static bool IsRecent(this Order o) => o.PlacedAt >= new DateTime(2024, 1, 1);
+```
+
+}
+:::
 
 ```csharp
-public class Order
+db
+    .Orders
+    .Where(o => o.IsRecent())
+    .GroupBy(o => o.ValueBand())
+    .Select(g => new { Band = g.Key, Count = g.Count(), Total = g.Sum(o => o.GrandTotal()) })
+    .OrderBy(x => x.Band)
+
+// Setup
+public static class OrderScoring
 {
-    public int Id { get; set; }
-    public decimal GrandTotal { get; set; }
-    public DateTime CreatedDate { get; set; }
+    [Expressive]
+    public static decimal GrandTotal(this Order o)
+        => o.Items.Sum(i => i.UnitPrice * i.Quantity);
 
     [Expressive]
-    public string ValueBand => GrandTotal switch
+    public static string ValueBand(this Order o) => o.GrandTotal() switch
     {
-        >= 1000 => "High",
-        >= 250  => "Medium",
-        _       => "Low"
+        >= 1000m => "High",
+        >= 250m  => "Medium",
+        _        => "Low"
     };
 
     [Expressive]
-    public bool IsRecent => CreatedDate >= DateTime.UtcNow.AddDays(-30);
+    public static bool IsRecent(this Order o) => o.PlacedAt >= new DateTime(2024, 1, 1);
 }
 ```
 
-```csharp
-// Breakdown of recent orders by value band
-var breakdown = dbContext.Orders
-    .Where(o => o.IsRecent)
-    .GroupBy(o => o.ValueBand)
-    .Select(g => new
-    {
-        Band = g.Key,
-        Count = g.Count(),
-        Total = g.Sum(o => o.GrandTotal)
-    })
-    .OrderBy(x => x.Band)
-    .ToList();
+**Generated SQL:**
+
+```sql
+SELECT "o0"."Key" AS "Band", COUNT(*) AS "Count", COALESCE(ef_sum((
+    SELECT COALESCE(ef_sum(ef_multiply("l1"."UnitPrice", CAST("l1"."Quantity" AS TEXT))), '0.0')
+    FROM "LineItems" AS "l1"
+    WHERE "o0"."Id" = "l1"."OrderId")), '0.0') AS "Total"
+FROM (
+    SELECT "o"."Id", CASE
+        WHEN ef_compare((
+            SELECT COALESCE(ef_sum(ef_multiply("l"."UnitPrice", CAST("l"."Quantity" AS TEXT))), '0.0')
+            FROM "LineItems" AS "l"
+            WHERE "o"."Id" = "l"."OrderId"), '1000.0') >= 0 THEN 'High'
+        WHEN ef_compare((
+            SELECT COALESCE(ef_sum(ef_multiply("l0"."UnitPrice", CAST("l0"."Quantity" AS TEXT))), '0.0')
+            FROM "LineItems" AS "l0"
+            WHERE "o"."Id" = "l0"."OrderId"), '250.0') >= 0 THEN 'Medium'
+        ELSE 'Low'
+    END AS "Key"
+    FROM "Orders" AS "o"
+    WHERE "o"."PlacedAt" >= '2024-01-01 00:00:00'
+) AS "o0"
+GROUP BY "o0"."Key"
+ORDER BY "o0"."Key"
 ```
 
-## Using Switch Expressions with ExpressiveDbSet
+## Using Switch Expressions Inline in LINQ Chains
 
-You can also use switch expressions directly in LINQ chains via `ExpressiveDbSet<T>`, without defining a separate `[Expressive]` property:
+You can also use switch expressions directly in LINQ chains via `ExpressiveDbSet<T>` or `IExpressiveQueryable<T>`, without defining a separate `[Expressive]` member:
+
+::: expressive-sample
+db.Orders
+.Select(o => new
+{
+o.Id,
+Tier = o.Status switch
+{
+OrderStatus.Delivered => "Completed",
+OrderStatus.Shipped   => "InTransit",
+OrderStatus.Paid      => "Awaiting",
+OrderStatus.Pending   => "New",
+\_                     => "Other"
+}
+})
+:::
 
 ```csharp
-var results = ctx.Orders
+db
+    .Orders
     .Select(o => new
     {
         o.Id,
-        Tier = o.GrandTotal switch
+        Tier = o.Status switch
         {
-            >= 1000 => "Premium",
-            >= 250  => "Standard",
-            _       => "Basic"
+            OrderStatus.Delivered => "Completed",
+            OrderStatus.Shipped => "InTransit",
+            OrderStatus.Paid => "Awaiting",
+            OrderStatus.Pending => "New",
+            _ => "Other"
         }
     })
-    .ToList();
 ```
 
-See [Modern Syntax in LINQ Chains](/recipes/modern-syntax-in-linq) for more on this approach.
+**Generated SQL:**
+
+```sql
+.param set @Delivered 3
+.param set @Shipped 2
+.param set @Paid 1
+.param set @Pending 0
+
+SELECT "o"."Id", CASE
+    WHEN "o"."Status" = @Delivered THEN 'Completed'
+    WHEN "o"."Status" = @Shipped THEN 'InTransit'
+    WHEN "o"."Status" = @Paid THEN 'Awaiting'
+    WHEN "o"."Status" = @Pending THEN 'New'
+    ELSE 'Other'
+END AS "Tier"
+FROM "Orders" AS "o"
+```
+
+See [Modern Syntax in LINQ Chains](./modern-syntax-in-linq) for more on this approach.
 
 ## Tips
 
@@ -322,11 +488,11 @@ The generator emits a ternary chain in arm order. Put the most restrictive cases
 :::
 
 ::: tip Compose with filters
-Classification properties work in `Where`, `GroupBy`, and `OrderBy` just like any other `[Expressive]` member. This is how you build reporting queries that compute business categories entirely in SQL.
+Classification members work in `Where`, `GroupBy`, and `OrderBy` just like any other `[Expressive]` member. This is how you build reporting queries that compute business categories entirely in SQL.
 :::
 
 ## See Also
 
-* [Computed Entity Properties](/recipes/computed-properties) -- building blocks for classification
-* [Modern Syntax in LINQ Chains](/recipes/modern-syntax-in-linq) -- switch expressions inline in queries
-* [Nullable Navigation Properties](/recipes/nullable-navigation) -- safely handling null in classification logic
+* [Computed Entity Properties](./computed-properties) -- building blocks for classification
+* [Modern Syntax in LINQ Chains](./modern-syntax-in-linq) -- switch expressions inline in queries
+* [Nullable Navigation Properties](./nullable-navigation) -- safely handling null in classification logic

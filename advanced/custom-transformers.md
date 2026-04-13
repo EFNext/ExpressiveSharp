@@ -65,9 +65,35 @@ There are three ways to register transformers, depending on your use case.
 
 Use the `Transformers` property on `[Expressive]` to apply transformers to a specific member. These transformers run when the generated expression is resolved via `ExpressiveResolver`:
 
+::: expressive-sample
+db.Orders.Select(o => new { o.Id, Customer = o.CustomerName() })
+\---setup---
+public static class OrderExt
+{
+\[Expressive(Transformers = new\[] { typeof(ExpressiveSharp.Transformers.RemoveNullConditionalPatterns) })]
+public static string? CustomerName(this Order o) => o.Customer?.Name;
+}
+:::
+
 ```csharp
-[Expressive(Transformers = new[] { typeof(RemoveNullConditionalPatterns) })]
-public string? CustomerName => Customer?.Name;
+db
+    .Orders
+    .Select(o => new { o.Id, Customer = o.CustomerName() })
+
+// Setup
+public static class OrderExt
+{
+    [Expressive(Transformers = new[] { typeof(ExpressiveSharp.Transformers.RemoveNullConditionalPatterns) })]
+    public static string? CustomerName(this Order o) => o.Customer?.Name;
+}
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "o"."Id", "c"."Name" AS "Customer"
+FROM "Orders" AS "o"
+INNER JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
 ```
 
 Multiple transformers can be specified and are applied in order:
@@ -209,9 +235,9 @@ For integration testing with EF Core, use `ToQueryString()` to verify the genera
 public void TransformedQuery_ProducesExpectedSql()
 {
     using var ctx = CreateTestContext();
-    var query = ctx.Orders
+    var query = ctx.Customers
         .AsExpressiveDbSet()
-        .Where(o => o.Name == "Alice")
+        .Where(c => c.Name == "Alice")
         .ToQueryString();
 
     Assert.IsTrue(query.Contains("LOWER"), "Expected case-insensitive comparison");

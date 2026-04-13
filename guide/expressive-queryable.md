@@ -3,21 +3,34 @@ url: 'https://efnext.github.io/ExpressiveSharp/guide/expressive-queryable.md'
 ---
 # IExpressiveQueryable\<T>
 
-`IExpressiveQueryable<T>` enables modern C# syntax directly in LINQ chains -- null-conditional operators, switch expressions, and pattern matching work in `.Where()`, `.Select()`, `.OrderBy()`, and more, on any `IQueryable<T>`.
+`IExpressiveQueryable<T>` is the core provider-agnostic API. It enables modern C# syntax directly in LINQ chains — null-conditional operators, switch expressions, and pattern matching work in `.Where()`, `.Select()`, `.OrderBy()`, and more — on any `IQueryable<T>`.
 
 ## Basic Usage
 
 Wrap any `IQueryable<T>` with `.AsExpressive()`:
 
-```csharp
-using ExpressiveSharp;
+::: expressive-sample
+db.Customers
+.Where(c => c.Email != null && c.Email.Length > 5)
+.Select(c => new { c.Id, Name = c.Name })
+.OrderBy(c => c.Name)
+:::
 
-var results = queryable
-    .AsExpressive()
-    .Where(o => o.Customer?.Email != null)
-    .Select(o => new { o.Id, Name = o.Customer?.Name ?? "Unknown" })
-    .OrderBy(o => o.Name)
-    .ToList();
+```csharp
+db
+    .Customers
+    .Where(c => c.Email != null && c.Email.Length > 5)
+    .Select(c => new { c.Id, Name = c.Name })
+    .OrderBy(c => c.Name)
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "c"."Id", "c"."Name"
+FROM "Customers" AS "c"
+WHERE "c"."Email" IS NOT NULL AND length("c"."Email") > 5
+ORDER BY "c"."Name"
 ```
 
 The source generator intercepts these calls at compile time and rewrites the delegate lambdas to proper expression trees. There is no runtime overhead from delegate-to-expression conversion.
@@ -31,7 +44,7 @@ At compile time, the `PolyfillInterceptorGenerator` uses C# 13 method intercepto
 1. Converts the delegate lambda into an `Expression<Func<...>>` using `Expression.*` factory calls
 2. Forwards the expression to the underlying `IQueryable<T>` LINQ method
 
-The delegate stubs are never actually called at runtime -- they are completely replaced by the interceptor.
+The delegate stubs are never actually called at runtime — they are completely replaced by the interceptor.
 
 ## Available LINQ Methods
 
@@ -76,6 +89,57 @@ On .NET 10 and later, these additional methods are available:
 * `AggregateBy`
 * `Index`
 
+## Pattern Matching and Switch Expressions
+
+Switch expressions, null-conditional operators, and pattern matching compose naturally in the chain:
+
+::: expressive-sample
+db.Orders
+.Select(o => new
+{
+o.Id,
+Tier = o.Status switch
+{
+OrderStatus.Paid => "Confirmed",
+OrderStatus.Shipped => "Out for delivery",
+OrderStatus.Delivered => "Complete",
+\_ => "Pending"
+}
+})
+:::
+
+```csharp
+db
+    .Orders
+    .Select(o => new
+    {
+        o.Id,
+        Tier = o.Status switch
+        {
+            OrderStatus.Paid => "Confirmed",
+            OrderStatus.Shipped => "Out for delivery",
+            OrderStatus.Delivered => "Complete",
+            _ => "Pending"
+        }
+    })
+```
+
+**Generated SQL:**
+
+```sql
+.param set @Paid 1
+.param set @Shipped 2
+.param set @Delivered 3
+
+SELECT "o"."Id", CASE
+    WHEN "o"."Status" = @Paid THEN 'Confirmed'
+    WHEN "o"."Status" = @Shipped THEN 'Out for delivery'
+    WHEN "o"."Status" = @Delivered THEN 'Complete'
+    ELSE 'Pending'
+END AS "Tier"
+FROM "Orders" AS "o"
+```
+
 ## EF Core: Include and ThenInclude
 
 When using `IExpressiveQueryable<T>` with EF Core, `Include` and `ThenInclude` are fully supported with chain continuity:
@@ -84,7 +148,7 @@ When using `IExpressiveQueryable<T>` with EF Core, `Include` and `ThenInclude` a
 var orders = ctx.Set<Order>()
     .AsExpressive()
     .Include(o => o.Customer)
-    .ThenInclude(c => c.Address)
+    .ThenInclude(c => c.Orders)
     .Where(o => o.Customer?.Email != null)
     .ToList();
 ```
@@ -139,7 +203,6 @@ var orders = ctx.Set<Order>()
     .IgnoreQueryFilters()
     .TagWith("Admin query")
     .Where(o => o.Customer?.Email != null)
-    .Select(o => new { o.Id, Email = o.Customer?.Email })
     .ToList();
 ```
 
@@ -152,26 +215,19 @@ Requires the `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` package 
 `ExecuteUpdate` and `ExecuteUpdateAsync` are supported on `IExpressiveQueryable<T>`, enabling modern C# syntax inside `SetProperty` value expressions — which is normally impossible in expression trees:
 
 ```csharp
-ctx.ExpressiveSet<Product>()
+ctx.ExpressiveSet<Order>()
     .ExecuteUpdate(s => s
-        .SetProperty(p => p.Tag, p => p.Price switch
+        .SetProperty(o => o.Status, o => o.Price switch
         {
-            > 100 => "premium",
-            > 50  => "standard",
-            _     => "budget"
-        })
-        .SetProperty(p => p.Category, p => p.Category ?? "Uncategorized"));
+            > 100 => OrderStatus.Paid,
+            > 50  => OrderStatus.Pending,
+            _     => OrderStatus.Refunded
+        }));
 ```
 
 This generates a single SQL `UPDATE` with `CASE WHEN` and `COALESCE` expressions — no entity loading required.
 
-`ExecuteDelete` works out of the box on `IExpressiveQueryable<T>` without any stubs (it has no lambda parameter):
-
-```csharp
-ctx.ExpressiveSet<Product>()
-    .Where(p => p.Price switch { < 10 => true, _ => false })
-    .ExecuteDelete();
-```
+`ExecuteDelete` works out of the box on `IExpressiveQueryable<T>` without any stubs (it has no lambda parameter).
 
 ## IAsyncEnumerable Support
 
@@ -187,24 +243,22 @@ await foreach (var order in ctx.Set<Order>()
 }
 ```
 
-## ExpressiveDbSet\<T> vs AsExpressive()
+## Choosing the Right Entry Point
 
-With EF Core, you have two options for modern syntax:
-
-| | `ExpressiveDbSet<T>` | `.AsExpressive()` |
-|---|---|---|
-| **Setup** | Property on `DbContext` | Call on any `IQueryable<T>` |
-| **`[Expressive]` expansion** | Automatic | Requires `UseExpressives()` separately |
-| **Include/ThenInclude** | Yes | Yes |
-| **Async methods** | Yes | Yes |
-| **Works outside EF Core** | No | Yes (any `IQueryable<T>`) |
+| Entry point | When to use |
+|---|---|
+| `.AsExpressive()` on `IQueryable<T>` | Any provider (EF Core, MongoDB, custom, in-memory) |
+| `ExpressiveDbSet<T>` on `DbContext` | EF Core — preferred, also triggers `[Expressive]` expansion via `UseExpressives()` |
+| `.AsExpressive()` on `IMongoCollection<T>` | MongoDB |
+| `ExpressionPolyfill.Create(...)` | You need a bare `Expression<T>` (no queryable involved) |
 
 ::: tip
-For EF Core projects, `ExpressiveDbSet<T>` is the most convenient option -- it combines both `[Expressive]` expansion and modern syntax in one API. Use `.AsExpressive()` when you need modern syntax on a non-EF Core `IQueryable<T>` or want explicit control over the wrapping.
+For EF Core projects, `ExpressiveDbSet<T>` is the most convenient option — it combines both `[Expressive]` expansion and modern syntax in one API. Use `.AsExpressive()` when you need modern syntax on a non-EF Core `IQueryable<T>` or want explicit control over the wrapping.
 :::
 
 ## Next Steps
 
-* [EF Core Integration](./ef-core-integration) -- full setup with `ExpressiveDbSet<T>` and `UseExpressives()`
-* [ExpressionPolyfill.Create](./expression-polyfill) -- inline expression trees without LINQ chains
-* [\[Expressive\] Properties](./expressive-properties) -- reusable computed properties
+* [EF Core Integration](./integrations/ef-core) — full setup with `ExpressiveDbSet<T>` and `UseExpressives()`
+* [MongoDB Integration](./integrations/mongodb) — MongoDB-specific setup
+* [ExpressionPolyfill.Create](./expression-polyfill) — inline expression trees without LINQ chains
+* [\[Expressive\] Properties](./expressive-properties) — reusable computed properties

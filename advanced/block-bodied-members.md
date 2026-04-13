@@ -13,19 +13,59 @@ Block-bodied member support requires explicit opt-in. Set `AllowBlockBody = true
 
 Expression-bodied members are concise but can become difficult to read when the logic involves complex conditionals:
 
-```csharp
+::: expressive-sample
+db.Orders.Select(o => new { o.Id, Category = o.GetCategory() })
+\---setup---
+public static class OrderExt
+{
 // Hard to read as a nested ternary
-[Expressive]
-public string GetCategory() => Quantity * 10 > 100 ? "Bulk" : "Regular";
+\[Expressive]
+public static string GetCategoryTerse(this Order o) =>
+o.Items.Sum(i => i.Quantity) \* 10 > 100 ? "Bulk" : "Regular";
 
+```
 // Much clearer as a block body
 [Expressive(AllowBlockBody = true)]
-public string GetCategory()
+public static string GetCategory(this Order o)
 {
-    var threshold = Quantity * 10;
+    var threshold = o.Items.Sum(i => i.Quantity) * 10;
     if (threshold > 100) return "Bulk";
     return "Regular";
 }
+```
+
+}
+:::
+
+```csharp
+db
+    .Orders
+    .Select(o => new { o.Id, Category = o.GetCategory() })
+
+// Setup
+public static class OrderExt
+{
+    // Hard to read as a nested ternary
+    [Expressive]
+    public static string GetCategoryTerse(this Order o) =>
+        o.Items.Sum(i => i.Quantity) * 10 > 100 ? "Bulk" : "Regular";
+
+    // Much clearer as a block body
+    [Expressive(AllowBlockBody = true)]
+    public static string GetCategory(this Order o)
+    {
+        var threshold = o.Items.Sum(i => i.Quantity) * 10;
+        if (threshold > 100) return "Bulk";
+        return "Regular";
+    }
+}
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "o"."Id", 'Regular' AS "Category"
+FROM "Orders" AS "o"
 ```
 
 Both forms generate equivalent expression trees and produce identical SQL when used with EF Core.
@@ -36,14 +76,46 @@ Both forms generate equivalent expression trees and produce identical SQL when u
 
 Add `AllowBlockBody = true` to the `[Expressive]` attribute:
 
-```csharp
-[Expressive(AllowBlockBody = true)]
-public string GetCategory()
+::: expressive-sample
+db.Orders.Select(o => new { o.Id, Tier = o.Tier() })
+\---setup---
+public static class OrderExt
 {
-    if (Price >= 100) return "Premium";
-    if (Price >= 50) return "Standard";
-    return "Budget";
+\[Expressive(AllowBlockBody = true)]
+public static string Tier(this Order o)
+{
+var total = o.Items.Sum(i => i.UnitPrice \* i.Quantity);
+if (total >= 1000m) return "Premium";
+if (total >= 100m) return "Standard";
+return "Budget";
 }
+}
+:::
+
+```csharp
+db
+    .Orders
+    .Select(o => new { o.Id, Tier = o.Tier() })
+
+// Setup
+public static class OrderExt
+{
+    [Expressive(AllowBlockBody = true)]
+    public static string Tier(this Order o)
+    {
+        var total = o.Items.Sum(i => i.UnitPrice * i.Quantity);
+        if (total >= 1000m) return "Premium";
+        if (total >= 100m) return "Standard";
+        return "Budget";
+    }
+}
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "o"."Id", 'Budget' AS "Tier"
+FROM "Orders" AS "o"
 ```
 
 ### Globally via MSBuild
@@ -64,12 +136,40 @@ This is equivalent to setting `AllowBlockBody = true` on every `[Expressive]` me
 
 Simple return statements are the most basic block body form:
 
-```csharp
-[Expressive(AllowBlockBody = true)]
-public int GetConstant()
+::: expressive-sample
+db.Orders.Select(o => new { o.Id, Constant = o.GetConstant() })
+\---setup---
+public static class OrderExt
 {
-    return 42;
+\[Expressive(AllowBlockBody = true)]
+public static int GetConstant(this Order o)
+{
+return 42;
 }
+}
+:::
+
+```csharp
+db
+    .Orders
+    .Select(o => new { o.Id, Constant = o.GetConstant() })
+
+// Setup
+public static class OrderExt
+{
+    [Expressive(AllowBlockBody = true)]
+    public static int GetConstant(this Order o)
+    {
+        return 42;
+    }
+}
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "o"."Id", 42 AS "Constant"
+FROM "Orders" AS "o"
 ```
 
 ***
@@ -78,42 +178,138 @@ public int GetConstant()
 
 If/else chains are converted to nested `Expression.Condition` (ternary) nodes:
 
-```csharp
-[Expressive(AllowBlockBody = true)]
-public string GetCategory()
+::: expressive-sample
+db.Products.Select(p => new { p.Name, Category = p.GetCategory() })
+\---setup---
+public static class ProductExt
 {
-    if (Price >= 100)
-        return "Premium";
-    else if (Price >= 50)
-        return "Standard";
-    else
-        return "Budget";
+\[Expressive(AllowBlockBody = true)]
+public static string GetCategory(this Product p)
+{
+if (p.ListPrice >= 100)
+return "Premium";
+else if (p.ListPrice >= 50)
+return "Standard";
+else
+return "Budget";
 }
+}
+:::
+
+```csharp
+db
+    .Products
+    .Select(p => new { p.Name, Category = p.GetCategory() })
+
+// Setup
+public static class ProductExt
+{
+    [Expressive(AllowBlockBody = true)]
+    public static string GetCategory(this Product p)
+    {
+        if (p.ListPrice >= 100)
+            return "Premium";
+        else if (p.ListPrice >= 50)
+            return "Standard";
+        else
+            return "Budget";
+    }
+}
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "p"."Name", CASE
+    WHEN ef_compare("p"."ListPrice", '100.0') >= 0 THEN 'Premium'
+    WHEN ef_compare("p"."ListPrice", '50.0') >= 0 THEN 'Standard'
+    ELSE 'Budget'
+END AS "Category"
+FROM "Products" AS "p"
 ```
 
 An `if` without an `else` is supported when followed by a fallback `return`:
 
-```csharp
-[Expressive(AllowBlockBody = true)]
-public string GetStatus()
+::: expressive-sample
+db.Orders.Select(o => new { o.Id, Status = o.GetStatus() })
+\---setup---
+public static class OrderExt
 {
-    if (IsActive)
-        return "Active";
-    return "Inactive";  // Fallback
+\[Expressive(AllowBlockBody = true)]
+public static string GetStatus(this Order o)
+{
+if (o.Status == OrderStatus.Paid)
+return "Active";
+return "Inactive";  // Fallback
 }
+}
+:::
+
+```csharp
+db
+    .Orders
+    .Select(o => new { o.Id, Status = o.GetStatus() })
+
+// Setup
+public static class OrderExt
+{
+    [Expressive(AllowBlockBody = true)]
+    public static string GetStatus(this Order o)
+    {
+        if (o.Status == OrderStatus.Paid)
+            return "Active";
+        return "Inactive";  // Fallback
+    }
+}
+```
+
+**Generated SQL:**
+
+```sql
+Specified method is not supported.
 ```
 
 Multiple independent early-return statements are converted to a nested ternary chain:
 
-```csharp
-[Expressive(AllowBlockBody = true)]
-public string GetPriceRange()
+::: expressive-sample
+db.Products.Select(p => new { p.Name, Range = p.GetPriceRange() })
+\---setup---
+public static class ProductExt
 {
-    if (Price > 1000) return "Very High";
-    if (Price > 100)  return "High";
-    if (Price > 10)   return "Medium";
-    return "Low";
+\[Expressive(AllowBlockBody = true)]
+public static string GetPriceRange(this Product p)
+{
+if (p.ListPrice > 1000) return "Very High";
+if (p.ListPrice > 100)  return "High";
+if (p.ListPrice > 10)   return "Medium";
+return "Low";
 }
+}
+:::
+
+```csharp
+db
+    .Products
+    .Select(p => new { p.Name, Range = p.GetPriceRange() })
+
+// Setup
+public static class ProductExt
+{
+    [Expressive(AllowBlockBody = true)]
+    public static string GetPriceRange(this Product p)
+    {
+        if (p.ListPrice > 1000) return "Very High";
+        if (p.ListPrice > 100)  return "High";
+        if (p.ListPrice > 10)   return "Medium";
+        return "Low";
+    }
+}
+```
+
+**Generated SQL:**
+
+```sql
+Specified method is not supported.
 ```
 
 ***
@@ -122,18 +318,51 @@ public string GetPriceRange()
 
 Switch statements are converted to nested conditional expressions:
 
-```csharp
-[Expressive(AllowBlockBody = true)]
-public string GetLabel()
+::: expressive-sample
+db.Orders.Select(o => new { o.Id, Label = o.GetLabel() })
+\---setup---
+public static class OrderExt
 {
-    switch (Status)
+\[Expressive(AllowBlockBody = true)]
+public static string GetLabel(this Order o)
+{
+switch (o.Status)
+{
+case OrderStatus.Pending: return "New";
+case OrderStatus.Paid: return "Active";
+case OrderStatus.Delivered: return "Closed";
+default: return "Unknown";
+}
+}
+}
+:::
+
+```csharp
+db
+    .Orders
+    .Select(o => new { o.Id, Label = o.GetLabel() })
+
+// Setup
+public static class OrderExt
+{
+    [Expressive(AllowBlockBody = true)]
+    public static string GetLabel(this Order o)
     {
-        case 1: return "New";
-        case 2: return "Active";
-        case 3: return "Closed";
-        default: return "Unknown";
+        switch (o.Status)
+        {
+            case OrderStatus.Pending: return "New";
+            case OrderStatus.Paid: return "Active";
+            case OrderStatus.Delivered: return "Closed";
+            default: return "Unknown";
+        }
     }
 }
+```
+
+**Generated SQL:**
+
+```sql
+Expression of type 'System.Object' cannot be used for return type 'System.String'
 ```
 
 ***
@@ -142,25 +371,84 @@ public string GetLabel()
 
 Local variables declared at the method body level are emitted as `Expression.Variable` nodes within an `Expression.Block`:
 
-```csharp
-[Expressive(AllowBlockBody = true)]
-public int CalculateDouble()
+::: expressive-sample
+db.LineItems.Select(i => new { i.Id, Doubled = i.CalculateDouble() })
+\---setup---
+public static class LineItemExt
 {
-    var doubled = Price * 2;
-    return doubled + 5;
+\[Expressive(AllowBlockBody = true)]
+public static decimal CalculateDouble(this LineItem i)
+{
+var doubled = i.UnitPrice \* 2;
+return doubled + 5;
 }
+}
+:::
+
+```csharp
+db
+    .LineItems
+    .Select(i => new { i.Id, Doubled = i.CalculateDouble() })
+
+// Setup
+public static class LineItemExt
+{
+    [Expressive(AllowBlockBody = true)]
+    public static decimal CalculateDouble(this LineItem i)
+    {
+        var doubled = i.UnitPrice * 2;
+        return doubled + 5;
+    }
+}
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "l"."Id", ef_add(ef_multiply("l"."UnitPrice", '2.0'), '5.0') AS "Doubled"
+FROM "LineItems" AS "l"
 ```
 
 Transitive references are supported:
 
-```csharp
-[Expressive(AllowBlockBody = true)]
-public int CalculateComplex()
+::: expressive-sample
+db.LineItems.Select(i => new { i.Id, Complex = i.CalculateComplex() })
+\---setup---
+public static class LineItemExt
 {
-    var a = Price * 2;
-    var b = a + 5;
-    return b + 10;
+\[Expressive(AllowBlockBody = true)]
+public static decimal CalculateComplex(this LineItem i)
+{
+var a = i.UnitPrice \* 2;
+var b = a + 5;
+return b + 10;
 }
+}
+:::
+
+```csharp
+db
+    .LineItems
+    .Select(i => new { i.Id, Complex = i.CalculateComplex() })
+
+// Setup
+public static class LineItemExt
+{
+    [Expressive(AllowBlockBody = true)]
+    public static decimal CalculateComplex(this LineItem i)
+    {
+        var a = i.UnitPrice * 2;
+        var b = a + 5;
+        return b + 10;
+    }
+}
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "l"."Id", ef_add(ef_add(ef_multiply("l"."UnitPrice", '2.0'), '5.0'), '10.0') AS "Complex"
+FROM "LineItems" AS "l"
 ```
 
 ::: warning Variable Duplication Caveat
@@ -168,11 +456,11 @@ The `FlattenBlockExpressions` transformer (applied by `UseExpressives()` in EF C
 
 ```csharp
 [Expressive(AllowBlockBody = true)]
-public double Foo()
+public static decimal Foo(this LineItem i)
 {
-    var x = Price * Quantity;
+    var x = i.UnitPrice * i.Quantity;
     return x + x;
-    // After FlattenBlockExpressions: (Price * Quantity) + (Price * Quantity)
+    // After FlattenBlockExpressions: (UnitPrice * Quantity) + (UnitPrice * Quantity)
 }
 ```
 
@@ -185,18 +473,52 @@ For pure expressions (no side effects), this is semantically identical. The gene
 
 `foreach` loops are emitted as `Expression.Loop` with the enumerator pattern (GetEnumerator/MoveNext/Current). The `ConvertLoopsToLinq` transformer then rewrites these to equivalent LINQ method calls for providers like EF Core that cannot translate loop expressions:
 
-```csharp
-[Expressive(AllowBlockBody = true)]
-public double GetTotalLineItemPrice()
+::: expressive-sample
+db.Orders.Select(o => new { o.Id, Total = o.GetTotalLineItemPrice() })
+\---setup---
+public static class OrderExt
 {
-    var total = 0.0;
-    foreach (var item in LineItems)
-        total += item.Price;
-    return total;
+\[Expressive(AllowBlockBody = true)]
+public static decimal GetTotalLineItemPrice(this Order o)
+{
+var total = 0m;
+foreach (var item in o.Items)
+total += item.UnitPrice;
+return total;
+}
+}
+:::
+
+```csharp
+db
+    .Orders
+    .Select(o => new { o.Id, Total = o.GetTotalLineItemPrice() })
+
+// Setup
+public static class OrderExt
+{
+    [Expressive(AllowBlockBody = true)]
+    public static decimal GetTotalLineItemPrice(this Order o)
+    {
+        var total = 0m;
+        foreach (var item in o.Items)
+            total += item.UnitPrice;
+        return total;
+    }
 }
 ```
 
-After the `ConvertLoopsToLinq` transformer, this becomes equivalent to `LineItems.Sum(item => item.Price)`.
+**Generated SQL:**
+
+```sql
+SELECT "o"."Id", (
+    SELECT COALESCE(ef_sum("l"."UnitPrice"), '0.0')
+    FROM "LineItems" AS "l"
+    WHERE "o"."Id" = "l"."OrderId") AS "Total"
+FROM "Orders" AS "o"
+```
+
+After the `ConvertLoopsToLinq` transformer, this becomes equivalent to `o.Items.Sum(item => item.UnitPrice)`.
 
 ***
 
@@ -233,8 +555,11 @@ If you need aggregation logic, prefer LINQ methods in an expression-bodied membe
 
 ```csharp
 // Instead of a loop
-[Expressive]
-public double TotalPrice => LineItems.Sum(i => i.Price);
+public static class OrderExt
+{
+    [Expressive]
+    public static decimal TotalPrice(this Order o) => o.Items.Sum(i => i.UnitPrice);
+}
 ```
 
 :::
@@ -243,23 +568,43 @@ public double TotalPrice => LineItems.Sum(i => i.Price);
 
 ### If/Else to CASE WHEN
 
-```csharp
-[Expressive(AllowBlockBody = true)]
-public string GetCategory()
+::: expressive-sample
+db.Orders.Select(o => new { o.Id, Category = o.GetCategoryFromThreshold() })
+\---setup---
+public static class OrderExt
 {
-    var threshold = Quantity * 10;
-    if (threshold > 100) return "Bulk";
-    return "Regular";
+\[Expressive(AllowBlockBody = true)]
+public static string GetCategoryFromThreshold(this Order o)
+{
+var threshold = o.Items.Sum(i => i.Quantity) \* 10;
+if (threshold > 100) return "Bulk";
+return "Regular";
+}
+}
+:::
+
+```csharp
+db
+    .Orders
+    .Select(o => new { o.Id, Category = o.GetCategoryFromThreshold() })
+
+// Setup
+public static class OrderExt
+{
+    [Expressive(AllowBlockBody = true)]
+    public static string GetCategoryFromThreshold(this Order o)
+    {
+        var threshold = o.Items.Sum(i => i.Quantity) * 10;
+        if (threshold > 100) return "Bulk";
+        return "Regular";
+    }
 }
 ```
 
-Generated SQL:
+**Generated SQL:**
 
 ```sql
-SELECT CASE
-    WHEN ("o"."Quantity" * 10) > 100 THEN 'Bulk'
-    ELSE 'Regular'
-END AS "Category"
+SELECT "o"."Id", 'Regular' AS "Category"
 FROM "Orders" AS "o"
 ```
 
@@ -267,23 +612,48 @@ FROM "Orders" AS "o"
 
 Block-body switch statements and expression-bodied switch expressions produce the same SQL:
 
-```csharp
-[Expressive]
-public string GetGrade() => Price switch
+::: expressive-sample
+db.Products.Select(p => new { p.Name, Grade = p.GetGrade() })
+\---setup---
+public static class ProductExt
 {
-    >= 100 => "Premium",
-    >= 50  => "Standard",
-    _      => "Budget",
+\[Expressive]
+public static string GetGrade(this Product p) => p.ListPrice switch
+{
+\>= 100m => "Premium",
+\>= 50m  => "Standard",
+\_       => "Budget",
 };
+}
+:::
+
+```csharp
+db
+    .Products
+    .Select(p => new { p.Name, Grade = p.GetGrade() })
+
+// Setup
+public static class ProductExt
+{
+    [Expressive]
+    public static string GetGrade(this Product p) => p.ListPrice switch
+    {
+        >= 100m => "Premium",
+        >= 50m  => "Standard",
+        _       => "Budget",
+    };
+}
 ```
 
+**Generated SQL:**
+
 ```sql
-SELECT CASE
-    WHEN "o"."Price" >= 100.0 THEN 'Premium'
-    WHEN "o"."Price" >= 50.0 THEN 'Standard'
+SELECT "p"."Name", CASE
+    WHEN ef_compare("p"."ListPrice", '100.0') >= 0 THEN 'Premium'
+    WHEN ef_compare("p"."ListPrice", '50.0') >= 0 THEN 'Standard'
     ELSE 'Budget'
 END AS "Grade"
-FROM "Orders" AS "o"
+FROM "Products" AS "p"
 ```
 
 ## Side Effect Detection

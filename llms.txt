@@ -14,13 +14,18 @@ ExpressiveSharp is a Roslyn source generator that enables modern C# syntax (null
 
 ### Core APIs
 
+- [IExpressiveQueryable\<T>](https://efnext.github.io/ExpressiveSharp/guide/expressive-queryable.md)
 - [\[Expressive] Properties](https://efnext.github.io/ExpressiveSharp/guide/expressive-properties.md)
 - [\[Expressive] Methods](https://efnext.github.io/ExpressiveSharp/guide/expressive-methods.md)
 - [Extension Members](https://efnext.github.io/ExpressiveSharp/guide/extension-members.md)
 - [Constructor Projections](https://efnext.github.io/ExpressiveSharp/guide/expressive-constructors.md)
 - [ExpressionPolyfill.Create](https://efnext.github.io/ExpressiveSharp/guide/expression-polyfill.md)
-- [IExpressiveQueryable\<T>](https://efnext.github.io/ExpressiveSharp/guide/expressive-queryable.md)
-- [EF Core Integration](https://efnext.github.io/ExpressiveSharp/guide/ef-core-integration.md)
+
+### Integrations
+
+- [EF Core](https://efnext.github.io/ExpressiveSharp/guide/integrations/ef-core.md)
+- [MongoDB](https://efnext.github.io/ExpressiveSharp/guide/integrations/mongodb.md)
+- [Custom Providers](https://efnext.github.io/ExpressiveSharp/guide/integrations/custom-providers.md)
 
 ### Extensions
 
@@ -61,3 +66,6 @@ ExpressiveSharp is a Roslyn source generator that enables modern C# syntax (null
 - [Modern Syntax in LINQ Chains](https://efnext.github.io/ExpressiveSharp/recipes/modern-syntax-in-linq.md)
 - [Window Functions & Ranking](https://efnext.github.io/ExpressiveSharp/recipes/window-functions-ranking.md)
 
+### Other
+
+- [Playground](https://efnext.github.io/ExpressiveSharp/playground-editor.md)

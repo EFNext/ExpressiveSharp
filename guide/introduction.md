@@ -3,11 +3,21 @@ url: 'https://efnext.github.io/ExpressiveSharp/guide/introduction.md'
 ---
 # Introduction
 
-**ExpressiveSharp** is a Roslyn source generator that enables modern C# syntax in LINQ expression trees. It generates `Expression<TDelegate>` factory code at compile time, so you can use null-conditional operators, switch expressions, pattern matching, and more in queries that target EF Core or any LINQ provider.
+**ExpressiveSharp** is a Roslyn source generator that enables modern C# syntax in LINQ expression trees. It generates `Expression<TDelegate>` factory code at compile time, so you can use null-conditional operators, switch expressions, pattern matching, and more in queries against **any** LINQ provider.
+
+## Works With
+
+ExpressiveSharp is provider-agnostic. It layers on top of `IQueryable<T>` and integrates with:
+
+* **EF Core** — every provider (SQLite, SQL Server, PostgreSQL, MySQL, Cosmos DB, Oracle, …) via `ExpressiveSharp.EntityFrameworkCore`
+* **MongoDB** — via `ExpressiveSharp.MongoDB`, translating to MQL aggregation pipelines
+* **Any `IQueryable<T>`** — wrap with `.AsExpressive()` and you get modern syntax on your own provider or any third-party one
+
+The samples throughout these docs show the same query rendered against SQLite, PostgreSQL, SQL Server, Cosmos DB, and MongoDB side by side — so you always see how the construct translates for your target.
 
 ## The Two Problems
 
-When using C# with LINQ providers like EF Core, you hit two walls:
+When using C# with LINQ providers, you hit two walls:
 
 ### 1. Expression tree syntax restrictions
 
@@ -21,7 +31,7 @@ Expression trees (`Expression<Func<...>>`) only support a restricted subset of C
 
 ### 2. Computed properties are opaque to LINQ providers
 
-You define `public string FullName => FirstName + " " + LastName` and use it in a query, but EF Core cannot see inside the property getter. It either throws a runtime translation error, or worse, silently fetches the entire entity to evaluate `FullName` on the client (overfetching). The only workaround is to duplicate the logic as an inline expression in every query that needs it.
+You define `public string FullName => FirstName + " " + LastName` and use it in a query, but the provider cannot see inside the property getter. It either throws a runtime translation error, or worse, silently fetches the entire entity to evaluate `FullName` on the client (overfetching). The only workaround is to duplicate the logic as an inline expression in every query that needs it.
 
 ## How ExpressiveSharp Works
 
@@ -37,15 +47,15 @@ Two Roslyn incremental source generators analyze your code:
 
 ### Runtime (expression expansion)
 
-When you query with EF Core (via `UseExpressives()`) or call `.ExpandExpressives()` manually, an `ExpressionVisitor` walks the query tree and replaces opaque `[Expressive]` member accesses with the pre-built expression trees. Transformers then adapt the trees for the target provider (stripping null-conditional patterns for SQL, flattening blocks, etc.).
+When your query executes, an `ExpressionVisitor` walks the tree and replaces opaque `[Expressive]` member accesses with the pre-built expression trees. Provider-agnostic transformers then normalize the tree (stripping null-conditional patterns, flattening blocks, etc.) before handing off to the underlying LINQ provider.
 
 ```
 Your LINQ query
     -> [Expressive member accesses replaced with generated expressions]
-    -> [Transformers adapt for SQL provider]
+    -> [Transformers normalize the tree]
     -> Expanded expression tree
-    -> EF Core SQL translation
-    -> SQL query
+    -> Provider translation (SQL / MQL / …)
+    -> Executed query
 ```
 
 All expression trees are generated at compile time. There is no runtime reflection or expression compilation.
@@ -56,12 +66,13 @@ Mark computed properties and methods with `[Expressive]` to generate companion e
 
 | Scenario | API |
 |---|---|
-| **EF Core** -- modern syntax + `[Expressive]` expansion on `DbSet` | [`ExpressiveDbSet<T>`](./ef-core-integration) (or [`UseExpressives()`](./ef-core-integration) for global expansion) |
-| **Any `IQueryable`** -- modern syntax + `[Expressive]` expansion | [`.AsExpressive()`](./expressive-queryable) |
-| **EF Core** -- SQL window functions (ROW\_NUMBER, RANK, etc.) | [`WindowFunction.*`](./window-functions) (install `RelationalExtensions` package) |
-| **Advanced** -- build an `Expression<T>` inline, no attribute needed | [`ExpressionPolyfill.Create`](./expression-polyfill) |
-| **Advanced** -- expand `[Expressive]` members in an existing expression tree | `.ExpandExpressives()` |
-| **Advanced** -- make third-party/BCL members expressable | `[ExpressiveFor]` |
+| **Any `IQueryable`** — modern syntax + `[Expressive]` expansion | [`.AsExpressive()`](./expressive-queryable) |
+| **EF Core** — full integration (DbSet + async + Include) | [`ExpressiveDbSet<T>` / `UseExpressives()`](./integrations/ef-core) |
+| **MongoDB** — `.AsExpressive()` on `IMongoCollection<T>` | [MongoDB integration](./integrations/mongodb) |
+| **SQL window functions** (ROW\_NUMBER, RANK, etc.) | [`WindowFunction.*`](./window-functions) (install `RelationalExtensions` package) |
+| **Advanced** — build an `Expression<T>` inline, no attribute needed | [`ExpressionPolyfill.Create`](./expression-polyfill) |
+| **Advanced** — expand `[Expressive]` members in an existing expression tree | `.ExpandExpressives()` |
+| **Advanced** — make third-party/BCL members expressable | `[ExpressiveFor]` |
 
 ## Comparison with Similar Libraries
 
@@ -85,6 +96,7 @@ Mark computed properties and methods with `[Expressive]` to generate companion e
 | `with` expressions (records) | Yes | No | No | No |
 | Collection expressions | Yes | No | No | No |
 | Customizable transformer pipeline | Yes | No | No | No |
+| MongoDB support | Yes | No | No | No |
 | Plugin architecture (EF Core) | Yes | No | No | No |
 | External member mapping | Yes (`[ExpressiveFor]`) | No | No | No |
 | Not coupled to EF Core | Yes | No | No | No |
@@ -97,10 +109,11 @@ Mark computed properties and methods with `[Expressive]` to generate companion e
 | **ExpressiveSharp** | C# 12 | C# 14 |
 | **ExpressiveSharp.Abstractions** | C# 12 | C# 14 |
 | **ExpressiveSharp.EntityFrameworkCore** | EF Core 8.x | EF Core 10.x |
+| **ExpressiveSharp.MongoDB** | MongoDB.Driver 3.x | MongoDB.Driver 3.x |
 | **ExpressiveSharp.EntityFrameworkCore.RelationalExtensions** | EF Core 8.x | EF Core 10.x |
 
 ## Next Steps
 
-* [Quick Start](./quickstart) -- install, configure, and run your first query
-* [\[Expressive\] Properties](./expressive-properties) -- computed properties translated to SQL
-* [EF Core Integration](./ef-core-integration) -- full setup for Entity Framework Core
+* [Quick Start](./quickstart) — install, configure, and run your first query
+* [IExpressiveQueryable\<T>](./expressive-queryable) — the core provider-agnostic API
+* [\[Expressive\] Properties](./expressive-properties) — computed properties translated to your provider

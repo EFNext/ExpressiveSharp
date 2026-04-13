@@ -7,33 +7,67 @@ url: 'https://efnext.github.io/ExpressiveSharp/guide/expression-polyfill.md'
 
 ## Basic Usage
 
+::: expressive-sample
+db.Customers.Where(ExpressionPolyfill.Create((Customer c) => c.Email?.Length > 5))
+:::
+
+```csharp
+db
+    .Customers
+    .Where(ExpressionPolyfill.Create((Customer c) => c.Email?.Length > 5))
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "c"."Id", "c"."Country", "c"."Email", "c"."JoinedAt", "c"."Name"
+FROM "Customers" AS "c"
+WHERE length("c"."Email") > 5
+```
+
+You write a regular lambda with modern syntax, and the source generator converts it into an `Expression<Func<...>>` at compile time. The result is a fully constructed expression tree that you can compile, pass to a LINQ provider, or inspect. The query tabs above show how each provider translates the resulting predicate.
+
+A standalone usage (outside of a queryable) looks like this:
+
 ```csharp
 using ExpressiveSharp;
 
 // The lambda uses ?. -- normally illegal in expression trees
-var expr = ExpressionPolyfill.Create((Order o) => o.Tag?.Length);
-// expr is Expression<Func<Order, int?>>
+var expr = ExpressionPolyfill.Create((Customer c) => c.Email?.Length);
+// expr is Expression<Func<Customer, int?>>
 
 var compiled = expr.Compile();
-var result = compiled(order);
+var result = compiled(customer);
 ```
-
-You write a regular lambda with modern syntax, and the source generator converts it into an `Expression<Func<...>>` at compile time. The result is a fully constructed expression tree that you can compile, pass to a LINQ provider, or inspect.
 
 ## With Transformers
 
 You can apply expression transformers inline:
 
-```csharp
-using ExpressiveSharp;
-using ExpressiveSharp.Transformers;
+::: expressive-sample
+db.Orders.Where(ExpressionPolyfill.Create(
+(Order o) => o.Customer != null && o.Customer.Country == "NL",
+new ExpressiveSharp.Transformers.RemoveNullConditionalPatterns()))
+:::
 
-var expr = ExpressionPolyfill.Create(
-    (Order o) => o.Customer?.Email,
-    new RemoveNullConditionalPatterns());
+```csharp
+db
+    .Orders
+    .Where(ExpressionPolyfill.Create(
+    (Order o) => o.Customer != null && o.Customer.Country == "NL",
+    new ExpressiveSharp.Transformers.RemoveNullConditionalPatterns()))
 ```
 
-The generated expression tree has `RemoveNullConditionalPatterns` applied, stripping the null-check ternary so the expression reads `o.Customer.Email` directly -- suitable for SQL providers that handle null propagation natively.
+**Generated SQL:**
+
+```sql
+SELECT "o"."Id", "o"."CustomerId", "o"."PlacedAt", "o"."Status"
+FROM "Orders" AS "o"
+INNER JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
+WHERE "c"."Country" = 'NL'
+```
+
+The generated expression tree has `RemoveNullConditionalPatterns` applied, stripping the null-check ternary so the expression reads `o.Customer.Country` directly -- suitable for providers that handle null propagation natively.
 
 ## Use Cases
 
@@ -41,17 +75,46 @@ The generated expression tree has `RemoveNullConditionalPatterns` applied, strip
 
 When you need modern syntax in a one-off query without decorating entity members:
 
-```csharp
-var predicate = ExpressionPolyfill.Create(
-    (Order o) => o.Customer?.Email != null && o.Price switch
-    {
-        >= 100 => true,
-        _      => false,
-    });
+::: expressive-sample
+db.Orders.Where(ExpressionPolyfill.Create(
+(Order o) => o.Customer != null && o.Customer.Email != null && o.Status switch
+{
+OrderStatus.Paid      => true,
+OrderStatus.Shipped   => true,
+OrderStatus.Delivered => true,
+\_                     => false,
+}))
+:::
 
-var results = dbContext.Orders
-    .Where(predicate)
-    .ToList();
+```csharp
+db
+    .Orders
+    .Where(ExpressionPolyfill.Create(
+    (Order o) => o.Customer != null && o.Customer.Email != null && o.Status switch
+    {
+        OrderStatus.Paid => true,
+        OrderStatus.Shipped => true,
+        OrderStatus.Delivered => true,
+        _ => false,
+    }))
+```
+
+**Generated SQL:**
+
+```sql
+.param set @Paid 1
+.param set @Shipped 2
+.param set @Delivered 3
+
+SELECT "o"."Id", "o"."CustomerId", "o"."PlacedAt", "o"."Status"
+FROM "Orders" AS "o"
+INNER JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
+WHERE "c"."Email" IS NOT NULL AND CASE
+    WHEN "o"."Status" = @Paid THEN 1
+    WHEN "o"."Status" = @Shipped THEN 1
+    WHEN "o"."Status" = @Delivered THEN 1
+    ELSE 0
+END
 ```
 
 ### Testing
@@ -125,4 +188,4 @@ Use `[Expressive]` when the logic belongs on an entity and will be reused across
 
 * [\[Expressive\] Properties](./expressive-properties) -- reusable computed properties
 * [IExpressiveQueryable\<T>](./expressive-queryable) -- modern syntax directly in LINQ chains
-* [EF Core Integration](./ef-core-integration) -- full EF Core setup
+* [EF Core Integration](./integrations/ef-core) -- full EF Core setup

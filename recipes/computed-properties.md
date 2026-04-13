@@ -3,13 +3,15 @@ url: 'https://efnext.github.io/ExpressiveSharp/recipes/computed-properties.md'
 ---
 # Computed Entity Properties
 
-This recipe shows how to define reusable computed properties on your entities and use them across multiple query operations -- all translated to SQL without any duplication.
+This recipe shows how to define reusable computed values on your entities and use them across multiple query operations -- all translated to SQL without any duplication.
 
 ## The Pattern
 
-Define computed values as `[Expressive]` properties directly on your entity. These properties can then be used in `Select`, `Where`, `GroupBy`, `OrderBy`, and any combination thereof. `[Expressive]` members can reference other `[Expressive]` members, so you can build from simple building blocks to complex compositions.
+Define computed values as `[Expressive]` members -- either as properties directly on your entity, or as extension methods in a helper class when you cannot modify the entity. These members can then be used in `Select`, `Where`, `GroupBy`, `OrderBy`, and any combination thereof. `[Expressive]` members can reference other `[Expressive]` members, so you can build from simple building blocks to complex compositions.
 
 ## Example: Order Totals
+
+For entities you own, put `[Expressive]` properties directly on them:
 
 ```csharp
 public class Order
@@ -32,195 +34,448 @@ public class Order
 }
 ```
 
+When you cannot modify the entity, define the same logic as extension methods in a helper class. Here we compute order totals over the webshop `Order` / `LineItem` model:
+
 ### Use in Select
 
-```csharp
-var summaries = dbContext.Orders
-    .Select(o => new OrderSummaryDto
-    {
-        Id = o.Id,
-        Subtotal = o.Subtotal,
-        Tax = o.Tax,
-        GrandTotal = o.GrandTotal
-    })
-    .ToList();
+::: expressive-sample
+db.Orders
+.Select(o => new { o.Id, Subtotal = o.Subtotal(), Tax = o.Tax(), GrandTotal = o.GrandTotal() })
+\---setup---
+public static class OrderTotals
+{
+\[Expressive]
+public static decimal Subtotal(this Order o)
+\=> o.Items.Sum(i => i.UnitPrice \* i.Quantity);
+
+```
+[Expressive]
+public static decimal Tax(this Order o) => o.Subtotal() * 0.2m;
+
+[Expressive]
+public static decimal GrandTotal(this Order o) => o.Subtotal() + o.Tax();
 ```
 
-Generated SQL (SQLite):
+}
+:::
+
+```csharp
+db
+    .Orders
+    .Select(o => new { o.Id, Subtotal = o.Subtotal(), Tax = o.Tax(), GrandTotal = o.GrandTotal() })
+
+// Setup
+public static class OrderTotals
+{
+    [Expressive]
+    public static decimal Subtotal(this Order o)
+        => o.Items.Sum(i => i.UnitPrice * i.Quantity);
+
+    [Expressive]
+    public static decimal Tax(this Order o) => o.Subtotal() * 0.2m;
+
+    [Expressive]
+    public static decimal GrandTotal(this Order o) => o.Subtotal() + o.Tax();
+}
+```
+
+**Generated SQL:**
 
 ```sql
-SELECT "o"."Id",
-       (SELECT COALESCE(SUM("p"."ListPrice" * "i"."Quantity"), 0)
-        FROM "OrderItems" AS "i"
-        INNER JOIN "Products" AS "p" ON "i"."ProductId" = "p"."Id"
-        WHERE "o"."Id" = "i"."OrderId") AS "Subtotal",
-       (SELECT COALESCE(SUM("p"."ListPrice" * "i"."Quantity"), 0)
-        FROM "OrderItems" AS "i"
-        INNER JOIN "Products" AS "p" ON "i"."ProductId" = "p"."Id"
-        WHERE "o"."Id" = "i"."OrderId") * "o"."TaxRate" AS "Tax",
-       (SELECT COALESCE(SUM("p"."ListPrice" * "i"."Quantity"), 0)
-        FROM "OrderItems" AS "i"
-        INNER JOIN "Products" AS "p" ON "i"."ProductId" = "p"."Id"
-        WHERE "o"."Id" = "i"."OrderId") * (1 + "o"."TaxRate") AS "GrandTotal"
+SELECT "o"."Id", (
+    SELECT COALESCE(ef_sum(ef_multiply("l"."UnitPrice", CAST("l"."Quantity" AS TEXT))), '0.0')
+    FROM "LineItems" AS "l"
+    WHERE "o"."Id" = "l"."OrderId") AS "Subtotal", ef_multiply((
+    SELECT COALESCE(ef_sum(ef_multiply("l0"."UnitPrice", CAST("l0"."Quantity" AS TEXT))), '0.0')
+    FROM "LineItems" AS "l0"
+    WHERE "o"."Id" = "l0"."OrderId"), '0.2') AS "Tax", ef_add((
+    SELECT COALESCE(ef_sum(ef_multiply("l1"."UnitPrice", CAST("l1"."Quantity" AS TEXT))), '0.0')
+    FROM "LineItems" AS "l1"
+    WHERE "o"."Id" = "l1"."OrderId"), ef_multiply((
+    SELECT COALESCE(ef_sum(ef_multiply("l2"."UnitPrice", CAST("l2"."Quantity" AS TEXT))), '0.0')
+    FROM "LineItems" AS "l2"
+    WHERE "o"."Id" = "l2"."OrderId"), '0.2')) AS "GrandTotal"
 FROM "Orders" AS "o"
 ```
 
 ### Use in Where
 
+::: expressive-sample
+db.Orders.Where(o => o.GrandTotal() > 1000)
+\---setup---
+public static class OrderTotals
+{
+\[Expressive]
+public static decimal Subtotal(this Order o)
+\=> o.Items.Sum(i => i.UnitPrice \* i.Quantity);
+
+```
+[Expressive]
+public static decimal Tax(this Order o) => o.Subtotal() * 0.2m;
+
+[Expressive]
+public static decimal GrandTotal(this Order o) => o.Subtotal() + o.Tax();
+```
+
+}
+:::
+
 ```csharp
-// Only load high-value orders
-var highValue = dbContext.Orders
-    .Where(o => o.GrandTotal > 1000)
-    .ToList();
+db
+    .Orders
+    .Where(o => o.GrandTotal() > 1000)
+
+// Setup
+public static class OrderTotals
+{
+    [Expressive]
+    public static decimal Subtotal(this Order o)
+        => o.Items.Sum(i => i.UnitPrice * i.Quantity);
+
+    [Expressive]
+    public static decimal Tax(this Order o) => o.Subtotal() * 0.2m;
+
+    [Expressive]
+    public static decimal GrandTotal(this Order o) => o.Subtotal() + o.Tax();
+}
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "o"."Id", "o"."CustomerId", "o"."PlacedAt", "o"."Status"
+FROM "Orders" AS "o"
+WHERE ef_compare(ef_add((
+    SELECT COALESCE(ef_sum(ef_multiply("l"."UnitPrice", CAST("l"."Quantity" AS TEXT))), '0.0')
+    FROM "LineItems" AS "l"
+    WHERE "o"."Id" = "l"."OrderId"), ef_multiply((
+    SELECT COALESCE(ef_sum(ef_multiply("l0"."UnitPrice", CAST("l0"."Quantity" AS TEXT))), '0.0')
+    FROM "LineItems" AS "l0"
+    WHERE "o"."Id" = "l0"."OrderId"), '0.2')), '1000.0') > 0
 ```
 
 ### Use in OrderBy
 
+::: expressive-sample
+db.Orders.OrderByDescending(o => o.GrandTotal()).Take(10)
+\---setup---
+public static class OrderTotals
+{
+\[Expressive]
+public static decimal Subtotal(this Order o)
+\=> o.Items.Sum(i => i.UnitPrice \* i.Quantity);
+
+```
+[Expressive]
+public static decimal Tax(this Order o) => o.Subtotal() * 0.2m;
+
+[Expressive]
+public static decimal GrandTotal(this Order o) => o.Subtotal() + o.Tax();
+```
+
+}
+:::
+
 ```csharp
-// Sort by computed value -- top 10 by total
-var ranked = dbContext.Orders
-    .OrderByDescending(o => o.GrandTotal)
+db
+    .Orders
+    .OrderByDescending(o => o.GrandTotal())
     .Take(10)
-    .ToList();
+
+// Setup
+public static class OrderTotals
+{
+    [Expressive]
+    public static decimal Subtotal(this Order o)
+        => o.Items.Sum(i => i.UnitPrice * i.Quantity);
+
+    [Expressive]
+    public static decimal Tax(this Order o) => o.Subtotal() * 0.2m;
+
+    [Expressive]
+    public static decimal GrandTotal(this Order o) => o.Subtotal() + o.Tax();
+}
+```
+
+**Generated SQL:**
+
+```sql
+.param set @p 10
+
+SELECT "o"."Id", "o"."CustomerId", "o"."PlacedAt", "o"."Status"
+FROM "Orders" AS "o"
+ORDER BY ef_add((
+    SELECT COALESCE(ef_sum(ef_multiply("l"."UnitPrice", CAST("l"."Quantity" AS TEXT))), '0.0')
+    FROM "LineItems" AS "l"
+    WHERE "o"."Id" = "l"."OrderId"), ef_multiply((
+    SELECT COALESCE(ef_sum(ef_multiply("l0"."UnitPrice", CAST("l0"."Quantity" AS TEXT))), '0.0')
+    FROM "LineItems" AS "l0"
+    WHERE "o"."Id" = "l0"."OrderId"), '0.2')) COLLATE EF_DECIMAL DESC
+LIMIT @p
 ```
 
 ### All Together
 
+::: expressive-sample
+db.Orders
+.Where(o => o.GrandTotal() > 500)
+.GroupBy(o => o.PlacedAt.Year)
+.Select(g => new { Year = g.Key, Count = g.Count(), TotalRevenue = g.Sum(o => o.GrandTotal()) })
+\---setup---
+public static class OrderTotals
+{
+\[Expressive]
+public static decimal Subtotal(this Order o)
+\=> o.Items.Sum(i => i.UnitPrice \* i.Quantity);
+
+```
+[Expressive]
+public static decimal Tax(this Order o) => o.Subtotal() * 0.2m;
+
+[Expressive]
+public static decimal GrandTotal(this Order o) => o.Subtotal() + o.Tax();
+```
+
+}
+:::
+
 ```csharp
-var report = dbContext.Orders
-    .Where(o => o.GrandTotal > 500)
-    .OrderByDescending(o => o.GrandTotal)
-    .GroupBy(o => o.CreatedDate.Year)
-    .Select(g => new
-    {
-        Year = g.Key,
-        Count = g.Count(),
-        TotalRevenue = g.Sum(o => o.GrandTotal)
-    })
-    .ToList();
+db
+    .Orders
+    .Where(o => o.GrandTotal() > 500)
+    .GroupBy(o => o.PlacedAt.Year)
+    .Select(g => new { Year = g.Key, Count = g.Count(), TotalRevenue = g.Sum(o => o.GrandTotal()) })
+
+// Setup
+public static class OrderTotals
+{
+    [Expressive]
+    public static decimal Subtotal(this Order o)
+        => o.Items.Sum(i => i.UnitPrice * i.Quantity);
+
+    [Expressive]
+    public static decimal Tax(this Order o) => o.Subtotal() * 0.2m;
+
+    [Expressive]
+    public static decimal GrandTotal(this Order o) => o.Subtotal() + o.Tax();
+}
+```
+
+**Generated SQL:**
+
+```sql
+SELECT "o0"."Key" AS "Year", COUNT(*) AS "Count", COALESCE(ef_sum(ef_add((
+    SELECT COALESCE(ef_sum(ef_multiply("l1"."UnitPrice", CAST("l1"."Quantity" AS TEXT))), '0.0')
+    FROM "LineItems" AS "l1"
+    WHERE "o0"."Id" = "l1"."OrderId"), ef_multiply((
+    SELECT COALESCE(ef_sum(ef_multiply("l2"."UnitPrice", CAST("l2"."Quantity" AS TEXT))), '0.0')
+    FROM "LineItems" AS "l2"
+    WHERE "o0"."Id" = "l2"."OrderId"), '0.2'))), '0.0') AS "TotalRevenue"
+FROM (
+    SELECT "o"."Id", CAST(strftime('%Y', "o"."PlacedAt") AS INTEGER) AS "Key"
+    FROM "Orders" AS "o"
+    WHERE ef_compare(ef_add((
+        SELECT COALESCE(ef_sum(ef_multiply("l"."UnitPrice", CAST("l"."Quantity" AS TEXT))), '0.0')
+        FROM "LineItems" AS "l"
+        WHERE "o"."Id" = "l"."OrderId"), ef_multiply((
+        SELECT COALESCE(ef_sum(ef_multiply("l0"."UnitPrice", CAST("l0"."Quantity" AS TEXT))), '0.0')
+        FROM "LineItems" AS "l0"
+        WHERE "o"."Id" = "l0"."OrderId"), '0.2')), '500.0') > 0
+) AS "o0"
+GROUP BY "o0"."Key"
 ```
 
 All computed values are evaluated **in the database** -- no data is fetched to memory for filtering or aggregation.
 
-## Example: User Profile
+## Example: Customer Profile
+
+String concatenation, date arithmetic, and nullable checks all translate cleanly to SQL:
+
+::: expressive-sample
+db.Customers
+.Where(c => c.IsActive())
+.OrderBy(c => c.DisplayName())
+.Select(c => new { c.Id, Display = c.DisplayName() })
+\---setup---
+public static class CustomerProfile
+{
+\[Expressive]
+public static string DisplayName(this Customer c)
+\=> c.Name + (c.Country != null ? " (" + c.Country + ")" : "");
+
+```
+[Expressive]
+public static bool IsActive(this Customer c)
+    => c.JoinedAt >= new DateTime(2023, 1, 1);
+```
+
+}
+:::
 
 ```csharp
-public class User
+db
+    .Customers
+    .Where(c => c.IsActive())
+    .OrderBy(c => c.DisplayName())
+    .Select(c => new { c.Id, Display = c.DisplayName() })
+
+// Setup
+public static class CustomerProfile
 {
-    public string FirstName { get; set; } = "";
-    public string LastName { get; set; } = "";
-    public DateTime BirthDate { get; set; }
-    public DateTime? LastLoginDate { get; set; }
+    [Expressive]
+    public static string DisplayName(this Customer c)
+        => c.Name + (c.Country != null ? " (" + c.Country + ")" : "");
 
     [Expressive]
-    public string FullName => FirstName + " " + LastName;
-
-    [Expressive]
-    public string DisplayName => FirstName + " " + LastName.Substring(0, 1) + ".";
-
-    [Expressive]
-    public bool IsActive => LastLoginDate != null
-        && LastLoginDate >= DateTime.UtcNow.AddDays(-30);
+    public static bool IsActive(this Customer c)
+        => c.JoinedAt >= new DateTime(2023, 1, 1);
 }
 ```
 
-```csharp
-// Find active users, sorted by name
-var results = dbContext.Users
-    .Where(u => u.IsActive)
-    .OrderBy(u => u.FullName)
-    .Select(u => new { u.FullName, u.DisplayName })
-    .ToList();
-```
-
-Generated SQL (SQLite):
+**Generated SQL:**
 
 ```sql
-SELECT "u"."FirstName" || ' ' || "u"."LastName" AS "FullName",
-       "u"."FirstName" || ' ' || SUBSTR("u"."LastName", 1, 1) || '.' AS "DisplayName"
-FROM "Users" AS "u"
-WHERE "u"."LastLoginDate" IS NOT NULL
-  AND "u"."LastLoginDate" >= DATETIME('now', '-30 days')
-ORDER BY "u"."FirstName" || ' ' || "u"."LastName"
+SELECT "c"."Id", "c"."Name" || CASE
+    WHEN "c"."Country" IS NOT NULL THEN ' (' || "c"."Country" || ')'
+    ELSE ''
+END AS "Display"
+FROM "Customers" AS "c"
+WHERE "c"."JoinedAt" >= '2023-01-01 00:00:00'
+ORDER BY "c"."Name" || CASE
+    WHEN "c"."Country" IS NOT NULL THEN ' (' || "c"."Country" || ')'
+    ELSE ''
+END
 ```
 
 ## Example: Product Catalog
 
-```csharp
-public class Product
+Boolean flags and arithmetic combine naturally. Here `IsAvailable` and a derived price-tier flag compose into a single predicate:
+
+::: expressive-sample
+db.Products
+.Where(p => p.IsAvailable() && p.IsBudget())
+.OrderBy(p => p.StockQuantity)
+.Select(p => new { p.Id, p.Name, p.ListPrice, p.StockQuantity })
+\---setup---
+public static class ProductCatalog
 {
-    public int Id { get; set; }
-    public decimal ListPrice { get; set; }
-    public decimal DiscountRate { get; set; }
-    public int StockQuantity { get; set; }
-    public int ReorderPoint { get; set; }
+\[Expressive]
+public static bool IsAvailable(this Product p) => p.StockQuantity > 0;
+
+```
+[Expressive]
+public static bool IsBudget(this Product p) => p.ListPrice < 50m;
+
+[Expressive]
+public static decimal SavingsVs(this Product p, decimal msrp)
+    => msrp - p.ListPrice;
+```
+
+}
+:::
+
+```csharp
+db
+    .Products
+    .Where(p => p.IsAvailable() && p.IsBudget())
+    .OrderBy(p => p.StockQuantity)
+    .Select(p => new { p.Id, p.Name, p.ListPrice, p.StockQuantity })
+
+// Setup
+public static class ProductCatalog
+{
+    [Expressive]
+    public static bool IsAvailable(this Product p) => p.StockQuantity > 0;
 
     [Expressive]
-    public decimal DiscountedPrice => ListPrice * (1 - DiscountRate);
+    public static bool IsBudget(this Product p) => p.ListPrice < 50m;
 
     [Expressive]
-    public decimal SavingsAmount => ListPrice - DiscountedPrice;
-
-    [Expressive]
-    public bool IsAvailable => StockQuantity > 0;
-
-    [Expressive]
-    public bool NeedsReorder => StockQuantity <= ReorderPoint;
+    public static decimal SavingsVs(this Product p, decimal msrp)
+        => msrp - p.ListPrice;
 }
 ```
 
-```csharp
-// Available products on sale that need restocking
-var reorder = dbContext.Products
-    .Where(p => p.IsAvailable && p.NeedsReorder && p.DiscountedPrice < 50)
-    .OrderBy(p => p.StockQuantity)
-    .Select(p => new
-    {
-        p.Id,
-        p.DiscountedPrice,
-        p.SavingsAmount,
-        p.StockQuantity
-    })
-    .ToList();
-```
-
-Generated SQL (SQLite):
+**Generated SQL:**
 
 ```sql
-SELECT "p"."Id",
-       "p"."ListPrice" * (1 - "p"."DiscountRate") AS "DiscountedPrice",
-       "p"."ListPrice" - "p"."ListPrice" * (1 - "p"."DiscountRate") AS "SavingsAmount",
-       "p"."StockQuantity"
+SELECT "p"."Id", "p"."Name", "p"."ListPrice", "p"."StockQuantity"
 FROM "Products" AS "p"
-WHERE "p"."StockQuantity" > 0
-  AND "p"."StockQuantity" <= "p"."ReorderPoint"
-  AND "p"."ListPrice" * (1 - "p"."DiscountRate") < 50
+WHERE "p"."StockQuantity" > 0 AND ef_compare("p"."ListPrice", '50.0') < 0
 ORDER BY "p"."StockQuantity"
 ```
 
 ## Collection Aggregates
 
-Computed properties can include LINQ aggregation over navigation collections:
+Computed members can include LINQ aggregation over navigation collections. EF Core translates these to efficient correlated subqueries:
+
+::: expressive-sample
+db.Customers
+.Where(c => c.LifetimeSpend() > 500m)
+.Select(c => new { c.Id, c.Name, Spend = c.LifetimeSpend(), Orders = c.OrderCount() })
+\---setup---
+public static class CustomerStats
+{
+\[Expressive]
+public static int OrderCount(this Customer c) => c.Orders.Count();
+
+```
+[Expressive]
+public static decimal LifetimeSpend(this Customer c)
+    => c.Orders.Sum(o => o.Items.Sum(i => i.UnitPrice * i.Quantity));
+
+[Expressive]
+public static bool HasRecentOrder(this Customer c)
+    => c.Orders.Any(o => o.PlacedAt >= new DateTime(2024, 1, 1));
+```
+
+}
+:::
 
 ```csharp
-public class Customer
+db
+    .Customers
+    .Where(c => c.LifetimeSpend() > 500m)
+    .Select(c => new { c.Id, c.Name, Spend = c.LifetimeSpend(), Orders = c.OrderCount() })
+
+// Setup
+public static class CustomerStats
 {
-    public ICollection<Order> Orders { get; set; }
-    public ICollection<Review> Reviews { get; set; }
+    [Expressive]
+    public static int OrderCount(this Customer c) => c.Orders.Count();
 
     [Expressive]
-    public int OrderCount => Orders.Count();
+    public static decimal LifetimeSpend(this Customer c)
+        => c.Orders.Sum(o => o.Items.Sum(i => i.UnitPrice * i.Quantity));
 
     [Expressive]
-    public decimal LifetimeSpend => Orders.Sum(o => o.GrandTotal);
-
-    [Expressive]
-    public bool HasRecentOrder =>
-        Orders.Any(o => o.CreatedDate >= DateTime.UtcNow.AddDays(-30));
+    public static bool HasRecentOrder(this Customer c)
+        => c.Orders.Any(o => o.PlacedAt >= new DateTime(2024, 1, 1));
 }
 ```
 
-EF Core translates these to efficient correlated subqueries.
+**Generated SQL:**
+
+```sql
+SELECT "c"."Id", "c"."Name", (
+    SELECT COALESCE(ef_sum((
+        SELECT COALESCE(ef_sum(ef_multiply("l0"."UnitPrice", CAST("l0"."Quantity" AS TEXT))), '0.0')
+        FROM "LineItems" AS "l0"
+        WHERE "o0"."Id" = "l0"."OrderId")), '0.0')
+    FROM "Orders" AS "o0"
+    WHERE "c"."Id" = "o0"."CustomerId") AS "Spend", (
+    SELECT COUNT(*)
+    FROM "Orders" AS "o1"
+    WHERE "c"."Id" = "o1"."CustomerId") AS "Orders"
+FROM "Customers" AS "c"
+WHERE ef_compare((
+    SELECT COALESCE(ef_sum((
+        SELECT COALESCE(ef_sum(ef_multiply("l"."UnitPrice", CAST("l"."Quantity" AS TEXT))), '0.0')
+        FROM "LineItems" AS "l"
+        WHERE "o"."Id" = "l"."OrderId")), '0.0')
+    FROM "Orders" AS "o"
+    WHERE "c"."Id" = "o"."CustomerId"), '500.0') > 0
+```
 
 ## Tips
 
@@ -229,15 +484,19 @@ EF Core translates these to efficient correlated subqueries.
 :::
 
 ::: tip Keep it pure
-Expressive properties should be pure computations with no side effects. Everything must be translatable to SQL by your LINQ provider.
+Expressive members should be pure computations with no side effects. Everything must be translatable to SQL by your LINQ provider.
+:::
+
+::: tip Property vs. extension method
+If you own the entity, prefer `[Expressive]` properties for a natural call site (`o.GrandTotal`). For types you cannot modify, `[Expressive]` extension methods (`o.GrandTotal()`) are equivalent in translation power.
 :::
 
 ::: warning Avoid N+1 traps
-If a computed property references navigation properties, make sure to structure your queries so EF Core can generate a single efficient query. Using computed properties in `Select` and `Where` at the top level is safe.
+If a computed member references navigation properties, make sure to structure your queries so EF Core can generate a single efficient query. Using computed members in `Select` and `Where` at the top level is safe.
 :::
 
 ## See Also
 
-* [Reusable Query Filters](/recipes/reusable-query-filters) -- Boolean computed properties as filter predicates
-* [DTO Projections with Constructors](/recipes/dto-projections) -- project computed values into DTOs
-* [Scoring and Classification](/recipes/scoring-classification) -- computed properties with switch expressions
+* [Reusable Query Filters](./reusable-query-filters) -- Boolean computed properties as filter predicates
+* [DTO Projections with Constructors](./dto-projections) -- project computed values into DTOs
+* [Scoring and Classification](./scoring-classification) -- computed properties with switch expressions
