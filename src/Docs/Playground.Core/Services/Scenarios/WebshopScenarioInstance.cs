@@ -12,15 +12,12 @@ public sealed class WebshopScenarioInstance : IScenarioInstance
 
     public WebshopScenarioInstance()
     {
+        // ServiceProviderCaching disabled so a failing sample's bad compiled-query
+        // state can't be reused by the next sample's context.
         _sqlite = new WebshopDbContext(
             new DbContextOptionsBuilder<WebshopDbContext>()
                 .UseSqlite("Data Source=:memory:")
                 .UseExpressives()
-                // Disable EF Core's process-wide internal service provider cache.
-                // Without this, failing queries in one sample can cache bad
-                // compiled-query state that breaks later samples with seemingly
-                // unrelated errors (e.g., "'System.Object' cannot be used for
-                // return type 'System.String'").
                 .EnableServiceProviderCaching(false)
                 .Options);
     }
@@ -46,7 +43,6 @@ public sealed class WebshopScenarioInstance : IScenarioInstance
             await _postgres.DisposeAsync();
     }
 
-    // Adapts a WebshopDbContext to IWebshopQueryRoots.
     private sealed class DbContextRoots : IWebshopQueryRoots
     {
         private readonly WebshopDbContext _ctx;

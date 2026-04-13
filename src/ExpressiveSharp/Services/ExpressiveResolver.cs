@@ -23,9 +23,7 @@ namespace ExpressiveSharp.Services
 
         /// <summary>
         /// Clears all process-level caches built up by the resolver. Intended for test harnesses
-        /// and the docs prerenderer, where many short-lived assemblies are loaded in sequence and
-        /// accumulated <c>[ExpressiveFor]</c> registrations across them would cause false "multiple
-        /// mappings" errors. Not part of the public production API surface.
+        /// and the docs prerenderer, where many short-lived snippet assemblies are loaded in sequence.
         /// </summary>
         public static void ResetAllCaches()
         {
@@ -40,8 +38,6 @@ namespace ExpressiveSharp.Services
 
         /// <summary>
         /// Restricts <see cref="EnsureAllRegistriesLoaded"/> to assemblies matching the given filter.
-        /// Used by the docs prerenderer to register only the currently-rendering snippet's assembly
-        /// instead of every previously-loaded snippet assembly still in the AppDomain.
         /// Pass <c>null</c> to remove the filter.
         /// </summary>
         public static void SetAssemblyScanFilter(Func<Assembly, bool>? filter)
@@ -133,11 +129,7 @@ namespace ExpressiveSharp.Services
                 }
                 catch (TypeInitializationException)
                 {
-                    // The registry's static type initializer failed — typically
-                    // because a generated *_Expression() factory threw (e.g. a
-                    // malformed lambda built from an unsupported IOperation).
-                    // Mark this registry as broken so we stop probing it for
-                    // every subsequent member lookup.
+                    // Registry's static ctor failed — mark inert so we don't re-throw on every lookup.
                     _assemblyRegistries[kvp.Key] = _nullRegistry;
                     continue;
                 }
@@ -161,11 +153,8 @@ namespace ExpressiveSharp.Services
         private static readonly object _scanLock = new();
 
         /// <summary>
-        /// Scans loaded assemblies for expression registries. Rescans on demand
-        /// whenever new assemblies have been loaded into the AppDomain since the
-        /// previous scan — this matters for runtime-compiled assemblies (e.g.
-        /// the docs prerenderer) where the first scan happens before later
-        /// samples' assemblies are loaded.
+        /// Scans loaded assemblies for expression registries. Rescans when new assemblies
+        /// have been loaded since the previous scan (matters for runtime-compiled assemblies).
         /// </summary>
         private static void EnsureAllRegistriesLoaded()
         {

@@ -39,10 +39,7 @@ jobs:
           restore-keys: |
             nuget-${{ runner.os }}-
 
-      # ExpressiveSharp.Docs.Playground.Wasm uses RunAOTCompilation=true in
-      # Release, which requires the wasm-tools workload (native toolchain +
-      # Emscripten). `dotnet restore` triggers the workload check before
-      # compilation, so install first.
+      # Required by Playground.Wasm's Release AOT compilation.
       - name: Install wasm-tools workload
         run: dotnet workload install wasm-tools
 

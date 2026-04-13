@@ -45,8 +45,7 @@ jobs:
           restore-keys: |
             nuget-${{ runner.os }}-
 
-      # Solution-wide build pulls in Playground.Wasm, which needs wasm-tools
-      # for its Release AOT compilation step.
+      # Required by Playground.Wasm's Release AOT compilation.
       - name: Install wasm-tools workload
         run: dotnet workload install wasm-tools
 

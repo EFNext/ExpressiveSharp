@@ -26,8 +26,7 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      # Playground.Wasm sets RunAOTCompilation=true in Release, which needs
-      # the wasm-tools workload (Emscripten + native WASM toolchain).
+      # Required by Playground.Wasm's Release AOT compilation.
       - name: Install wasm-tools workload
         run: dotnet workload install wasm-tools
 

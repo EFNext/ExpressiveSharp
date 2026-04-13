@@ -3,11 +3,8 @@ using ExpressiveSharp;
 namespace ExpressiveSharp.Docs.PlaygroundModel.Webshop;
 
 /// <summary>
-/// Multi-root query context that sample snippets receive as their sole argument.
-/// Each render target (EF Core SQLite/Postgres/SqlServer/Cosmos, MongoDB, in-memory
-/// playground) supplies its own implementation wrapping its underlying queryables.
-/// Snippets read as <c>db.Customers.Where(...)</c>, <c>db.Orders.SelectMany(...)</c>,
-/// etc. — naturally rooted at whichever entity set the example needs.
+/// Query context passed to sample snippets; each render target supplies its own
+/// implementation (EF Core DbContext, MongoDB collections, in-memory arrays).
 /// </summary>
 public interface IWebshopQueryRoots
 {

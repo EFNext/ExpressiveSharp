@@ -28,12 +28,8 @@ internal sealed class SampleRenderer : IAsyncDisposable
 {
     private readonly SnippetCompiler _compiler;
 
-    // A fresh context per sample is essential: reusing a DbContext (or shared
-    // MongoDB root) across samples corrupts EF Core's query cache when one
-    // sample's translation fails. Downstream samples then surface errors like
-    // "Expression of type 'System.Object' cannot be used for return type
-    // 'System.String'" even though the snippet is translatable in isolation.
-
+    // Fresh contexts per sample — a failing sample corrupts EF Core's query cache
+    // and poisons subsequent samples' translations.
     private static WebshopDbContext BuildSqlServerContext() =>
         new(new DbContextOptionsBuilder<WebshopDbContext>()
             .UseSqlServer("Server=.;Database=playground")
@@ -120,11 +116,9 @@ internal sealed class SampleRenderer : IAsyncDisposable
             (IQueryable?)runMethod.Invoke(null, new[] { arg })
                 ?? throw new InvalidOperationException("Snippet.Run returned null.");
 
-        // Reset ExpressiveSharp's process-level resolver caches between samples,
-        // then restrict registry scanning to only the current snippet's assembly.
-        // Without this, previous samples' assemblies accumulate in the AppDomain,
-        // their [ExpressiveFor] registrations overlap with the current sample's,
-        // and FindExternalExpression throws "Multiple mappings found".
+        // Isolate each sample from prior ones: clear resolver caches and
+        // restrict registry scanning to the current snippet's assembly so
+        // accumulated [ExpressiveFor] registrations don't collide.
         ExpressiveSharp.Services.ExpressiveResolver.ResetAllCaches();
         var snippetAssembly = result.Assembly;
         ExpressiveSharp.Services.ExpressiveResolver.SetAssemblyScanFilter(
@@ -132,8 +126,6 @@ internal sealed class SampleRenderer : IAsyncDisposable
                 || asm == typeof(ExpressiveSharp.ExpressiveAttribute).Assembly
                 || asm == typeof(ExpressiveSharp.EntityFrameworkCore.ExpressiveDbSet<>).Assembly);
 
-        // Fresh scenario instance per sample — isolates per-sample EF Core
-        // query-cache state so one sample's failure can't poison the next.
         using var instanceScope = new ScenarioInstanceScope(scenario);
         var targets = new Dictionary<string, RenderedTarget>();
 
@@ -156,8 +148,7 @@ internal sealed class SampleRenderer : IAsyncDisposable
             }
         }
 
-        // Prerenderer-only providers: fresh DbContexts / Mongo roots per sample.
-        // Their client libraries throw on WASM so they can't live in Core.
+        // Prerenderer-only providers — their client libraries throw on WASM.
         if (scenario.Id == "webshop")
         {
             using var sqlServer = BuildSqlServerContext();
@@ -197,14 +188,9 @@ internal sealed class SampleRenderer : IAsyncDisposable
         }
     }
 
-    // Extracts a clean, readable error message from the exception chain.
-    // Strips EF Core's verbose LINQ expression dump and leaves just the
-    // "could not be translated" reason plus the fwlink hint if present.
+    // Strips EF Core's verbose LINQ expression dump and returns the translation reason only.
     private static string FormatErrorMessage(Exception ex)
     {
-        // Unwrap TargetInvocationException and TypeInitializationException —
-        // they add no signal, the inner message is the real reason the query
-        // could not be translated.
         while (ex is System.Reflection.TargetInvocationException or TypeInitializationException && ex.InnerException is not null)
             ex = ex.InnerException;
 
@@ -212,13 +198,10 @@ internal sealed class SampleRenderer : IAsyncDisposable
             Console.Error.WriteLine($"\n--- Exception from {ex.GetType().Name} ---\n{ex}\n---");
 
         var msg = ex.Message;
-        // EF Core often prepends "The LINQ expression '...' could not be translated."
-        // followed by "Additional information: ..." with the real reason.
         var additionalIdx = msg.IndexOf("Additional information:", StringComparison.Ordinal);
         if (additionalIdx >= 0)
         {
             var reason = msg[(additionalIdx + "Additional information:".Length)..].Trim();
-            // Trim the fwlink footer too
             var fwlinkIdx = reason.IndexOf("See https://", StringComparison.Ordinal);
             if (fwlinkIdx >= 0) reason = reason[..fwlinkIdx].Trim();
             return reason;
@@ -226,9 +209,6 @@ internal sealed class SampleRenderer : IAsyncDisposable
         return msg;
     }
 
-    // Synchronously disposes the scenario instance at end-of-scope so the
-    // DbContext underlying the in-scenario render targets (SQLite, Postgres
-    // in WebshopScenarioInstance) is torn down before the next sample runs.
     private readonly struct ScenarioInstanceScope : IDisposable
     {
         public IScenarioInstance Instance { get; }
@@ -245,17 +225,12 @@ internal sealed class SampleRenderer : IAsyncDisposable
         }
     }
 
-    // Formats a C# expression across multiple lines:
-    //  1. SnippetFormatter breaks outer fluent chains (.Where().Select() → one per line)
-    //  2. A custom syntax rewriter breaks switch expression arms onto their own lines
-    //  3. Roslyn's Formatter normalizes indentation
     private static string FormatSnippet(string snippet)
     {
         var preformatted = SnippetFormatter.Format(snippet);
         var wrapped = "_ = " + preformatted + ";";
         var root = CSharpSyntaxTree.ParseText(wrapped).GetRoot();
 
-        // Break switch expression arms onto separate lines
         root = new SwitchExpressionBreaker().Visit(root);
 
         using var workspace = new Microsoft.CodeAnalysis.AdhocWorkspace();
@@ -290,9 +265,7 @@ internal sealed class SampleRenderer : IAsyncDisposable
         }
     }
 
-    // Pretty-prints a MongoDB aggregation pipeline. Raw output is a single line:
-    //   collection.Aggregate([{ "$match" : {...} }, { "$project" : {...} }])
-    // Output expands each stage and the BSON content inside each stage.
+    // Breaks MongoDB's single-line `Aggregate([...])` output into one stage per line.
     private static string FormatMongoOutput(string raw)
     {
         var openIdx = raw.IndexOf("Aggregate([", StringComparison.Ordinal);
@@ -319,9 +292,7 @@ internal sealed class SampleRenderer : IAsyncDisposable
         return sb.ToString();
     }
 
-    // Pretty-prints relaxed JSON (Mongo-style with spaces around colons).
-    // Breaks objects and arrays onto multiple lines when they contain nested
-    // objects/arrays; keeps short primitive-only objects inline.
+    // Breaks nested-object BSON across lines; keeps primitive-only objects inline.
     private static string PrettyPrintBson(string json, int indentDepth)
     {
         var sb = new System.Text.StringBuilder();

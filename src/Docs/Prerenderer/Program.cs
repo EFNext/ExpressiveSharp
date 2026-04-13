@@ -3,14 +3,10 @@ using System.Text.Json.Serialization;
 using ExpressiveSharp.Docs.Playground.Core.Services;
 using ExpressiveSharp.Docs.Prerenderer;
 
-// Doc samples use plain `new DateTime(2024, 1, 1)` literals which have
-// DateTimeKind.Unspecified. Npgsql 6+ rejects those for `timestamp with time
-// zone` columns at translation time. Restoring the pre-6 legacy behavior
-// treats Unspecified DateTimes as UTC — which is what the samples mean,
-// and keeps the docs free of `DateTime.SpecifyKind(..., Utc)` boilerplate.
+// Treat `new DateTime(...)` literals (Kind=Unspecified) as UTC so Npgsql accepts
+// them for `timestamp with time zone` columns — samples stay free of SpecifyKind.
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
-// Parse --docs-root argument
 var docsRoot = "../../docs";
 for (var i = 0; i < args.Length - 1; i++)
 {

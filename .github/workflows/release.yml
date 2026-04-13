@@ -53,9 +53,7 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Publishing version: $VERSION"
 
-      # Solution-wide build pulls in Playground.Wasm, which needs wasm-tools
-      # for its Release AOT compilation step. (The release itself doesn't pack
-      # the Wasm project — IsPackable=false — but it's still built.)
+      # Required by Playground.Wasm's Release AOT compilation.
       - name: Install wasm-tools workload
         run: dotnet workload install wasm-tools
 
