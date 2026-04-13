@@ -1,6 +1,6 @@
 # Null-Conditional Rewrite
 
-Expression trees -- the representation LINQ providers like EF Core use internally -- cannot directly express the null-conditional operator (`?.`). ExpressiveSharp handles this transparently by generating faithful null-check ternaries at compile time and providing a transformer to strip them when targeting SQL databases.
+Expression trees -- the representation LINQ providers use internally -- cannot directly express the null-conditional operator (`?.`). ExpressiveSharp handles this transparently by generating faithful null-check ternaries at compile time and providing a transformer to strip them when targeting providers that handle NULL propagation natively.
 
 ## The Problem
 
@@ -25,7 +25,17 @@ ExpressiveSharp always generates a **faithful ternary** for null-conditional ope
 Customer != null ? Customer.Email : default(string)
 ```
 
-This is the generated expression tree equivalent -- it preserves the exact semantics of the original C# code. There is no per-member configuration needed; `?.` simply works.
+This is the generated expression tree equivalent -- it preserves the exact semantics of the original C# code. There is no per-member configuration needed; `?.` simply works. The tabs on the sample below show how each provider renders this ternary.
+
+::: expressive-sample
+db.Orders.Select(o => new { o.Id, Email = o.CustomerEmail() })
+---setup---
+public static class OrderExt
+{
+    [Expressive]
+    public static string? CustomerEmail(this Order o) => o.Customer?.Email;
+}
+:::
 
 ::: info
 Unlike Projectables, which required a per-member `NullConditionalRewriteSupport` enum (`None`, `Ignore`, or `Rewrite`), ExpressiveSharp always generates the faithful ternary. The stripping of null checks is handled separately by the `RemoveNullConditionalPatterns` transformer.
@@ -62,69 +72,52 @@ No additional configuration is needed. All `[Expressive]` members with `?.` oper
 
 If you are not using EF Core (or want per-member control without `UseExpressives()`), apply the transformer on individual members:
 
-```csharp
-[Expressive(Transformers = new[] { typeof(RemoveNullConditionalPatterns) })]
-public string? CustomerName => Customer?.Name;
-```
+::: expressive-sample
+db.Orders.Select(o => new { o.Id, Name = o.CustomerName() })
+---setup---
+public static class OrderExt
+{
+    [Expressive(Transformers = new[] { typeof(ExpressiveSharp.Transformers.RemoveNullConditionalPatterns) })]
+    public static string? CustomerName(this Order o) => o.Customer?.Name;
+}
+:::
 
 Or apply it when expanding expressions manually:
 
 ```csharp
 Expression<Func<Order, string?>> expr = o => o.CustomerEmail;
-var expanded = expr.ExpandExpressives(new RemoveNullConditionalPatterns());
+var expanded = expr.ExpandExpressives(new ExpressiveSharp.Transformers.RemoveNullConditionalPatterns());
 ```
 
 ## Multi-Level Nullable Chain
 
-Chained null-conditional operators generate nested ternaries:
+Chained null-conditional operators generate nested ternaries. The tabs below show how the nesting translates for each provider:
 
-```csharp
-[Expressive]
-public string? CustomerCity => Customer?.Address?.City;
-```
+::: expressive-sample
+db.Orders.Select(o => new { o.Id, Country = o.CustomerCountry() })
+---setup---
+public static class OrderExt
+{
+    [Expressive]
+    public static string? CustomerCountry(this Order o) => o.Customer?.Country;
+}
+:::
 
 Generated expression (before transformer):
 
 ```csharp
 Customer != null
-    ? (Customer.Address != null ? Customer.Address.City : default(string))
+    ? (Customer.Country != null ? Customer.Country : default(string))
     : default(string)
 ```
 
 After `RemoveNullConditionalPatterns`:
 
 ```csharp
-Customer.Address.City
+Customer.Country
 ```
 
-### SQL Output Comparison
-
-**Without transformer** (faithful ternary preserved):
-
-```sql
-SELECT CASE
-    WHEN "c"."Id" IS NOT NULL THEN
-        CASE
-            WHEN "a"."Id" IS NOT NULL THEN "a"."City"
-            ELSE NULL
-        END
-    ELSE NULL
-END
-FROM "Orders" AS "o"
-LEFT JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
-LEFT JOIN "Addresses" AS "a" ON "c"."AddressId" = "a"."Id"
-```
-
-**With transformer** (null checks stripped -- applied by `UseExpressives()`):
-
-```sql
-SELECT "a"."City"
-FROM "Orders" AS "o"
-LEFT JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
-LEFT JOIN "Addresses" AS "a" ON "c"."AddressId" = "a"."Id"
-```
-
-The second form is cleaner and produces identical results because the `LEFT JOIN` already handles the null case -- if there is no matching customer or address, the column value is `NULL`.
+The tabs above reflect the transformer-applied output for SQL providers (null checks stripped); client-side or non-SQL providers preserve the faithful ternary.
 
 ## When to Keep the Null Checks
 
@@ -146,4 +139,4 @@ In these cases, do not apply `RemoveNullConditionalPatterns`, and the faithful t
 | Explicit null checks | `Rewrite` mode on the attribute | Default behavior (always faithful) |
 | Global control | Not available | `UseExpressives()` applies transformer globally |
 
-The ExpressiveSharp approach is simpler: write `?.` naturally, and the right thing happens based on whether you are targeting a SQL database (transformer strips null checks) or not (ternaries preserved).
+The ExpressiveSharp approach is simpler: write `?.` naturally, and the right thing happens based on whether your provider handles NULL propagation (transformer strips null checks) or not (ternaries preserved).

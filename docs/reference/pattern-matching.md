@@ -1,6 +1,6 @@
 # Pattern Matching
 
-The ExpressiveSharp source generator rewrites C# pattern-matching constructs into expression-tree-compatible ternary and binary expressions. LINQ providers like EF Core translate these into SQL `CASE` expressions.
+The ExpressiveSharp source generator rewrites C# pattern-matching constructs into expression-tree-compatible ternary and binary expressions. LINQ providers translate these into their native conditional syntax (SQL `CASE`, MongoDB `$cond`/`$switch`, etc.).
 
 ## Supported Patterns
 
@@ -24,64 +24,67 @@ The ExpressiveSharp source generator rewrites C# pattern-matching constructs int
 
 ### Relational `and` / `or`
 
-```csharp
-// Range check
-[Expressive]
-public bool IsInRange => Value is >= 1 and <= 100;
-```
+A range check using an `[Expressive]` helper. The tabs show how each provider translates it.
 
-Generated expression:
+::: expressive-sample
+db.Products.Where(p => p.IsReasonablyPriced()).Select(p => p.Name)
+---setup---
+public static class ProductExt
+{
+    [Expressive]
+    public static bool IsReasonablyPriced(this Product p) => p.ListPrice is >= 1m and <= 100m;
+}
+:::
 
-```csharp
-Value >= 1 && Value <= 100
-```
+Alternative values with `or`:
 
-```csharp
-// Alternative values
-[Expressive]
-public bool IsEdge => Value is 0 or 100;
-```
-
-Generated expression:
-
-```csharp
-Value == 0 || Value == 100
-```
+::: expressive-sample
+db.Orders.Where(o => o.IsBoundary()).Select(o => o.Id)
+---setup---
+public static class OrderExt
+{
+    [Expressive]
+    public static bool IsBoundary(this Order o) => o.Items.Count is 0 or 100;
+}
+:::
 
 ### `not null` / `not`
 
-```csharp
-[Expressive]
-public bool HasName => Name is not null;
-```
-
-Generated expression:
-
-```csharp
-!(Name == null)
-```
+::: expressive-sample
+db.Customers.Where(c => c.HasEmail()).Select(c => c.Name)
+---setup---
+public static class CustomerExt
+{
+    [Expressive]
+    public static bool HasEmail(this Customer c) => c.Email is not null;
+}
+:::
 
 ### Property Patterns
 
-```csharp
-[Expressive]
-public static bool IsActiveAndPositive(this Entity entity) =>
-    entity is { IsActive: true, Value: > 0 };
-```
-
-Generated expression:
-
-```csharp
-entity != null && entity.IsActive == true && entity.Value > 0
-```
+::: expressive-sample
+db.Orders.Where(o => o.IsLargePaid()).Select(o => o.Id)
+---setup---
+public static class OrderExt
+{
+    [Expressive]
+    public static bool IsLargePaid(this Order o) =>
+        o is { Status: ExpressiveSharp.Docs.PlaygroundModel.Webshop.OrderStatus.Paid, Items.Count: > 5 };
+}
+:::
 
 Property patterns can be nested:
 
-```csharp
-[Expressive]
-public bool HasValidCustomer =>
-    Customer is { Name: not null, Address: { City: not null } };
-```
+::: expressive-sample
+db.Orders.Where(o => o.HasNamedCustomer()).Select(o => o.Id)
+---setup---
+public static class OrderExt
+{
+    [Expressive]
+    public static bool HasNamedCustomer(this Order o) =>
+        o is { Customer: { Name: not null, Country: not null } };
+}
+:::
 
 ### Positional / Deconstruct Patterns
 
@@ -115,76 +118,57 @@ Switch expressions are the most common use of pattern matching in `[Expressive]`
 
 ### Relational and Constant Patterns
 
-```csharp
-[Expressive]
-public string GetGrade() => Score switch
+::: expressive-sample
+db.Products.Select(p => new { p.Name, Grade = p.GetGrade() })
+---setup---
+public static class ProductExt
 {
-    >= 90 => "A",
-    >= 80 => "B",
-    >= 70 => "C",
-    _     => "F",
-};
-```
+    [Expressive]
+    public static string GetGrade(this Product p) => p.ListPrice switch
+    {
+        >= 500m => "A",
+        >= 100m => "B",
+        >= 20m  => "C",
+        _       => "F",
+    };
+}
+:::
 
-Generated expression:
-
-```csharp
-Score >= 90 ? "A"
-: Score >= 80 ? "B"
-: Score >= 70 ? "C"
-: "F"
-```
-
-EF Core translates this to:
-
-```sql
-SELECT CASE
-    WHEN "e"."Score" >= 90 THEN 'A'
-    WHEN "e"."Score" >= 80 THEN 'B'
-    WHEN "e"."Score" >= 70 THEN 'C'
-    ELSE 'F'
-END
-```
+The tabs above show how each provider renders the generated ternary chain.
 
 ### `and` / `or` Combined Patterns
 
-```csharp
-[Expressive]
-public string GetBand() => Score switch
+::: expressive-sample
+db.Products.Select(p => new { p.Name, Band = p.GetBand() })
+---setup---
+public static class ProductExt
 {
-    >= 90 and <= 100 => "Excellent",
-    >= 70 and < 90   => "Good",
-    _                => "Poor",
-};
-```
-
-Generated expression:
-
-```csharp
-(Score >= 90 && Score <= 100) ? "Excellent"
-: (Score >= 70 && Score < 90) ? "Good"
-: "Poor"
-```
+    [Expressive]
+    public static string GetBand(this Product p) => p.StockQuantity switch
+    {
+        >= 90 and <= 100 => "Excellent",
+        >= 70 and < 90   => "Good",
+        _                => "Poor",
+    };
+}
+:::
 
 ### `when` Guards
 
-```csharp
-[Expressive]
-public string Classify() => Value switch
+::: expressive-sample
+db.Products.Select(p => new { p.Name, Class = p.Classify() })
+---setup---
+public static class ProductExt
 {
-    4 when IsSpecial => "Special Four",
-    4               => "Regular Four",
-    _               => "Other",
-};
-```
-
-Generated expression:
-
-```csharp
-(Value == 4 && IsSpecial) ? "Special Four"
-: Value == 4 ? "Regular Four"
-: "Other"
-```
+    [Expressive]
+    public static string Classify(this Product p) => p.StockQuantity switch
+    {
+        4 when p.Category == "Special" => "Special Four",
+        4                              => "Regular Four",
+        _                              => "Other",
+    };
+}
+:::
 
 ### Type Patterns with Declaration Variables
 
@@ -208,34 +192,25 @@ Declaration variables (the `c` and `r` in the example above) are supported in sw
 
 Patterns can be nested arbitrarily:
 
-```csharp
-[Expressive]
-public string ClassifyOrder() => this switch
+::: expressive-sample
+db.Orders.Select(o => new { o.Id, Tag = o.ClassifyOrder() })
+---setup---
+public static class OrderExt
 {
-    { Customer: { Tier: CustomerTier.Premium }, Total: >= 100 } => "VIP Order",
-    { Customer: not null, Total: >= 50 }                        => "Standard Order",
-    _                                                            => "Basic Order",
-};
-```
+    [Expressive]
+    public static string ClassifyOrder(this Order o) => o switch
+    {
+        { Customer.Country: "US", Items.Count: >= 10 } => "VIP Order",
+        { Customer: not null, Items.Count: >= 5 }      => "Standard Order",
+        _                                              => "Basic Order",
+    };
+}
+:::
 
-## SQL Generation
+## Translation Output
 
-All pattern-matching constructs compile down to nested `CASE` expressions in SQL. The generator produces a chain of conditional (ternary) expressions, which EF Core maps directly to SQL `CASE WHEN ... THEN ... ELSE ... END`.
-
-For complex nested patterns, the SQL output may contain nested `CASE` expressions:
-
-```sql
-SELECT CASE
-    WHEN "c"."Tier" = 2 AND ("o"."Price" * "o"."Quantity") >= 100.0
-        THEN 'VIP Order'
-    WHEN "c"."Id" IS NOT NULL AND ("o"."Price" * "o"."Quantity") >= 50.0
-        THEN 'Standard Order'
-    ELSE 'Basic Order'
-END
-FROM "Orders" AS "o"
-LEFT JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
-```
+All pattern-matching constructs compile down to nested conditional expressions. The generator produces a chain of ternaries, which each provider maps to its own conditional syntax (SQL `CASE WHEN ... THEN ... ELSE ... END`, MongoDB `$switch`/`$cond`, etc.). The tabs on the samples above let you inspect the exact translation for your target.
 
 ::: warning
-Keep patterns reasonably simple for SQL translation. Very deeply nested patterns produce complex SQL that may be harder to debug and could impact query performance.
+Keep patterns reasonably simple for translation. Very deeply nested patterns produce complex output that may be harder to debug and could impact query performance.
 :::

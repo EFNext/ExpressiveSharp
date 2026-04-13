@@ -1,0 +1,114 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <!-- Interactive ExpressiveSharp Playground. Static-published Blazor WASM
+       app served by VitePress at /playground/. Hosts a Monaco editor in
+       which the user types LINQ snippets, compiles them at runtime via
+       Roslyn + the ExpressiveSharp source generators, and renders the
+       result through one of several render targets (SQL, expression
+       tree, generator output). -->
+
+  <PropertyGroup>
+    <TargetFrameworks></TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+
+    <!-- Roslyn + EF Core trim incompatibly. -->
+    <PublishTrimmed>false</PublishTrimmed>
+
+    <!-- AOT compilation via wasm-tools workload — significantly faster Roslyn
+         execution at runtime. Only applied on Release publish. We can't strip
+         IL after AOT because PlaygroundReferences feeds the .dll files back
+         into Roslyn as MetadataReference instances for compile-time type
+         resolution — MetadataReference.CreateFromImage needs real PE bytes. -->
+    <RunAOTCompilation Condition="'$(Configuration)' == 'Release'">true</RunAOTCompilation>
+
+    <!-- WebCIL packaging + content-hashed asset names off so SnippetCompiler
+         can fetch reference DLLs from /_framework/<name>.dll via HttpClient. -->
+    <WasmEnableWebcil>false</WasmEnableWebcil>
+    <WasmFingerprintAssets>false</WasmFingerprintAssets>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer"
+                      PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.CustomElements" />
+    <!-- BlazorMonaco removed — we load Monaco editor directly via JS and
+         interact through our own monaco-interop.js JSInterop module. This
+         avoids BlazorMonaco's hardcoded document.baseURI dependency that
+         prevents hosting the web component on a page with a different base. -->
+
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <!-- Roslyn IntelliSense (CompletionService, QuickInfoService). The cctor
+         blocker on DefaultPersistentStorageConfiguration is bypassed by the
+         WorkspaceShim project below. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" />
+    <PackageReference Include="Basic.Reference.Assemblies.Net100" />
+
+    <!-- EF Core 10 + Sqlite.Core. ManagedSqliteStub registers a managed
+         SQLitePCLRaw provider at startup so DbContext init succeeds without
+         the native SQLitePCL bundle. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore"
+                      VersionOverride="10.0.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"
+                      VersionOverride="10.0.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite.Core"
+                      VersionOverride="10.0.5" />
+
+    <!-- Npgsql for the Postgres render target. We use a fake connection
+         string and never open a real connection, so the wire-protocol code
+         paths are inert. -->
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"
+                      VersionOverride="10.0.1" />
+
+    <!-- Microsoft.EntityFrameworkCore.SqlServer is intentionally NOT here.
+         Microsoft.Data.SqlClient hard-throws PlatformNotSupportedException
+         on Browser/WASM at the moment EF Core touches a SqlConnection during
+         query translation. There's no browser-wasm runtime variant and no
+         managed-only fallback — drop-in re-enable is blocked until the
+         upstream package gains WASM support. -->
+
+    <!-- MongoDB.Driver is intentionally NOT here. The v3 LINQ-to-MQL
+         translator path itself is pure managed code, but MongoClient's
+         constructor unconditionally calls ServerMonitor.Initialize() →
+         Thread.Start(), which throws PlatformNotSupportedException on
+         single-threaded WASM. The internal IClusterSource property on
+         MongoClientSettings IS settable as a workaround, but implementing
+         a stub IClusterSource + ICluster requires either an assembly with
+         internal access to MongoDB.Driver (the IVT declarations are
+         strong-keyed; the only feasible target is "DynamicProxyGenAssembly2"
+         signed with Castle.DynamicProxy's well-known key) or an UnsafeAccessor
+         shim. Either approach is version-fragile and high-maintenance for
+         one render target. Drop-in re-enable is blocked until upstream
+         WASM support lands. -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Playground.Core\ExpressiveSharp.Docs.Playground.Core.csproj" />
+    <ProjectReference Include="..\..\ExpressiveSharp\ExpressiveSharp.csproj" />
+    <ProjectReference Include="..\..\ExpressiveSharp.EntityFrameworkCore\ExpressiveSharp.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\ExpressiveSharp.Abstractions\ExpressiveSharp.Abstractions.csproj" />
+    <ProjectReference Include="..\PlaygroundModel\ExpressiveSharp.Docs.PlaygroundModel.csproj" />
+    <ProjectReference Include="..\..\ExpressiveSharp.Generator\ExpressiveSharp.Generator.csproj"
+                      ReferenceOutputAssembly="true" />
+
+    <!-- WorkspaceShim — exports a no-op IPersistentStorageConfiguration via
+         MEF to bypass the DefaultPersistentStorageConfiguration..cctor PNSE
+         on Roslyn workspace init. See the shim project's own header. -->
+    <ProjectReference Include="..\Playground.WasmWorkspaceShim\ExpressiveSharp.Docs.Playground.WasmWorkspaceShim.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Lazy-loaded via Microsoft.AspNetCore.Components.WebAssembly.Services
+         .LazyAssemblyLoader. Excluded from the initial boot manifest and
+         fetched on demand by PlaygroundRuntime when a render target with
+         a matching LazyLoadAssemblies list is selected. SQLite stays eager
+         (it's the default target); Postgres is opt-in so its ~0.5 MB stays
+         out of the bootstrap. -->
+    <BlazorWebAssemblyLazyLoad Include="Npgsql.dll" />
+    <BlazorWebAssemblyLazyLoad Include="Npgsql.EntityFrameworkCore.PostgreSQL.dll" />
+  </ItemGroup>
+
+</Project>

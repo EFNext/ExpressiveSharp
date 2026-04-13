@@ -66,16 +66,23 @@ internal sealed class ReflectionFieldCache
                 $"typeof({ResolveTypeFqn(t)})"));
 
             // Disambiguate overloads that share name, generic arity, and parameter count
-            // (e.g., SetProperty<P>(Func<T,P>, P) vs SetProperty<P>(Func<T,P>, Func<T,P>))
-            // by checking whether each parameter is a generic type or a type parameter.
+            // by pinning each parameter's shape and any closed type arguments — this is
+            // what separates Sum(Func<T,int>) from Sum(Func<T,decimal>), etc.
             var paramChecksBuilder = new System.Text.StringBuilder();
             for (int i = 0; i < originalDef.Parameters.Length; i++)
             {
                 var paramType = originalDef.Parameters[i].Type;
                 if (paramType is ITypeParameterSymbol)
                     paramChecksBuilder.Append($" && m.GetParameters()[{i}].ParameterType.IsGenericParameter && !m.GetParameters()[{i}].ParameterType.IsGenericType");
-                else if (paramType is INamedTypeSymbol { IsGenericType: true })
+                else if (paramType is INamedTypeSymbol { IsGenericType: true } genericParam)
+                {
                     paramChecksBuilder.Append($" && m.GetParameters()[{i}].ParameterType.IsGenericType && !m.GetParameters()[{i}].ParameterType.IsGenericParameter");
+                    for (int t = 0; t < genericParam.TypeArguments.Length; t++)
+                    {
+                        if (genericParam.TypeArguments[t] is not ITypeParameterSymbol)
+                            paramChecksBuilder.Append($" && m.GetParameters()[{i}].ParameterType.GetGenericArguments()[{t}] == typeof({ResolveTypeFqn(genericParam.TypeArguments[t])})");
+                    }
+                }
             }
             var paramChecks = paramChecksBuilder.ToString();
 

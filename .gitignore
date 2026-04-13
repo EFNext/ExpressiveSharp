@@ -373,5 +373,13 @@ ReadmeSample.db
 docs/node_modules/
 docs/.vitepress/cache/
 docs/.vitepress/dist/
+docs/.vitepress/data/
+
+# Blazor WASM playground build artifact (published into docs/public/_playground/
+# at docs build time — never committed; gh-pages serves the regenerated copy).
+docs/public/_playground/
+docs/public/_content/
+.artifacts/
+
 # Worktrees
 .worktrees/

@@ -24,48 +24,31 @@ You write a static stub method whose body defines the expression-tree replacemen
 
 Map a static method by matching its parameter signature:
 
-```csharp
-static class MathMappings
+::: expressive-sample
+db.Orders.Where(o => System.Math.Clamp(o.Items.Count(), 0, 100) > 5)
+---setup---
+public static class MathMappings
 {
-    [ExpressiveFor(typeof(Math), nameof(Math.Clamp))]
-    static double Clamp(double value, double min, double max)
+    [ExpressiveSharp.Mapping.ExpressiveFor(typeof(System.Math), nameof(System.Math.Clamp))]
+    public static int ClampInt(int value, int min, int max)
         => value < min ? min : (value > max ? max : value);
 }
-```
-
-Now `Math.Clamp` can be used in queries:
-
-```csharp
-var results = db.Orders
-    .AsExpressiveDbSet()
-    .Where(o => Math.Clamp(o.Price, 20, 100) > 50)
-    .ToList();
-```
-
-Generated SQL:
-
-```sql
-SELECT "o"."Id", "o"."Price", "o"."Quantity"
-FROM "Orders" AS "o"
-WHERE CASE
-    WHEN "o"."Price" < 20.0 THEN 20.0
-    WHEN "o"."Price" > 100.0 THEN 100.0
-    ELSE "o"."Price"
-END > 50.0
-```
+:::
 
 ## Instance Method Mapping
 
 For instance methods, the first parameter represents the receiver:
 
-```csharp
-static class StringMappings
+::: expressive-sample
+db.Products.Where(p => p.Name.Contains("box"))
+---setup---
+public static class StringMappings
 {
-    [ExpressiveFor(typeof(string), nameof(string.Contains))]
-    static bool Contains(string self, string value)
+    [ExpressiveSharp.Mapping.ExpressiveFor(typeof(string), nameof(string.Contains))]
+    public static bool Contains(string self, string value)
         => self.IndexOf(value) >= 0;
 }
-```
+:::
 
 ## Instance Property Mapping
 
@@ -89,8 +72,14 @@ The stub can use any C# syntax that `[Expressive]` supports -- switch expression
 Use `[ExpressiveForConstructor]` to provide an expression-tree body for a constructor on a type you do not own:
 
 ```csharp
-[ExpressiveForConstructor(typeof(MyDto))]
-static MyDto Create(int id, string name) => new MyDto { Id = id, Name = name };
+public static class MyDtoBuilder
+{
+    // Applied to a static stub method that returns the target type — the
+    // generator replaces `new MyDto(id, name)` call sites with the stub's body.
+    [ExpressiveForConstructor(typeof(MyDto))]
+    public static MyDto Build(int id, string name)
+        => new MyDto { Id = id, Name = name };
+}
 ```
 
 ## Properties
@@ -102,15 +91,20 @@ Both `[ExpressiveFor]` and `[ExpressiveForConstructor]` support the same optiona
 | `AllowBlockBody` | `bool` | `false` | Enables block-bodied stubs (`if`/`else`, local variables, etc.) |
 | `Transformers` | `Type[]?` | `null` | Per-mapping transformers applied when expanding the mapped member |
 
-```csharp
-[ExpressiveFor(typeof(Math), nameof(Math.Clamp), AllowBlockBody = true)]
-static double Clamp(double value, double min, double max)
+::: expressive-sample
+db.Orders.Where(o => System.Math.Clamp(o.Items.Count(), 0, 100) > 5)
+---setup---
+public static class MathBlockMappings
 {
-    if (value < min) return min;
-    if (value > max) return max;
-    return value;
+    [ExpressiveSharp.Mapping.ExpressiveFor(typeof(System.Math), nameof(System.Math.Clamp), AllowBlockBody = true)]
+    public static int ClampInt(int value, int min, int max)
+    {
+        if (value < min) return min;
+        if (value > max) return max;
+        return value;
+    }
 }
-```
+:::
 
 ## Diagnostics
 
@@ -131,43 +125,49 @@ If a member already has `[Expressive]`, adding `[ExpressiveFor]` targeting it is
 
 ## Complete Usage Example
 
-```csharp
-using ExpressiveSharp.Mapping;
-
-// Map Math.Clamp for SQL translation
-static class MathMappings
+::: expressive-sample
+db.Orders
+    .Where(o => !string.IsNullOrWhiteSpace(o.Customer.Name))
+    .Where(o => System.Math.Clamp(o.Items.Count(), 0, 100) > 5)
+    .Select(o => new OrderMappingDto(o.Id, o.Customer.Name ?? "N/A"))
+---setup---
+public static class MathMappingsComplete
 {
-    [ExpressiveFor(typeof(Math), nameof(Math.Clamp))]
-    static double Clamp(double value, double min, double max)
+    [ExpressiveSharp.Mapping.ExpressiveFor(typeof(System.Math), nameof(System.Math.Clamp))]
+    public static int ClampInt(int value, int min, int max)
         => value < min ? min : (value > max ? max : value);
 }
 
-// Map string.IsNullOrWhiteSpace for SQL translation
-static class StringMappings
+public static class StringMappingsComplete
 {
-    [ExpressiveFor(typeof(string), nameof(string.IsNullOrWhiteSpace))]
-    static bool IsNullOrWhiteSpace(string? s)
+    [ExpressiveSharp.Mapping.ExpressiveFor(typeof(string), nameof(string.IsNullOrWhiteSpace))]
+    public static bool IsNullOrWhiteSpace(string? s)
         => s == null || s.Trim().Length == 0;
 }
 
-// Map a third-party DTO constructor
-static class DtoMappings
+public class OrderMappingDto
 {
-    [ExpressiveForConstructor(typeof(ExternalDto))]
-    static ExternalDto Create(int id, string name)
-        => new ExternalDto { Id = id, Name = name };
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+
+    // The constructor that call sites (new OrderMappingDto(id, name)) invoke.
+    public OrderMappingDto(int id, string name)
+    {
+        Id = id;
+        Name = name;
+    }
 }
-```
 
-Using the mappings in an EF Core query:
+public static class OrderMappingDtoBuilder
+{
+    // Provides a translatable body for the constructor above — call sites
+    // `new OrderMappingDto(id, name)` are rewritten to this object-init form
+    // during expression-tree expansion, so the provider sees a translatable
+    // MemberInit instead of a constructor call.
+    [ExpressiveSharp.Mapping.ExpressiveForConstructor(typeof(OrderMappingDto))]
+    public static OrderMappingDto Build(int id, string name)
+        => new OrderMappingDto(0, "") { Id = id, Name = name };
+}
+:::
 
-```csharp
-var results = db.Orders
-    .AsExpressiveDbSet()
-    .Where(o => !string.IsNullOrWhiteSpace(o.Tag))
-    .Where(o => Math.Clamp(o.Price, 20, 100) > 50)
-    .Select(o => new ExternalDto(o.Id, o.Tag ?? "N/A"))
-    .ToList();
-```
-
-All three mapped members are replaced with their expression-tree equivalents and translated to SQL. No changes are needed at call sites.
+All three mapped members are replaced with their expression-tree equivalents and translated for your provider. No changes are needed at call sites.

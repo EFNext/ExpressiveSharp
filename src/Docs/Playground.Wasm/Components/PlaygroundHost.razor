@@ -1,0 +1,365 @@
+@using ExpressiveSharp.Docs.Playground.Wasm.Services
+@using ExpressiveSharp.Docs.Playground.Core.Services
+@using ExpressiveSharp.Docs.Playground.Core.Services.Scenarios
+@using Microsoft.JSInterop
+@implements IDisposable
+@inject PlaygroundRuntime Runtime
+@inject IJSRuntime JS
+
+@if (!_initialized)
+{
+    <div class="playground-loading">
+        <span class="playground-spinner" aria-hidden="true"></span>
+        Loading Roslyn + EF Core in your browser…
+    </div>
+    @if (!string.IsNullOrEmpty(_initError))
+    {
+        <pre class="playground-error">@_initError</pre>
+    }
+}
+else
+{
+    <div class="playground">
+        <div class="playground-row">
+            <label>Render as</label>
+            <select class="playground-select" @bind="_targetId" @bind:after="OnTargetSelected">
+                @foreach (var t in _scenario.RenderTargets)
+                {
+                    <option value="@t.Id">@t.Label</option>
+                }
+                <option value="@PlaygroundRuntime.GeneratorTargetId">Generator output</option>
+            </select>
+            @if (_running)
+            {
+                <span class="playground-status">Compiling…</span>
+            }
+        </div>
+
+        <div class="playground-panes">
+            <div class="playground-pane playground-editor">
+                <div id="@_editorElementId" style="width:100%;height:100%;"></div>
+            </div>
+            <div class="playground-pane playground-output-editor">
+                <div id="@_outputElementId" style="width:100%;height:100%;"></div>
+            </div>
+        </div>
+
+        @if (_result is not null && !_result.Success)
+        {
+            <div class="playground-error-block">
+                <strong>Error</strong>
+                @if (!string.IsNullOrEmpty(_result.ErrorMessage))
+                {
+                    <pre class="playground-error">@_result.ErrorMessage</pre>
+                }
+                @if (_result.Diagnostics.Count > 0)
+                {
+                    <ul>
+                        @foreach (var d in _result.Diagnostics)
+                        {
+                            <li>@d.ToString()</li>
+                        }
+                    </ul>
+                }
+            </div>
+        }
+
+        @if (_result is not null && _result.SetupErrorMessages.Count > 0)
+        {
+            <div class="playground-error-block">
+                <strong>Setup errors</strong>
+                <ul>
+                    @foreach (var msg in _result.SetupErrorMessages)
+                    {
+                        <li>@msg</li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string? Scenario { get; set; }
+    [Parameter] public string? Snippet { get; set; }
+    [Parameter] public string? Setup { get; set; }
+    [Parameter] public string? Target { get; set; }
+
+    private bool _initialized;
+    private string? _initError;
+    private bool _running;
+    private Task? _initTask;
+
+    private readonly string _componentId = Guid.NewGuid().ToString("N");
+    private string _editorElementId => $"playground-editor-{_componentId}";
+    private string _outputElementId => $"playground-output-{_componentId}";
+
+    private bool _editorReady;
+    private bool _outputEditorReady;
+    private IReadOnlyList<SnippetMarker> _pendingMarkers = Array.Empty<SnippetMarker>();
+    private string? _pendingOutputText;
+    private string? _pendingOutputLanguage;
+    private string? _lastPushedLanguage;
+    private string? _lastBoundSnippet;
+    private string? _modelUri;
+    private DotNetObjectReference<PlaygroundHost>? _dotnetRef;
+
+    private IPlaygroundScenario _scenario = ScenarioRegistry.Default;
+    private string _snippet = ScenarioRegistry.Default.DefaultSnippet;
+    private string? _setup = ScenarioRegistry.Default.DefaultSetup;
+    private string _targetId = ScenarioRegistry.Default.RenderTargets.Count > 0
+        ? ScenarioRegistry.Default.RenderTargets[0].Id
+        : PlaygroundRuntime.GeneratorTargetId;
+    private RenderResult? _result;
+
+    private CancellationTokenSource? _debounceCts;
+    private bool _pendingRun;
+    private const int DebounceMs = 300;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _scenario = ScenarioRegistry.Resolve(Scenario);
+
+        var resolvedSnippet = !string.IsNullOrEmpty(Snippet) ? Snippet! : _scenario.DefaultSnippet;
+        if (resolvedSnippet != _lastBoundSnippet)
+        {
+            _snippet = SnippetFormatter.Format(resolvedSnippet);
+            _lastBoundSnippet = resolvedSnippet;
+            if (_editorReady)
+                await JS.InvokeVoidAsync("monacoInterop.setValue", _editorElementId, _snippet);
+        }
+
+        _setup = !string.IsNullOrEmpty(Setup) ? Setup : _scenario.DefaultSetup;
+        _targetId = ResolveInitialTargetId();
+
+        _initTask ??= InitializeRuntimeAsync();
+        await _initTask;
+
+        if (_initialized)
+            await RunAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_editorReady || !_initialized) return;
+
+        _dotnetRef = DotNetObjectReference.Create(this);
+
+        // Create input editor
+        _modelUri = await JS.InvokeAsync<string?>("monacoInterop.create", _editorElementId,
+            new MonacoEditorOptions
+            {
+                Language = "csharp",
+                Value = _snippet,
+                FontSize = 13,
+                LineNumbers = "off",
+                LineDecorationsWidth = 4,
+                WordWrap = "on",
+                Scrollbar = new MonacoScrollbarOptions { AlwaysConsumeMouseWheel = false },
+            },
+            _dotnetRef);
+        _editorReady = true;
+
+        // Register with language services
+        if (_modelUri is not null)
+            await Runtime.LanguageServices.RegisterEditorAsync(_modelUri, _snippet, _setup, _scenario);
+
+        // Flush pending markers
+        if (_pendingMarkers.Count > 0)
+        {
+            var pending = _pendingMarkers;
+            _pendingMarkers = Array.Empty<SnippetMarker>();
+            await PushSnippetMarkersAsync(pending);
+        }
+
+        // Create output editor
+        await JS.InvokeAsync<string?>("monacoInterop.create", _outputElementId,
+            new MonacoEditorOptions
+            {
+                Language = ResolveOutputLanguage(),
+                Value = "",
+                ReadOnly = true,
+                FontSize = 13,
+                LineNumbers = "off",
+                LineDecorationsWidth = 4,
+                WordWrap = "on",
+                RenderLineHighlight = "none",
+                Scrollbar = new MonacoScrollbarOptions
+                {
+                    AlwaysConsumeMouseWheel = true,
+                    Vertical = "visible",
+                    Horizontal = "auto",
+                    VerticalScrollbarSize = 12,
+                    HorizontalScrollbarSize = 12,
+                },
+            },
+            null);
+        _outputEditorReady = true;
+
+        // Flush pending output
+        if (_pendingOutputText is not null)
+        {
+            var text = _pendingOutputText;
+            var lang = _pendingOutputLanguage;
+            _pendingOutputText = null;
+            _pendingOutputLanguage = null;
+            await PushOutputAsync(text, lang);
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnContentChanged()
+    {
+        if (!_editorReady) return;
+
+        _debounceCts?.Cancel();
+        var cts = new CancellationTokenSource();
+        _debounceCts = cts;
+
+        var liveText = await JS.InvokeAsync<string>("monacoInterop.getValue", _editorElementId);
+        if (_modelUri is not null && _initialized)
+            _ = Runtime.LanguageServices.UpdateEditorAsync(_modelUri, liveText, _setup, _scenario);
+
+        try
+        {
+            await Task.Delay(DebounceMs, cts.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        _snippet = liveText;
+        await RunAsync();
+    }
+
+    private string ResolveInitialTargetId()
+    {
+        var shared = Runtime.SharedTargetId;
+        if (shared is not null && IsValidTargetForScenario(shared))
+            return shared;
+
+        if (!string.IsNullOrEmpty(Target) && IsValidTargetForScenario(Target!))
+            return Target!;
+
+        if (_scenario.RenderTargets.Count > 0)
+            return _scenario.RenderTargets[0].Id;
+
+        return PlaygroundRuntime.GeneratorTargetId;
+    }
+
+    private bool IsValidTargetForScenario(string targetId)
+    {
+        if (targetId == PlaygroundRuntime.GeneratorTargetId) return true;
+        foreach (var t in _scenario.RenderTargets)
+            if (t.Id == targetId) return true;
+        return false;
+    }
+
+    private async Task InitializeRuntimeAsync()
+    {
+        try
+        {
+            await Runtime.InitializeAsync();
+            _initialized = true;
+        }
+        catch (Exception ex)
+        {
+            _initError = ex.GetType().Name + ": " + ex.Message;
+        }
+    }
+
+    private async Task OnTargetSelected()
+    {
+        Runtime.SetSharedTargetId(_targetId);
+        await JS.InvokeVoidAsync("expressivePlayground.broadcastTarget", _targetId);
+
+        // Re-run with the new target to update output
+        if (_initialized)
+            await RunAsync();
+    }
+
+    private string MarkerOwner => $"expressive-{_componentId}";
+
+    private string ResolveOutputLanguage()
+    {
+        if (_targetId == PlaygroundRuntime.GeneratorTargetId) return "csharp";
+        foreach (var t in _scenario.RenderTargets)
+            if (t.Id == _targetId) return t.OutputLanguage;
+        return "plaintext";
+    }
+
+    private async Task PushOutputAsync(string text, string? language)
+    {
+        if (!_outputEditorReady)
+        {
+            _pendingOutputText = text;
+            _pendingOutputLanguage = language;
+            return;
+        }
+
+        if (language is not null && language != _lastPushedLanguage)
+        {
+            await JS.InvokeVoidAsync("monacoInterop.setModelLanguage", _outputElementId, language);
+            _lastPushedLanguage = language;
+        }
+        await JS.InvokeVoidAsync("monacoInterop.setValue", _outputElementId, text);
+    }
+
+    private async Task RunAsync()
+    {
+        if (!_initialized) return;
+
+        if (_running)
+        {
+            _pendingRun = true;
+            return;
+        }
+
+        _running = true;
+        StateHasChanged();
+        try
+        {
+            do
+            {
+                _pendingRun = false;
+                var result = await Runtime.RunAsync(_snippet, _setup, _targetId, _scenario);
+                _result = result;
+                await PushSnippetMarkersAsync(result.SnippetMarkers);
+                if (result.Success && result.Output is not null)
+                    await PushOutputAsync(result.Output, ResolveOutputLanguage());
+            } while (_pendingRun);
+        }
+        finally
+        {
+            _running = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task PushSnippetMarkersAsync(IReadOnlyList<SnippetMarker> markers)
+    {
+        if (!_editorReady)
+        {
+            _pendingMarkers = markers;
+            return;
+        }
+        var monacoMarkers = MonacoMarkerConverter.ToMonaco(markers);
+        await JS.InvokeVoidAsync("monacoInterop.setModelMarkers", _editorElementId, MarkerOwner, monacoMarkers);
+    }
+
+    public void Dispose()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+
+        if (_modelUri is not null && _initialized)
+            _ = Runtime.LanguageServices.UnregisterEditorAsync(_modelUri);
+
+        // Fire-and-forget editor disposal
+        _ = JS.InvokeVoidAsync("monacoInterop.dispose", _editorElementId);
+        _ = JS.InvokeVoidAsync("monacoInterop.dispose", _outputElementId);
+
+        _dotnetRef?.Dispose();
+    }
+}

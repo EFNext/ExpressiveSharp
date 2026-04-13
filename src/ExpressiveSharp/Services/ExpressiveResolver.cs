@@ -22,6 +22,33 @@ namespace ExpressiveSharp.Services
         private readonly static ConcurrentDictionary<MemberInfo, LambdaExpression> _expressionCache = new();
 
         /// <summary>
+        /// Clears all process-level caches built up by the resolver. Intended for test harnesses
+        /// and the docs prerenderer, where many short-lived snippet assemblies are loaded in sequence.
+        /// </summary>
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+        internal static void ResetAllCaches()
+        {
+            _assemblyRegistries.Clear();
+            _expressionCache.Clear();
+            _reflectionCache.Clear();
+            Volatile.Write(ref _lastScannedAssemblyCount, 0);
+            _assemblyScanFilter = null;
+        }
+
+        private static Func<Assembly, bool>? _assemblyScanFilter;
+
+        /// <summary>
+        /// Restricts <see cref="EnsureAllRegistriesLoaded"/> to assemblies matching the given filter.
+        /// Pass <c>null</c> to remove the filter.
+        /// </summary>
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+        internal static void SetAssemblyScanFilter(Func<Assembly, bool>? filter)
+        {
+            _assemblyScanFilter = filter;
+            Volatile.Write(ref _lastScannedAssemblyCount, 0);
+        }
+
+        /// <summary>
         /// Caches <see cref="Type"/> → C#-formatted name strings, since the same parameter types
         /// appear repeatedly across different expressive members.
         /// </summary>
@@ -97,7 +124,18 @@ namespace ExpressiveSharp.Services
                 if (ReferenceEquals(kvp.Value, _nullRegistry))
                     continue;
 
-                var result = kvp.Value(memberInfo);
+                LambdaExpression? result;
+                try
+                {
+                    result = kvp.Value(memberInfo);
+                }
+                catch (TypeInitializationException)
+                {
+                    // Registry's static ctor failed — mark inert so we don't re-throw on every lookup.
+                    _assemblyRegistries[kvp.Key] = _nullRegistry;
+                    continue;
+                }
+
                 if (result is null)
                     continue;
 
@@ -113,30 +151,36 @@ namespace ExpressiveSharp.Services
             return found;
         }
 
-        private static volatile bool _allRegistriesScanned;
+        private static int _lastScannedAssemblyCount;
         private static readonly object _scanLock = new();
 
         /// <summary>
-        /// Scans all loaded assemblies once to discover expression registries.
-        /// This is a one-time cost on the first <see cref="FindExternalExpression"/> call.
+        /// Scans loaded assemblies for expression registries. Rescans when new assemblies
+        /// have been loaded since the previous scan (matters for runtime-compiled assemblies).
         /// </summary>
         private static void EnsureAllRegistriesLoaded()
         {
-            if (_allRegistriesScanned) return;
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            if (assemblies.Length == Volatile.Read(ref _lastScannedAssemblyCount)) return;
 
             lock (_scanLock)
             {
-                if (_allRegistriesScanned) return;
+                assemblies = AppDomain.CurrentDomain.GetAssemblies();
+                if (assemblies.Length == _lastScannedAssemblyCount) return;
 
-                foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+                var filter = _assemblyScanFilter;
+                foreach (var assembly in assemblies)
                 {
                     if (assembly.IsDynamic)
+                        continue;
+
+                    if (filter is not null && !filter(assembly))
                         continue;
 
                     GetAssemblyRegistry(assembly);
                 }
 
-                _allRegistriesScanned = true;
+                Volatile.Write(ref _lastScannedAssemblyCount, assemblies.Length);
             }
         }
 

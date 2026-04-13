@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="ExpressiveSharp.Tests" />
+    <InternalsVisibleTo Include="ExpressiveSharp.Docs.Prerenderer" />
   </ItemGroup>
 
   <ItemGroup>

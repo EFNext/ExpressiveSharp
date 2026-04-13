@@ -1,30 +1,57 @@
 # Constructor Projections
 
-Mark a constructor with `[Expressive]` to project your DTOs directly inside LINQ queries. The generator emits a `MemberInit` expression (`new T() { Prop = value, ... }`) that EF Core can translate to a SQL projection.
+Mark a constructor with `[Expressive]` to project your DTOs directly inside LINQ queries. The generator emits a `MemberInit` expression (`new T() { Prop = value, ... }`) that your LINQ provider can translate to a native projection.
 
 ## Why Constructor Projections?
 
 Without constructor projections, you must write inline anonymous types or repeat object-initializer logic in every query:
 
-```csharp
-// Without [Expressive] constructors -- repeated in every query
-var dtos = ctx.Orders
+::: expressive-sample
+db.Orders
     .Select(o => new OrderSummaryDto
     {
         Id = o.Id,
-        Description = o.Tag ?? "N/A",
-        Total = o.Price * o.Quantity
+        Description = "Order #" + o.Id,
+        Total = o.Items.Sum(i => i.UnitPrice * i.Quantity),
     })
-    .ToList();
-```
+---setup---
+public class OrderSummaryDto
+{
+    public int Id { get; set; }
+    public string Description { get; set; } = "";
+    public decimal Total { get; set; }
+}
+:::
 
 With an `[Expressive]` constructor, you define the projection once and use it everywhere:
 
-```csharp
-var dtos = ctx.Orders
-    .Select(o => new OrderSummaryDto(o.Id, o.Tag ?? "N/A", o.Total))
-    .ToList();
-```
+::: expressive-sample
+db.Orders.Select(o => new OrderSummaryDto(o.Id, "Order #" + o.Id, o.Total()))
+---setup---
+public class OrderSummaryDto
+{
+    public int Id { get; set; }
+    public string Description { get; set; } = "";
+    public decimal Total { get; set; }
+
+    public OrderSummaryDto() { }
+
+    [Expressive]
+    public OrderSummaryDto(int id, string description, decimal total)
+    {
+        Id = id;
+        Description = description;
+        Total = total;
+    }
+}
+
+public static class OrderExt
+{
+    [Expressive]
+    public static decimal Total(this Order o)
+        => o.Items.Sum(i => i.UnitPrice * i.Quantity);
+}
+:::
 
 ## Basic Example
 
@@ -33,12 +60,12 @@ public class OrderSummaryDto
 {
     public int Id { get; set; }
     public string Description { get; set; } = "";
-    public double Total { get; set; }
+    public decimal Total { get; set; }
 
     public OrderSummaryDto() { }   // required parameterless constructor
 
     [Expressive]
-    public OrderSummaryDto(int id, string description, double total)
+    public OrderSummaryDto(int id, string description, decimal total)
     {
         Id = id;
         Description = description;
@@ -50,7 +77,7 @@ public class OrderSummaryDto
 The generator produces an expression equivalent to:
 
 ```csharp
-(int id, string description, double total) => new OrderSummaryDto()
+(int id, string description, decimal total) => new OrderSummaryDto()
 {
     Id = id,
     Description = description,
@@ -58,25 +85,10 @@ The generator produces an expression equivalent to:
 }
 ```
 
-Use it in a query:
-
-```csharp
-var dtos = ctx.Orders
-    .Select(o => new OrderSummaryDto(o.Id, o.Tag ?? "N/A", o.Total))
-    .ToList();
-```
-
-Generated SQL:
-
-```sql
-SELECT "o"."Id",
-       COALESCE("o"."Tag", 'N/A') AS "Description",
-       "o"."Price" * CAST("o"."Quantity" AS REAL) AS "Total"
-FROM "Orders" AS "o"
-```
+Use it in a query -- the query tabs above show how each provider translates the projection.
 
 ::: tip
-Notice that `o.Total` is an `[Expressive]` property -- it is expanded recursively into `o.Price * o.Quantity` before SQL translation. Constructor projections compose with expressive properties and methods seamlessly.
+`o.Total()` is itself an `[Expressive]` extension -- it is expanded recursively into `o.Items.Sum(i => i.UnitPrice * i.Quantity)` before translation. Constructor projections compose with expressive properties and methods seamlessly.
 :::
 
 ## Requirements
@@ -93,7 +105,7 @@ Constructor bodies support the following constructs:
 |---|---|
 | Simple property assignments | `Id = id;` `Description = description;` |
 | Local variable declarations | Inlined at each usage point |
-| `if`/`else` chains | Converted to ternary expressions / SQL CASE |
+| `if`/`else` chains | Converted to ternary expressions / provider CASE |
 | Switch expressions | Translated to nested ternary / CASE |
 | `base()`/`this()` initializer chains | Recursively inlines the delegated constructor's assignments |
 
@@ -101,51 +113,49 @@ Constructor bodies support the following constructs:
 
 The generator recursively inlines delegated constructor assignments. This is useful with DTO inheritance hierarchies:
 
-```csharp
-public class PersonDto
+::: expressive-sample
+db.Customers.Select(c => new CustomerDetailDto(c))
+---setup---
+public class CustomerDto
 {
-    public string FullName { get; set; } = "";
-    public string Email { get; set; } = "";
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
 
-    public PersonDto() { }
+    public CustomerDto() { }
 
     [Expressive]
-    public PersonDto(Person person)
+    public CustomerDto(Customer c)
     {
-        FullName = person.FirstName + " " + person.LastName;
-        Email = person.Email;
+        Id = c.Id;
+        Name = c.Name;
     }
 }
 
-public class EmployeeDto : PersonDto
+public class CustomerDetailDto : CustomerDto
 {
-    public string Department { get; set; } = "";
-    public string Grade { get; set; } = "";
+    public string? Email { get; set; }
+    public string Tier { get; set; } = "";
 
-    public EmployeeDto() { }
+    public CustomerDetailDto() { }
 
     [Expressive]
-    public EmployeeDto(Employee employee) : base(employee)
+    public CustomerDetailDto(Customer c) : base(c)
     {
-        Department = employee.Department.Name;
-        Grade = employee.YearsOfService >= 10 ? "Senior" : "Junior";
+        Email = c.Email;
+        Tier = c.Orders.Count() >= 10 ? "Gold" : "Standard";
     }
 }
-
-var employees = ctx.Employees
-    .Select(e => new EmployeeDto(e))
-    .ToList();
-```
+:::
 
 The generated expression inlines both the base constructor and the derived constructor body:
 
 ```csharp
-(Employee employee) => new EmployeeDto()
+(Customer c) => new CustomerDetailDto()
 {
-    FullName = employee.FirstName + " " + employee.LastName,
-    Email = employee.Email,
-    Department = employee.Department.Name,
-    Grade = employee.YearsOfService >= 10 ? "Senior" : "Junior"
+    Id = c.Id,
+    Name = c.Name,
+    Email = c.Email,
+    Tier = c.Orders.Count() >= 10 ? "Gold" : "Standard"
 }
 ```
 
@@ -157,20 +167,20 @@ Multiple `[Expressive]` constructors per class are supported -- each overload ge
 public class OrderDto
 {
     public int Id { get; set; }
-    public double Total { get; set; }
+    public decimal Total { get; set; }
     public string? Note { get; set; }
 
     public OrderDto() { }
 
     [Expressive]
-    public OrderDto(int id, double total)
+    public OrderDto(int id, decimal total)
     {
         Id = id;
         Total = total;
     }
 
     [Expressive]
-    public OrderDto(int id, double total, string note)
+    public OrderDto(int id, decimal total, string note)
     {
         Id = id;
         Total = total;
@@ -195,4 +205,4 @@ If you have an existing `[Expressive]` factory method that returns `new T { ... 
 
 - [[Expressive] Properties](./expressive-properties) -- computed properties on entities
 - [[Expressive] Methods](./expressive-methods) -- parameterized query fragments
-- [EF Core Integration](./ef-core-integration) -- full EF Core setup and features
+- [EF Core Integration](./integrations/ef-core) -- full EF Core setup and features

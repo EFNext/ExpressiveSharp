@@ -1,6 +1,6 @@
 # [Expressive] Properties
 
-Expressive properties let you define computed values on your entities using standard C# syntax, and have those computations automatically translated into SQL when used in LINQ queries.
+Expressive properties let you define computed values on your entities using standard C# syntax, and have those computations automatically translated for your LINQ provider when used in queries.
 
 ## Defining an Expressive Property
 
@@ -25,149 +25,151 @@ public class Order
 
 The source generator emits a companion `Expression<Func<Order, double>>` for `Total` and `Expression<Func<Order, string?>>` for `CustomerEmail` at compile time. When the property is used in a LINQ query, the expression tree is substituted automatically.
 
+Since the webshop entities in these samples have no built-in `[Expressive]` members, the examples below define helpers as extension methods in a `---setup---` block. The behavior is identical — `[Expressive]` works on instance properties, extension properties, and methods alike.
+
 ## Using Expressive Properties in Queries
 
 Once defined, expressive properties can be used in **any part of a LINQ query**.
 
 ### In `Select`
 
-```csharp
-var totals = ctx.Orders
-    .Select(o => new { o.Id, o.Total })
-    .ToList();
-```
-
-Generated SQL:
-```sql
-SELECT "o"."Id",
-       "o"."Price" * CAST("o"."Quantity" AS REAL) AS "Total"
-FROM "Orders" AS "o"
-```
+::: expressive-sample
+db.Orders.Select(o => new { o.Id, Total = o.Total() })
+---setup---
+public static class OrderExt
+{
+    [Expressive]
+    public static decimal Total(this Order o) =>
+        o.Items.Sum(i => i.UnitPrice * i.Quantity);
+}
+:::
 
 ### In `Where`
 
-```csharp
-var expensive = ctx.Orders
-    .Where(o => o.Total > 500)
-    .ToList();
-```
+::: expressive-sample
+db.Orders.Where(o => o.Total() > 500m).Select(o => o.Id)
+---setup---
+public static class OrderExt
+{
+    [Expressive]
+    public static decimal Total(this Order o) =>
+        o.Items.Sum(i => i.UnitPrice * i.Quantity);
+}
+:::
 
 ### In `GroupBy`
 
-```csharp
-var grouped = ctx.Orders
-    .GroupBy(o => o.CustomerEmail)
+::: expressive-sample
+db.Orders
+    .GroupBy(o => o.CustomerEmail())
     .Select(g => new { Email = g.Key, Count = g.Count() })
-    .ToList();
-```
+---setup---
+public static class OrderExt
+{
+    [Expressive]
+    public static string? CustomerEmail(this Order o) => o.Customer.Email;
+}
+:::
 
 ### In `OrderBy`
 
-```csharp
-var sorted = ctx.Orders
-    .OrderByDescending(o => o.Total)
-    .ToList();
-```
+::: expressive-sample
+db.Orders.OrderByDescending(o => o.Total()).Select(o => o.Id)
+---setup---
+public static class OrderExt
+{
+    [Expressive]
+    public static decimal Total(this Order o) =>
+        o.Items.Sum(i => i.UnitPrice * i.Quantity);
+}
+:::
 
 ### In multiple clauses at once
 
-```csharp
-var query = ctx.Orders
-    .Where(o => o.Total > 100)
-    .OrderByDescending(o => o.Total)
-    .Select(o => new { o.Id, o.Total, o.CustomerEmail });
-```
+::: expressive-sample
+db.Orders
+    .Where(o => o.Total() > 100m)
+    .OrderByDescending(o => o.Total())
+    .Select(o => new { o.Id, Total = o.Total(), Email = o.CustomerEmail() })
+---setup---
+public static class OrderExt
+{
+    [Expressive]
+    public static decimal Total(this Order o) =>
+        o.Items.Sum(i => i.UnitPrice * i.Quantity);
+
+    [Expressive]
+    public static string? CustomerEmail(this Order o) => o.Customer.Email;
+}
+:::
 
 ## Composing Expressive Properties
 
-Expressive properties can reference **other expressive properties**. The entire chain is expanded transitively into the final SQL:
+Expressive members can reference **other expressive members**. The entire chain is expanded transitively into the final query:
 
-```csharp
-public class Order
+::: expressive-sample
+db.Orders.Select(o => new { o.Id, Total = o.TotalWithTax(0.21m) })
+---setup---
+public static class OrderExt
 {
-    public double Price { get; set; }
-    public int Quantity { get; set; }
-    public double TaxRate { get; set; }
+    [Expressive]
+    public static decimal Subtotal(this Order o) =>
+        o.Items.Sum(i => i.UnitPrice * i.Quantity);
 
     [Expressive]
-    public double Subtotal => Price * Quantity;
+    public static decimal Tax(this Order o, decimal taxRate) =>
+        o.Subtotal() * taxRate;
 
     [Expressive]
-    public double Tax => Subtotal * TaxRate;        // references Subtotal
-
-    [Expressive]
-    public double Total => Subtotal + Tax;           // references Subtotal and Tax
-
-    [Expressive]
-    public double TotalWithTax => Total * (1 + TaxRate);  // references Total
+    public static decimal TotalWithTax(this Order o, decimal taxRate) =>
+        o.Subtotal() + o.Tax(taxRate);
 }
-```
+:::
 
-When you query `Total`, the runtime expander recursively resolves `Subtotal` and `Tax`, producing a fully flattened SQL expression:
-
-```csharp
-var result = ctx.Orders
-    .Select(o => new { o.Id, o.Total })
-    .ToList();
-```
-
-```sql
-SELECT "o"."Id",
-       ("o"."Price" * CAST("o"."Quantity" AS REAL)) +
-       (("o"."Price" * CAST("o"."Quantity" AS REAL)) * "o"."TaxRate") AS "Total"
-FROM "Orders" AS "o"
-```
-
-All computation happens in the database -- no data is loaded into memory.
+When you query `TotalWithTax`, the runtime expander recursively resolves `Subtotal` and `Tax`, producing a fully flattened expression — the query tabs above show the translation for each provider. All computation happens in the database — no data is loaded into memory.
 
 ## Null-Conditional Properties
 
-The null-conditional operator `?.` works naturally in expressive properties:
+The null-conditional operator `?.` works naturally in expressive members:
 
-```csharp
-public class Order
+::: expressive-sample
+db.Orders.Select(o => new { o.Id, Email = o.CustomerEmail() })
+---setup---
+public static class OrderExt
 {
-    public Customer? Customer { get; set; }
+    [Expressive]
+    public static string? CustomerEmail(this Order o) => o.Customer?.Email;
 
     [Expressive]
-    public string? CustomerEmail => Customer?.Email;
-
-    [Expressive]
-    public string? CustomerCity => Customer?.Address?.City;
+    public static string? CustomerCountry(this Order o) => o.Customer?.Country;
 }
-```
+:::
 
 The source generator emits a faithful null-check ternary expression. When used with EF Core and `UseExpressives()`, the `RemoveNullConditionalPatterns` transformer strips the null checks for SQL providers that handle null propagation natively.
 
 ## Block-Bodied Properties
 
-By default, `[Expressive]` only supports expression-bodied properties (`=>`). To use block bodies with `if`/`else`, local variables, and other statements, set `AllowBlockBody = true`:
+By default, `[Expressive]` only supports expression-bodied members (`=>`). To use block bodies with `if`/`else`, local variables, and other statements, set `AllowBlockBody = true`:
 
-```csharp
-[Expressive(AllowBlockBody = true)]
-public string Category
+::: expressive-sample
+db.Orders.Select(o => new { o.Id, Category = o.Category() })
+---setup---
+public static class OrderExt
 {
-    get
+    [Expressive(AllowBlockBody = true)]
+    public static string Category(this Order o)
     {
-        var threshold = Quantity * 10;
-        if (threshold > 100) return "Bulk";
+        var totalQty = o.Items.Sum(i => i.Quantity);
+        if (totalQty > 10) return "Bulk";
         return "Regular";
     }
 }
-```
+:::
 
-EF Core translates block bodies to SQL CASE expressions:
-
-```sql
-SELECT CASE
-    WHEN ("o"."Quantity" * 10) > 100 THEN 'Bulk'
-    ELSE 'Regular'
-END AS "Category"
-FROM "Orders" AS "o"
-```
+Block bodies translate to CASE expressions — the query tabs above show how each provider renders the conditional.
 
 ::: warning
-Block bodies are experimental. Not all constructs are supported -- `while`/`do-while`, `try`/`catch`, `async`/`await`, assignments, and `++`/`--` are not translatable. Use expression-bodied properties for full compatibility.
+Block bodies are experimental. Not all constructs are supported -- `while`/`do-while`, `try`/`catch`, `async`/`await`, assignments, and `++`/`--` are not translatable. Use expression-bodied members for full compatibility.
 :::
 
 You can also enable block bodies globally for an entire project via MSBuild instead of opting in per-member:
@@ -180,25 +182,25 @@ You can also enable block bodies globally for an entire project via MSBuild inst
 
 ## Expanding Properties Manually
 
-You can expand `[Expressive]` properties manually in expression trees outside of EF Core:
+You can expand `[Expressive]` members manually in expression trees outside of your query provider:
 
 ```csharp
-Expression<Func<Order, double>> expr = o => o.Total;
-// expr body is: o.Total (opaque property access)
+Expression<Func<Order, decimal>> expr = o => o.Total();
+// expr body is: o.Total() (opaque method call)
 
 var expanded = expr.ExpandExpressives();
-// expanded body is: o.Price * o.Quantity (translatable by any LINQ provider)
+// expanded body is: o.Items.Sum(i => i.UnitPrice * i.Quantity)
 ```
 
-This is useful when you work with LINQ providers other than EF Core or need to inspect the expanded expression tree.
+This is useful when you work with LINQ providers directly or need to inspect the expanded expression tree.
 
 ## Important Rules
 
-- The property **must be expression-bodied** (using `=>`) unless `AllowBlockBody = true` is set.
+- The member **must be expression-bodied** (using `=>`) unless `AllowBlockBody = true` is set.
 - The expression must be translatable by your LINQ provider -- it can only use members that the provider understands (mapped columns, navigation properties, and other `[Expressive]` members).
-- The property body has access to `this` (the entity instance) and its navigation properties.
-- If a property has no body, the generator reports diagnostic **EXP0001**.
-- If a property uses a block body without opting in, the generator reports diagnostic **EXP0004**.
+- The body has access to `this` (the entity or extension receiver) and its navigation properties.
+- If a member has no body, the generator reports diagnostic **EXP0001**.
+- If a member uses a block body without opting in, the generator reports diagnostic **EXP0004**.
 
 ## Next Steps
 

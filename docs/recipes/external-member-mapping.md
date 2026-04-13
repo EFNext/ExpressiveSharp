@@ -17,42 +17,18 @@ If a member already has `[Expressive]`, adding `[ExpressiveFor]` targeting it is
 
 ## Static Method: `Math.Clamp`
 
-`Math.Clamp` is a BCL method that EF Core cannot translate. Provide an expression-tree equivalent:
+`Math.Clamp` is a BCL method that some providers cannot translate. Provide an expression-tree equivalent:
 
-```csharp
-using ExpressiveSharp.Mapping;
-
+::: expressive-sample
+db.Products.Select(p => new { p.Id, ClampedPrice = Math.Clamp(p.ListPrice, 20m, 100m) })
+---setup---
 static class MathMappings
 {
-    [ExpressiveFor(typeof(Math), nameof(Math.Clamp))]
-    static double Clamp(double value, double min, double max)
+    [ExpressiveSharp.Mapping.ExpressiveFor(typeof(Math), nameof(Math.Clamp))]
+    static decimal Clamp(decimal value, decimal min, decimal max)
         => value < min ? min : (value > max ? max : value);
 }
-```
-
-Now `Math.Clamp` works in EF Core queries:
-
-```csharp
-var results = dbContext.Orders
-    .Select(o => new
-    {
-        o.Id,
-        ClampedPrice = Math.Clamp(o.Price, 20.0, 100.0)
-    })
-    .ToList();
-```
-
-Generated SQL (SQLite):
-
-```sql
-SELECT "o"."Id",
-       CASE
-           WHEN "o"."Price" < 20.0 THEN 20.0
-           WHEN "o"."Price" > 100.0 THEN 100.0
-           ELSE "o"."Price"
-       END AS "ClampedPrice"
-FROM "Orders" AS "o"
-```
+:::
 
 ::: tip
 The call site is unchanged -- you still write `Math.Clamp(...)`. The `ExpressiveReplacer` detects the mapping at runtime and substitutes the ternary expression automatically.
@@ -62,34 +38,20 @@ The call site is unchanged -- you still write `Math.Clamp(...)`. The `Expressive
 
 Another common BCL method that some providers cannot translate:
 
-```csharp
-using ExpressiveSharp.Mapping;
-
+::: expressive-sample
+db.Customers.Where(c => !string.IsNullOrWhiteSpace(c.Email))
+---setup---
 static class StringMappings
 {
-    [ExpressiveFor(typeof(string), nameof(string.IsNullOrWhiteSpace))]
+    [ExpressiveSharp.Mapping.ExpressiveFor(typeof(string), nameof(string.IsNullOrWhiteSpace))]
     static bool IsNullOrWhiteSpace(string? s)
         => s == null || s.Trim().Length == 0;
 }
-```
+:::
 
-```csharp
-var results = dbContext.Customers
-    .Where(c => !string.IsNullOrWhiteSpace(c.Email))
-    .ToList();
-```
+## Instance Members on Your Own Type
 
-Generated SQL (SQLite):
-
-```sql
-SELECT *
-FROM "Customers" AS "c"
-WHERE NOT ("c"."Email" IS NULL OR LENGTH(TRIM("c"."Email")) = 0)
-```
-
-## Instance Property on Your Own Type
-
-For instance properties or methods, the first parameter of the stub is the receiver:
+For instance properties or methods, the first parameter of the stub is the receiver. You can use this to provide a SQL-friendly alternative for a property whose body relies on non-translatable logic:
 
 ```csharp
 using ExpressiveSharp.Mapping;
@@ -120,15 +82,6 @@ var names = dbContext.People
     .ToList();
 ```
 
-Generated SQL (SQLite):
-
-```sql
-SELECT "p"."Id",
-       "p"."FirstName" || ' ' || "p"."LastName" AS "FullName"
-FROM "People" AS "p"
-ORDER BY "p"."FirstName" || ' ' || "p"."LastName"
-```
-
 ## `[ExpressiveForConstructor]` for Constructors
 
 When you need to provide an expression-tree body for a constructor on a type you do not own:
@@ -157,42 +110,34 @@ static OrderDto CreateOrderDto(int id, string name)
 
 ```csharp
 var dtos = dbContext.Orders
-    .Select(o => new OrderDto(o.Id, o.Tag ?? "N/A"))
+    .Select(o => new OrderDto(o.Id, o.Status.ToString()))
     .ToList();
-```
-
-Generated SQL (SQLite):
-
-```sql
-SELECT "o"."Id",
-       COALESCE("o"."Tag", 'N/A') AS "Name"
-FROM "Orders" AS "o"
 ```
 
 ## Combining with EF Core Queries
 
-`[ExpressiveFor]` mappings integrate seamlessly with `UseExpressives()` and `ExpressiveDbSet<T>`:
+`[ExpressiveFor]` mappings integrate seamlessly with `UseExpressives()` and `ExpressiveDbSet<T>`. Here we combine `Math.Clamp` on a numeric field with `string.IsNullOrWhiteSpace` on a nullable string field:
 
-```csharp
-var results = ctx.Orders
-    .Where(o => Math.Clamp(o.Price, 20, 100) > 50)
-    .Where(o => !string.IsNullOrWhiteSpace(o.Tag))
-    .Select(o => new
-    {
-        o.Id,
-        SafePrice = Math.Clamp(o.Price, 20, 100),
-        Label = o.Customer?.FullName ?? "Unknown"
-    })
-    .ToList();
-```
-
-All three mappings (`Math.Clamp`, `string.IsNullOrWhiteSpace`, `Person.FullName`) are expanded automatically.
+::: expressive-sample
+db.Customers
+    .Where(c => !string.IsNullOrWhiteSpace(c.Email))
+    .Select(c => new { c.Id, c.Name, Label = c.Country ?? "Unknown" })
+---setup---
+static class Mappings
+{
+    [ExpressiveSharp.Mapping.ExpressiveFor(typeof(string), nameof(string.IsNullOrWhiteSpace))]
+    static bool IsNullOrWhiteSpace(string? s)
+        => s == null || s.Trim().Length == 0;
+}
+:::
 
 ## Common Use Cases
 
 ### Math Functions
 
 ```csharp
+using ExpressiveSharp.Mapping;
+
 static class MathMappings
 {
     [ExpressiveFor(typeof(Math), nameof(Math.Clamp))]
@@ -212,6 +157,8 @@ static class MathMappings
 ### String Helpers
 
 ```csharp
+using ExpressiveSharp.Mapping;
+
 static class StringMappings
 {
     [ExpressiveFor(typeof(string), nameof(string.IsNullOrEmpty))]
@@ -227,6 +174,8 @@ static class StringMappings
 ### DateTime Calculations
 
 ```csharp
+using ExpressiveSharp.Mapping;
+
 static class DateTimeMappings
 {
     // Custom helper method on your utility class
@@ -263,6 +212,6 @@ Many `[ExpressiveFor]` use cases exist because of syntax limitations in other li
 
 ## See Also
 
-- [DTO Projections with Constructors](/recipes/dto-projections) -- `[ExpressiveForConstructor]` in depth
-- [Computed Entity Properties](/recipes/computed-properties) -- `[Expressive]` on your own types
-- [Migrating from Projectables](/guide/migration-from-projectables) -- replacing `UseMemberBody` with `[ExpressiveFor]`
+- [DTO Projections with Constructors](./dto-projections) -- `[ExpressiveForConstructor]` in depth
+- [Computed Entity Properties](./computed-properties) -- `[Expressive]` on your own types
+- [Migrating from Projectables](../guide/migration-from-projectables) -- replacing `UseMemberBody` with `[ExpressiveFor]`

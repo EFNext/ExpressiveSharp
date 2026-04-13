@@ -1,0 +1,91 @@
+# MongoDB
+
+The `ExpressiveSharp.MongoDB` package integrates ExpressiveSharp with the official `MongoDB.Driver` LINQ provider. Modern C# syntax — null-conditional operators, switch expressions, pattern matching — and `[Expressive]` members are translated into MongoDB aggregation pipelines.
+
+## Installation
+
+```bash
+dotnet add package ExpressiveSharp.MongoDB
+```
+
+Depends on `ExpressiveSharp` (core runtime) and `MongoDB.Driver` 3.x.
+
+## Basic Setup
+
+Call `.AsExpressive()` on an `IMongoCollection<T>` to get an `IExpressiveMongoQueryable<T>`:
+
+```csharp
+using ExpressiveSharp.MongoDB.Extensions;
+using MongoDB.Driver;
+
+var client = new MongoClient("mongodb://localhost:27017");
+var db = client.GetDatabase("shop");
+
+var customers = db.GetCollection<Customer>("customers").AsExpressive();
+var orders = db.GetCollection<Order>("orders").AsExpressive();
+```
+
+That's it. Both modern syntax and `[Expressive]` member expansion are now active:
+
+::: expressive-sample
+db.Customers
+    .Where(c => c.Email != null && c.Orders.Count() > 5)
+    .Select(c => new { c.Name, OrderCount = c.Orders.Count() })
+:::
+
+## What AsExpressive() Does
+
+`AsExpressive()` wraps MongoDB's LINQ provider with ExpressiveSharp's query provider:
+
+1. **Expands `[Expressive]` member references** — walks the expression tree and replaces opaque property/method accesses with the generated expression trees
+2. **Applies MongoDB-friendly transformers** — strips null-conditional patterns, flattens blocks, normalizes tuple access
+3. **Delegates execution to MongoDB's aggregation pipeline** — the rewritten tree is handed back to the MongoDB LINQ provider unchanged in shape
+
+No custom MQL is emitted — MongoDB's own translator does all the heavy lifting after ExpressiveSharp has normalized the tree.
+
+## Async Methods
+
+All MongoDB async LINQ methods (from `MongoQueryable`) work with modern syntax via interceptors. They are stubs on `IExpressiveMongoQueryable<T>` that forward to their `MongoQueryable` counterparts:
+
+```csharp
+// Predicate / element access
+var exists = await customers.AnyAsync(c => c.Orders.Count() > 0);
+var first = await customers.FirstOrDefaultAsync(c => c.Email != null);
+var count = await customers.CountAsync(c => c.Country == "US");
+
+// Aggregation
+var total = await orders.SumAsync(o => o.Price * o.Quantity);
+var avg = await orders.AverageAsync(o => o.Price);
+```
+
+## Inspecting the Pipeline
+
+Call `.ToString()` on an `IExpressiveMongoQueryable<T>` to see the generated aggregation pipeline without executing it:
+
+```csharp
+var query = customers
+    .Where(c => c.Email != null)
+    .Select(c => new { c.Name, c.Email });
+
+Console.WriteLine(query.ToString());
+```
+
+Output:
+
+```
+shop.customers.Aggregate([
+    { "$match" : { "Email" : { "$ne" : null } } },
+    { "$project" : { "Name" : "$Name", "Email" : "$Email", "_id" : 0 } }
+])
+```
+
+## Caveats
+
+- **No navigation properties.** MongoDB is a document store; `[Expressive]` members that reach across collections (`customer.Orders`) assume the related data is embedded as a subdocument. If your schema uses references across collections, project and `$lookup` explicitly.
+- **No cross-field `[Expressive]` with untracked fields.** MongoDB's LINQ provider requires every field referenced in a projection or filter to exist in the document schema. An `[Expressive]` member that references a non-persisted field won't translate.
+
+## Next Steps
+
+- [IExpressiveQueryable\<T\>](../expressive-queryable) — the core provider-agnostic API
+- [[Expressive] Properties](../expressive-properties) — computed properties in depth
+- [Custom Providers](./custom-providers) — use `.AsExpressive()` on any `IQueryable<T>`

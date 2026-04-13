@@ -20,7 +20,7 @@ var results = dbContext.Orders
     {
         o.Id,
         Name = o.Customer != null ? o.Customer.Name : "Unknown",
-        Grade = o.Price >= 100 ? "Premium" : (o.Price >= 50 ? "Standard" : "Budget")
+        Grade = o.Items.Count() >= 10 ? "Premium" : (o.Items.Count() >= 5 ? "Standard" : "Budget")
     })
     .ToList();
 ```
@@ -33,24 +33,22 @@ ExpressiveSharp offers three ways to use modern syntax in LINQ chains. Each targ
 
 Works with **any** `IQueryable<T>` -- not tied to EF Core:
 
-```csharp
-var results = queryable
-    .AsExpressive()
+::: expressive-sample
+db.Orders
     .Where(o => o.Customer?.Email != null)
     .Select(o => new
     {
         o.Id,
         Name = o.Customer?.Name ?? "Unknown",
-        Grade = o.Price switch
+        Grade = o.Items.Count() switch
         {
-            >= 100 => "Premium",
-            >= 50  => "Standard",
-            _      => "Budget"
+            >= 10 => "Premium",
+            >= 5  => "Standard",
+            _     => "Budget"
         }
     })
-    .OrderBy(o => o.Name)
-    .ToList();
-```
+    .OrderBy(x => x.Name)
+:::
 
 The source generator intercepts these calls at compile time and rewrites the delegate lambdas to expression trees. The chain continues as an `IExpressiveQueryable<T>`, preserving the ability to use modern syntax in subsequent calls.
 
@@ -66,28 +64,39 @@ public class MyDbContext : DbContext
 }
 ```
 
-```csharp
-// Modern syntax works directly -- no .AsExpressive() needed
-var results = ctx.Orders
+::: expressive-sample
+db.Orders
     .Where(o => o.Customer?.Email != null)
     .Select(o => new
     {
         o.Id,
-        o.Total,
+        Total = o.Total(),
         Grade = o.GetGrade()
     })
-    .ToList();
-```
+---setup---
+public static class OrderDbSetExt
+{
+    [Expressive]
+    public static decimal Total(this Order o) => o.Items.Sum(i => i.UnitPrice * i.Quantity);
+
+    [Expressive]
+    public static string GetGrade(this Order o) => o.Items.Count() switch
+    {
+        >= 10 => "Premium",
+        >= 5  => "Standard",
+        _     => "Budget"
+    };
+}
+:::
 
 `ExpressiveDbSet<T>` also preserves chain continuity for EF Core-specific operations:
 
 ```csharp
 var result = await ctx.Orders
     .Include(o => o.Customer)
-    .ThenInclude(c => c.Address)
     .AsNoTracking()
     .Where(o => o.Customer?.Name == "Alice")
-    .FirstOrDefaultAsync(o => o.Total > 100);
+    .FirstOrDefaultAsync(o => o.Items.Count() > 3);
 ```
 
 ### 3. `ExpressionPolyfill.Create` -- For Standalone Expression Trees
@@ -96,10 +105,10 @@ When you need an `Expression<TDelegate>` without a queryable at all:
 
 ```csharp
 // Returns Expression<Func<Order, int?>> -- intercepted at compile time
-var expr = ExpressionPolyfill.Create((Order o) => o.Tag?.Length);
+var expr = ExpressionPolyfill.Create((Order o) => o.Customer?.Name!.Length);
 
 // With transformers
-var expr = ExpressionPolyfill.Create(
+var expr2 = ExpressionPolyfill.Create(
     (Order o) => o.Customer?.Email,
     new RemoveNullConditionalPatterns());
 ```
@@ -110,99 +119,79 @@ This is useful for building expression trees that you pass to other APIs, or for
 
 ### Null-Conditional in Where
 
-```csharp
-var results = ctx.Orders
+::: expressive-sample
+db.Orders
     .Where(o => o.Customer?.Email != null)
-    .Where(o => o.Customer?.Address?.City == "Seattle")
-    .ToList();
-```
-
-Generated SQL (SQLite):
-
-```sql
-SELECT "o".*
-FROM "Orders" AS "o"
-LEFT JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
-LEFT JOIN "Addresses" AS "a" ON "c"."AddressId" = "a"."Id"
-WHERE "c"."Email" IS NOT NULL
-  AND "a"."City" = 'Seattle'
-```
+    .Where(o => o.Customer?.Country == "US")
+:::
 
 ### Switch Expressions in Select
 
-```csharp
-var results = ctx.Orders
+::: expressive-sample
+db.Orders
     .Select(o => new
     {
         o.Id,
-        Tier = o.Price switch
+        Tier = o.Items.Count() switch
         {
-            >= 100 => "Premium",
-            >= 50  => "Standard",
-            _      => "Budget"
+            >= 10 => "Premium",
+            >= 5  => "Standard",
+            _     => "Budget"
         },
-        Priority = o.Quantity switch
+        Priority = o.Status switch
         {
-            >= 100 => "Bulk",
-            >= 10  => "Normal",
-            _      => "Small"
+            OrderStatus.Pending => "Urgent",
+            OrderStatus.Paid    => "Normal",
+            _                   => "Low"
         }
     })
-    .ToList();
-```
-
-Generated SQL (SQLite):
-
-```sql
-SELECT "o"."Id",
-       CASE
-           WHEN "o"."Price" >= 100.0 THEN 'Premium'
-           WHEN "o"."Price" >= 50.0 THEN 'Standard'
-           ELSE 'Budget'
-       END AS "Tier",
-       CASE
-           WHEN "o"."Quantity" >= 100 THEN 'Bulk'
-           WHEN "o"."Quantity" >= 10 THEN 'Normal'
-           ELSE 'Small'
-       END AS "Priority"
-FROM "Orders" AS "o"
-```
+:::
 
 ### Pattern Matching in OrderBy
 
-```csharp
-var results = ctx.Orders
-    .OrderBy(o => o.Price switch
+::: expressive-sample
+db.Orders
+    .OrderBy(o => o.Items.Count() switch
     {
-        >= 100 => 1,
-        >= 50  => 2,
-        _      => 3
+        >= 10 => 1,
+        >= 5  => 2,
+        _     => 3
     })
-    .ThenBy(o => o.Customer?.Name ?? "ZZZ")
-    .ToList();
-```
+    .ThenBy(o => o.Customer!.Name ?? "ZZZ")
+:::
 
 ### Combining [Expressive] Members with Inline Modern Syntax
 
 The two approaches compose naturally. `[Expressive]` members are expanded, and inline modern syntax is rewritten, all in the same query:
 
-```csharp
-var results = ctx.Orders
-    .Where(o => o.IsRecent && o.Customer?.Region == "US")
+::: expressive-sample
+db.Orders
+    .Where(o => o.IsRecent() && o.Customer!.Country == "US")
     .Select(o => new
     {
         o.Id,
-        o.Total,                          // [Expressive] property
-        o.CustomerEmail,                  // [Expressive] property with ?.
-        Tier = o.Total switch             // inline switch on [Expressive] result
+        Total = o.Total(),                    // [Expressive] method
+        CustomerEmail = o.CustomerEmail(),    // [Expressive] method with ?.
+        Tier = o.Total() switch               // inline switch on [Expressive] result
         {
-            >= 1000 => "Premium",
-            >= 250  => "Standard",
-            _       => "Basic"
+            >= 1000m => "Premium",
+            >= 250m  => "Standard",
+            _        => "Basic"
         }
     })
-    .ToList();
-```
+---setup---
+public static class OrderCombinedExt
+{
+    [Expressive]
+    public static bool IsRecent(this Order o) => o.PlacedAt >= new DateTime(2024, 1, 1);
+
+    [Expressive]
+    public static decimal Total(this Order o) => o.Items.Sum(i => i.UnitPrice * i.Quantity);
+
+    [Expressive]
+    public static string? CustomerEmail(this Order o) => o.Customer?.Email;
+}
+:::
 
 ## When to Use Which Approach
 
@@ -251,7 +240,7 @@ The source generator rewrites calls at their exact call site in your source code
 :::
 
 ::: tip ToQueryString() for debugging
-Use `.ToQueryString()` to inspect the generated SQL and verify that your modern syntax is being translated correctly.
+Use `.ToQueryString()` to inspect the generated query text and verify that your modern syntax is being translated correctly.
 :::
 
 ## See Also

@@ -17,6 +17,13 @@
     <Project Path="src/ExpressiveSharp/ExpressiveSharp.csproj" />
     <Project Path="src/ExpressiveSharp.MongoDB/ExpressiveSharp.MongoDB.csproj" />
   </Folder>
+  <Folder Name="/src/Docs/">
+    <Project Path="src/Docs/PlaygroundModel/ExpressiveSharp.Docs.PlaygroundModel.csproj" />
+    <Project Path="src/Docs/Playground.Core/ExpressiveSharp.Docs.Playground.Core.csproj" />
+    <Project Path="src/Docs/Playground.Wasm/ExpressiveSharp.Docs.Playground.Wasm.csproj" />
+    <Project Path="src/Docs/Playground.WasmWorkspaceShim/ExpressiveSharp.Docs.Playground.WasmWorkspaceShim.csproj" />
+    <Project Path="src/Docs/Prerenderer/ExpressiveSharp.Docs.Prerenderer.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ExpressiveSharp.Generator.Tests/ExpressiveSharp.Generator.Tests.csproj" />
     <Project Path="tests/ExpressiveSharp.IntegrationTests/ExpressiveSharp.IntegrationTests.csproj" />

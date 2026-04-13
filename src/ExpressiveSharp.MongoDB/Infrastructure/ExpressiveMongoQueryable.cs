@@ -35,6 +35,13 @@ internal sealed class ExpressiveMongoQueryable<T> : IExpressiveMongoQueryable<T>
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
+    /// <summary>
+    /// Returns the MongoDB aggregation pipeline (MQL) for this query without
+    /// executing it. Delegates to the native MongoDB queryable's ToString().
+    /// </summary>
+    public override string ToString()
+        => ExpandedInnerQueryable().ToString() ?? base.ToString()!;
+
     public IAsyncCursor<T> ToCursor(CancellationToken cancellationToken = default)
         => ((IAsyncCursorSource<T>)ExpandedInnerQueryable()).ToCursor(cancellationToken);
 
