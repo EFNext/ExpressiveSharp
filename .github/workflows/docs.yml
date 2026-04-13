@@ -32,18 +32,14 @@ jobs:
             -c Release \
             -o .artifacts/playground
           # Drop the Blazor publish output into VitePress' static asset folder
-          # so it ships as part of the site under /playground/.
+          # so it ships as part of the site under /_playground/.
           rm -rf docs/public/_playground
           mkdir -p docs/public/_playground
           cp -r .artifacts/playground/wwwroot/. docs/public/_playground/
-          # Rename to app.html so it doesn't collide with VitePress's route resolution
-          mv docs/public/_playground/index.html docs/public/_playground/app.htm
           sed -i 's|<base href="/" />|<base href="/ExpressiveSharp/_playground/" />|' docs/public/_playground/app.htm
           # Copy _content/ to docs root so Blazor's dynamic imports resolve
           # when the web component is hosted directly on the VitePress page
           cp -r docs/public/_playground/_content docs/public/_content
-          # Remove BlazorMonaco static assets (no longer used)
-          rm -rf docs/public/_content/BlazorMonaco docs/public/_playground/_content/BlazorMonaco
 
       - name: Pre-render doc samples
         run: |
