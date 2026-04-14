@@ -379,6 +379,9 @@ docs/.vitepress/data/
 # at docs build time — never committed; gh-pages serves the regenerated copy).
 docs/public/_playground/
 docs/public/_content/
+
+# Per-page expanded-samples copies emitted by expandExpressiveSamplesPlugin
+docs/public/**/*.llm.md
 .artifacts/
 
 # Worktrees

@@ -1,7 +1,7 @@
 import {defineConfig, type DefaultTheme, type HeadConfig} from 'vitepress'
 import llmstxt from 'vitepress-plugin-llms'
 import {expressiveSamplePlugin} from './plugins/expressive-sample'
-import {readFileSync, existsSync} from 'fs'
+import {readFileSync, writeFileSync, existsSync, mkdirSync} from 'fs'
 import {resolve, dirname} from 'path'
 import {fileURLToPath} from 'url'
 import {createHash} from 'crypto'
@@ -134,31 +134,63 @@ const mimeTypes: Record<string, string> = {
 //     highlighting) which our markdown-it plugin picks up and wraps as tabs
 // The fenced blocks are the single source of truth the Vue component reads
 // from via the `data-expressive-sample` marker injected on the first block.
+// Writes the clean `.llm.md` variant of a page into docs/public/ so VitePress
+// copies it into dist/ as a sibling of the rendered HTML. The CopyPageButton
+// fetches these URLs ("/<page>.llm.md") when the reader asks for the form
+// with rendered SQL inline.
+function writeLlmMd(relPath: string, content: string) {
+  const outPath = resolve(__dirname, '../public', relPath.replace(/\.md$/, '.llm.md'))
+  mkdirSync(dirname(outPath), { recursive: true })
+  writeFileSync(outPath, content)
+}
+
 function expandExpressiveSamplesPlugin() {
   return {
     name: 'expand-expressive-samples',
     enforce: 'pre' as const,
     transform(code: string, id: string) {
       if (!id.endsWith('.md')) return null
-      if (!code.includes('::: expressive-sample')) return null
 
       const relPath = id.includes('/docs/')
         ? id.substring(id.indexOf('/docs/') + 6).replace(/\?.*$/, '')
         : id
+
+      // Skip dist/cache artifacts and public/ copies of .md that shouldn't be
+      // transformed (e.g. the .llm.md files we generate below).
+      if (relPath.startsWith('.vitepress/') || relPath.startsWith('public/')) return null
+
+      if (!code.includes('::: expressive-sample')) {
+        // No samples — write a plain .llm.md mirroring the source so the
+        // CopyPageButton can always point at a stable URL.
+        writeLlmMd(relPath, code)
+        return null
+      }
+
       const jsonPath = resolve(__dirname, 'data/samples', relPath.replace(/\.md$/, '.json'))
-      if (!existsSync(jsonPath)) return null
+      if (!existsSync(jsonPath)) {
+        writeLlmMd(relPath, code)
+        return null
+      }
 
       type Target = { label: string; language: string; output: string }
       type Sample = { key: string; snippet: string; setup?: string | null; targets: Record<string, Target> }
       let samples: Sample[]
-      try { samples = JSON.parse(readFileSync(jsonPath, 'utf-8')) } catch { return null }
+      try { samples = JSON.parse(readFileSync(jsonPath, 'utf-8')) } catch {
+        writeLlmMd(relPath, code)
+        return null
+      }
 
       const lines = code.split('\n')
       const result: string[] = []
+      // Parallel stream for the .llm.md file: same prose, but expanded samples
+      // are visible fenced blocks rather than a hidden div.
+      const llm: string[] = []
       let i = 0
       while (i < lines.length) {
         if (!lines[i].trimStart().startsWith('::: expressive-sample')) {
-          result.push(lines[i]); i++; continue
+          result.push(lines[i])
+          llm.push(lines[i])
+          i++; continue
         }
         i++
         const bodyLines: string[] = []
@@ -181,6 +213,9 @@ function expandExpressiveSamplesPlugin() {
           result.push('::: expressive-sample')
           result.push(...bodyLines)
           result.push(':::')
+          llm.push('::: expressive-sample')
+          llm.push(...bodyLines)
+          llm.push(':::')
           continue
         }
 
@@ -190,19 +225,13 @@ function expandExpressiveSamplesPlugin() {
         result.push(...bodyLines)
         result.push(':::')
 
-        // Also emit fenced code blocks inside a hidden div. These are invisible
-        // on the rendered page (Vue component handles the UI) but are included
-        // in the raw .md that llms.txt sees, so crawlers/LLMs get the full SQL
-        // and pipeline output for each render target.
+        let csharpContent = sample.snippet
+        if (sample.setup) csharpContent += '\n\n// Setup\n' + sample.setup
+
+        // Hidden-div form for llms.txt crawlers reading the full .md stream.
         result.push('')
         result.push('<div class="expressive-sample-llms" style="display:none">')
         result.push('')
-        // For LLMs: include C# input and ONE representative SQL output (SQLite).
-        // The other providers are mostly SQL-dialect noise that doesn't teach
-        // anything about ExpressiveSharp; the generator output is boilerplate
-        // that shouldn't influence LLM suggestions toward [InterceptsLocation].
-        let csharpContent = sample.snippet
-        if (sample.setup) csharpContent += '\n\n// Setup\n' + sample.setup
         result.push('```csharp')
         result.push(csharpContent)
         result.push('```')
@@ -218,7 +247,23 @@ function expandExpressiveSamplesPlugin() {
         result.push('')
         result.push('</div>')
         result.push('')
+
+        // Visible form for the .llm.md file readers copy into LLMs.
+        llm.push('```csharp')
+        llm.push(csharpContent)
+        llm.push('```')
+        if (sqlite) {
+          llm.push('')
+          llm.push(`**Generated SQL (SQLite):**`)
+          llm.push('')
+          llm.push('```' + sqlite.language)
+          llm.push(sqlite.output)
+          llm.push('```')
+        }
+        llm.push('')
       }
+
+      writeLlmMd(relPath, llm.join('\n'))
       return { code: result.join('\n'), map: null }
     }
   }
