@@ -154,7 +154,7 @@ public sealed class ConvertProjectableToTernaryCodeFixProviderTests : GeneratorT
 
     private async Task<string> ApplyCodeFixAsync(string source)
     {
-        var workspace = new AdhocWorkspace();
+        using var workspace = new AdhocWorkspace();
         var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
 
         var projectId = ProjectId.CreateNewId();
