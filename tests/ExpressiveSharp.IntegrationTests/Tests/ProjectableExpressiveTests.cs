@@ -99,6 +99,25 @@ public class ProjectableExpressiveTests
     }
 
     [TestMethod]
+    public void Ternary_ExpandExpressives_Select_RewritesToFormula()
+    {
+        var source = new List<DiscountedProjectableEntity>
+        {
+            new() { TotalAmount = 100m, Discount = 20m },
+            new() { TotalAmount = 50m,  Discount = 5m },
+        }.AsQueryable();
+
+        Expression<Func<DiscountedProjectableEntity, decimal?>> expr = c => c.DiscountedAmount;
+        var expanded = (Expression<Func<DiscountedProjectableEntity, decimal?>>)expr.ExpandExpressives();
+
+        var values = source.Select(expanded.Compile()).ToList();
+
+        Assert.AreEqual(2, values.Count);
+        Assert.AreEqual(80m, values[0]);
+        Assert.AreEqual(45m, values[1]);
+    }
+
+    [TestMethod]
     public void ExpandExpressives_MemberInit_RewritesRhsOfProjection()
     {
         // Projection middleware pattern: `new T { DisplayLabel = src.DisplayLabel }`.
@@ -137,5 +156,33 @@ public class ProjectableEntity
     {
         get => field ?? ((Name ?? "(unnamed)") + " <" + (Email ?? "no-email") + ">");
         init => field = value;
+    }
+}
+
+/// <summary>
+/// Exercises the ternary + has-value-flag projectable pattern with a nullable value-type
+/// property (<c>decimal?</c>). The flag distinguishes "not materialized" from "materialized
+/// to null", which the coalesce shape cannot do for nullable property types.
+/// </summary>
+public class DiscountedProjectableEntity
+{
+    public decimal? TotalAmount { get; set; }
+    public decimal? Discount { get; set; }
+
+    private bool _discountedAmountHasValue;
+
+    [Expressive(Projectable = true)]
+    public decimal? DiscountedAmount
+    {
+        get => _discountedAmountHasValue
+            ? field
+            : (TotalAmount != null && Discount != null
+                ? TotalAmount.Value - Discount.Value
+                : (decimal?)null);
+        init
+        {
+            _discountedAmountHasValue = true;
+            field = value;
+        }
     }
 }

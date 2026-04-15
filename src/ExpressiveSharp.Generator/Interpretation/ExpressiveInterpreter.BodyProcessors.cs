@@ -189,14 +189,9 @@ static internal partial class ExpressiveInterpreter
             return false;
         }
 
-        // EXP0024: must not be nullable. Rejects both `string?` and `int?`/`Nullable<int>`.
-        if (IsNullablePropertyType(propertySymbol.Type))
-        {
-            context.ReportDiagnostic(Diagnostic.Create(
-                Diagnostics.ProjectableRequiresNonNullablePropertyType, propertyLocation,
-                propertySymbol.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
-            return false;
-        }
+        // EXP0024 is now deferred until after pattern recognition: it applies only to the
+        // Coalesce shape, because the Ternary shape's has-value flag independently distinguishes
+        // "not materialized" from "materialized to null" and thus supports nullable property types.
 
         // EXP0026: incompatible with the `required` modifier.
         if (propertySymbol.IsRequired)
@@ -255,10 +250,20 @@ static internal partial class ExpressiveInterpreter
 
         if (!ProjectablePatternRecognizer.TryRecognizeGetPattern(
                 propertySymbol, getOperation, context, getAccessor.GetLocation(),
-                out var backingField, out var formulaOperation)
-            || backingField is null
-            || formulaOperation is null)
+                out var getResult))
         {
+            return false;
+        }
+
+        // EXP0024: the Coalesce shape requires a non-nullable property type, because `null` in the
+        // backing field is the "not materialized" sentinel. The Ternary shape does not have this
+        // constraint — its has-value flag carries the sentinel independently.
+        if (getResult.Shape == ProjectablePatternRecognizer.ProjectableGetShape.Coalesce
+            && IsNullablePropertyType(propertySymbol.Type))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                Diagnostics.ProjectableRequiresNonNullablePropertyType, propertyLocation,
+                propertySymbol.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
             return false;
         }
 
@@ -274,18 +279,19 @@ static internal partial class ExpressiveInterpreter
         }
 
         if (!ProjectablePatternRecognizer.ValidateSetterPattern(
-                setOperation, backingField, context, setAccessor.GetLocation()))
+                setOperation, getResult, context, setAccessor.GetLocation()))
         {
             return false;
         }
 
         // ── Step 5: Feed the formula through the regular emission pipeline ──
 
-        // The formula's Syntax node is the right operand of the `??` coalesce. Passing it to
-        // EmitExpressionTreeForProperty produces a LambdaExpression factory whose registry key
-        // is the property's getter handle — exactly what ExpressiveReplacer.VisitMember looks up
-        // at runtime.
-        var formulaSyntax = formulaOperation.Syntax;
+        // The formula's Syntax node is the "not materialized" branch of the get accessor (the
+        // right operand of `??` for Coalesce, or the else-branch of the ternary for Ternary).
+        // Passing it to EmitExpressionTreeForProperty produces a LambdaExpression factory whose
+        // registry key is the property's getter handle — exactly what ExpressiveReplacer.VisitMember
+        // looks up at runtime.
+        var formulaSyntax = getResult.Formula.Syntax;
         if (formulaSyntax is null)
         {
             context.ReportDiagnostic(Diagnostic.Create(

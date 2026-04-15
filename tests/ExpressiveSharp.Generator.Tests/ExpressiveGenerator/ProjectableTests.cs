@@ -100,6 +100,148 @@ public class ProjectableTests : GeneratorTestBase
     }
 
     [TestMethod]
+    public Task NullableValueTypeProperty_Ternary_FieldKeyword()
+    {
+        // Issue #35, attempt 1: `decimal?` property with the ternary + has-value-flag pattern.
+        // The flag distinguishes "not materialized" from "materialized to null", so nullable
+        // property types are permitted here (unlike the coalesce shape).
+        var compilation = CreateCompilation(
+            """
+            #nullable enable
+            namespace Foo {
+                partial class Account {
+                    public decimal? TotalAmount { get; init; }
+                    public decimal? Discount    { get; init; }
+
+                    private bool _amountHasValue;
+
+                    [Expressive(Projectable = true)]
+                    public decimal? Amount
+                    {
+                        get => _amountHasValue ? field : (
+                            TotalAmount != null && Discount != null
+                                ? System.Math.Round(TotalAmount.Value - Discount.Value, 2)
+                                : (decimal?)null);
+                        init { _amountHasValue = true; field = value; }
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task NonNullableValueTypeProperty_Ternary_FieldKeyword()
+    {
+        // Issue #35, attempt 2: `decimal` property with the ternary + has-value-flag pattern.
+        // Coalesce `field ?? ...` doesn't compile when the backing field is non-nullable; the
+        // ternary pattern is the supported path here.
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                partial class Account {
+                    public decimal? TotalAmount { get; init; }
+                    public decimal? Discount    { get; init; }
+
+                    private bool _amountHasValue;
+
+                    [Expressive(Projectable = true)]
+                    public decimal Amount
+                    {
+                        get => _amountHasValue ? field : (
+                            TotalAmount != null && Discount != null
+                                ? System.Math.Round(TotalAmount.Value - Discount.Value, 2)
+                                : 0m);
+                        init { _amountHasValue = true; field = value; }
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task NonNullableValueTypeProperty_Coalesce_ManualNullableBackingField()
+    {
+        // Issue #35, attempt 3: `decimal` property with a manual `decimal? _amount` backing field
+        // used via coalesce. The `_amount = value` assignment in the init accessor wraps `value`
+        // in an implicit conversion (decimal → decimal?); the setter validator must peek through
+        // it to see the plain `value` parameter reference.
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class Account {
+                    public decimal? TotalAmount { get; init; }
+                    public decimal? Discount    { get; init; }
+
+                    private decimal? _amount;
+
+                    [Expressive(Projectable = true)]
+                    public decimal Amount
+                    {
+                        get => _amount ?? (
+                            TotalAmount != null && Discount != null
+                                ? System.Math.Round(TotalAmount.Value - Discount.Value, 2)
+                                : 0m);
+                        init => _amount = value;
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task NonNullableValueTypeProperty_Ternary_ManualBackingField()
+    {
+        // `decimal` property with a manual non-nullable `decimal _amount` backing field plus a
+        // separate has-value flag. Exercises the ternary + manual-backing-field path.
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class Account {
+                    public decimal? TotalAmount { get; init; }
+                    public decimal? Discount    { get; init; }
+
+                    private decimal _amount;
+                    private bool    _amountHasValue;
+
+                    [Expressive(Projectable = true)]
+                    public decimal Amount
+                    {
+                        get => _amountHasValue ? _amount : (
+                            TotalAmount != null && Discount != null
+                                ? System.Math.Round(TotalAmount.Value - Discount.Value, 2)
+                                : 0m);
+                        init { _amountHasValue = true; _amount = value; }
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
     public void ProjectableRegistryKeyIsPropertyGetter()
     {
         // Load-bearing correctness check: the ExpressionRegistry must key the lambda against the
@@ -339,6 +481,187 @@ public class ProjectableTests : GeneratorTestBase
         var result = RunExpressiveGenerator(compilation);
 
         Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0028"));
+    }
+
+    [TestMethod]
+    public void InvertedTernaryCondition_EXP0022()
+    {
+        // Only the bare `flag ? field : formula` form is supported in v1. Inverted conditions
+        // (`!flag ? formula : field`) are rejected with a pointed EXP0022 reason.
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                partial class Account {
+                    public decimal? TotalAmount { get; init; }
+                    private bool _amountHasValue;
+
+                    [Expressive(Projectable = true)]
+                    public decimal Amount
+                    {
+                        get => !_amountHasValue ? (TotalAmount ?? 0m) : field;
+                        init { _amountHasValue = true; field = value; }
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0022"));
+    }
+
+    [TestMethod]
+    public void TernaryFlagIsNullableBool_EXP0022()
+    {
+        // The has-value flag must be exactly `bool`, not `bool?`.
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                partial class Account {
+                    public decimal? TotalAmount { get; init; }
+                    private bool? _amountHasValue;
+
+                    [Expressive(Projectable = true)]
+                    public decimal Amount
+                    {
+                        get => _amountHasValue == true ? field : (TotalAmount ?? 0m);
+                        init { _amountHasValue = true; field = value; }
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0022"));
+    }
+
+    [TestMethod]
+    public void TernaryFlagIsReadonly_EXP0023()
+    {
+        // The has-value flag must not be readonly — the setter needs to write to it.
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                partial class Account {
+                    public decimal? TotalAmount { get; init; }
+                    private readonly bool _amountHasValue;
+
+                    [Expressive(Projectable = true)]
+                    public decimal Amount
+                    {
+                        get => _amountHasValue ? field : (TotalAmount ?? 0m);
+                        init { /* cannot assign to readonly */ field = value; }
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0023"));
+    }
+
+    [TestMethod]
+    public void TernarySetterMissingFlagWrite_EXP0030()
+    {
+        // The ternary form requires exactly two assignments: the flag AND the backing field.
+        // A setter that only assigns the backing field is rejected (the flag is never set, so
+        // the getter always falls through to the formula — the cache never activates).
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                partial class Account {
+                    public decimal? TotalAmount { get; init; }
+                    private bool _amountHasValue;
+
+                    [Expressive(Projectable = true)]
+                    public decimal Amount
+                    {
+                        get => _amountHasValue ? field : (TotalAmount ?? 0m);
+                        init => field = value;
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0023"));
+    }
+
+    [TestMethod]
+    public void TernarySetterWritesDifferentFlag_EXP0030()
+    {
+        // The setter writes to a different flag than the getter reads.
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                partial class Account {
+                    public decimal? TotalAmount { get; init; }
+                    private bool _amountHasValue;
+                    private bool _otherFlag;
+
+                    [Expressive(Projectable = true)]
+                    public decimal Amount
+                    {
+                        get => _amountHasValue ? field : (TotalAmount ?? 0m);
+                        init { _otherFlag = true; field = value; }
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0030"));
+    }
+
+    [TestMethod]
+    public void TernarySetterWritesDifferentBackingField_EXP0030()
+    {
+        // The setter writes to a different backing field than the getter reads.
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                partial class Account {
+                    public decimal? TotalAmount { get; init; }
+                    private bool    _amountHasValue;
+                    private decimal _otherField;
+
+                    [Expressive(Projectable = true)]
+                    public decimal Amount
+                    {
+                        get => _amountHasValue ? field : (TotalAmount ?? 0m);
+                        init { _amountHasValue = true; _otherField = value; }
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0030"));
+    }
+
+    [TestMethod]
+    public void NullablePropertyWithCoalescePattern_EXP0024()
+    {
+        // Nullable property with the coalesce shape is still rejected: the cache sentinel `null`
+        // collides with a legitimately stored null value.
+        var compilation = CreateCompilation(
+            """
+            #nullable enable
+            namespace Foo {
+                partial class Account {
+                    public decimal? TotalAmount { get; init; }
+
+                    [Expressive(Projectable = true)]
+                    public decimal? Amount
+                    {
+                        get => field ?? (TotalAmount ?? 0m);
+                        init => field = value;
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0024"));
     }
 
     [TestMethod]
