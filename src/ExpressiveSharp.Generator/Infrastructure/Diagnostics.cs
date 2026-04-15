@@ -180,7 +180,7 @@ static internal class Diagnostics
     public readonly static DiagnosticDescriptor ProjectableGetAccessorPattern = new DiagnosticDescriptor(
         id: "EXP0022",
         title: "Projectable get accessor pattern",
-        messageFormat: "The get accessor of a Projectable property must be of the form '=> field ?? (<formula>)' or '=> _backingField ?? (<formula>)' where _backingField is a private nullable field on the same type. Found: {0}.",
+        messageFormat: "The get accessor of a Projectable property must be of the form '=> field ?? (<formula>)', '=> _backingField ?? (<formula>)', or '=> _hasValueFlag ? field : (<formula>)' where _backingField is a private non-static instance field on the same type and _hasValueFlag is a private non-static non-readonly instance bool field on the same type. Found: {0}.",
         category: "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -188,15 +188,15 @@ static internal class Diagnostics
     public readonly static DiagnosticDescriptor ProjectableSetterMustStoreToBackingField = new DiagnosticDescriptor(
         id: "EXP0023",
         title: "Projectable setter must store to backing field",
-        messageFormat: "The init/set accessor of a Projectable property must store the incoming value into the same backing field referenced by the get accessor. Found: {0}.",
+        messageFormat: "The init/set accessor of a Projectable property must store the incoming value into the same backing field referenced by the get accessor (and, for the ternary form, also set the has-value flag to true). Found: {0}.",
         category: "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
     public readonly static DiagnosticDescriptor ProjectableRequiresNonNullablePropertyType = new DiagnosticDescriptor(
         id: "EXP0024",
-        title: "Projectable requires non-nullable property type",
-        messageFormat: "[Expressive(Projectable = true)] cannot be applied to a property with a nullable type ('{0}'). Nullable types prevent distinguishing 'not materialized' from 'materialized to null'.",
+        title: "Projectable coalesce pattern requires non-nullable property type",
+        messageFormat: "The '??' projectable pattern cannot be applied to a property with a nullable type ('{0}') because null cannot distinguish 'not materialized' from 'materialized to null'. Use the ternary form '=> _hasValue ? field : (<formula>)' (or '=> _hasValue ? _backingField : (<formula>)' with a manual backing field) with a private bool flag instead.",
         category: "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -231,6 +231,14 @@ static internal class Diagnostics
         id: "EXP0029",
         title: "Projectable not allowed on override",
         messageFormat: "[Expressive(Projectable = true)] is not supported on override properties; declare it on the base property instead",
+        category: "Design",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public readonly static DiagnosticDescriptor ProjectableInconsistentGetSetBacking = new DiagnosticDescriptor(
+        id: "EXP0030",
+        title: "Projectable getter and setter reference inconsistent backing storage",
+        messageFormat: "The init/set accessor of a Projectable property must reference the same backing field (and has-value flag, for the ternary form) as the get accessor: {0}",
         category: "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
