@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Composition;
 using System.Linq;
@@ -66,7 +67,7 @@ public sealed class ConvertProjectableToTernaryCodeFixProvider : CodeFixProvider
         if (containingType is null)
             return document;
 
-        var flagName = $"_has{property.Identifier.Text}";
+        var flagName = await ResolveUniqueFlagNameAsync(document, containingType, property, cancellationToken).ConfigureAwait(false);
 
         var flagIdent = SyntaxFactory.IdentifierName(flagName);
 
@@ -131,6 +132,38 @@ public sealed class ConvertProjectableToTernaryCodeFixProvider : CodeFixProvider
     }
 
     /// <summary>
+    /// Picks a flag-field name that doesn't collide with an existing member on the containing
+    /// type (including members declared in other <c>partial</c> declarations). The happy path
+    /// returns <c>_has&lt;PropertyName&gt;</c>; on collision a numeric suffix is appended.
+    /// </summary>
+    private static async Task<string> ResolveUniqueFlagNameAsync(
+        Document document,
+        TypeDeclarationSyntax containingType,
+        PropertyDeclarationSyntax property,
+        CancellationToken cancellationToken)
+    {
+        var baseName = $"_has{property.Identifier.Text}";
+
+        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+        var typeSymbol = semanticModel?.GetDeclaredSymbol(containingType, cancellationToken);
+        if (typeSymbol is null)
+            return baseName;
+
+        var existing = new HashSet<string>(typeSymbol.GetMembers().Select(m => m.Name), System.StringComparer.Ordinal);
+        if (!existing.Contains(baseName))
+            return baseName;
+
+        var suffix = 1;
+        string candidate;
+        do
+        {
+            candidate = $"{baseName}{suffix++}";
+        }
+        while (existing.Contains(candidate));
+        return candidate;
+    }
+
+    /// <summary>
     /// Inspects the property syntax for the Coalesce-shape Projectable pattern and extracts the
     /// get accessor, set/init accessor, the backing field reference (the left operand of
     /// <c>??</c>), and the formula (the right operand). Returns <c>false</c> if the pattern
@@ -182,8 +215,8 @@ public sealed class ConvertProjectableToTernaryCodeFixProvider : CodeFixProvider
             || !BackingFieldReferencesMatch(coalesce.Left, setAssignment.Left))
             return false;
 
-        backingFieldRef = (ExpressionSyntax)coalesce.Left.WithoutTrivia();
-        formula = UnwrapParentheses(coalesce.Right).WithoutTrivia();
+        backingFieldRef = coalesce.Left;
+        formula = UnwrapParentheses(coalesce.Right);
         return true;
     }
 

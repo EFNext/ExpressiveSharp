@@ -14,9 +14,9 @@ namespace ExpressiveSharp.Generator.Interpretation;
 ///     <description>
 ///       <b>Coalesce</b>: <c>=&gt; field ?? (&lt;formula&gt;)</c> or
 ///       <c>=&gt; _backingField ?? (&lt;formula&gt;)</c>. The backing field is either the C# 14
-///       synthesized property backing field or a manually declared private nullable field whose
-///       element type matches the property type. The set/init accessor must be a single
-///       <c>field = value</c> assignment.
+///       synthesized property backing field or a manually declared private instance field of the
+///       corresponding type; the C# compiler enforces <c>??</c> legality on the operand types.
+///       The set/init accessor must be a single <c>field = value</c> assignment.
 ///     </description>
 ///   </item>
 ///   <item>

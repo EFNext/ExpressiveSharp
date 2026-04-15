@@ -150,6 +150,37 @@ public sealed class ConvertProjectableToTernaryCodeFixProviderTests : GeneratorT
         StringAssert.Contains(fixedSource, "_hasUpperName = true;");
     }
 
+    [TestMethod]
+    public async Task PicksUniqueFlagName_WhenHasPropertyNameAlreadyDefined()
+    {
+        // The containing type already declares `_hasAmount`, so the fixer must pick a
+        // non-colliding name (`_hasAmount1`) instead of producing uncompilable code.
+        const string source = """
+            using ExpressiveSharp;
+            namespace Foo
+            {
+                partial class Account
+                {
+                    public decimal? TotalAmount { get; set; }
+                    private int _hasAmount;
+
+                    [Expressive(Projectable = true)]
+                    public decimal? Amount
+                    {
+                        get => field ?? (TotalAmount ?? 0m);
+                        init => field = value;
+                    }
+                }
+            }
+            """;
+
+        var fixedSource = await ApplyCodeFixAsync(source);
+
+        StringAssert.Contains(fixedSource, "private bool _hasAmount1;");
+        StringAssert.Contains(fixedSource, "get => _hasAmount1 ? field : (TotalAmount ?? 0m);");
+        StringAssert.Contains(fixedSource, "_hasAmount1 = true;");
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private async Task<string> ApplyCodeFixAsync(string source)

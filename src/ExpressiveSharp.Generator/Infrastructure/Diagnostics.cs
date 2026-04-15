@@ -180,7 +180,7 @@ static internal class Diagnostics
     public readonly static DiagnosticDescriptor ProjectableGetAccessorPattern = new DiagnosticDescriptor(
         id: "EXP0022",
         title: "Projectable get accessor pattern",
-        messageFormat: "The get accessor of a Projectable property must be of the form '=> field ?? (<formula>)', '=> _backingField ?? (<formula>)', or '=> _hasValueFlag ? field : (<formula>)' where _backingField is a field on the same type and _hasValueFlag is a non-readonly bool field on the same type. Found: {0}.",
+        messageFormat: "The get accessor of a Projectable property must be of the form '=> field ?? (<formula>)', '=> _backingField ?? (<formula>)', or '=> _hasValueFlag ? field : (<formula>)' where _backingField is a private non-static instance field on the same type and _hasValueFlag is a private non-static non-readonly instance bool field on the same type. Found: {0}.",
         category: "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -196,7 +196,7 @@ static internal class Diagnostics
     public readonly static DiagnosticDescriptor ProjectableRequiresNonNullablePropertyType = new DiagnosticDescriptor(
         id: "EXP0024",
         title: "Projectable coalesce pattern requires non-nullable property type",
-        messageFormat: "The '??' projectable pattern cannot be applied to a property with a nullable type ('{0}') because null cannot distinguish 'not materialized' from 'materialized to null'. Use the ternary form '=> _hasValue ? field : (<formula>)' with a private bool flag instead.",
+        messageFormat: "The '??' projectable pattern cannot be applied to a property with a nullable type ('{0}') because null cannot distinguish 'not materialized' from 'materialized to null'. Use the ternary form '=> _hasValue ? field : (<formula>)' (or '=> _hasValue ? _backingField : (<formula>)' with a manual backing field) with a private bool flag instead.",
         category: "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);

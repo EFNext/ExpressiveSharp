@@ -560,7 +560,7 @@ public class ProjectableTests : GeneratorTestBase
     }
 
     [TestMethod]
-    public void TernarySetterMissingFlagWrite_EXP0030()
+    public void TernarySetterMissingFlagWrite_EXP0023()
     {
         // The ternary form requires exactly two assignments: the flag AND the backing field.
         // A setter that only assigns the backing field is rejected (the flag is never set, so
