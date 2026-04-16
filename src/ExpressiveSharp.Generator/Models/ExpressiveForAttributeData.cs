@@ -38,7 +38,9 @@ readonly internal record struct ExpressiveForAttributeData
         bool? allowBlockBody = null;
         var transformerTypeNames = new List<string>();
 
-        // Extract target type from first constructor argument
+        // Extract target type from first constructor argument.
+        // ExpressiveFor has two constructors: (Type, string) and (string).
+        // ExpressiveForConstructor has a single (Type) constructor.
         if (attribute.ConstructorArguments.Length > 0 &&
             attribute.ConstructorArguments[0].Value is INamedTypeSymbol targetTypeSymbol)
         {
@@ -51,12 +53,20 @@ readonly internal record struct ExpressiveForAttributeData
             TargetTypeMetadataName = null;
         }
 
-        // Extract member name from second constructor argument (only for ExpressiveFor, not ExpressiveForConstructor)
-        if (memberKind != ExpressiveForMemberKind.Constructor &&
-            attribute.ConstructorArguments.Length > 1 &&
-            attribute.ConstructorArguments[1].Value is string memberName)
+        if (memberKind != ExpressiveForMemberKind.Constructor)
         {
-            MemberName = memberName;
+            if (attribute.ConstructorArguments.Length > 1 &&
+                attribute.ConstructorArguments[1].Value is string memberNameTwoArg)
+            {
+                // Two-argument form: [ExpressiveFor(typeof(T), "Name")]
+                MemberName = memberNameTwoArg;
+            }
+            else if (attribute.ConstructorArguments.Length == 1 &&
+                     attribute.ConstructorArguments[0].Value is string memberNameOneArg)
+            {
+                // Single-argument form: [ExpressiveFor("Name")] — target defaults to stub's containing type
+                MemberName = memberNameOneArg;
+            }
         }
 
         // Extract named arguments

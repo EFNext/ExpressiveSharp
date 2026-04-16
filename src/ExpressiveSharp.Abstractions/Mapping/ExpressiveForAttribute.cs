@@ -12,13 +12,14 @@ namespace ExpressiveSharp.Mapping;
 /// <para>For <b>instance properties</b>, the stub takes a single parameter (the receiver) and returns the property type.</para>
 /// <para>For <b>static properties</b>, the stub is parameterless and returns the property type.</para>
 /// </remarks>
-[AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Property, Inherited = false, AllowMultiple = false)]
 public sealed class ExpressiveForAttribute : Attribute
 {
     /// <summary>
-    /// The type that declares the target member.
+    /// The type that declares the target member, or <c>null</c> when the single-argument constructor
+    /// is used (in which case the target defaults to the stub's containing type at generator time).
     /// </summary>
-    public Type TargetType { get; }
+    public Type? TargetType { get; }
 
     /// <summary>
     /// The name of the target member on <see cref="TargetType"/>.
@@ -41,6 +42,16 @@ public sealed class ExpressiveForAttribute : Attribute
     public ExpressiveForAttribute(Type targetType, string memberName)
     {
         TargetType = targetType;
+        MemberName = memberName;
+    }
+
+    /// <summary>
+    /// Shorthand for <c>[ExpressiveFor(typeof(ContainingType), memberName)]</c> —
+    /// use when the target member is on the same type as the stub.
+    /// </summary>
+    public ExpressiveForAttribute(string memberName)
+    {
+        TargetType = null;
         MemberName = memberName;
     }
 }

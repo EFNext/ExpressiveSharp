@@ -8,27 +8,28 @@ namespace ExpressiveSharp.Generator.Comparers;
 /// <summary>
 /// Equality comparer for [ExpressiveFor] pipeline tuples,
 /// mirroring <see cref="MemberDeclarationSyntaxAndCompilationEqualityComparer"/> for the standard pipeline.
+/// The <c>Member</c> field is a <see cref="MemberDeclarationSyntax"/> to cover both method and property stubs.
 /// </summary>
 internal class ExpressiveForMemberCompilationEqualityComparer
-    : IEqualityComparer<((MethodDeclarationSyntax Method, ExpressiveForAttributeData Attribute, ExpressiveGlobalOptions GlobalOptions), Compilation)>
+    : IEqualityComparer<((MemberDeclarationSyntax Member, ExpressiveForAttributeData Attribute, ExpressiveGlobalOptions GlobalOptions), Compilation)>
 {
     private readonly static MemberDeclarationSyntaxEqualityComparer _memberComparer = new();
 
     public bool Equals(
-        ((MethodDeclarationSyntax Method, ExpressiveForAttributeData Attribute, ExpressiveGlobalOptions GlobalOptions), Compilation) x,
-        ((MethodDeclarationSyntax Method, ExpressiveForAttributeData Attribute, ExpressiveGlobalOptions GlobalOptions), Compilation) y)
+        ((MemberDeclarationSyntax Member, ExpressiveForAttributeData Attribute, ExpressiveGlobalOptions GlobalOptions), Compilation) x,
+        ((MemberDeclarationSyntax Member, ExpressiveForAttributeData Attribute, ExpressiveGlobalOptions GlobalOptions), Compilation) y)
     {
         var (xLeft, xCompilation) = x;
         var (yLeft, yCompilation) = y;
 
-        if (ReferenceEquals(xLeft.Method, yLeft.Method) &&
+        if (ReferenceEquals(xLeft.Member, yLeft.Member) &&
             ReferenceEquals(xCompilation, yCompilation) &&
             xLeft.GlobalOptions == yLeft.GlobalOptions)
         {
             return true;
         }
 
-        if (!ReferenceEquals(xLeft.Method.SyntaxTree, yLeft.Method.SyntaxTree))
+        if (!ReferenceEquals(xLeft.Member.SyntaxTree, yLeft.Member.SyntaxTree))
         {
             return false;
         }
@@ -43,7 +44,7 @@ internal class ExpressiveForMemberCompilationEqualityComparer
             return false;
         }
 
-        if (!_memberComparer.Equals(xLeft.Method, yLeft.Method))
+        if (!_memberComparer.Equals(xLeft.Member, yLeft.Member))
         {
             return false;
         }
@@ -51,14 +52,14 @@ internal class ExpressiveForMemberCompilationEqualityComparer
         return xCompilation.ExternalReferences.SequenceEqual(yCompilation.ExternalReferences);
     }
 
-    public int GetHashCode(((MethodDeclarationSyntax Method, ExpressiveForAttributeData Attribute, ExpressiveGlobalOptions GlobalOptions), Compilation) obj)
+    public int GetHashCode(((MemberDeclarationSyntax Member, ExpressiveForAttributeData Attribute, ExpressiveGlobalOptions GlobalOptions), Compilation) obj)
     {
         var (left, compilation) = obj;
         unchecked
         {
             var hash = 17;
-            hash = hash * 31 + _memberComparer.GetHashCode(left.Method);
-            hash = hash * 31 + RuntimeHelpers.GetHashCode(left.Method.SyntaxTree);
+            hash = hash * 31 + _memberComparer.GetHashCode(left.Member);
+            hash = hash * 31 + RuntimeHelpers.GetHashCode(left.Member.SyntaxTree);
             hash = hash * 31 + left.Attribute.GetHashCode();
             hash = hash * 31 + left.GlobalOptions.GetHashCode();
 

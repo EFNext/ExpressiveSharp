@@ -195,8 +195,10 @@ public class ExpressiveForTests : GeneratorTestBase
     }
 
     [TestMethod]
-    public void StubNotStatic_EXP0016()
+    public void InstanceStubOnUnrelatedType_Rejected_EXP0015()
     {
+        // Instance stub targeting System.Math.Abs — stub's containing type is `Mappings`,
+        // which does not match `System.Math`, so no member should be found.
         var compilation = CreateCompilation(
             """
             using ExpressiveSharp.Mapping;
@@ -211,7 +213,113 @@ public class ExpressiveForTests : GeneratorTestBase
         var result = RunExpressiveGenerator(compilation);
 
         Assert.AreEqual(1, result.Diagnostics.Length);
-        Assert.AreEqual("EXP0016", result.Diagnostics[0].Id);
+        Assert.AreEqual("EXP0015", result.Diagnostics[0].Id);
+    }
+
+    [TestMethod]
+    public Task InstanceStub_OnInstanceProperty_SameType()
+    {
+        // Instance stub on the target type — `this` is the receiver.
+        var compilation = CreateCompilation(
+            """
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                class MyType {
+                    public string FirstName { get; set; }
+                    public string LastName { get; set; }
+                    public string FullName => FirstName + " " + LastName;
+
+                    [ExpressiveFor(typeof(MyType), "FullName")]
+                    string FullNameExpr() => FirstName + " " + LastName;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task SingleArgForm_DefaultsToContainingType()
+    {
+        // [ExpressiveFor(nameof(X))] without typeof — target defaults to the stub's containing type.
+        var compilation = CreateCompilation(
+            """
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                class MyType {
+                    public string FirstName { get; set; }
+                    public string LastName { get; set; }
+                    public string FullName => FirstName + " " + LastName;
+
+                    [ExpressiveFor(nameof(FullName))]
+                    string FullNameExpr() => FirstName + " " + LastName;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task PropertyStub_InstanceProperty_SameType()
+    {
+        // [ExpressiveFor] on an expression-bodied PROPERTY — cleanest same-type form.
+        var compilation = CreateCompilation(
+            """
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                class MyType {
+                    public string FirstName { get; set; }
+                    public string LastName { get; set; }
+                    public string FullName { get; set; }
+
+                    [ExpressiveFor(nameof(FullName))]
+                    private string FullNameExpression => FirstName + " " + LastName;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task SingleArgForm_InstanceMethodTarget()
+    {
+        var compilation = CreateCompilation(
+            """
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                class MyType {
+                    public int Base { get; set; }
+                    public int AddAndDouble(int x) => (Base + x) * 2;
+
+                    [ExpressiveFor(nameof(AddAndDouble))]
+                    int AddAndDoubleExpr(int x) => (Base + x) * 2;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
     }
 
     [TestMethod]

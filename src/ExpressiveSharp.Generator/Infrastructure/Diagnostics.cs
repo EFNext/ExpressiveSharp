@@ -127,13 +127,9 @@ static internal class Diagnostics
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public readonly static DiagnosticDescriptor ExpressiveForStubMustBeStatic = new DiagnosticDescriptor(
-        id: "EXP0016",
-        title: "[ExpressiveFor] stub must be static",
-        messageFormat: "[ExpressiveFor] stub method '{0}' must be static",
-        category: "Design",
-        DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+    // NOTE: EXP0016 (ExpressiveForStubMustBeStatic) is retired. Instance stubs are now permitted
+    // on the target type itself. Constructor stubs remain static-only; signature mismatches fall
+    // back to EXP0015 (ExpressiveForMemberNotFound).
 
     public readonly static DiagnosticDescriptor ExpressiveForReturnTypeMismatch = new DiagnosticDescriptor(
         id: "EXP0017",
