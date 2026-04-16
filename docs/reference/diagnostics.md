@@ -32,6 +32,7 @@ See [Troubleshooting](./troubleshooting) for symptom-oriented guidance -- find t
 | [EXP0017](#exp0017) | Error | `[ExpressiveFor]` return type mismatch | -- |
 | [EXP0019](#exp0019) | Error | `[ExpressiveFor]` conflicts with `[Expressive]` | -- |
 | [EXP0020](#exp0020) | Error | Duplicate `[ExpressiveFor]` mapping | -- |
+| [EXP0027](#exp0027) | Info | Plain `IQueryable` chain references an `[Expressive]` member without `.AsExpressive()` | [Wrap with `.AsExpressive()`](#exp0027-fix) |
 | [EXP0031](#exp0031) | Error | `[ExpressiveProperty]` target name is already defined | -- |
 | [EXP0032](#exp0032) | Error | `[ExpressiveProperty]` requires a partial containing type | -- |
 | [EXP0033](#exp0033) | Error | `[ExpressiveProperty]` requires an expression-bodied property stub | -- |
@@ -475,12 +476,45 @@ Duplicate [ExpressiveFor] mapping for member '{0}' on type '{1}'; only one stub 
 
 ---
 
+### EXP0027 -- Plain `IQueryable` chain references an `[Expressive]` member without `.AsExpressive()` {#exp0027}
+
+**Severity:** Info
+**Category:** Usage
+
+**Message:**
+```
+LINQ method '{0}' on a plain IQueryable<T> references the [Expressive] member '{1}'.
+Without .AsExpressive(), the member's body will not be inlined into the expression tree;
+the provider may evaluate the call in memory or fail to translate it. Wrap the source
+with .AsExpressive().
+```
+
+**Cause:** A LINQ method on a plain `IQueryable<T>` receiver (one that is not `IExpressiveQueryable<T>`) is invoked with a lambda whose body references an `[Expressive]` member. Because the chain is not expressive-aware, the source generator does not rewrite the lambda into an expression tree that inlines the member's body — the underlying query provider receives a call to the runtime delegate. Most providers cannot translate this and will either evaluate the call client-side (silent overfetch) or throw at execution time.
+
+**Fix:** Wrap the chain root with `.AsExpressive()` so that subsequent LINQ methods flow through the ExpressiveSharp delegate-based overloads, which inline `[Expressive]` member bodies at compile time.
+
+```csharp
+// Before — IsAdult is silently evaluated on the client.
+var adults = users.Where(u => u.IsAdult).ToList();
+
+// After — IsAdult is inlined into the expression tree before the provider sees it.
+var adults = users.AsExpressive().Where(u => u.IsAdult).ToList();
+```
+
+When you intentionally want to evaluate a member at runtime (e.g., it captures process state), mark the member with `[NotExpressive]` to suppress the diagnostic at every call site.
+
+#### Code Fix: Wrap source with `.AsExpressive()` {#exp0027-fix}
+
+The IDE offers a single code action: **Wrap source with `.AsExpressive()`**. It walks the LINQ chain to the leftmost non-LINQ expression, wraps it with `.AsExpressive()`, and inserts `using ExpressiveSharp;` if it is not already imported.
+
+---
+
 ## `[ExpressiveProperty]` Diagnostics (EXP0031--EXP0035)
 
 These diagnostics apply to `[ExpressiveProperty]` stubs, which ask the generator to emit a new property on the stub's containing partial type. See [`[ExpressiveProperty]` Attribute](./expressive-property) for the full feature reference.
 
 ::: info Replacing `[Expressive(Projectable = true)]`
-`[ExpressiveProperty]` replaces the now-removed `[Expressive(Projectable = true)]`. Diagnostic codes `EXP0021`--`EXP0030` were retired along with that feature and are not reused. The migration recipe is in [Migration from Projectables](../guide/migration-from-projectables#migrating-usememberbody).
+`[ExpressiveProperty]` replaces the now-removed `[Expressive(Projectable = true)]`. Diagnostic codes `EXP0021`--`EXP0026` and `EXP0028`--`EXP0030` were retired along with that feature and are not reused. (EXP0027 has been reassigned to the [plain-IQueryable analyzer](#exp0027).) The migration recipe is in [Migration from Projectables](../guide/migration-from-projectables#migrating-usememberbody).
 :::
 
 ### EXP0031 -- Target name is already defined {#exp0031}

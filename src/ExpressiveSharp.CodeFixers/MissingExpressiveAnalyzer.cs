@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Linq;
+using ExpressiveSharp.CodeFixers.Internal;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -47,7 +48,7 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
         var memberDecl = (MemberDeclarationSyntax)context.Node;
 
         var symbol = context.SemanticModel.GetDeclaredSymbol(memberDecl, context.CancellationToken);
-        if (symbol is null || !HasExpressiveAttribute(symbol))
+        if (symbol is null || !ExpressiveSymbolHelpers.HasExpressiveAttribute(symbol))
             return;
 
         AnalyzeDescendants(context, memberDecl);
@@ -101,22 +102,7 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
     }
 
     private static bool IsOrImplementsExpressiveQueryable(ITypeSymbol type)
-    {
-        if (IsExpressiveQueryableType(type))
-            return true;
-
-        foreach (var iface in type.AllInterfaces)
-        {
-            if (IsExpressiveQueryableType(iface))
-                return true;
-        }
-
-        return false;
-    }
-
-    private static bool IsExpressiveQueryableType(ITypeSymbol type) =>
-        type.Name == "IExpressiveQueryable" &&
-        type.ContainingNamespace?.ToDisplayString() == "ExpressiveSharp";
+        => ExpressiveSymbolHelpers.IsOrImplementsExpressiveQueryable(type);
 
     private static void AnalyzeDescendants(SyntaxNodeAnalysisContext context, SyntaxNode scope)
     {
@@ -218,7 +204,10 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
         if (symbol.IsAbstract || symbol.IsExtern)
             return;
 
-        if (HasExpressiveAttribute(symbol))
+        if (ExpressiveSymbolHelpers.HasExpressiveAttribute(symbol))
+            return;
+
+        if (ExpressiveSymbolHelpers.HasNotExpressiveAttribute(symbol))
             return;
 
         // A sibling stub with [ExpressiveProperty("X")] or [ExpressiveFor(... "X")]
@@ -226,7 +215,7 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
         if (HasSiblingMappingTargetingMember(symbol))
             return;
 
-        if (!HasExpandableBody(symbol, context.CancellationToken))
+        if (!ExpressiveSymbolHelpers.HasExpandableBody(symbol, context.CancellationToken))
             return;
 
         var declLocation = symbol.DeclaringSyntaxReferences[0]
@@ -303,48 +292,4 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
         attr.ConstructorArguments.Length > index
             ? attr.ConstructorArguments[index].Value as string
             : null;
-
-    private static bool HasExpressiveAttribute(ISymbol symbol)
-    {
-        foreach (var attr in symbol.GetAttributes())
-        {
-            var attrClass = attr.AttributeClass;
-            if (attrClass is null)
-                continue;
-            if (attrClass.Name == "ExpressiveAttribute" &&
-                attrClass.ContainingNamespace?.ToDisplayString() == "ExpressiveSharp")
-                return true;
-        }
-        return false;
-    }
-
-    private static bool HasExpandableBody(ISymbol symbol, System.Threading.CancellationToken ct)
-    {
-        foreach (var syntaxRef in symbol.DeclaringSyntaxReferences)
-        {
-            var syntax = syntaxRef.GetSyntax(ct);
-
-            if (syntax is MethodDeclarationSyntax methodDecl)
-            {
-                if (methodDecl.ExpressionBody is not null || methodDecl.Body is not null)
-                    return true;
-            }
-            else if (syntax is PropertyDeclarationSyntax propDecl)
-            {
-                if (propDecl.ExpressionBody is not null)
-                    return true;
-
-                if (propDecl.AccessorList is not null)
-                {
-                    foreach (var accessor in propDecl.AccessorList.Accessors)
-                    {
-                        if (accessor.IsKind(SyntaxKind.GetAccessorDeclaration) &&
-                            (accessor.ExpressionBody is not null || accessor.Body is not null))
-                            return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
 }
