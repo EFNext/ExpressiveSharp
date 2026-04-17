@@ -35,6 +35,24 @@ namespace ExpressiveSharp.Services
             _assemblyScanFilter = null;
         }
 
+        /// <summary>
+        /// Invalidates cached expression trees so the next lookup rebuilds from the (possibly
+        /// hot-reloaded) generated factory method. Called from <see cref="ExpressiveHotReloadHandler"/>.
+        /// Preserves <c>_assemblyScanFilter</c> and <c>_typeNameCache</c> — neither goes stale on
+        /// non-rude edits, and wiping the filter would silently disable a user-configured restriction.
+        /// </summary>
+        internal static void ClearCachesForMetadataUpdate()
+        {
+            _expressionCache.Clear();
+            _reflectionCache.Clear();
+            _assemblyRegistries.Clear();
+            Volatile.Write(ref _lastScannedAssemblyCount, 0);
+        }
+
+        internal static bool IsExpressionCached(MemberInfo mi) => _expressionCache.ContainsKey(mi);
+
+        internal static Func<Assembly, bool>? GetAssemblyScanFilter() => _assemblyScanFilter;
+
         private static Func<Assembly, bool>? _assemblyScanFilter;
 
         /// <summary>
