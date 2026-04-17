@@ -161,9 +161,11 @@ public string FullName
 
 See the [Projectable Properties reference](../reference/projectable-properties) and the [Projection Middleware recipe](../recipes/projection-middleware) for the complete feature.
 
-**Option B -- `[ExpressiveFor]`** (separate stub, supports cross-type mapping):
+**Option B -- `[ExpressiveFor]`** (separate stub, also supports cross-type mapping):
 
 **Scenario 1: Same-type member with an alternative body**
+
+Use the co-located form: a property stub on the same class combined with the single-argument attribute. `this` is the receiver naturally -- the migration reads almost identically to `UseMemberBody`.
 
 ```csharp
 // Before (Projectables)
@@ -178,8 +180,8 @@ using ExpressiveSharp.Mapping;
 
 public string FullName => $"{FirstName} {LastName}".Trim().ToUpper();
 
-[ExpressiveFor(typeof(MyEntity), nameof(MyEntity.FullName))]
-static string FullNameExpr(MyEntity e) => e.FirstName + " " + e.LastName;
+[ExpressiveFor(nameof(FullName))]
+private string FullNameExpression => FirstName + " " + LastName;
 ```
 
 **Scenario 2: External/third-party type methods**
@@ -228,9 +230,9 @@ static OrderDto CreateDto(int id, string name)
 
 | | `UseMemberBody` (Projectables) | `[ExpressiveFor]` (ExpressiveSharp) |
 |---|---|---|
-| Scope | Same type only | Any type (including external/third-party) |
+| Scope | Same type only | Same type **or** any accessible type (including external/third-party) |
 | Syntax | Property on `[Projectable]` | Separate attribute on a stub method |
-| Target member | Must be in the same class | Any accessible type |
+| Target member | Must be in the same class | Co-located (single-arg form, `this` is receiver) or cross-type (two-arg form) |
 | Namespace | `EntityFrameworkCore.Projectables` | `ExpressiveSharp.Mapping` |
 | Constructors | Not supported | `[ExpressiveForConstructor]` |
 

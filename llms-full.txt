@@ -1188,15 +1188,21 @@ using ExpressiveSharp.Mapping;
 
 ## How It Works
 
-You write a static stub method whose body defines the expression-tree replacement. The `[ExpressiveFor]` attribute tells the generator which external member this stub maps to. At runtime, the replacer substitutes calls to the target member with the stub's expression tree -- call sites remain unchanged.
+You write a stub member -- a method **or** a property -- whose body defines the expression-tree replacement. The `[ExpressiveFor]` attribute tells the generator which external member this stub maps to. At runtime, the replacer substitutes calls to the target member with the stub's expression tree -- call sites remain unchanged.
 
 ## Mapping Rules
 
-* The stub method **must be `static`** (EXP0016 if not).
-* For **static methods**, the stub's parameters must match the target method's parameters exactly.
-* For **instance methods**, the first parameter of the stub is the receiver (`this`), followed by the target method's parameters.
-* For **instance properties**, the stub takes a single parameter: the receiver.
-* The return type must match (EXP0017 if not).
+* The stub can be a **method** (receiver supplied as the first parameter for instance targets, or `this` for instance stubs on the target type) **or** a **property** (parameterless; `this` is the receiver for instance stubs).
+* The single-argument form `[ExpressiveFor(nameof(X))]` is shorthand for `[ExpressiveFor(typeof(ContainingType), nameof(X))]` -- use it when the target member is on the same type as the stub.
+* For **static methods** (and static stubs over static members), the stub's parameters must match the target method's parameters exactly.
+* For **instance methods** with a `static` stub, the first parameter of the stub is the receiver (`this`), followed by the target method's parameters.
+* For **instance methods** with an `instance` stub on the target type, `this` is the receiver; remaining parameters match the target's exactly.
+* For **instance properties** with a `static` method stub, the stub takes a single parameter: the receiver.
+* For **instance properties** with an `instance` method or property stub on the target type, the stub is parameterless.
+* For **static properties**, the stub is parameterless.
+* Property stubs can only target other properties (no parameters to carry method arguments).
+* The return type / property type must match (EXP0017 if not).
+* Constructor stubs (`[ExpressiveForConstructor]`) must still be `static` methods; instance or property ctor stubs have no coherent meaning.
 
 ## Static Method Mapping
 
@@ -1298,9 +1304,54 @@ static class EntityMappings
 }
 ```
 
+## Co-located Form (Instance Stub + Single-argument Attribute)
+
+When the target is on the same type as the stub, the most ergonomic form combines an **instance stub** with the **single-argument** attribute. `this` is the receiver automatically. Use this form when a property has its own backing storage -- e.g. a plain settable auto-property used for DTO shape, serialization, or in-memory assignment in tests -- but queries should still compute it from other columns.
+
+A **property stub** is often the cleanest choice for this (no parentheses, reads like the target it replaces):
+
+```csharp
+public class Person
+{
+    public string FirstName { get; set; } = "";
+    public string LastName { get; set; } = "";
+
+    // Regular auto-property — assignable directly (for DTOs, tests, deserialization).
+    public string FullName { get; set; } = "";
+
+    // When FullName appears in a LINQ expression tree, it is rewritten to this body,
+    // so EF Core projects it from FirstName/LastName instead of mapping it to its own column.
+    [ExpressiveFor(nameof(FullName))]
+    private string FullNameExpression => FirstName + " " + LastName;
+}
+```
+
+A **method stub** is equivalent in behaviour and appropriate when the target is a method or when you need a block body:
+
+```csharp
+[ExpressiveFor(nameof(FullName))]
+private string FullNameExpression() => FirstName + " " + LastName;
+```
+
+Both forms are equivalent to the verbose `[ExpressiveFor(typeof(Person), nameof(Person.FullName))] static string FullName(Person obj) => obj.FirstName + " " + obj.LastName;` but reuse `this` instead of threading a receiver parameter. When the EF Core integration is enabled, both the target property **and** the stub property itself are automatically excluded from the model (no `[NotMapped]` needed -- see [Automatic NotMapped for `[ExpressiveFor]` targets](#automatic-notmapped-for-expressivefor-targets)).
+
+::: warning When to prefer `[Expressive]` instead
+If the property has no backing storage and the same body works at both runtime and query time, put `[Expressive]` directly on it (`[Expressive] public string FullName => FirstName + " " + LastName;`) and skip the stub. `[ExpressiveFor]` is for the dual-body case; `[Expressive]` is for the single-body case.
+:::
+
 ::: tip
 The stub can use any C# syntax that `[Expressive]` supports -- switch expressions, pattern matching, null-conditional operators, and more.
 :::
+
+## Automatic NotMapped for `[ExpressiveFor]` targets
+
+When `UseExpressives()` is active, EF Core's model builder automatically ignores properties that are:
+
+1. Decorated with `[Expressive]`,
+2. Decorated with `[ExpressiveFor]` (a property stub itself), **or**
+3. The target of an `[ExpressiveFor]` stub anywhere in the loaded assemblies.
+
+You do not need to add `[NotMapped]` to a property you are expressing externally or using as a property stub -- the `ExpressivePropertiesNotMappedConvention` detects these cases via attribute metadata and the generated registry and calls `Ignore()` for you.
 
 ## Constructor Mapping with `[ExpressiveForConstructor]`
 
@@ -1373,7 +1424,6 @@ The following diagnostics are specific to `[ExpressiveFor]` and `[ExpressiveForC
 |------|----------|-------------|
 | [EXP0014](./diagnostics#exp0014) | Error | Target type specified in `[ExpressiveFor]` could not be resolved |
 | [EXP0015](./diagnostics#exp0015) | Error | No member with the given name found on the target type matching the stub's parameter signature |
-| [EXP0016](./diagnostics#exp0016) | Error | The stub method must be `static` |
 | [EXP0017](./diagnostics#exp0017) | Error | Return type of the stub does not match the target member's return type |
 | [EXP0019](./diagnostics#exp0019) | Error | The target member already has `[Expressive]` -- remove one of the two attributes |
 | [EXP0020](./diagnostics#exp0020) | Error | Duplicate mapping -- only one stub per target member is allowed |
@@ -3552,6 +3602,10 @@ The ExpressiveSharp source generator and companion analyzers emit diagnostics du
 See [Troubleshooting](./troubleshooting) for symptom-oriented guidance -- find the error message or behavior you see and get step-by-step resolution.
 :::
 
+::: info Retired diagnostics
+`EXP0016` ("`[ExpressiveFor]` stub must be static") has been retired. Instance stubs on the target type are now permitted; constructor-stub and unrelated-type mismatches surface as `EXP0015` (member not found) instead.
+:::
+
 ## Overview
 
 | ID | Severity | Title | Code Fix |
@@ -3571,7 +3625,6 @@ See [Troubleshooting](./troubleshooting) for symptom-oriented guidance -- find t
 | [EXP0013](#exp0013) | Warning | Member could benefit from `[Expressive]` | [Add `[Expressive]`](#exp0013-fix) |
 | [EXP0014](#exp0014) | Error | `[ExpressiveFor]` target type not found | -- |
 | [EXP0015](#exp0015) | Error | `[ExpressiveFor]` target member not found | -- |
-| [EXP0016](#exp0016) | Error | `[ExpressiveFor]` stub must be static | -- |
 | [EXP0017](#exp0017) | Error | `[ExpressiveFor]` return type mismatch | -- |
 | [EXP0019](#exp0019) | Error | `[ExpressiveFor]` conflicts with `[Expressive]` | -- |
 | [EXP0020](#exp0020) | Error | Duplicate `[ExpressiveFor]` mapping | -- |
@@ -3973,33 +4026,6 @@ static double Clamp(int value, int min, int max) // should be double, not int
 [ExpressiveFor(typeof(Math), nameof(Math.Clamp))]
 static double Clamp(double value, double min, double max)
     => value < min ? min : (value > max ? max : value);
-```
-
-***
-
-### EXP0016 -- Stub must be static {#exp0016}
-
-**Severity:** Error
-**Category:** Design
-
-**Message:**
-
-```
-[ExpressiveFor] stub method '{0}' must be static
-```
-
-**Cause:** The stub method is not declared `static`.
-
-**Fix:** Add the `static` modifier:
-
-```csharp
-// Error: not static
-[ExpressiveFor(typeof(Math), nameof(Math.Clamp))]
-double Clamp(double value, double min, double max) => /* ... */;
-
-// Fixed
-[ExpressiveFor(typeof(Math), nameof(Math.Clamp))]
-static double Clamp(double value, double min, double max) => /* ... */;
 ```
 
 ***
@@ -6271,7 +6297,6 @@ static class DateTimeMappings
 |------|-------------|
 | EXP0014 | `[ExpressiveFor]` target type not found |
 | EXP0015 | `[ExpressiveFor]` target member not found on the specified type |
-| EXP0016 | `[ExpressiveFor]` stub method must be `static` |
 | EXP0017 | Return type of stub does not match target member's return type |
 | EXP0019 | Target member already has `[Expressive]` -- use `[Expressive]` directly instead |
 | EXP0020 | Duplicate `[ExpressiveFor]` mapping for the same target member |
@@ -6279,7 +6304,32 @@ static class DateTimeMappings
 ## Tips
 
 ::: tip Match the signature exactly
-For static methods, the stub parameters must match the target method signature. For instance members, add the receiver as the first parameter (e.g., `static string FullName(Person p)`).
+For static methods, the stub parameters must match the target method signature. For instance members you have three options: write a `static` method stub whose first parameter is the receiver (e.g. `static string FullName(Person p)`), write an `instance` method stub on the target type itself where the stub's `this` is the receiver, or write a **property stub** on the target type (parameterless; `this` is the receiver) -- property stubs can only target other properties.
+:::
+
+::: tip Co-locate when possible
+When the target is on the same type as the stub, you can drop `typeof(...)` and use the single-argument form -- it targets a member on the stub's containing type. Combined with an **instance property stub**, this is the ergonomic shape for the case where a property has its own backing storage (a plain settable auto-property used for DTO shape, serialization, or in-memory assignment in tests) but you want queries to compute it from other columns:
+
+```csharp
+public class Person
+{
+    public string FirstName { get; set; } = "";
+    public string LastName { get; set; } = "";
+
+    // Regular auto-property — can be assigned directly (for DTOs, tests, deserialization).
+    public string FullName { get; set; } = "";
+
+    // When used in a LINQ expression tree, FullName is rewritten to this body,
+    // so EF Core projects it from the underlying columns instead of trying to
+    // map it to a column of its own. `this` is the receiver automatically.
+    [ExpressiveFor(nameof(FullName))]
+    private string FullNameExpression => FirstName + " " + LastName;
+}
+```
+
+A method stub (`string FullNameExpression() => ...`) works the same way and is appropriate when the target is a method or you need a block body.
+
+If the property has no backing storage and the same body works at both runtime and query time, put `[Expressive]` directly on the property and delete the stub.
 :::
 
 ::: tip Consider \[Expressive] first
@@ -6287,7 +6337,7 @@ Many `[ExpressiveFor]` use cases exist because of syntax limitations in other li
 :::
 
 ::: warning Placement
-`[ExpressiveFor]` stubs must be in a `static` class. The class can be in any namespace -- it is discovered at compile time by the source generator.
+`[ExpressiveFor]` stubs can live either in a `static` helper class (with a `static` method stub) or on the target type itself as an instance method or property. Either way, they are discovered at compile time by the source generator.
 :::
 
 ## See Also
@@ -7526,9 +7576,11 @@ public string FullName
 
 See the [Projectable Properties reference](../reference/projectable-properties) and the [Projection Middleware recipe](../recipes/projection-middleware) for the complete feature.
 
-**Option B -- `[ExpressiveFor]`** (separate stub, supports cross-type mapping):
+**Option B -- `[ExpressiveFor]`** (separate stub, also supports cross-type mapping):
 
 **Scenario 1: Same-type member with an alternative body**
+
+Use the co-located form: a property stub on the same class combined with the single-argument attribute. `this` is the receiver naturally -- the migration reads almost identically to `UseMemberBody`.
 
 ```csharp
 // Before (Projectables)
@@ -7543,8 +7595,8 @@ using ExpressiveSharp.Mapping;
 
 public string FullName => $"{FirstName} {LastName}".Trim().ToUpper();
 
-[ExpressiveFor(typeof(MyEntity), nameof(MyEntity.FullName))]
-static string FullNameExpr(MyEntity e) => e.FirstName + " " + e.LastName;
+[ExpressiveFor(nameof(FullName))]
+private string FullNameExpression => FirstName + " " + LastName;
 ```
 
 **Scenario 2: External/third-party type methods**
@@ -7604,9 +7656,9 @@ static OrderDto CreateDto(int id, string name)
 
 | | `UseMemberBody` (Projectables) | `[ExpressiveFor]` (ExpressiveSharp) |
 |---|---|---|
-| Scope | Same type only | Any type (including external/third-party) |
+| Scope | Same type only | Same type **or** any accessible type (including external/third-party) |
 | Syntax | Property on `[Projectable]` | Separate attribute on a stub method |
-| Target member | Must be in the same class | Any accessible type |
+| Target member | Must be in the same class | Co-located (single-arg form, `this` is receiver) or cross-type (two-arg form) |
 | Namespace | `EntityFrameworkCore.Projectables` | `ExpressiveSharp.Mapping` |
 | Constructors | Not supported | `[ExpressiveForConstructor]` |
 
@@ -9786,7 +9838,7 @@ No `[NotMapped]` annotation or manual `modelBuilder.Ignore(...)` call is require
 
 ## Comparison with `[ExpressiveFor]`
 
-`[ExpressiveFor]` is the verbose alternative -- the formula lives in a separate static stub instead of on the property:
+`[ExpressiveFor]` is the alternative -- the formula lives in a separate stub (static or co-located instance method) instead of on the property:
 
 ```csharp
 public class User

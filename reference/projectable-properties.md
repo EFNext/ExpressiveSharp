@@ -201,7 +201,7 @@ No `[NotMapped]` annotation or manual `modelBuilder.Ignore(...)` call is require
 
 ## Comparison with `[ExpressiveFor]`
 
-`[ExpressiveFor]` is the verbose alternative -- the formula lives in a separate static stub instead of on the property:
+`[ExpressiveFor]` is the alternative -- the formula lives in a separate stub (static or co-located instance method) instead of on the property:
 
 ```csharp
 public class User

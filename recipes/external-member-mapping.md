@@ -264,7 +264,6 @@ static class DateTimeMappings
 |------|-------------|
 | EXP0014 | `[ExpressiveFor]` target type not found |
 | EXP0015 | `[ExpressiveFor]` target member not found on the specified type |
-| EXP0016 | `[ExpressiveFor]` stub method must be `static` |
 | EXP0017 | Return type of stub does not match target member's return type |
 | EXP0019 | Target member already has `[Expressive]` -- use `[Expressive]` directly instead |
 | EXP0020 | Duplicate `[ExpressiveFor]` mapping for the same target member |
@@ -272,7 +271,32 @@ static class DateTimeMappings
 ## Tips
 
 ::: tip Match the signature exactly
-For static methods, the stub parameters must match the target method signature. For instance members, add the receiver as the first parameter (e.g., `static string FullName(Person p)`).
+For static methods, the stub parameters must match the target method signature. For instance members you have three options: write a `static` method stub whose first parameter is the receiver (e.g. `static string FullName(Person p)`), write an `instance` method stub on the target type itself where the stub's `this` is the receiver, or write a **property stub** on the target type (parameterless; `this` is the receiver) -- property stubs can only target other properties.
+:::
+
+::: tip Co-locate when possible
+When the target is on the same type as the stub, you can drop `typeof(...)` and use the single-argument form -- it targets a member on the stub's containing type. Combined with an **instance property stub**, this is the ergonomic shape for the case where a property has its own backing storage (a plain settable auto-property used for DTO shape, serialization, or in-memory assignment in tests) but you want queries to compute it from other columns:
+
+```csharp
+public class Person
+{
+    public string FirstName { get; set; } = "";
+    public string LastName { get; set; } = "";
+
+    // Regular auto-property — can be assigned directly (for DTOs, tests, deserialization).
+    public string FullName { get; set; } = "";
+
+    // When used in a LINQ expression tree, FullName is rewritten to this body,
+    // so EF Core projects it from the underlying columns instead of trying to
+    // map it to a column of its own. `this` is the receiver automatically.
+    [ExpressiveFor(nameof(FullName))]
+    private string FullNameExpression => FirstName + " " + LastName;
+}
+```
+
+A method stub (`string FullNameExpression() => ...`) works the same way and is appropriate when the target is a method or you need a block body.
+
+If the property has no backing storage and the same body works at both runtime and query time, put `[Expressive]` directly on the property and delete the stub.
 :::
 
 ::: tip Consider \[Expressive] first
@@ -280,7 +304,7 @@ Many `[ExpressiveFor]` use cases exist because of syntax limitations in other li
 :::
 
 ::: warning Placement
-`[ExpressiveFor]` stubs must be in a `static` class. The class can be in any namespace -- it is discovered at compile time by the source generator.
+`[ExpressiveFor]` stubs can live either in a `static` helper class (with a `static` method stub) or on the target type itself as an instance method or property. Either way, they are discovered at compile time by the source generator.
 :::
 
 ## See Also
