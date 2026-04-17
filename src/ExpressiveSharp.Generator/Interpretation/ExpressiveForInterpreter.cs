@@ -17,45 +17,66 @@ static internal class ExpressiveForInterpreter
 {
     public static ExpressiveDescriptor? GetDescriptor(
         SemanticModel semanticModel,
-        MethodDeclarationSyntax stubMethod,
-        IMethodSymbol stubSymbol,
+        MemberDeclarationSyntax stubMember,
+        ISymbol stubSymbol,
         ExpressiveForAttributeData attributeData,
         ExpressiveGlobalOptions globalOptions,
         SourceProductionContext context,
         Compilation compilation)
     {
-        // Validate: stub must be static
-        if (!stubSymbol.IsStatic)
+        var stubIdentifierLocation = stubMember switch
         {
-            context.ReportDiagnostic(Diagnostic.Create(
-                Diagnostics.ExpressiveForStubMustBeStatic,
-                stubMethod.Identifier.GetLocation(),
-                stubSymbol.Name));
-            return null;
-        }
-
-        // Resolve target type
-        var targetType = attributeData.TargetTypeMetadataName is not null
-            ? compilation.GetTypeByMetadataName(attributeData.TargetTypeMetadataName)
-            : null;
-
-        if (targetType is null)
-        {
-            context.ReportDiagnostic(Diagnostic.Create(
-                Diagnostics.ExpressiveForTargetTypeNotFound,
-                stubMethod.Identifier.GetLocation(),
-                attributeData.TargetTypeFullName));
-            return null;
-        }
-
-        return attributeData.MemberKind switch
-        {
-            ExpressiveForMemberKind.MethodOrProperty =>
-                ResolveMethodOrProperty(semanticModel, stubMethod, stubSymbol, attributeData, globalOptions, context, compilation, targetType),
-            ExpressiveForMemberKind.Constructor =>
-                ResolveConstructor(semanticModel, stubMethod, stubSymbol, attributeData, globalOptions, context, compilation, targetType),
-            _ => null
+            MethodDeclarationSyntax m => m.Identifier.GetLocation(),
+            PropertyDeclarationSyntax p => p.Identifier.GetLocation(),
+            _ => stubMember.GetLocation()
         };
+
+        // Resolve target type. Two cases:
+        //  - Two-arg form: [ExpressiveFor(typeof(T), "Name")] — resolve T from metadata name.
+        //  - Single-arg form: [ExpressiveFor("Name")] — default to the stub's containing type.
+        INamedTypeSymbol? targetType;
+        if (attributeData.TargetTypeMetadataName is not null)
+        {
+            targetType = compilation.GetTypeByMetadataName(attributeData.TargetTypeMetadataName);
+            if (targetType is null)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Diagnostics.ExpressiveForTargetTypeNotFound,
+                    stubIdentifierLocation,
+                    attributeData.TargetTypeFullName));
+                return null;
+            }
+        }
+        else
+        {
+            targetType = stubSymbol.ContainingType;
+        }
+
+        // Property stubs can only target properties (no parameter list to carry method args).
+        // Only the ExpressiveFor (MethodOrProperty) pipeline reaches this branch; the constructor
+        // attribute is method-target-only at the AttributeUsage level.
+        if (stubMember is PropertyDeclarationSyntax stubProperty && stubSymbol is IPropertySymbol stubPropertySymbol)
+        {
+            if (attributeData.MemberKind == ExpressiveForMemberKind.Constructor)
+                return null;
+
+            return ResolvePropertyStub(semanticModel, stubProperty, stubPropertySymbol, attributeData,
+                globalOptions, context, compilation, targetType, stubIdentifierLocation);
+        }
+
+        if (stubMember is MethodDeclarationSyntax stubMethod && stubSymbol is IMethodSymbol stubMethodSymbol)
+        {
+            return attributeData.MemberKind switch
+            {
+                ExpressiveForMemberKind.MethodOrProperty =>
+                    ResolveMethodOrProperty(semanticModel, stubMethod, stubMethodSymbol, attributeData, globalOptions, context, compilation, targetType),
+                ExpressiveForMemberKind.Constructor =>
+                    ResolveConstructor(semanticModel, stubMethod, stubMethodSymbol, attributeData, globalOptions, context, compilation, targetType),
+                _ => null
+            };
+        }
+
+        return null;
     }
 
     private static ExpressiveDescriptor? ResolveMethodOrProperty(
@@ -158,76 +179,87 @@ static internal class ExpressiveForInterpreter
             ctor.Parameters, isInstanceMember: false);
     }
 
+    private static ExpressiveDescriptor? ResolvePropertyStub(
+        SemanticModel semanticModel,
+        PropertyDeclarationSyntax stubProperty,
+        IPropertySymbol stubSymbol,
+        ExpressiveForAttributeData attributeData,
+        ExpressiveGlobalOptions globalOptions,
+        SourceProductionContext context,
+        Compilation compilation,
+        INamedTypeSymbol targetType,
+        Location stubIdentifierLocation)
+    {
+        var memberName = attributeData.MemberName;
+        if (memberName is null)
+            return null;
+
+        var target = FindTargetPropertyForPropertyStub(targetType, memberName, stubSymbol);
+        if (target is null)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                Diagnostics.ExpressiveForMemberNotFound,
+                stubIdentifierLocation,
+                memberName,
+                targetType.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat)));
+            return null;
+        }
+
+        if (HasExpressiveAttribute(target, compilation))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                Diagnostics.ExpressiveForConflictsWithExpressive,
+                stubIdentifierLocation,
+                memberName,
+                targetType.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat)));
+            return null;
+        }
+
+        if (!SymbolEqualityComparer.Default.Equals(stubSymbol.Type, target.Type))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                Diagnostics.ExpressiveForReturnTypeMismatch,
+                stubProperty.Type.GetLocation(),
+                target.Name,
+                target.Type.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat),
+                stubSymbol.Type.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat)));
+            return null;
+        }
+
+        return BuildDescriptorFromPropertyStub(semanticModel, stubProperty, stubSymbol, attributeData,
+            globalOptions, context, targetType, target.Name);
+    }
+
+    private static IPropertySymbol? FindTargetPropertyForPropertyStub(
+        INamedTypeSymbol targetType, string memberName, IPropertySymbol stubSymbol)
+        => targetType.GetMembers(memberName)
+            .OfType<IPropertySymbol>()
+            .FirstOrDefault(property => ExpressiveForSignatureMatcher.MatchesPropertyFromPropertyStub(
+                property, targetType, stubSymbol.IsStatic, stubSymbol.ContainingType));
+
     private static IPropertySymbol? FindTargetProperty(
         INamedTypeSymbol targetType, string memberName, IMethodSymbol stubSymbol)
-    {
-        var members = targetType.GetMembers(memberName);
-        foreach (var member in members)
-        {
-            if (member is not IPropertySymbol property)
-                continue;
-
-            // Exclude indexers (they have parameters)
-            if (property.Parameters.Length > 0)
-                continue;
-
-            // Instance property: stub should have 1 param (the instance) whose type matches targetType
-            // Static property: stub should have 0 params
-            if (property.IsStatic && stubSymbol.Parameters.Length == 0)
-                return property;
-            if (!property.IsStatic && stubSymbol.Parameters.Length == 1 &&
-                SymbolEqualityComparer.Default.Equals(stubSymbol.Parameters[0].Type, targetType))
-                return property;
-        }
-        return null;
-    }
+        => targetType.GetMembers(memberName)
+            .OfType<IPropertySymbol>()
+            .FirstOrDefault(property => ExpressiveForSignatureMatcher.MatchesPropertyFromMethodStub(
+                property, targetType, stubSymbol.IsStatic, stubSymbol.ContainingType, stubSymbol.Parameters));
 
     private static IMethodSymbol? FindTargetMethod(
         INamedTypeSymbol targetType, string memberName, IMethodSymbol stubSymbol)
-    {
-        var members = targetType.GetMembers(memberName);
-        foreach (var member in members)
-        {
-            if (member is not IMethodSymbol method || method.MethodKind is MethodKind.PropertyGet or MethodKind.PropertySet)
-                continue;
-
-            // For instance methods: first stub param = this, rest = method params
-            // For static methods: all stub params = method params
-            var expectedStubParamCount = method.IsStatic
-                ? method.Parameters.Length
-                : method.Parameters.Length + 1;
-
-            if (stubSymbol.Parameters.Length != expectedStubParamCount)
-                continue;
-
-            // For instance methods, validate that the stub's first parameter matches the target type
-            if (!method.IsStatic &&
-                !SymbolEqualityComparer.Default.Equals(stubSymbol.Parameters[0].Type, targetType))
-                continue;
-
-            // Check parameter types match
-            var offset = method.IsStatic ? 0 : 1;
-            var match = true;
-            for (var i = 0; i < method.Parameters.Length; i++)
-            {
-                var targetParamType = method.Parameters[i].Type;
-                var stubParamType = stubSymbol.Parameters[i + offset].Type;
-                if (!SymbolEqualityComparer.Default.Equals(targetParamType, stubParamType))
-                {
-                    match = false;
-                    break;
-                }
-            }
-
-            if (match)
-                return method;
-        }
-        return null;
-    }
+        => targetType.GetMembers(memberName)
+            .OfType<IMethodSymbol>()
+            .Where(m => m.MethodKind is not (MethodKind.PropertyGet or MethodKind.PropertySet))
+            .FirstOrDefault(method => ExpressiveForSignatureMatcher.MatchesMethodSignature(
+                method, targetType, stubSymbol.IsStatic, stubSymbol.ContainingType, stubSymbol.Parameters));
 
     private static IMethodSymbol? FindTargetConstructor(
         INamedTypeSymbol targetType, IMethodSymbol stubSymbol)
     {
+        // Constructor stubs remain static-only: an instance stub producing a new instance of its
+        // own containing type has no natural `this` semantics and would produce incoherent code.
+        if (!stubSymbol.IsStatic)
+            return null;
+
         foreach (var ctor in targetType.Constructors)
         {
             if (ctor.IsStatic)
@@ -310,7 +342,7 @@ static internal class ExpressiveForInterpreter
     }
 
     /// <summary>
-    /// Builds the <see cref="ExpressiveDescriptor"/> from the stub method's body,
+    /// Builds the <see cref="ExpressiveDescriptor"/> from a method stub's body,
     /// using the target type's namespace/class path for generated class naming.
     /// </summary>
     private static ExpressiveDescriptor? BuildDescriptorFromStub(
@@ -325,49 +357,10 @@ static internal class ExpressiveForInterpreter
         System.Collections.Immutable.ImmutableArray<IParameterSymbol> targetParameters,
         bool isInstanceMember)
     {
-        var declarationSyntaxRewriter = new DeclarationSyntaxRewriter(semanticModel);
-
-        // Use target type's namespace/class path for naming — this is what the registry will use
-        var targetClassNamespace = targetType.ContainingNamespace.IsGlobalNamespace
-            ? null
-            : targetType.ContainingNamespace.ToDisplayString();
-
-        var descriptor = new ExpressiveDescriptor
-        {
-            UsingDirectives = stubMethod.SyntaxTree.GetRoot().DescendantNodes().OfType<UsingDirectiveSyntax>(),
-            ClassName = targetType.Name,
-            ClassNamespace = targetClassNamespace,
-            MemberName = targetMemberName,
-            NestedInClassNames = GetNestedInClassPath(targetType),
-            TargetClassNamespace = targetClassNamespace,
-            TargetNestedInClassNames = GetNestedInClassPath(targetType),
-            ParametersList = SyntaxFactory.ParameterList()
-        };
-
-        // Populate declared transformers from attribute
-        foreach (var typeName in attributeData.TransformerTypeNames)
-            descriptor.DeclaredTransformerTypeNames.Add(typeName);
-
-        // Collect parameter type names for registry disambiguation
-        // Use the TARGET member's parameter types (not the stub's)
-        if (!targetParameters.IsEmpty)
-        {
-            descriptor.ParameterTypeNames = targetParameters
-                .Select(p => p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
-                .ToList();
-        }
-
-        // Build the stub's parameter list on the descriptor
-        // (this is what the expression factory method will use)
-        var rewrittenParamList = (ParameterListSyntax)declarationSyntaxRewriter.Visit(stubMethod.ParameterList);
-        foreach (var p in rewrittenParamList.Parameters)
-        {
-            descriptor.ParametersList = descriptor.ParametersList.AddParameters(p);
-        }
-
-        // Extract and emit the body
+        var rewriter = new DeclarationSyntaxRewriter(semanticModel);
         var allowBlockBody = attributeData.AllowBlockBody ?? globalOptions.AllowBlockBody;
 
+        // Extract body from the stub method.
         SyntaxNode bodySyntax;
         if (stubMethod.ExpressionBody is not null)
         {
@@ -394,26 +387,163 @@ static internal class ExpressiveForInterpreter
             return null;
         }
 
-        var returnTypeSyntax = declarationSyntaxRewriter.Visit(stubMethod.ReturnType);
-        descriptor.ReturnTypeName = returnTypeSyntax.ToString();
+        var returnTypeName = rewriter.Visit(stubMethod.ReturnType).ToString();
 
-        // Build emitter parameters from the stub's parameters
-        var emitter = new ExpressionTreeEmitter(semanticModel, context);
-        var emitterParams = new List<EmitterParameter>();
-        foreach (var param in stubSymbol.Parameters)
+        // Explicit stub params (after syntax rewriting for default values / modifiers).
+        var rewrittenParamList = (ParameterListSyntax)rewriter.Visit(stubMethod.ParameterList);
+        var explicitSyntax = rewrittenParamList.Parameters.ToList();
+        var explicitEmitterParams = stubSymbol.Parameters
+            .Select(p => new EmitterParameter(
+                p.Name,
+                p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                symbol: p))
+            .ToList();
+
+        return BuildDescriptorCore(semanticModel, context, stubMethod.SyntaxTree, stubSymbol,
+            attributeData, targetType, targetMemberName, targetParameters,
+            explicitSyntax, explicitEmitterParams, returnTypeName, bodySyntax);
+    }
+
+    /// <summary>
+    /// Builds the <see cref="ExpressiveDescriptor"/> from a property stub's body.
+    /// Property stubs are always parameterless; an instance stub's <c>this</c> becomes a synthetic
+    /// receiver on the generated factory method.
+    /// </summary>
+    private static ExpressiveDescriptor? BuildDescriptorFromPropertyStub(
+        SemanticModel semanticModel,
+        PropertyDeclarationSyntax stubProperty,
+        IPropertySymbol stubSymbol,
+        ExpressiveForAttributeData attributeData,
+        ExpressiveGlobalOptions globalOptions,
+        SourceProductionContext context,
+        INamedTypeSymbol targetType,
+        string targetMemberName)
+    {
+        var rewriter = new DeclarationSyntaxRewriter(semanticModel);
+        var allowBlockBody = attributeData.AllowBlockBody ?? globalOptions.AllowBlockBody;
+
+        // Extract body: prefer the expression-bodied form, otherwise fall back to the get accessor.
+        SyntaxNode? bodySyntax = null;
+        if (stubProperty.ExpressionBody is not null)
         {
-            emitterParams.Add(new EmitterParameter(
-                param.Name,
-                param.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                symbol: param));
+            bodySyntax = stubProperty.ExpressionBody.Expression;
+        }
+        else if (stubProperty.AccessorList is not null)
+        {
+            var getter = stubProperty.AccessorList.Accessors
+                .FirstOrDefault(a => a.Kind() == SyntaxKind.GetAccessorDeclaration);
+
+            if (getter is not null)
+            {
+                if (getter.ExpressionBody is not null)
+                {
+                    bodySyntax = getter.ExpressionBody.Expression;
+                }
+                else if (getter.Body is not null)
+                {
+                    if (!allowBlockBody)
+                    {
+                        context.ReportDiagnostic(Diagnostic.Create(
+                            Diagnostics.BlockBodyRequiresOptIn,
+                            stubProperty.Identifier.GetLocation(),
+                            stubSymbol.Name));
+                        return null;
+                    }
+                    bodySyntax = getter.Body;
+                }
+            }
         }
 
+        if (bodySyntax is null)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                Diagnostics.RequiresBodyDefinition,
+                stubProperty.GetLocation(),
+                stubSymbol.Name));
+            return null;
+        }
+
+        var returnTypeName = rewriter.Visit(stubProperty.Type).ToString();
+
+        return BuildDescriptorCore(semanticModel, context, stubProperty.SyntaxTree, stubSymbol,
+            attributeData, targetType, targetMemberName,
+            targetParameters: System.Collections.Immutable.ImmutableArray<IParameterSymbol>.Empty,
+            explicitStubParamSyntax: [],
+            explicitStubEmitterParams: [],
+            returnTypeName, bodySyntax);
+    }
+
+    /// <summary>
+    /// Shared scaffolding for both method-stub and property-stub descriptor construction.
+    /// Builds the descriptor shell, synthesizes <c>@this</c> for instance stubs, appends the
+    /// caller-supplied explicit stub parameters, assembles the delegate type, and emits the body.
+    /// </summary>
+    private static ExpressiveDescriptor BuildDescriptorCore(
+        SemanticModel semanticModel,
+        SourceProductionContext context,
+        SyntaxTree stubSyntaxTree,
+        ISymbol stubSymbol,
+        ExpressiveForAttributeData attributeData,
+        INamedTypeSymbol targetType,
+        string targetMemberName,
+        System.Collections.Immutable.ImmutableArray<IParameterSymbol> targetParameters,
+        IReadOnlyList<ParameterSyntax> explicitStubParamSyntax,
+        IReadOnlyList<EmitterParameter> explicitStubEmitterParams,
+        string returnTypeName,
+        SyntaxNode bodySyntax)
+    {
+        var targetClassNamespace = targetType.ContainingNamespace.IsGlobalNamespace
+            ? null
+            : targetType.ContainingNamespace.ToDisplayString();
+
+        var descriptor = new ExpressiveDescriptor
+        {
+            UsingDirectives = stubSyntaxTree.GetRoot().DescendantNodes().OfType<UsingDirectiveSyntax>(),
+            ClassName = targetType.Name,
+            ClassNamespace = targetClassNamespace,
+            MemberName = targetMemberName,
+            NestedInClassNames = GetNestedInClassPath(targetType),
+            TargetClassNamespace = targetClassNamespace,
+            TargetNestedInClassNames = GetNestedInClassPath(targetType),
+            ParametersList = SyntaxFactory.ParameterList(),
+            ReturnTypeName = returnTypeName,
+        };
+
+        foreach (var typeName in attributeData.TransformerTypeNames)
+            descriptor.DeclaredTransformerTypeNames.Add(typeName);
+
+        // Target member's parameter types disambiguate method overloads in the registry;
+        // properties and parameterless targets keep ParameterTypeNames null.
+        if (!targetParameters.IsEmpty)
+        {
+            descriptor.ParameterTypeNames = targetParameters
+                .Select(p => p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
+                .ToList();
+        }
+
+        var emitterParams = new List<EmitterParameter>();
+
+        // For instance stubs, prepend `@this` so IInstanceReferenceOperation in the body binds to it.
+        if (!stubSymbol.IsStatic)
+        {
+            var thisTypeFqn = stubSymbol.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            descriptor.ParametersList = descriptor.ParametersList.AddParameters(
+                SyntaxFactory.Parameter(SyntaxFactory.Identifier("@this"))
+                    .WithType(SyntaxFactory.ParseTypeName(thisTypeFqn)));
+            emitterParams.Add(new EmitterParameter("@this", thisTypeFqn, isThis: true));
+        }
+
+        foreach (var p in explicitStubParamSyntax)
+            descriptor.ParametersList = descriptor.ParametersList.AddParameters(p);
+        emitterParams.AddRange(explicitStubEmitterParams);
+
         var allTypeArgs = emitterParams.Select(p => p.TypeFqn).ToList();
-        allTypeArgs.Add(descriptor.ReturnTypeName);
+        allTypeArgs.Add(returnTypeName);
         var delegateTypeFqn = $"global::System.Func<{string.Join(", ", allTypeArgs)}>";
 
+        var emitter = new ExpressionTreeEmitter(semanticModel, context);
         descriptor.ExpressionTreeEmission = emitter.Emit(bodySyntax, emitterParams,
-            descriptor.ReturnTypeName, delegateTypeFqn);
+            returnTypeName, delegateTypeFqn);
 
         return descriptor;
     }

@@ -43,6 +43,10 @@ public class ExpressiveOptionsExtension : IDbContextOptionsExtension
     [SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required to decorate query compiler")]
     public void ApplyServices(IServiceCollection services)
     {
+        // The expressive resolver is stateless at the instance level (all caches are process-static),
+        // so a singleton lifetime is appropriate and cheap to share across scopes.
+        services.TryAddSingleton<IExpressiveResolver, ExpressiveResolver>();
+
         // Register conventions
         services.AddScoped<IConventionSetPlugin, ExpressiveDbSetDiscoveryConventionPlugin>();
         services.AddScoped<IConventionSetPlugin, ExpressivePropertiesNotMappedConventionPlugin>();

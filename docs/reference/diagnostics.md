@@ -6,6 +6,10 @@ The ExpressiveSharp source generator and companion analyzers emit diagnostics du
 See [Troubleshooting](./troubleshooting) for symptom-oriented guidance -- find the error message or behavior you see and get step-by-step resolution.
 :::
 
+::: info Retired diagnostics
+`EXP0016` ("`[ExpressiveFor]` stub must be static") has been retired. Instance stubs on the target type are now permitted; constructor-stub and unrelated-type mismatches surface as `EXP0015` (member not found) instead.
+:::
+
 ## Overview
 
 | ID | Severity | Title | Code Fix |
@@ -25,7 +29,6 @@ See [Troubleshooting](./troubleshooting) for symptom-oriented guidance -- find t
 | [EXP0013](#exp0013) | Warning | Member could benefit from `[Expressive]` | [Add `[Expressive]`](#exp0013-fix) |
 | [EXP0014](#exp0014) | Error | `[ExpressiveFor]` target type not found | -- |
 | [EXP0015](#exp0015) | Error | `[ExpressiveFor]` target member not found | -- |
-| [EXP0016](#exp0016) | Error | `[ExpressiveFor]` stub must be static | -- |
 | [EXP0017](#exp0017) | Error | `[ExpressiveFor]` return type mismatch | -- |
 | [EXP0019](#exp0019) | Error | `[ExpressiveFor]` conflicts with `[Expressive]` | -- |
 | [EXP0020](#exp0020) | Error | Duplicate `[ExpressiveFor]` mapping | -- |
@@ -413,32 +416,6 @@ static double Clamp(int value, int min, int max) // should be double, not int
 [ExpressiveFor(typeof(Math), nameof(Math.Clamp))]
 static double Clamp(double value, double min, double max)
     => value < min ? min : (value > max ? max : value);
-```
-
----
-
-### EXP0016 -- Stub must be static {#exp0016}
-
-**Severity:** Error
-**Category:** Design
-
-**Message:**
-```
-[ExpressiveFor] stub method '{0}' must be static
-```
-
-**Cause:** The stub method is not declared `static`.
-
-**Fix:** Add the `static` modifier:
-
-```csharp
-// Error: not static
-[ExpressiveFor(typeof(Math), nameof(Math.Clamp))]
-double Clamp(double value, double min, double max) => /* ... */;
-
-// Fixed
-[ExpressiveFor(typeof(Math), nameof(Math.Clamp))]
-static double Clamp(double value, double min, double max) => /* ... */;
 ```
 
 ---

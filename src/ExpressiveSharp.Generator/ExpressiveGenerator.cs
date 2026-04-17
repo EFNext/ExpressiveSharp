@@ -125,7 +125,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
     /// Discovers, interprets, emits expression factory source, and returns the pipeline
     /// for registry entry extraction.
     /// </summary>
-    private static IncrementalValuesProvider<((MethodDeclarationSyntax Method, ExpressiveForAttributeData Attribute, ExpressiveGlobalOptions GlobalOptions), Compilation)>
+    private static IncrementalValuesProvider<((MemberDeclarationSyntax Member, ExpressiveForAttributeData Attribute, ExpressiveGlobalOptions GlobalOptions), Compilation)>
         CreateExpressiveForPipeline(
             IncrementalGeneratorInitializationContext context,
             IncrementalValueProvider<ExpressiveGlobalOptions> globalOptions,
@@ -135,16 +135,16 @@ public class ExpressiveGenerator : IIncrementalGenerator
         var declarations = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 attributeFullName,
-                predicate: static (s, _) => s is MethodDeclarationSyntax,
+                predicate: static (s, _) => s is MethodDeclarationSyntax or PropertyDeclarationSyntax,
                 transform: (c, _) => (
-                    Method: (MethodDeclarationSyntax)c.TargetNode,
+                    Member: (MemberDeclarationSyntax)c.TargetNode,
                     Attribute: new ExpressiveForAttributeData(c.Attributes[0], memberKind)
                 ));
 
         var declarationsWithGlobalOptions = declarations
             .Combine(globalOptions)
             .Select(static (pair, _) => (
-                Method: pair.Left.Method,
+                Member: pair.Left.Member,
                 Attribute: pair.Left.Attribute,
                 GlobalOptions: pair.Right
             ));
@@ -163,14 +163,14 @@ public class ExpressiveGenerator : IIncrementalGenerator
 
                 foreach (var source in items)
                 {
-                    var ((method, attribute, globalOptions), compilation) = source;
-                    var semanticModel = compilation.GetSemanticModel(method.SyntaxTree);
-                    var stubSymbol = semanticModel.GetDeclaredSymbol(method) as IMethodSymbol;
+                    var ((member, attribute, globalOptions), compilation) = source;
+                    var semanticModel = compilation.GetSemanticModel(member.SyntaxTree);
+                    var stubSymbol = semanticModel.GetDeclaredSymbol(member);
 
-                    if (stubSymbol is null)
+                    if (stubSymbol is not (IMethodSymbol or IPropertySymbol))
                         continue;
 
-                    ExecuteFor(method, semanticModel, stubSymbol, attribute, globalOptions,
+                    ExecuteFor(member, semanticModel, stubSymbol, attribute, globalOptions,
                         compilation, spc, emittedFileNames);
                 }
             });
@@ -411,9 +411,9 @@ public class ExpressiveGenerator : IIncrementalGenerator
     /// validates the stub, and emits the expression tree factory source file.
     /// </summary>
     private static void ExecuteFor(
-        MethodDeclarationSyntax stubMethod,
+        MemberDeclarationSyntax stubMember,
         SemanticModel semanticModel,
-        IMethodSymbol stubSymbol,
+        ISymbol stubSymbol,
         ExpressiveForAttributeData attributeData,
         ExpressiveGlobalOptions globalOptions,
         Compilation compilation,
@@ -421,7 +421,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
         HashSet<string>? emittedFileNames = null)
     {
         var descriptor = ExpressiveForInterpreter.GetDescriptor(
-            semanticModel, stubMethod, stubSymbol, attributeData, globalOptions, context, compilation);
+            semanticModel, stubMember, stubSymbol, attributeData, globalOptions, context, compilation);
 
         if (descriptor is null)
             return;
@@ -442,7 +442,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
         if (descriptor.ExpressionTreeEmission is null)
             throw new InvalidOperationException("ExpressionTreeEmission must be set");
 
-        EmitExpressionTreeSource(descriptor, generatedClassName, methodSuffix, generatedFileName, stubMethod, compilation, context);
+        EmitExpressionTreeSource(descriptor, generatedClassName, methodSuffix, generatedFileName, stubMember, compilation, context);
     }
 
     /// <summary>
@@ -450,19 +450,30 @@ public class ExpressiveGenerator : IIncrementalGenerator
     /// The entry points to the external target member, not the stub itself.
     /// </summary>
     private static ExpressionRegistryEntry? ExtractRegistryEntryForExternal(
-        ((MethodDeclarationSyntax Method, ExpressiveForAttributeData Attribute, ExpressiveGlobalOptions GlobalOptions), Compilation) source)
+        ((MemberDeclarationSyntax Member, ExpressiveForAttributeData Attribute, ExpressiveGlobalOptions GlobalOptions), Compilation) source)
     {
-        var ((method, attribute, globalOptions), compilation) = source;
-        var semanticModel = compilation.GetSemanticModel(method.SyntaxTree);
-        var stubSymbol = semanticModel.GetDeclaredSymbol(method) as IMethodSymbol;
+        var ((member, attribute, _), compilation) = source;
+        var semanticModel = compilation.GetSemanticModel(member.SyntaxTree);
+        var rawStubSymbol = semanticModel.GetDeclaredSymbol(member);
 
-        if (stubSymbol is null)
+        if (rawStubSymbol is not (IMethodSymbol or IPropertySymbol))
             return null;
 
-        // Resolve target type
+        var stubIsProperty = rawStubSymbol is IPropertySymbol;
+        var stubIsStatic = rawStubSymbol.IsStatic;
+        var stubContainingType = rawStubSymbol.ContainingType;
+        var stubMethodSymbol = rawStubSymbol as IMethodSymbol;
+
+        // Property stubs cannot map to constructors (no parameter list).
+        if (stubIsProperty && attribute.MemberKind == ExpressiveForMemberKind.Constructor)
+            return null;
+
+        // Resolve target type. Two cases (mirrors ExpressiveForInterpreter):
+        //  - Two-arg form: resolve from metadata name.
+        //  - Single-arg form: default to the stub's containing type.
         var targetType = attribute.TargetTypeMetadataName is not null
             ? compilation.GetTypeByMetadataName(attribute.TargetTypeMetadataName)
-            : null;
+            : stubContainingType;
 
         if (targetType is null)
             return null;
@@ -482,9 +493,9 @@ public class ExpressiveGenerator : IIncrementalGenerator
             memberKind = ExpressionRegistryMemberType.Constructor;
             memberLookupName = "_ctor";
 
-            // Constructor params match stub params directly
+            // Constructor params match stub params directly (method stubs only — guarded above).
             parameterTypeNames = [
-                ..stubSymbol.Parameters.Select(p => p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
+                ..stubMethodSymbol!.Parameters.Select(p => p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
             ];
         }
         else
@@ -493,8 +504,10 @@ public class ExpressiveGenerator : IIncrementalGenerator
             if (memberName is null)
                 return null;
 
-            // Determine if this maps to a property or method
-            var isProperty = targetType.GetMembers(memberName).OfType<IPropertySymbol>().Any();
+            // Property stubs can only target properties; method stubs may target either.
+            var isProperty = stubIsProperty
+                || targetType.GetMembers(memberName).OfType<IPropertySymbol>().Any();
+
             if (isProperty)
             {
                 memberKind = ExpressionRegistryMemberType.Property;
@@ -506,29 +519,13 @@ public class ExpressiveGenerator : IIncrementalGenerator
                 memberKind = ExpressionRegistryMemberType.Method;
                 memberLookupName = memberName;
 
-                // Find the matching target method to get its parameter types (not the stub's)
+                // Signature matching via the shared matcher so the registry entry can never
+                // disagree with what ExpressiveForInterpreter accepted.
+                var stubParams = stubMethodSymbol!.Parameters;
                 var targetMethod = targetType.GetMembers(memberName).OfType<IMethodSymbol>()
                     .Where(m => m.MethodKind is not (MethodKind.PropertyGet or MethodKind.PropertySet))
-                    .FirstOrDefault(m =>
-                    {
-                        var expectedParamCount = m.IsStatic ? m.Parameters.Length : m.Parameters.Length + 1;
-                        if (stubSymbol.Parameters.Length != expectedParamCount)
-                            return false;
-
-                        // For instance methods, validate that the stub's first parameter matches the target type
-                        if (!m.IsStatic &&
-                            !SymbolEqualityComparer.Default.Equals(stubSymbol.Parameters[0].Type, targetType))
-                            return false;
-
-                        var offset = m.IsStatic ? 0 : 1;
-                        for (var i = 0; i < m.Parameters.Length; i++)
-                        {
-                            if (!SymbolEqualityComparer.Default.Equals(
-                                m.Parameters[i].Type, stubSymbol.Parameters[i + offset].Type))
-                                return false;
-                        }
-                        return true;
-                    });
+                    .FirstOrDefault(m => Interpretation.ExpressiveForSignatureMatcher
+                        .MatchesMethodSignature(m, targetType, stubIsStatic, stubContainingType, stubParams));
 
                 if (targetMethod is null)
                     return null;
@@ -557,7 +554,12 @@ public class ExpressiveGenerator : IIncrementalGenerator
         var expressionMethodName = methodSuffix + "_Expression";
 
         // Capture stub location for duplicate detection diagnostics
-        var stubLocation = method.Identifier.GetLocation();
+        var stubLocation = member switch
+        {
+            MethodDeclarationSyntax m => m.Identifier.GetLocation(),
+            PropertyDeclarationSyntax p => p.Identifier.GetLocation(),
+            _ => member.GetLocation()
+        };
         var stubLineSpan = stubLocation.GetLineSpan();
 
         return new ExpressionRegistryEntry(
