@@ -452,7 +452,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
     private static ExpressionRegistryEntry? ExtractRegistryEntryForExternal(
         ((MemberDeclarationSyntax Member, ExpressiveForAttributeData Attribute, ExpressiveGlobalOptions GlobalOptions), Compilation) source)
     {
-        var ((member, attribute, globalOptions), compilation) = source;
+        var ((member, attribute, _), compilation) = source;
         var semanticModel = compilation.GetSemanticModel(member.SyntaxTree);
         var rawStubSymbol = semanticModel.GetDeclaredSymbol(member);
 
@@ -506,8 +506,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
 
             // Property stubs can only target properties; method stubs may target either.
             var isProperty = stubIsProperty
-                ? true
-                : targetType.GetMembers(memberName).OfType<IPropertySymbol>().Any();
+                || targetType.GetMembers(memberName).OfType<IPropertySymbol>().Any();
 
             if (isProperty)
             {

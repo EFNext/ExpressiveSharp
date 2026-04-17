@@ -232,43 +232,25 @@ static internal class ExpressiveForInterpreter
 
     private static IPropertySymbol? FindTargetPropertyForPropertyStub(
         INamedTypeSymbol targetType, string memberName, IPropertySymbol stubSymbol)
-    {
-        foreach (var member in targetType.GetMembers(memberName))
-        {
-            if (member is IPropertySymbol property &&
-                ExpressiveForSignatureMatcher.MatchesPropertyFromPropertyStub(
-                    property, targetType, stubSymbol.IsStatic, stubSymbol.ContainingType))
-                return property;
-        }
-        return null;
-    }
+        => targetType.GetMembers(memberName)
+            .OfType<IPropertySymbol>()
+            .FirstOrDefault(property => ExpressiveForSignatureMatcher.MatchesPropertyFromPropertyStub(
+                property, targetType, stubSymbol.IsStatic, stubSymbol.ContainingType));
 
     private static IPropertySymbol? FindTargetProperty(
         INamedTypeSymbol targetType, string memberName, IMethodSymbol stubSymbol)
-    {
-        foreach (var member in targetType.GetMembers(memberName))
-        {
-            if (member is IPropertySymbol property &&
-                ExpressiveForSignatureMatcher.MatchesPropertyFromMethodStub(
-                    property, targetType, stubSymbol.IsStatic, stubSymbol.ContainingType, stubSymbol.Parameters))
-                return property;
-        }
-        return null;
-    }
+        => targetType.GetMembers(memberName)
+            .OfType<IPropertySymbol>()
+            .FirstOrDefault(property => ExpressiveForSignatureMatcher.MatchesPropertyFromMethodStub(
+                property, targetType, stubSymbol.IsStatic, stubSymbol.ContainingType, stubSymbol.Parameters));
 
     private static IMethodSymbol? FindTargetMethod(
         INamedTypeSymbol targetType, string memberName, IMethodSymbol stubSymbol)
-    {
-        foreach (var member in targetType.GetMembers(memberName))
-        {
-            if (member is IMethodSymbol method &&
-                method.MethodKind is not (MethodKind.PropertyGet or MethodKind.PropertySet) &&
-                ExpressiveForSignatureMatcher.MatchesMethodSignature(
-                    method, targetType, stubSymbol.IsStatic, stubSymbol.ContainingType, stubSymbol.Parameters))
-                return method;
-        }
-        return null;
-    }
+        => targetType.GetMembers(memberName)
+            .OfType<IMethodSymbol>()
+            .Where(m => m.MethodKind is not (MethodKind.PropertyGet or MethodKind.PropertySet))
+            .FirstOrDefault(method => ExpressiveForSignatureMatcher.MatchesMethodSignature(
+                method, targetType, stubSymbol.IsStatic, stubSymbol.ContainingType, stubSymbol.Parameters));
 
     private static IMethodSymbol? FindTargetConstructor(
         INamedTypeSymbol targetType, IMethodSymbol stubSymbol)
@@ -448,15 +430,8 @@ static internal class ExpressiveForInterpreter
         }
         else if (stubProperty.AccessorList is not null)
         {
-            AccessorDeclarationSyntax? getter = null;
-            foreach (var accessor in stubProperty.AccessorList.Accessors)
-            {
-                if (accessor.Kind() == SyntaxKind.GetAccessorDeclaration)
-                {
-                    getter = accessor;
-                    break;
-                }
-            }
+            var getter = stubProperty.AccessorList.Accessors
+                .FirstOrDefault(a => a.Kind() == SyntaxKind.GetAccessorDeclaration);
 
             if (getter is not null)
             {
