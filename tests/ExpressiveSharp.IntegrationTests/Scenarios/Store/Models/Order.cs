@@ -66,6 +66,17 @@ public class Order
         }
     }
 
+    // Early-return shape (if-without-else + trailing return). Previously miscompiled:
+    // the generator built Block(Condition(...), "Regular") where the "Bulk" arm's value
+    // was discarded and "Regular" was always returned.
+    [Expressive(AllowBlockBody = true)]
+    public string GetCategoryEarlyReturn()
+    {
+        var threshold = Quantity * 10;
+        if (threshold > 100) return "Bulk";
+        return "Regular";
+    }
+
     [Expressive]
     public string Summary => $"Order #{Id}: {Tag ?? "N/A"}";
 

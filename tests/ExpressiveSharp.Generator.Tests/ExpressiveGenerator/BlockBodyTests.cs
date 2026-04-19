@@ -286,6 +286,87 @@ public class BlockBodyTests : GeneratorTestBase
     }
 
     [TestMethod]
+    public Task BlockBodiedMethod_WithEarlyReturn()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    public int Bar { get; set; }
+
+                    [Expressive(AllowBlockBody = true)]
+                    public string Foo()
+                    {
+                        if (Bar > 10) return "Bulk";
+                        return "Regular";
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task BlockBodiedMethod_WithEarlyReturn_AfterLocalVar()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    public int Bar { get; set; }
+
+                    [Expressive(AllowBlockBody = true)]
+                    public string Foo()
+                    {
+                        var threshold = Bar * 10;
+                        if (threshold > 100) return "Bulk";
+                        return "Regular";
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task BlockBodiedMethod_WithMultipleEarlyReturns()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    public int Bar { get; set; }
+
+                    [Expressive(AllowBlockBody = true)]
+                    public string Foo()
+                    {
+                        if (Bar > 100) return "Huge";
+                        if (Bar > 10) return "Big";
+                        if (Bar > 0) return "Small";
+                        return "Zero";
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
     public Task BlockBody_WithThrow()
     {
         var compilation = CreateCompilation(

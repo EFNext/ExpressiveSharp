@@ -2264,64 +2264,35 @@ internal sealed class ExpressionTreeEmitter
             return EmitReturn(singleReturn);
         }
 
-        // General case: Expression.Block(variables, statements)
+        return EmitStatementSequence(block.Operations, block.Type);
+    }
+
+    /// <summary>
+    /// Emits a flat sequence of statements as either a single expression (if trivially reducible)
+    /// or <c>Expression.Block(variables, statements)</c>. Handles early-return patterns by
+    /// restructuring into nested <c>Condition</c> expressions so the final value is the correct
+    /// branch value, not just the last statement.
+    /// </summary>
+    private string EmitStatementSequence(IReadOnlyList<IOperation> ops, ITypeSymbol? fallbackType)
+    {
+        if (ops.Count == 1 && ops[0] is IReturnOperation singleReturn)
+        {
+            return EmitReturn(singleReturn);
+        }
+
         var variables = new List<string>();
         var statements = new List<string>();
-
-        foreach (var op in block.Operations)
-        {
-            if (op is IVariableDeclarationGroupOperation varDeclGroup)
-            {
-                foreach (var declaration in varDeclGroup.Declarations)
-                {
-                    foreach (var declarator in declaration.Declarators)
-                    {
-                        var localSymbol = declarator.Symbol;
-                        var localTypeFqn = localSymbol.Type.ToDisplayString(_fqnFormat);
-                        var localVar = NextVar();
-                        AppendLine($"var {localVar} = {Expr}.Variable(typeof({localTypeFqn}), \"{localSymbol.Name}\");");
-                        _localToVar[localSymbol] = localVar;
-                        variables.Add(localVar);
-
-                        // If there's an initializer, emit assignment
-                        if (declarator.Initializer is not null)
-                        {
-                            var initVar = EmitOperation(declarator.Initializer.Value);
-                            var assignVar = NextVar();
-                            AppendLine($"var {assignVar} = {Expr}.Assign({localVar}, {initVar});");
-                            statements.Add(assignVar);
-                        }
-                    }
-                }
-            }
-            else if (op is IReturnOperation returnOp)
-            {
-                // The last expression in Expression.Block becomes the block's return value
-                if (returnOp.ReturnedValue is not null)
-                {
-                    statements.Add(EmitOperation(returnOp.ReturnedValue));
-                }
-            }
-            else if (op is IExpressionStatementOperation exprStmt)
-            {
-                statements.Add(EmitOperation(exprStmt.Operation));
-            }
-            else
-            {
-                // For other statement types (if/else as statement, loops, etc.)
-                statements.Add(EmitOperation(op));
-            }
-        }
+        EmitStatementList(ops, variables, statements);
 
         if (statements.Count == 0)
         {
             var empty = NextVar();
-            var typeFqn = block.Type?.ToDisplayString(_fqnFormat) ?? "object";
+            var typeFqn = fallbackType?.ToDisplayString(_fqnFormat) ?? _outerReturnTypeFqn ?? "object";
             AppendLine($"var {empty} = {Expr}.Default(typeof({typeFqn}));");
             return empty;
         }
 
-        // If no variables, and only one statement, just return it directly
+        // If no variables, and only one statement, just return it directly.
         if (variables.Count == 0 && statements.Count == 1)
         {
             return statements[0];
@@ -2334,6 +2305,172 @@ internal sealed class ExpressionTreeEmitter
         var statementsExpr = $"new global::System.Linq.Expressions.Expression[] {{ {string.Join(", ", statements)} }}";
         AppendLine($"var {resultVar} = {Expr}.Block({variablesExpr}, {statementsExpr});");
         return resultVar;
+    }
+
+    private void EmitStatementList(IReadOnlyList<IOperation> ops, List<string> variables, List<string> statements)
+    {
+        for (var i = 0; i < ops.Count; i++)
+        {
+            var op = ops[i];
+
+            switch (op)
+            {
+                case IVariableDeclarationGroupOperation varDeclGroup:
+                    EmitVariableDeclarationGroup(varDeclGroup, variables, statements);
+                    continue;
+
+                case IReturnOperation returnOp:
+                    // Return becomes the block's final value; subsequent ops are dead code.
+                    if (returnOp.ReturnedValue is not null)
+                    {
+                        statements.Add(EmitOperation(returnOp.ReturnedValue));
+                    }
+                    return;
+
+                case IConditionalOperation cond when TryEmitEarlyReturnConditional(cond, ops, i + 1, statements):
+                    // The conditional consumed the remaining tail — stop processing.
+                    return;
+
+                case IExpressionStatementOperation exprStmt:
+                    statements.Add(EmitOperation(exprStmt.Operation));
+                    continue;
+
+                default:
+                    statements.Add(EmitOperation(op));
+                    continue;
+            }
+        }
+    }
+
+    private void EmitVariableDeclarationGroup(IVariableDeclarationGroupOperation varDeclGroup, List<string> variables, List<string> statements)
+    {
+        foreach (var declaration in varDeclGroup.Declarations)
+        {
+            foreach (var declarator in declaration.Declarators)
+            {
+                var localSymbol = declarator.Symbol;
+                var localTypeFqn = localSymbol.Type.ToDisplayString(_fqnFormat);
+                var localVar = NextVar();
+                AppendLine($"var {localVar} = {Expr}.Variable(typeof({localTypeFqn}), \"{localSymbol.Name}\");");
+                _localToVar[localSymbol] = localVar;
+                variables.Add(localVar);
+
+                if (declarator.Initializer is not null)
+                {
+                    var initVar = EmitOperation(declarator.Initializer.Value);
+                    var assignVar = NextVar();
+                    AppendLine($"var {assignVar} = {Expr}.Assign({localVar}, {initVar});");
+                    statements.Add(assignVar);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Restructures an <c>if</c> statement whose branches contain early <c>return</c>s into
+    /// a nested <c>Condition</c> expression. Returning branches become the Condition's arms;
+    /// non-returning branches are merged with the tail (<paramref name="ops"/> from
+    /// <paramref name="tailStart"/>) so every path resolves to a value. Returns true when this
+    /// restructuring was performed (and thus the tail has been consumed).
+    /// </summary>
+    private bool TryEmitEarlyReturnConditional(IConditionalOperation cond, IReadOnlyList<IOperation> ops, int tailStart, List<string> statements)
+    {
+        var trueReturns = AlwaysReturns(cond.WhenTrue);
+        var falseReturns = cond.WhenFalse is not null && AlwaysReturns(cond.WhenFalse);
+
+        // Only engage for early-return shapes; if/then without a return is handled by the normal path.
+        if (!trueReturns && !falseReturns)
+        {
+            return false;
+        }
+
+        var resultType =
+            InferBranchType(cond.WhenTrue)
+            ?? (cond.WhenFalse is not null ? InferBranchType(cond.WhenFalse) : null);
+        var typeFqn = resultType?.ToDisplayString(_fqnFormat) ?? _outerReturnTypeFqn ?? "object";
+
+        // Allocate result var first to keep snapshot numbering stable with the previous EmitConditional.
+        var resultVar = NextVar();
+        var testVar = EmitOperation(cond.Condition);
+
+        var trueVar = trueReturns
+            ? EmitOperation(cond.WhenTrue)
+            : EmitMergedBranch(cond.WhenTrue, ops, tailStart, resultType);
+
+        string falseVar;
+        if (cond.WhenFalse is not null)
+        {
+            falseVar = falseReturns
+                ? EmitOperation(cond.WhenFalse)
+                : EmitMergedBranch(cond.WhenFalse, ops, tailStart, resultType);
+        }
+        else
+        {
+            // No else branch — the tail becomes the else.
+            falseVar = EmitTail(ops, tailStart, resultType);
+        }
+
+        AppendLine($"var {resultVar} = {Expr}.Condition({testVar}, {trueVar}, {falseVar}, typeof({typeFqn}));");
+        statements.Add(resultVar);
+        return true;
+    }
+
+    private string EmitMergedBranch(IOperation branch, IReadOnlyList<IOperation> parentOps, int tailStart, ITypeSymbol? expectedType)
+    {
+        var merged = new List<IOperation>();
+        if (branch is IBlockOperation branchBlock)
+        {
+            foreach (var inner in branchBlock.Operations)
+            {
+                merged.Add(inner);
+            }
+        }
+        else
+        {
+            merged.Add(branch);
+        }
+
+        for (var i = tailStart; i < parentOps.Count; i++)
+        {
+            merged.Add(parentOps[i]);
+        }
+
+        return EmitStatementSequence(merged, expectedType);
+    }
+
+    private string EmitTail(IReadOnlyList<IOperation> parentOps, int tailStart, ITypeSymbol? expectedType)
+    {
+        var tail = new List<IOperation>();
+        for (var i = tailStart; i < parentOps.Count; i++)
+        {
+            tail.Add(parentOps[i]);
+        }
+        return EmitStatementSequence(tail, expectedType);
+    }
+
+    /// <summary>
+    /// Returns true when executing <paramref name="op"/> always transfers control via
+    /// <c>return</c> (so subsequent statements are unreachable). Used to detect early-return
+    /// shapes that must be restructured into nested <c>Condition</c> expressions rather than
+    /// appended as side-effect statements in a <c>Block</c>.
+    /// </summary>
+    private static bool AlwaysReturns(IOperation? op)
+    {
+        if (op is null)
+        {
+            return false;
+        }
+
+        return op switch
+        {
+            IReturnOperation => true,
+            IBlockOperation block => block.Operations.Length > 0
+                && AlwaysReturns(block.Operations[block.Operations.Length - 1]),
+            IConditionalOperation cond => cond.WhenFalse is not null
+                && AlwaysReturns(cond.WhenTrue)
+                && AlwaysReturns(cond.WhenFalse),
+            _ => false,
+        };
     }
 
     private string EmitReturn(IReturnOperation ret)

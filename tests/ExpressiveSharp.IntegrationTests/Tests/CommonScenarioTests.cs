@@ -100,6 +100,19 @@ public class CommonScenarioTests
             results);
     }
 
+    [TestMethod]
+    public void Select_GetCategoryEarlyReturn_ReturnsCorrectValues()
+    {
+        Expression<Func<Order, string>> expr = o => o.GetCategoryEarlyReturn();
+        var expanded = (Expression<Func<Order, string>>)expr.ExpandExpressives();
+
+        var results = _runner.Select<Order, string>(expanded);
+
+        CollectionAssert.AreEquivalent(
+            new[] { "Regular", "Bulk", "Regular", "Regular" },
+            results);
+    }
+
     // ── Checked Arithmetic ──────────────────────────────────────────────────
 
     [TestMethod]

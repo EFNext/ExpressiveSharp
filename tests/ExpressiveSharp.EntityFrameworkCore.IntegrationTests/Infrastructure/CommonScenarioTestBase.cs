@@ -90,6 +90,19 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
             results);
     }
 
+    [TestMethod]
+    public async Task Select_GetCategoryEarlyReturn_ReturnsCorrectValues()
+    {
+        Expression<Func<Order, string>> expr = o => o.GetCategoryEarlyReturn();
+        var expanded = (Expression<Func<Order, string>>)expr.ExpandExpressives();
+
+        var results = await Context.Set<Order>().Select(expanded).ToListAsync();
+
+        CollectionAssert.AreEquivalent(
+            new[] { "Regular", "Bulk", "Regular", "Regular" },
+            results);
+    }
+
     // ── Checked Arithmetic ──────────────────────────────────────────────────
 
     [TestMethod]
