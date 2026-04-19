@@ -21,7 +21,7 @@ namespace ExpressiveSharp.Generated
             return map;
         }
         
-        private static Dictionary<nint, LambdaExpression> _map = Build();
+        private static volatile Dictionary<nint, LambdaExpression> _map = Build();
         
         internal static void ResetMap() => _map = Build();
         

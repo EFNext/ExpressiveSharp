@@ -63,6 +63,20 @@ public class ExpressiveHotReloadHandlerTests
     }
 
     [TestMethod]
+    public void ClearCache_WithUpdatedTypes_ClearsResolverCache()
+    {
+        var mi = typeof(Product).GetProperty(nameof(Product.Total))!;
+        var resolver = new ExpressiveResolver();
+
+        _ = resolver.FindGeneratedExpression(mi);
+        Assert.IsTrue(ExpressiveResolver.IsExpressionCached(mi));
+
+        ExpressiveHotReloadHandler.ClearCache([typeof(Product)]);
+
+        Assert.IsFalse(ExpressiveResolver.IsExpressionCached(mi));
+    }
+
+    [TestMethod]
     public void UpdateApplication_WithNull_DoesNotThrow()
     {
         ExpressiveHotReloadHandler.UpdateApplication(null);
