@@ -47,8 +47,8 @@ internal class ExpressiveDescriptor
     public List<string> DeclaredTransformerTypeNames { get; } = new();
 
     /// <summary>
-    /// When <c>[ExpressiveFor(..., Synthesize = true)]</c> is applied, this carries the
-    /// instructions for emitting the synthesized property on the stub's containing type.
+    /// When <c>[ExpressiveProperty]</c> is applied, this carries the instructions for
+    /// emitting the synthesized property on the stub's containing type.
     /// </summary>
     public SynthesizedPropertySpec? SynthesisSpec { get; set; }
 }

@@ -85,7 +85,7 @@ public class ExpressiveResolverTests
             "Expected Product.Total expression to contain a Multiply node");
     }
 
-    // ── [ExpressiveFor(..., Synthesize = true)] ─────────────────────────────
+    // ── [ExpressiveProperty] ─────────────────────────────────────────────────
     //
     // The most load-bearing correctness point: the generator must register the formula lambda
     // under the synthesized property's getter MethodHandle. If the registry were keyed off the
@@ -171,13 +171,13 @@ public class ExpressiveResolverTests
 
 /// <summary>
 /// Test-local fixture for synthesized-property resolver tests. Declared here (not in the shared
-/// <c>TestFixtures</c>) to keep the <c>[ExpressiveFor(..., Synthesize = true)]</c> dependency contained.
+/// <c>TestFixtures</c>) to keep the <c>[ExpressiveProperty]</c> dependency contained.
 /// </summary>
 public partial class SynthesizedCustomer
 {
     public string FirstName { get; set; } = "";
     public string LastName { get; set; } = "";
 
-    [ExpressiveSharp.Mapping.ExpressiveFor("FullName", Synthesize = true)]
+    [ExpressiveSharp.Mapping.ExpressiveProperty("FullName")]
     private string FullNameExpression => LastName + ", " + FirstName;
 }

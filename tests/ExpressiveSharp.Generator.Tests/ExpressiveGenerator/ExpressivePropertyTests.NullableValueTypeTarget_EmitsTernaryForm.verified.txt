@@ -9,7 +9,7 @@ namespace ExpressiveSharp.Generated
 {
     static partial class Foo_Account 
     {
-        // [ExpressiveFor("Amount", Synthesize = true)]
+        // [ExpressiveProperty("Amount")]
         // private decimal? AmountExpression => TotalAmount != null && Discount != null ? TotalAmount.Value - Discount.Value : (decimal? )null;
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Account, decimal?>> Amount_Expression() 
         {

@@ -5,7 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace ExpressiveSharp.IntegrationTests.Tests;
 
 /// <summary>
-/// Provider-agnostic tests for <c>[ExpressiveFor(..., Synthesize = true)]</c>. Verifies the
+/// Provider-agnostic tests for <c>[ExpressiveProperty]</c>. Verifies the
 /// dual-direction runtime behavior of the generated property: in-memory reads evaluate the
 /// stub (because the backing field is not yet materialized), while values assigned through
 /// the synthesized <c>init</c> accessor are stored and returned verbatim.
@@ -146,7 +146,7 @@ public partial class SynthesizedEntity
     public string? Name { get; set; }
     public string? Email { get; set; }
 
-    [ExpressiveFor("DisplayLabel", Synthesize = true)]
+    [ExpressiveProperty("DisplayLabel")]
     private string DisplayLabelExpression =>
         (Name ?? "(unnamed)") + " <" + (Email ?? "no-email") + ">";
 }
@@ -161,7 +161,7 @@ public partial class DiscountedSynthesizedEntity
     public decimal? TotalAmount { get; set; }
     public decimal? Discount { get; set; }
 
-    [ExpressiveFor("DiscountedAmount", Synthesize = true)]
+    [ExpressiveProperty("DiscountedAmount")]
     private decimal? DiscountedAmountExpression =>
         TotalAmount != null && Discount != null
             ? TotalAmount.Value - Discount.Value

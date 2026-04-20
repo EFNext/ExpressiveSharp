@@ -32,16 +32,10 @@ readonly internal record struct ExpressiveForAttributeData
 
     public IReadOnlyList<string> TransformerTypeNames { get; }
 
-    /// <summary>
-    /// When <c>true</c>, the target property is synthesized on the stub's containing type.
-    /// </summary>
-    public bool Synthesize { get; }
-
     public ExpressiveForAttributeData(AttributeData attribute, ExpressiveForMemberKind memberKind)
     {
         MemberKind = memberKind;
         bool? allowBlockBody = null;
-        var synthesize = false;
         var transformerTypeNames = new List<string>();
 
         // Extract target type from first constructor argument.
@@ -98,14 +92,10 @@ readonly internal record struct ExpressiveForAttributeData
                         }
                     }
                     break;
-                case "Synthesize":
-                    synthesize = value.Value is true;
-                    break;
             }
         }
 
         AllowBlockBody = allowBlockBody;
-        Synthesize = synthesize;
         TransformerTypeNames = transformerTypeNames.ToArray();
     }
 

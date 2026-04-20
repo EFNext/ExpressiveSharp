@@ -39,15 +39,6 @@ public sealed class ExpressiveForAttribute : Attribute
     /// </summary>
     public Type[]? Transformers { get; set; }
 
-    /// <summary>
-    /// When <c>true</c>, the generator synthesizes the target property on the stub's containing
-    /// type (which must be <c>partial</c>). The stub becomes the formula source and the synthesized
-    /// property caches materialized values (from query results) using a <c>?? formula</c> coalesce
-    /// for non-nullable types or a <c>hasValue ? stored : formula</c> ternary for nullable types.
-    /// Only valid with the single-argument form <c>[ExpressiveFor(nameof(Member), Synthesize = true)]</c>.
-    /// </summary>
-    public bool Synthesize { get; set; }
-
     public ExpressiveForAttribute(Type targetType, string memberName)
     {
         TargetType = targetType;

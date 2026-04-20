@@ -37,15 +37,6 @@ static internal class ExpressiveForInterpreter
         INamedTypeSymbol? targetType;
         if (attributeData.TargetTypeMetadataName is not null)
         {
-            // EXP0033: Synthesize requires the single-arg form (same-type stub).
-            if (attributeData.Synthesize)
-            {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    Diagnostics.ExpressiveForSynthesizeRequiresSameType,
-                    stubIdentifierLocation));
-                return null;
-            }
-
             targetType = compilation.GetTypeByMetadataName(attributeData.TargetTypeMetadataName);
             if (targetType is null)
             {
@@ -59,14 +50,6 @@ static internal class ExpressiveForInterpreter
         else
         {
             targetType = stubSymbol.ContainingType;
-        }
-
-        // [ExpressiveFor(..., Synthesize = true)] branch — takes priority over the normal
-        // resolution path because the target member does not yet exist on the target type.
-        if (attributeData.Synthesize)
-        {
-            return ResolveSynthesize(semanticModel, stubMember, stubSymbol, attributeData,
-                globalOptions, context, targetType, stubIdentifierLocation);
         }
 
         // Property stubs can only target properties (no parameter list to carry method args).
@@ -147,176 +130,6 @@ static internal class ExpressiveForInterpreter
             memberName,
             targetType.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat)));
         return null;
-    }
-
-    private static ExpressiveDescriptor? ResolveSynthesize(
-        SemanticModel semanticModel,
-        MemberDeclarationSyntax stubMember,
-        ISymbol stubSymbol,
-        ExpressiveForAttributeData attributeData,
-        ExpressiveGlobalOptions globalOptions,
-        SourceProductionContext context,
-        INamedTypeSymbol targetType,
-        Location stubIdentifierLocation)
-    {
-        var memberName = attributeData.MemberName;
-        if (memberName is null)
-            return null;
-
-        // EXP0032: the containing class must be partial so we can emit the synthesized property
-        // into a generated file.
-        if (!IsPartialType(targetType))
-        {
-            context.ReportDiagnostic(Diagnostic.Create(
-                Diagnostics.ExpressiveForSynthesizeRequiresPartial,
-                stubIdentifierLocation,
-                targetType.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat)));
-            return null;
-        }
-
-        // EXP0031: a member with the target name must not already exist on the target type.
-        // We look at the target type's direct members (including generated ones aren't visible
-        // yet — partial declarations from other files ARE visible through the symbol model).
-        if (targetType.GetMembers(memberName).Any(m => m is IPropertySymbol or IMethodSymbol or IFieldSymbol or IEventSymbol))
-        {
-            context.ReportDiagnostic(Diagnostic.Create(
-                Diagnostics.ExpressiveForSynthesizeTargetExists,
-                stubIdentifierLocation,
-                memberName,
-                targetType.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat)));
-            return null;
-        }
-
-        // The stub must be a parameterless same-type member (property or method) so the
-        // synthesized property can delegate to it with no arguments. For non-property stubs
-        // we still accept zero-param instance methods.
-        ITypeSymbol stubReturnType;
-        bool stubIsProperty;
-        switch (stubSymbol)
-        {
-            case IPropertySymbol propSym when propSym.Parameters.Length == 0 && !propSym.IsStatic:
-                stubReturnType = propSym.Type;
-                stubIsProperty = true;
-                break;
-            case IMethodSymbol methodSym when methodSym.Parameters.Length == 0 && !methodSym.IsStatic:
-                stubReturnType = methodSym.ReturnType;
-                stubIsProperty = false;
-                break;
-            default:
-                context.ReportDiagnostic(Diagnostic.Create(
-                    Diagnostics.ExpressiveForMemberNotFound,
-                    stubIdentifierLocation,
-                    memberName,
-                    targetType.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat)));
-                return null;
-        }
-
-        // Build the descriptor from the stub body first (standard pipeline).
-        ExpressiveDescriptor? descriptor = stubMember switch
-        {
-            PropertyDeclarationSyntax stubProp when stubSymbol is IPropertySymbol stubPropSym =>
-                BuildDescriptorFromPropertyStub(semanticModel, stubProp, stubPropSym, attributeData,
-                    globalOptions, context, targetType, memberName),
-            MethodDeclarationSyntax stubMethod when stubSymbol is IMethodSymbol stubMethodSym =>
-                BuildDescriptorFromStub(semanticModel, stubMethod, stubMethodSym, attributeData,
-                    globalOptions, context, targetType, memberName,
-                    targetParameters: System.Collections.Immutable.ImmutableArray<IParameterSymbol>.Empty,
-                    isInstanceMember: true),
-            _ => null
-        };
-
-        if (descriptor is null)
-            return null;
-
-        // Attach the synthesis spec so the generator emits the partial property.
-        var useTernary = IsNullablePropertyType(stubReturnType);
-        var propertyTypeFqn = stubReturnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        var backingFieldTypeFqn = useTernary
-            ? propertyTypeFqn
-            : MakeNullableTypeFqn(stubReturnType);
-
-        descriptor.SynthesisSpec = new SynthesizedPropertySpec
-        {
-            PropertyTypeFqn = propertyTypeFqn,
-            PropertyName = memberName,
-            StubMemberName = stubSymbol.Name,
-            StubIsMethod = !stubIsProperty,
-            UseTernaryShape = useTernary,
-            BackingFieldTypeFqn = backingFieldTypeFqn,
-            ContainingTypeName = targetType.Name,
-            ContainingTypeNamespace = targetType.ContainingNamespace.IsGlobalNamespace
-                ? null
-                : targetType.ContainingNamespace.ToDisplayString(),
-            ContainingTypePath = GetNestedInClassPath(targetType).ToList(),
-            ContainingTypeKeyword = GetTypeKeyword(targetType),
-        };
-
-        return descriptor;
-    }
-
-    /// <summary>
-    /// True when the declared property type is nullable (annotated reference type or
-    /// <c>Nullable&lt;T&gt;</c>). Non-nullable types can use the simpler coalesce shape because
-    /// <c>null</c> in the backing field unambiguously means "not materialized".
-    /// </summary>
-    private static bool IsNullablePropertyType(ITypeSymbol type)
-    {
-        if (type.NullableAnnotation == NullableAnnotation.Annotated) return true;
-        if (type is INamedTypeSymbol named && named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
-            return true;
-        return false;
-    }
-
-    /// <summary>
-    /// Formats <paramref name="type"/> as its nullable form for backing-field declaration.
-    /// For value types, wraps in <c>Nullable&lt;T&gt;</c>; for reference types, appends <c>?</c>.
-    /// </summary>
-    private static string MakeNullableTypeFqn(ITypeSymbol type)
-    {
-        var fqn = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        if (type.IsValueType)
-            return $"global::System.Nullable<{fqn}>";
-        return fqn.EndsWith("?") ? fqn : fqn + "?";
-    }
-
-    /// <summary>
-    /// True when at least one declaration of <paramref name="type"/> carries the <c>partial</c> keyword.
-    /// </summary>
-    private static bool IsPartialType(INamedTypeSymbol type)
-    {
-        foreach (var reference in type.DeclaringSyntaxReferences)
-        {
-            if (reference.GetSyntax() is TypeDeclarationSyntax typeDecl
-                && typeDecl.Modifiers.Any(SyntaxKind.PartialKeyword))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static string GetTypeKeyword(INamedTypeSymbol type)
-    {
-        // Prefer a declaration-based check so we emit the exact keyword used in source.
-        foreach (var reference in type.DeclaringSyntaxReferences)
-        {
-            switch (reference.GetSyntax())
-            {
-                case ClassDeclarationSyntax: return "class";
-                case RecordDeclarationSyntax rec:
-                    return rec.ClassOrStructKeyword.IsKind(SyntaxKind.StructKeyword)
-                        ? "record struct"
-                        : "record";
-                case StructDeclarationSyntax: return "struct";
-                case InterfaceDeclarationSyntax: return "interface";
-            }
-        }
-        return type.TypeKind switch
-        {
-            TypeKind.Struct => "struct",
-            TypeKind.Interface => "interface",
-            _ => "class",
-        };
     }
 
     private static ExpressiveDescriptor? ResolveConstructor(

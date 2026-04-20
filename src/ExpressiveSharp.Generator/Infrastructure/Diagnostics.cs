@@ -164,31 +164,47 @@ static internal class Diagnostics
         isEnabledByDefault: true);
 
     // NOTE: EXP0021–EXP0030 (Projectable diagnostics) were retired when the
-    // [Expressive(Projectable = true)] feature was superseded by
-    // [ExpressiveFor(nameof(X), Synthesize = true)]. The codes are not reused.
+    // [Expressive(Projectable = true)] feature was superseded by [ExpressiveProperty].
+    // The codes are not reused.
 
-    // ── [ExpressiveFor(..., Synthesize = true)] Diagnostics ─────────────────
+    // ── [ExpressiveProperty] Diagnostics ─────────────────────────────────────
 
-    public readonly static DiagnosticDescriptor ExpressiveForSynthesizeTargetExists = new DiagnosticDescriptor(
+    public readonly static DiagnosticDescriptor ExpressivePropertyTargetExists = new DiagnosticDescriptor(
         id: "EXP0031",
-        title: "[ExpressiveFor(Synthesize = true)] target name is already defined",
-        messageFormat: "[ExpressiveFor(..., Synthesize = true)] target name '{0}' is already defined on '{1}'. Remove Synthesize or rename the stub.",
+        title: "[ExpressiveProperty] target name is already defined",
+        messageFormat: "[ExpressiveProperty] target name '{0}' is already defined on '{1}' — rename the stub, or use [ExpressiveFor(nameof({0}))] to map onto the existing member instead",
         category: "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public readonly static DiagnosticDescriptor ExpressiveForSynthesizeRequiresPartial = new DiagnosticDescriptor(
+    public readonly static DiagnosticDescriptor ExpressivePropertyRequiresPartial = new DiagnosticDescriptor(
         id: "EXP0032",
-        title: "[ExpressiveFor(Synthesize = true)] requires a partial containing type",
-        messageFormat: "[ExpressiveFor(..., Synthesize = true)] requires the containing type '{0}' to be declared 'partial' so the synthesized property can be emitted into it",
+        title: "[ExpressiveProperty] requires a partial containing type",
+        messageFormat: "[ExpressiveProperty] requires the containing type '{0}' to be declared 'partial' (applies to class, struct, and record)",
         category: "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public readonly static DiagnosticDescriptor ExpressiveForSynthesizeRequiresSameType = new DiagnosticDescriptor(
+    public readonly static DiagnosticDescriptor ExpressivePropertyRequiresExpressionBody = new DiagnosticDescriptor(
         id: "EXP0033",
-        title: "[ExpressiveFor(Synthesize = true)] requires the single-argument form",
-        messageFormat: "Synthesize = true only applies to same-type stubs; use the single-argument form [ExpressiveFor(nameof(Member), Synthesize = true)] instead of the two-argument typeof form",
+        title: "[ExpressiveProperty] requires an expression-bodied property stub",
+        messageFormat: "[ExpressiveProperty] must be placed on a property with an expression body '=> expr' — accessor-list forms and method stubs are not supported",
+        category: "Design",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public readonly static DiagnosticDescriptor ExpressivePropertyInstanceOnly = new DiagnosticDescriptor(
+        id: "EXP0034",
+        title: "[ExpressiveProperty] requires an instance stub",
+        messageFormat: "[ExpressiveProperty] is not supported on static stubs — stub '{0}' must be declared as an instance member",
+        category: "Design",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public readonly static DiagnosticDescriptor ExpressivePropertyShadowsInherited = new DiagnosticDescriptor(
+        id: "EXP0035",
+        title: "[ExpressiveProperty] target shadows inherited member",
+        messageFormat: "[ExpressiveProperty] target name '{0}' shadows an inherited member on '{1}' — rename the target to avoid silent hiding, or drop [ExpressiveProperty] and use [Expressive] on an override",
         category: "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);

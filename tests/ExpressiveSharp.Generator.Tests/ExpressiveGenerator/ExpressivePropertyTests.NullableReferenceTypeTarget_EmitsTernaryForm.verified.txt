@@ -9,7 +9,7 @@ namespace ExpressiveSharp.Generated
 {
     static partial class Foo_Account 
     {
-        // [ExpressiveFor("FullName", Synthesize = true)]
+        // [ExpressiveProperty("FullName")]
         // private string? FullNameExpression => LastName is null || FirstName is null ? null : (LastName + ", " + FirstName);
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Account, string>> FullName_Expression() 
         {

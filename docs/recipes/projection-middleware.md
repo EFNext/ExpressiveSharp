@@ -14,7 +14,7 @@ HotChocolate inspects the `User.FullName` property, finds it is **read-only** (n
 
 The same mechanism affects AutoMapper's `ProjectTo<Entity>`, Mapperly's generated projections, and any hand-rolled `Select(u => new User { ... })` that projects into the source type itself.
 
-## The fix: `[ExpressiveFor(..., Synthesize = true)]`
+## The fix: `[ExpressiveProperty]`
 
 Write the formula as a stub on a `partial` class and let the generator synthesize a settable property for you. The synthesized property is writable (so the projection middleware emits a binding) while still registering the formula for SQL translation. The dual-direction runtime behavior is:
 
@@ -39,7 +39,7 @@ public class User
 GraphQL response: `{ "users": [{ "fullName": ", " }, { "fullName": ", " }] }` -- wrong.
 SQL emitted: `SELECT 1 FROM Users` -- nothing fetched.
 
-**After** -- `Synthesize = true` on a formula stub.
+**After** -- `[ExpressiveProperty]` on a formula stub.
 
 ```csharp
 public partial class User
@@ -49,7 +49,7 @@ public partial class User
 
     // The generator emits a settable FullName property whose getter falls through
     // to this stub when no value has been materialized yet.
-    [ExpressiveFor("FullName", Synthesize = true)]
+    [ExpressiveProperty("FullName")]
     private string FullNameExpression => LastName + ", " + FirstName;
 }
 ```
@@ -60,7 +60,7 @@ SQL emitted: `SELECT u.LastName || ', ' || u.FirstName AS "FullName" FROM Users 
 No HC glue code is required beyond the normal `.UseExpressives()` on the DbContext options. The convention auto-ignores the synthesized property in EF's model (so no `FullName` column is created), and the projection rewrite happens automatically when the query compiler intercepts.
 
 ::: warning Target name must be a string literal
-`nameof(FullName)` won't resolve here because `FullName` doesn't exist until the generator emits it. Pass the name as a string literal: `[ExpressiveFor("FullName", Synthesize = true)]`.
+`nameof(FullName)` won't resolve here because `FullName` doesn't exist until the generator emits it. Pass the name as a string literal: `[ExpressiveProperty("FullName")]`.
 :::
 
 ## Full HotChocolate example
@@ -74,10 +74,10 @@ public partial class User
     public string LastName  { get; set; } = "";
     public string Email     { get; set; } = "";
 
-    [ExpressiveFor("FullName", Synthesize = true)]
+    [ExpressiveProperty("FullName")]
     private string FullNameExpression => LastName + ", " + FirstName;
 
-    [ExpressiveFor("DisplayLabel", Synthesize = true)]
+    [ExpressiveProperty("DisplayLabel")]
     private string DisplayLabelExpression => FullName + " <" + Email + ">";
 }
 
@@ -136,7 +136,7 @@ var users = await db.Users
 
 ## When the target property already exists
 
-If you already have a settable auto-property (e.g. because it is used for DTO shape or deserialization), use the plain `[ExpressiveFor]` form without `Synthesize`:
+If you already have a settable auto-property (e.g. because it is used for DTO shape or deserialization), use the plain `[ExpressiveFor]` form:
 
 ```csharp
 public class User
@@ -150,10 +150,10 @@ public class User
 }
 ```
 
-The two forms produce the same SQL behaviour; the difference is who declares the target property. Use `Synthesize = true` when the property exists only to support projection middleware; use plain `[ExpressiveFor]` when the property has its own reason to exist.
+The two forms produce the same SQL behaviour; the difference is who declares the target property. Use `[ExpressiveProperty]` when the property exists only to support projection middleware; use plain `[ExpressiveFor]` when the property has its own reason to exist.
 
 ## See Also
 
-- [`[ExpressiveFor]` Mapping](../reference/expressive-for#synthesizing-a-property-with-synthesize-true) -- full `Synthesize = true` reference
+- [`[ExpressiveProperty]` Attribute](../reference/expressive-property) -- full reference
 - [Migrating from Projectables](../guide/migration-from-projectables) -- side-by-side migration paths for `UseMemberBody`
 - [Computed Entity Properties](./computed-properties) -- plain `[Expressive]` computed values for DTO projections

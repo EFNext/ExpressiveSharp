@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Tests.Sqlite;
 
 /// <summary>
-/// EF Core SQLite tests for <c>[ExpressiveFor(..., Synthesize = true)]</c>. Uses a self-contained
+/// EF Core SQLite tests for <c>[ExpressiveProperty]</c>. Uses a self-contained
 /// DbContext with a synthesized entity so the test doesn't depend on shared scenario models.
 /// Verifies:
 /// <list type="bullet">
@@ -100,7 +100,7 @@ public partial class SynthesizedPerson
     public string FirstName { get; set; } = "";
     public string LastName { get; set; } = "";
 
-    [ExpressiveFor("FullName", Synthesize = true)]
+    [ExpressiveProperty("FullName")]
     private string FullNameExpression => LastName + ", " + FirstName;
 }
 

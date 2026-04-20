@@ -2,8 +2,8 @@ namespace ExpressiveSharp.Generator.Models;
 
 /// <summary>
 /// Side-information attached to an <see cref="ExpressiveDescriptor"/> when
-/// <c>[ExpressiveFor(..., Synthesize = true)]</c> is applied. Instructs the generator to emit
-/// an additional partial-class file declaring the synthesized property on the target type.
+/// <c>[ExpressiveProperty]</c> is applied. Instructs the generator to emit an additional
+/// partial-class file declaring the synthesized property on the containing type.
 /// </summary>
 internal sealed class SynthesizedPropertySpec
 {

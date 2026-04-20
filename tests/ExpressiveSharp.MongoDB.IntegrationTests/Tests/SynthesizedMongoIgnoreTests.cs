@@ -9,7 +9,7 @@ using MongoDB.Driver;
 namespace ExpressiveSharp.MongoDB.IntegrationTests.Tests;
 
 /// <summary>
-/// Verifies that <c>[ExpressiveFor(..., Synthesize = true)]</c> properties are unmapped from BSON
+/// Verifies that <c>[ExpressiveProperty]</c> stubs are unmapped from BSON
 /// serialization by the <c>ExpressiveMongoIgnoreConvention</c>, and that the formula is
 /// correctly rewritten when referenced inside LINQ queries against the MongoDB provider.
 /// </summary>
@@ -93,6 +93,6 @@ public partial class SynthesizedMongoDocument
     public string FirstName { get; set; } = "";
     public string LastName { get; set; } = "";
 
-    [ExpressiveFor("FullName", Synthesize = true)]
+    [ExpressiveProperty("FullName")]
     private string FullNameExpression => LastName + ", " + FirstName;
 }

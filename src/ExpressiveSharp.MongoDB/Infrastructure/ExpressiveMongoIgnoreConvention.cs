@@ -7,10 +7,10 @@ namespace ExpressiveSharp.MongoDB.Infrastructure;
 /// <summary>
 /// Mongo <see cref="IClassMapConvention"/> that unmaps every property marked with
 /// <see cref="ExpressiveAttribute"/> (and every property synthesized by
-/// <c>[ExpressiveFor(..., Synthesize = true)]</c>) from its containing class map. This is
-/// the Mongo counterpart of the EF Core <c>ExpressivePropertiesNotMappedConvention</c>:
-/// without it, a synthesized property would be serialized to its BSON document as a real
-/// field (because the generated property has a writable accessor) and the backing field's
+/// <c>[ExpressiveProperty]</c>) from its containing class map. This is the Mongo
+/// counterpart of the EF Core <c>ExpressivePropertiesNotMappedConvention</c>: without it,
+/// a synthesized property would be serialized to its BSON document as a real field
+/// (because the generated property has a writable accessor) and the backing field's
 /// default value would leak into storage.
 /// </summary>
 /// <remarks>

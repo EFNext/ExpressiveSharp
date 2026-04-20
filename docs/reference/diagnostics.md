@@ -32,9 +32,11 @@ See [Troubleshooting](./troubleshooting) for symptom-oriented guidance -- find t
 | [EXP0017](#exp0017) | Error | `[ExpressiveFor]` return type mismatch | -- |
 | [EXP0019](#exp0019) | Error | `[ExpressiveFor]` conflicts with `[Expressive]` | -- |
 | [EXP0020](#exp0020) | Error | Duplicate `[ExpressiveFor]` mapping | -- |
-| [EXP0031](#exp0031) | Error | `[ExpressiveFor(Synthesize = true)]` target name is already defined | -- |
-| [EXP0032](#exp0032) | Error | `[ExpressiveFor(Synthesize = true)]` requires a partial containing type | -- |
-| [EXP0033](#exp0033) | Error | `[ExpressiveFor(Synthesize = true)]` requires the single-argument form | -- |
+| [EXP0031](#exp0031) | Error | `[ExpressiveProperty]` target name is already defined | -- |
+| [EXP0032](#exp0032) | Error | `[ExpressiveProperty]` requires a partial containing type | -- |
+| [EXP0033](#exp0033) | Error | `[ExpressiveProperty]` requires an expression-bodied property stub | -- |
+| [EXP0034](#exp0034) | Error | `[ExpressiveProperty]` requires an instance stub | -- |
+| [EXP0035](#exp0035) | Error | `[ExpressiveProperty]` target shadows inherited member | -- |
 | [EXP1001](#exp1001) | Warning | Replace `[Projectable]` with `[Expressive]` | [Replace attribute](#exp1001-fix) |
 | [EXP1002](#exp1002) | Warning | Replace `UseProjectables()` with `UseExpressives()` | [Replace method call](#exp1002-fix) |
 | [EXP1003](#exp1003) | Warning | Replace Projectables namespace | [Replace namespace](#exp1003-fix) |
@@ -473,108 +475,139 @@ Duplicate [ExpressiveFor] mapping for member '{0}' on type '{1}'; only one stub 
 
 ---
 
-## Synthesize Diagnostics (EXP0031--EXP0033)
+## `[ExpressiveProperty]` Diagnostics (EXP0031--EXP0035)
 
-These diagnostics apply to `[ExpressiveFor(..., Synthesize = true)]` stubs, which ask the generator to emit a new property on the stub's containing type. See [`[ExpressiveFor]` Mapping](./expressive-for#synthesizing-a-property-with-synthesize-true) for the full feature reference.
+These diagnostics apply to `[ExpressiveProperty]` stubs, which ask the generator to emit a new property on the stub's containing partial type. See [`[ExpressiveProperty]` Attribute](./expressive-property) for the full feature reference.
 
 ::: info Replacing `[Expressive(Projectable = true)]`
-`[ExpressiveFor(..., Synthesize = true)]` replaces the now-removed `[Expressive(Projectable = true)]`. Diagnostic codes `EXP0021`--`EXP0030` were retired along with that feature and are not reused. The migration recipe is in [Migration from Projectables](../guide/migration-from-projectables#migrating-usememberbody).
+`[ExpressiveProperty]` replaces the now-removed `[Expressive(Projectable = true)]`. Diagnostic codes `EXP0021`--`EXP0030` were retired along with that feature and are not reused. The migration recipe is in [Migration from Projectables](../guide/migration-from-projectables#migrating-usememberbody).
 :::
 
-### EXP0031 -- Synthesize target name is already defined {#exp0031}
+### EXP0031 -- Target name is already defined {#exp0031}
 
 **Severity:** Error
 **Category:** Design
 
 **Message:**
 ```
-[ExpressiveFor(..., Synthesize = true)] target name '{0}' is already defined on '{1}'.
-Remove Synthesize or rename the stub.
+[ExpressiveProperty] target name '{0}' is already defined on '{1}' — rename the stub,
+or use [ExpressiveFor(nameof({0}))] to map onto the existing member instead
 ```
 
-**Cause:** The name passed to `[ExpressiveFor]` already resolves to a member on the containing type. Synthesis would collide with the existing declaration, so the generator refuses to emit.
+**Cause:** The name passed to `[ExpressiveProperty]` already resolves to a member on the containing type. Synthesis would collide with the existing declaration.
 
-**Fix:** Either remove `Synthesize = true` (and instead use the plain `[ExpressiveFor]` form targeting the existing member), or pick a different target name.
+**Fix:** Either rename the stub to pick a different target, or — if you want to bind to the existing property — drop `[ExpressiveProperty]` and switch to plain `[ExpressiveFor(nameof(X))]`:
 
 ```csharp
 // Error: Amount already exists on the class
 public decimal Amount { get; set; }
 
-[ExpressiveFor("Amount", Synthesize = true)]
+[ExpressiveProperty("Amount")]
 private decimal AmountExpression => TotalAmount - Discount;
 
-// Fixed: drop Synthesize — target is already declared
-[ExpressiveFor("Amount")]
+// Fixed: map onto the existing property with [ExpressiveFor]
+[ExpressiveFor(nameof(Amount))]
 private decimal AmountExpression => TotalAmount - Discount;
 ```
 
 ---
 
-### EXP0032 -- Synthesize requires a partial containing type {#exp0032}
+### EXP0032 -- Requires a partial containing type {#exp0032}
 
 **Severity:** Error
 **Category:** Design
 
 **Message:**
 ```
-[ExpressiveFor(..., Synthesize = true)] requires the containing type '{0}' to be declared
-'partial' so the synthesized property can be emitted into it
+[ExpressiveProperty] requires the containing type '{0}' to be declared 'partial'
+(applies to class, struct, and record)
 ```
 
-**Cause:** Source generators can only add members to types that are declared `partial`. Synthesized properties are emitted as a partial declaration alongside the user's source, and the compiler merges the two.
+**Cause:** Source generators can only add members to types declared `partial`. Synthesized properties are emitted as a separate partial declaration alongside the user's source.
 
-**Fix:** Add the `partial` modifier to the containing type:
+**Fix:** Add the `partial` modifier:
 
 ```csharp
 // Error
 public class Account
 {
-    [ExpressiveFor("Amount", Synthesize = true)]
+    [ExpressiveProperty("Amount")]
     private decimal AmountExpression => TotalAmount - Discount;
 }
 
 // Fixed
 public partial class Account
 {
-    [ExpressiveFor("Amount", Synthesize = true)]
+    [ExpressiveProperty("Amount")]
     private decimal AmountExpression => TotalAmount - Discount;
 }
 ```
 
 ---
 
-### EXP0033 -- Synthesize requires the single-argument form {#exp0033}
+### EXP0033 -- Requires an expression-bodied property stub {#exp0033}
 
 **Severity:** Error
 **Category:** Design
 
 **Message:**
 ```
-Synthesize = true only applies to same-type stubs; use the single-argument form
-[ExpressiveFor(nameof(Member), Synthesize = true)] instead of the two-argument typeof form
+[ExpressiveProperty] must be placed on a property with an expression body '=> expr' —
+accessor-list forms and method stubs are not supported
 ```
 
-**Cause:** `Synthesize = true` is only meaningful when the stub is on the same type as the property it is synthesizing. The two-argument `[ExpressiveFor(typeof(Other), ...)]` form targets an external type — there is no coherent way to synthesize a member onto it from the stub's location.
+**Cause:** The attribute was placed on a method, an accessor-list property (`{ get => expr; }`), or a full `{ get; set; }` shape.
 
-**Fix:** Drop the `typeof(...)` argument and put the stub directly on the target type (making it `partial` if needed):
+**Fix:** Rewrite the stub as a top-level expression-bodied property:
 
 ```csharp
-// Error
-partial class Other {}
+// Error: method stub
+[ExpressiveProperty("Amount")]
+private decimal AmountExpression() => TotalAmount - Discount;
 
-partial class Account
-{
-    [ExpressiveFor(typeof(Other), "FullName", Synthesize = true)]
-    private string FullNameExpression => ...;
-}
+// Error: accessor-list form
+[ExpressiveProperty("Amount")]
+private decimal AmountExpression { get => TotalAmount - Discount; }
 
-// Fixed — stub moves to Other, single-argument form
-partial class Other
-{
-    [ExpressiveFor("FullName", Synthesize = true)]
-    private string FullNameExpression => ...;
-}
+// Fixed: top-level expression body
+[ExpressiveProperty("Amount")]
+private decimal AmountExpression => TotalAmount - Discount;
 ```
+
+---
+
+### EXP0034 -- Requires an instance stub {#exp0034}
+
+**Severity:** Error
+**Category:** Design
+
+**Message:**
+```
+[ExpressiveProperty] is not supported on static stubs — stub '{0}' must be declared as
+an instance member
+```
+
+**Cause:** The decorated stub is `static`. Synthesis is an instance-only feature.
+
+**Fix:** Drop the `static` modifier. For a static computed value, use plain `[Expressive]` on a read-only member instead.
+
+---
+
+### EXP0035 -- Target shadows inherited member {#exp0035}
+
+**Severity:** Error
+**Category:** Design
+
+**Message:**
+```
+[ExpressiveProperty] target name '{0}' shadows an inherited member on '{1}' — rename
+the target to avoid silent hiding, or drop [ExpressiveProperty] and use [Expressive]
+on an override
+```
+
+**Cause:** The target name matches a member inherited from a base class. Synthesizing a hidden member would silently shadow the base declaration, which is surprising and error-prone.
+
+**Fix:** Either pick a different target name, or drop `[ExpressiveProperty]` and make the computed value an `override` decorated with plain `[Expressive]`.
 
 ---
 

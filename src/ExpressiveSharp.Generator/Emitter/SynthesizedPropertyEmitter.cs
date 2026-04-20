@@ -7,9 +7,9 @@ namespace ExpressiveSharp.Generator.Emitter;
 
 /// <summary>
 /// Emits the user-visible partial-class declaration with the synthesized property when
-/// <c>[ExpressiveFor(..., Synthesize = true)]</c> is applied. The property caches materialized
-/// values (set by projection middleware / EF Core / HotChocolate) and otherwise delegates to
-/// the stub for the formula.
+/// <c>[ExpressiveProperty]</c> is applied. The property caches materialized values (set by
+/// projection middleware / EF Core / HotChocolate) and otherwise delegates to the stub for
+/// the formula.
 /// </summary>
 static internal class SynthesizedPropertyEmitter
 {
