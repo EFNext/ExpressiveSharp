@@ -15,15 +15,13 @@ namespace ExpressiveSharp.Benchmarks;
 /// <list type="bullet">
 ///   <item><c>*</c> — uses <c>RunGenerators</c> (generator pipeline only, no compilation update).
 ///     The O(N) overhead here comes from the driver maintaining N cached output entries in its
-///     internal state; this is unavoidable regardless of <c>RegisterSourceOutput</c> vs
-///     <c>RegisterImplementationSourceOutput</c>.</item>
+///     internal state.</item>
 ///   <item><c>*_E2E</c> — uses <c>RunGeneratorsAndUpdateCompilation</c> (full pipeline including
 ///     the Roslyn compilation rebuild).
-///     With <c>RegisterImplementationSourceOutput</c>, the N interceptor files are NOT included
-///     in the declaration-phase compilation (only in the implementation/emit phase). This makes
-///     the E2E compilation update significantly faster for large N — the declaration compilation
-///     does not parse/bind N generated files. This is the correct variant to compare for IDE
-///     performance.</item>
+///     This variant measures end-to-end cost, including applying generated sources to the
+///     compilation, so results reflect both generator work and compilation-update overhead.
+///     Use this variant when comparing overall IDE-like responsiveness rather than isolated
+///     generator-pipeline cost.</item>
 /// </list>
 /// </summary>
 [MemoryDiagnoser]
@@ -270,9 +268,10 @@ public class BenchEntity { public int Id { get; set; } public string Name { get;
         };
 
         // indices 1..fileCount: query files
+        var sb = new StringBuilder();
         for (var f = 0; f < fileCount; f++)
         {
-            var sb = new StringBuilder();
+            sb.Clear();
             sb.AppendLine("using System.Linq; using ExpressiveSharp; namespace PolyfillBench;");
             sb.AppendLine($"public static class Queries{f} {{");
             for (var i = 0; i < sitesPerFile; i++)
