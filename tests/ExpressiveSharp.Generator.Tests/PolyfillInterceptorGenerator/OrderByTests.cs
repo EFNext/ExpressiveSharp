@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using VerifyMSTest;
 using ExpressiveSharp.Generator.Tests.Infrastructure;

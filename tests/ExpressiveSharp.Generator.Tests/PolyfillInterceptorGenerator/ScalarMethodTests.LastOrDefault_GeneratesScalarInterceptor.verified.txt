@@ -3,17 +3,17 @@
 
 namespace ExpressiveSharp.Generated.Interceptors
 {
-    internal static class PolyfillInterceptors
+    internal static partial class PolyfillInterceptors
     {
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
-        internal static global::TestNs.Order __Polyfill_LastOrDefault_0(
+        internal static global::TestNs.Order __Polyfill_LastOrDefault_361d_9_46(
             this global::ExpressiveSharp.IExpressiveQueryable<global::TestNs.Order> source,
             global::System.Func<global::TestNs.Order, bool> __func)
         {
             // Source: o => o.Active
-            var i0_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var i0_expr_0 = global::System.Linq.Expressions.Expression.Property(i0_p_o, typeof(global::TestNs.Order).GetProperty("Active")); // o.Active
-            var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, bool>>(i0_expr_0, i0_p_o);
+            var i361d9c46_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
+            var i361d9c46_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d9c46_p_o, typeof(global::TestNs.Order).GetProperty("Active")); // o.Active
+            var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, bool>>(i361d9c46_expr_0, i361d9c46_p_o);
             return global::System.Linq.Queryable.LastOrDefault(
                     (global::System.Linq.IQueryable<global::TestNs.Order>)source,
                     __lambda);
