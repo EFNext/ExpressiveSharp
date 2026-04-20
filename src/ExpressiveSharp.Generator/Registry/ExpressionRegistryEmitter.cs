@@ -145,12 +145,16 @@ static internal class ExpressionRegistryEmitter
     }
 
     /// <summary>
-    /// Emits the <c>_map</c> field that lazily builds the registry once at class-load time:
-    /// <c>private static readonly Dictionary&lt;nint, LambdaExpression&gt; _map = Build();</c>
+    /// Emits the <c>_map</c> field plus a <c>ResetMap</c> entry point used by the hot-reload
+    /// handler to rebuild the map after a metadata update has patched the factory-method IL.
+    /// <c>volatile</c> ensures the new <see cref="System.Collections.Generic.Dictionary{TKey, TValue}"/>
+    /// is safely published to concurrent readers on weak-memory architectures.
     /// </summary>
     private static void EmitMapField(IndentedTextWriter writer)
     {
-        writer.WriteLine("private static readonly Dictionary<nint, LambdaExpression> _map = Build();");
+        writer.WriteLine("private static volatile Dictionary<nint, LambdaExpression> _map = Build();");
+        writer.WriteLine();
+        writer.WriteLine("internal static void ResetMap() => _map = Build();");
     }
 
     /// <summary>
