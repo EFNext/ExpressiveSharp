@@ -32,14 +32,9 @@ See [Troubleshooting](./troubleshooting) for symptom-oriented guidance -- find t
 | [EXP0017](#exp0017) | Error | `[ExpressiveFor]` return type mismatch | -- |
 | [EXP0019](#exp0019) | Error | `[ExpressiveFor]` conflicts with `[Expressive]` | -- |
 | [EXP0020](#exp0020) | Error | Duplicate `[ExpressiveFor]` mapping | -- |
-| [EXP0021](#exp0021) | Error | Projectable requires writable accessor | -- |
-| [EXP0022](#exp0022) | Error | Projectable get accessor pattern | -- |
-| [EXP0023](#exp0023) | Error | Projectable setter must store to backing field | -- |
-| [EXP0024](#exp0024) | Error | Projectable requires non-nullable property type | -- |
-| [EXP0025](#exp0025) | Error | Projectable backing field type mismatch | -- |
-| [EXP0026](#exp0026) | Error | Projectable incompatible with `required` | -- |
-| [EXP0028](#exp0028) | Error | Projectable not allowed on interface property | -- |
-| [EXP0029](#exp0029) | Error | Projectable not allowed on override | -- |
+| [EXP0031](#exp0031) | Error | `[ExpressiveFor(Synthesize = true)]` target name is already defined | -- |
+| [EXP0032](#exp0032) | Error | `[ExpressiveFor(Synthesize = true)]` requires a partial containing type | -- |
+| [EXP0033](#exp0033) | Error | `[ExpressiveFor(Synthesize = true)]` requires the single-argument form | -- |
 | [EXP1001](#exp1001) | Warning | Replace `[Projectable]` with `[Expressive]` | [Replace attribute](#exp1001-fix) |
 | [EXP1002](#exp1002) | Warning | Replace `UseProjectables()` with `UseExpressives()` | [Replace method call](#exp1002-fix) |
 | [EXP1003](#exp1003) | Warning | Replace Projectables namespace | [Replace namespace](#exp1003-fix) |
@@ -478,246 +473,108 @@ Duplicate [ExpressiveFor] mapping for member '{0}' on type '{1}'; only one stub 
 
 ---
 
-## Projectable Diagnostics (EXP0021--EXP0029)
+## Synthesize Diagnostics (EXP0031--EXP0033)
 
-These diagnostics apply only to properties decorated with `[Expressive(Projectable = true)]`. See [Projectable Properties](./projectable-properties) for the full feature reference.
+These diagnostics apply to `[ExpressiveFor(..., Synthesize = true)]` stubs, which ask the generator to emit a new property on the stub's containing type. See [`[ExpressiveFor]` Mapping](./expressive-for#synthesizing-a-property-with-synthesize-true) for the full feature reference.
 
-### EXP0021 -- Projectable requires writable accessor {#exp0021}
+::: info Replacing `[Expressive(Projectable = true)]`
+`[ExpressiveFor(..., Synthesize = true)]` replaces the now-removed `[Expressive(Projectable = true)]`. Diagnostic codes `EXP0021`--`EXP0030` were retired along with that feature and are not reused. The migration recipe is in [Migration from Projectables](../guide/migration-from-projectables#migrating-usememberbody).
+:::
+
+### EXP0031 -- Synthesize target name is already defined {#exp0031}
 
 **Severity:** Error
 **Category:** Design
 
 **Message:**
 ```
-[Expressive(Projectable = true)] requires '{0}' to declare a 'set' or 'init' accessor
+[ExpressiveFor(..., Synthesize = true)] target name '{0}' is already defined on '{1}'.
+Remove Synthesize or rename the stub.
 ```
 
-**Cause:** A Projectable property has only a getter. Projection middlewares (HotChocolate, AutoMapper) require a writable member to emit a binding, so Projectable properties must declare `init` or `set`.
+**Cause:** The name passed to `[ExpressiveFor]` already resolves to a member on the containing type. Synthesis would collide with the existing declaration, so the generator refuses to emit.
 
-**Fix:** Add an `init` or `set` accessor:
+**Fix:** Either remove `Synthesize = true` (and instead use the plain `[ExpressiveFor]` form targeting the existing member), or pick a different target name.
 
 ```csharp
-// Error: get-only
-[Expressive(Projectable = true)]
-public string FullName => field ?? (LastName + ", " + FirstName);
+// Error: Amount already exists on the class
+public decimal Amount { get; set; }
 
-// Fixed
-[Expressive(Projectable = true)]
-public string FullName
-{
-    get => field ?? (LastName + ", " + FirstName);
-    init => field = value;
-}
+[ExpressiveFor("Amount", Synthesize = true)]
+private decimal AmountExpression => TotalAmount - Discount;
+
+// Fixed: drop Synthesize — target is already declared
+[ExpressiveFor("Amount")]
+private decimal AmountExpression => TotalAmount - Discount;
 ```
 
 ---
 
-### EXP0022 -- Projectable get accessor pattern {#exp0022}
+### EXP0032 -- Synthesize requires a partial containing type {#exp0032}
 
 **Severity:** Error
 **Category:** Design
 
 **Message:**
 ```
-The get accessor of a Projectable property must be of the form '=> field ?? (<formula>)'
-or '=> _backingField ?? (<formula>)' where _backingField is a private nullable field on
-the same type. Found: {0}.
+[ExpressiveFor(..., Synthesize = true)] requires the containing type '{0}' to be declared
+'partial' so the synthesized property can be emitted into it
 ```
 
-**Cause:** The get accessor doesn't match the expected `<field> ?? (<formula>)` shape. ExpressiveSharp extracts the formula by locating the right operand of a top-level `??` coalesce, so alternative shapes (ternary `a != null ? a : b`, multi-statement block bodies, expression bodies without coalesce) are rejected.
+**Cause:** Source generators can only add members to types that are declared `partial`. Synthesized properties are emitted as a partial declaration alongside the user's source, and the compiler merges the two.
 
-**Fix:** Rewrite the get accessor to use `??`:
-
-```csharp
-// Error: ternary
-[Expressive(Projectable = true)]
-public string FullName
-{
-    get => _full != null ? _full : (LastName + ", " + FirstName);
-    init => _full = value;
-}
-
-// Fixed: use ?? instead
-[Expressive(Projectable = true)]
-public string FullName
-{
-    get => _full ?? (LastName + ", " + FirstName);
-    init => _full = value;
-}
-```
-
-If you need flexibility the `??` pattern can't express, use [`[ExpressiveFor]`](./expressive-for) instead.
-
----
-
-### EXP0023 -- Projectable setter must store to backing field {#exp0023}
-
-**Severity:** Error
-**Category:** Design
-
-**Message:**
-```
-The init/set accessor of a Projectable property must store the incoming value into the same
-backing field referenced by the get accessor. Found: {0}.
-```
-
-**Cause:** The init/set accessor does something other than a plain `field = value` assignment — for example `field = value?.Trim()`, a different field, or a multi-statement block.
-
-**Fix:** Use a plain assignment:
-
-```csharp
-// Error: transforms the value
-[Expressive(Projectable = true)]
-public string FullName
-{
-    get => field ?? (LastName + ", " + FirstName);
-    init => field = value?.Trim() ?? "";
-}
-
-// Fixed
-[Expressive(Projectable = true)]
-public string FullName
-{
-    get => field ?? (LastName + ", " + FirstName);
-    init => field = value;
-}
-```
-
-This restriction may be relaxed in a future version. If you need to transform the materialized value, consider applying the transformation in the get accessor's formula instead.
-
----
-
-### EXP0024 -- Projectable requires non-nullable property type {#exp0024}
-
-**Severity:** Error
-**Category:** Design
-
-**Message:**
-```
-[Expressive(Projectable = true)] cannot be applied to a property with a nullable type ('{0}').
-Nullable types prevent distinguishing 'not materialized' from 'materialized to null'.
-```
-
-**Cause:** The property type is nullable (`string?`, `int?`). The Projectable pattern uses `field ?? formula` to distinguish "not yet materialized" from "materialized to a value" — but if the property itself is nullable, "materialized to null" and "not materialized" are indistinguishable.
-
-**Fix:** Make the property non-nullable:
+**Fix:** Add the `partial` modifier to the containing type:
 
 ```csharp
 // Error
-[Expressive(Projectable = true)]
-public string? FullName { get => field ?? ...; init => field = value; }
+public class Account
+{
+    [ExpressiveFor("Amount", Synthesize = true)]
+    private decimal AmountExpression => TotalAmount - Discount;
+}
 
 // Fixed
-[Expressive(Projectable = true)]
-public string FullName { get => field ?? ...; init => field = value; }
+public partial class Account
+{
+    [ExpressiveFor("Amount", Synthesize = true)]
+    private decimal AmountExpression => TotalAmount - Discount;
+}
 ```
-
-If you need nullable-result semantics, use plain `[Expressive]` on a read-only property and `[ExpressiveFor]` for the projection-middleware case.
 
 ---
 
-### EXP0025 -- Projectable backing field type mismatch {#exp0025}
+### EXP0033 -- Synthesize requires the single-argument form {#exp0033}
 
 **Severity:** Error
 **Category:** Design
 
 **Message:**
 ```
-The backing field referenced in the get accessor of '{0}' must be of type '{1}?'
-(Nullable<{1}>) to support the '??' coalesce. Found: {2}.
+Synthesize = true only applies to same-type stubs; use the single-argument form
+[ExpressiveFor(nameof(Member), Synthesize = true)] instead of the two-argument typeof form
 ```
 
-**Cause:** The manually declared backing field's type doesn't match the property's type wrapped in `Nullable<T>`. For a `string` property, the backing field must be `string?`. For an `int` property, it must be `int?` / `Nullable<int>`.
+**Cause:** `Synthesize = true` is only meaningful when the stub is on the same type as the property it is synthesizing. The two-argument `[ExpressiveFor(typeof(Other), ...)]` form targets an external type — there is no coherent way to synthesize a member onto it from the stub's location.
 
-**Fix:** Correct the backing field's type:
-
-```csharp
-// Error: backing field is 'int?' but property is 'string'
-private int? _wrong;
-
-[Expressive(Projectable = true)]
-public string FullName
-{
-    get => _wrong.ToString() ?? ...;
-    init => field = value;
-}
-
-// Fixed: use 'field' keyword (preferred) or a matching nullable backing field
-[Expressive(Projectable = true)]
-public string FullName
-{
-    get => field ?? (LastName + ", " + FirstName);
-    init => field = value;
-}
-```
-
----
-
-### EXP0026 -- Projectable incompatible with `required` {#exp0026}
-
-**Severity:** Error
-**Category:** Design
-
-**Message:**
-```
-[Expressive(Projectable = true)] cannot be combined with the 'required' modifier on '{0}';
-remove 'required' since EF will materialize the value from query results
-```
-
-**Cause:** The property has both `required` and `Projectable = true`. With `required`, every caller constructing the entity must set the property — but Projectable properties are designed to be left unset so the formula fires, with EF populating the value via `init` during materialization.
-
-**Fix:** Remove the `required` modifier:
+**Fix:** Drop the `typeof(...)` argument and put the stub directly on the target type (making it `partial` if needed):
 
 ```csharp
 // Error
-[Expressive(Projectable = true)]
-public required string FullName
+partial class Other {}
+
+partial class Account
 {
-    get => field ?? (LastName + ", " + FirstName);
-    init => field = value;
+    [ExpressiveFor(typeof(Other), "FullName", Synthesize = true)]
+    private string FullNameExpression => ...;
 }
 
-// Fixed
-[Expressive(Projectable = true)]
-public string FullName
+// Fixed — stub moves to Other, single-argument form
+partial class Other
 {
-    get => field ?? (LastName + ", " + FirstName);
-    init => field = value;
+    [ExpressiveFor("FullName", Synthesize = true)]
+    private string FullNameExpression => ...;
 }
 ```
-
----
-
-### EXP0028 -- Projectable not allowed on interface property {#exp0028}
-
-**Severity:** Error
-**Category:** Design
-
-**Message:**
-```
-[Expressive(Projectable = true)] is not supported on interface members
-```
-
-**Cause:** The Projectable pattern relies on a backing field on the instance. Interfaces cannot declare instance fields, so the pattern is not representable on an interface property.
-
-**Fix:** Move the Projectable property to the concrete type that implements the interface. If the interface needs to expose the member, declare an abstract `{ get; }` on the interface and override it on the concrete type with the Projectable pattern.
-
----
-
-### EXP0029 -- Projectable not allowed on override {#exp0029}
-
-**Severity:** Error
-**Category:** Design
-
-**Message:**
-```
-[Expressive(Projectable = true)] is not supported on override properties; declare it on the
-base property instead
-```
-
-**Cause:** The property is `override`. Projectable semantics interact ambiguously with inheritance — the base class might already have its own `[Expressive]` registration and the registry key resolution would need to flow through virtual dispatch. This scenario is not supported in v1.
-
-**Fix:** Move `[Expressive(Projectable = true)]` to the base class, or flatten the hierarchy. If you need inheritance-like behavior, use composition instead.
 
 ---
 

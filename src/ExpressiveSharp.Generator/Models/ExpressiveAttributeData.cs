@@ -9,15 +9,12 @@ readonly internal record struct ExpressiveAttributeData
 {
     public bool? AllowBlockBody { get; }
 
-    public bool Projectable { get; }
-
     // Custom transformer type names (fully qualified)
     public IReadOnlyList<string> TransformerTypeNames { get; }
 
     public ExpressiveAttributeData(AttributeData attribute)
     {
         bool? allowBlockBody = null;
-        var projectable = false;
         var transformerTypeNames = new List<string>();
 
         foreach (var namedArgument in attribute.NamedArguments)
@@ -28,9 +25,6 @@ readonly internal record struct ExpressiveAttributeData
             {
                 case nameof(AllowBlockBody):
                     allowBlockBody = value.Value is true;
-                    break;
-                case nameof(Projectable):
-                    projectable = value.Value is true;
                     break;
                 case "Transformers":
                     if (value.Kind == TypedConstantKind.Array)
@@ -49,7 +43,6 @@ readonly internal record struct ExpressiveAttributeData
         }
 
         AllowBlockBody = allowBlockBody;
-        Projectable = projectable;
         TransformerTypeNames = transformerTypeNames.ToArray();
     }
 }

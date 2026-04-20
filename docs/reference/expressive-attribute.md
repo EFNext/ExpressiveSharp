@@ -56,28 +56,6 @@ Or enable globally for the entire project:
 
 ---
 
-### `Projectable`
-
-**Type:** `bool`
-**Default:** `false`
-
-Opts the property into **dual-direction semantics**: in-memory reads evaluate the formula, while values materialized from query results (e.g. by EF Core or HotChocolate's projection middleware) are stored and returned verbatim. Enables the property to participate as a binding target in projections of the form `Select(src => new T { Member = src.Member, ... })`.
-
-Requires a specific accessor shape:
-
-```csharp
-[Expressive(Projectable = true)]
-public string FullName
-{
-    get => field ?? (LastName + ", " + FirstName);   // `field ?? (formula)` is required
-    init => field = value;                           // or `set => field = value`
-}
-```
-
-See [Projectable Properties](./projectable-properties) for the full reference, including the list of restrictions, runtime semantics, and HotChocolate / AutoMapper integration details.
-
----
-
 ### `Transformers`
 
 **Type:** `Type[]?`

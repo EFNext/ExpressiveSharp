@@ -14,11 +14,11 @@ HotChocolate inspects the `User.FullName` property, finds it is **read-only** (n
 
 The same mechanism affects AutoMapper's `ProjectTo<Entity>`, Mapperly's generated projections, and any hand-rolled `Select(u => new User { ... })` that projects into the source type itself.
 
-## The fix: `[Expressive(Projectable = true)]`
+## The fix: `[ExpressiveFor(..., Synthesize = true)]`
 
-Turning on `Projectable = true` makes the property writable (so the projection middleware emits a binding) while still registering the formula for SQL translation. The dual-direction runtime behavior is:
+Write the formula as a stub on a `partial` class and let the generator synthesize a settable property for you. The synthesized property is writable (so the projection middleware emits a binding) while still registering the formula for SQL translation. The dual-direction runtime behavior is:
 
-- **In memory**, reading the property evaluates the formula from dependencies (same as plain `[Expressive]`).
+- **In memory**, reading the property evaluates the stub formula from dependencies (same as plain `[Expressive]`).
 - **After materialization from SQL**, reading the property returns the stored value (which the middleware's binding wrote via the `init` accessor).
 
 ## Before and after
@@ -39,52 +39,46 @@ public class User
 GraphQL response: `{ "users": [{ "fullName": ", " }, { "fullName": ", " }] }` -- wrong.
 SQL emitted: `SELECT 1 FROM Users` -- nothing fetched.
 
-**After** -- `Projectable = true`.
+**After** -- `Synthesize = true` on a formula stub.
 
 ```csharp
-public class User
+public partial class User
 {
     public string FirstName { get; set; } = "";
     public string LastName  { get; set; } = "";
 
-    [Expressive(Projectable = true)]
-    public string FullName
-    {
-        get => field ?? (LastName + ", " + FirstName);
-        init => field = value;
-    }
+    // The generator emits a settable FullName property whose getter falls through
+    // to this stub when no value has been materialized yet.
+    [ExpressiveFor("FullName", Synthesize = true)]
+    private string FullNameExpression => LastName + ", " + FirstName;
 }
 ```
 
 GraphQL response: `{ "users": [{ "fullName": "Lovelace, Ada" }, { "fullName": "Turing, Alan" }] }` -- correct.
 SQL emitted: `SELECT u.LastName || ', ' || u.FirstName AS "FullName" FROM Users u` -- formula pushed into SQL.
 
-No HC glue code is required beyond the normal `.UseExpressives()` on the DbContext options. The convention auto-ignores the property in EF's model (so no `FullName` column is created), and the projection rewrite happens automatically when the query compiler intercepts.
+No HC glue code is required beyond the normal `.UseExpressives()` on the DbContext options. The convention auto-ignores the synthesized property in EF's model (so no `FullName` column is created), and the projection rewrite happens automatically when the query compiler intercepts.
+
+::: warning Target name must be a string literal
+`nameof(FullName)` won't resolve here because `FullName` doesn't exist until the generator emits it. Pass the name as a string literal: `[ExpressiveFor("FullName", Synthesize = true)]`.
+:::
 
 ## Full HotChocolate example
 
 ```csharp
 // Entity
-public class User
+public partial class User
 {
     public int Id { get; set; }
     public string FirstName { get; set; } = "";
     public string LastName  { get; set; } = "";
     public string Email     { get; set; } = "";
 
-    [Expressive(Projectable = true)]
-    public string FullName
-    {
-        get => field ?? (LastName + ", " + FirstName);
-        init => field = value;
-    }
+    [ExpressiveFor("FullName", Synthesize = true)]
+    private string FullNameExpression => LastName + ", " + FirstName;
 
-    [Expressive(Projectable = true)]
-    public string DisplayLabel
-    {
-        get => field ?? (FullName + " <" + Email + ">");
-        init => field = value;
-    }
+    [ExpressiveFor("DisplayLabel", Synthesize = true)]
+    private string DisplayLabelExpression => FullName + " <" + Email + ">";
 }
 
 // DbContext
@@ -118,11 +112,11 @@ SELECT (u.LastName || ', ' || u.FirstName) || ' <' || u.Email || '>' AS "Display
 FROM Users u
 ```
 
-Notice how `DisplayLabel` composes with `FullName` (which is itself Projectable) -- the transitive rewrite is handled automatically by the expression resolver.
+Notice how `DisplayLabel` composes with `FullName` (which is itself synthesized) -- the transitive rewrite is handled automatically by the expression resolver.
 
 ## Full AutoMapper example
 
-AutoMapper's `ProjectTo<T>()` emits the same `new T { ... }` pattern as HotChocolate, so Projectable members work the same way:
+AutoMapper's `ProjectTo<T>()` emits the same `new T { ... }` pattern as HotChocolate, so synthesized members work the same way:
 
 ```csharp
 var config = new MapperConfiguration(cfg =>
@@ -140,30 +134,26 @@ var users = await db.Users
 //              FROM Users u
 ```
 
-## When to use `[ExpressiveFor]` instead
+## When the target property already exists
 
-If your class can't use the C# 14 `field` keyword, or you want to keep the formula in a separate mapping class, the [`[ExpressiveFor]`](../reference/expressive-for) pattern is a verbose alternative:
+If you already have a settable auto-property (e.g. because it is used for DTO shape or deserialization), use the plain `[ExpressiveFor]` form without `Synthesize`:
 
 ```csharp
 public class User
 {
     public string FirstName { get; set; } = "";
     public string LastName  { get; set; } = "";
-    public string FullName  { get; set; } = "";   // plain auto-property
-}
+    public string FullName  { get; set; } = "";   // existing auto-property
 
-internal static class UserMappings
-{
-    [ExpressiveFor(typeof(User), nameof(User.FullName))]
-    private static string FullName(User u) => u.LastName + ", " + u.FirstName;
+    [ExpressiveFor(nameof(FullName))]
+    private string FullNameExpression => LastName + ", " + FirstName;
 }
 ```
 
-Both approaches produce the same SQL and work identically with HotChocolate / AutoMapper. The `Projectable` form is more concise and keeps the formula on the property itself; the `ExpressiveFor` form is explicit about the separation. See the [migration guide](../guide/migration-from-projectables) for a side-by-side comparison.
+The two forms produce the same SQL behaviour; the difference is who declares the target property. Use `Synthesize = true` when the property exists only to support projection middleware; use plain `[ExpressiveFor]` when the property has its own reason to exist.
 
 ## See Also
 
-- [Projectable Properties](../reference/projectable-properties) -- full reference including restrictions and runtime semantics
-- [`[ExpressiveFor]` Mapping](../reference/expressive-for) -- alternative pattern for scenarios where you can't modify the entity type
+- [`[ExpressiveFor]` Mapping](../reference/expressive-for#synthesizing-a-property-with-synthesize-true) -- full `Synthesize = true` reference
 - [Migrating from Projectables](../guide/migration-from-projectables) -- side-by-side migration paths for `UseMemberBody`
 - [Computed Entity Properties](./computed-properties) -- plain `[Expressive]` computed values for DTO projections

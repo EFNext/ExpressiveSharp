@@ -57,7 +57,6 @@ const sidebar: DefaultTheme.Sidebar = {
       text: 'Reference',
       items: [
         { text: '[Expressive] Attribute', link: '/reference/expressive-attribute' },
-        { text: 'Projectable Properties', link: '/reference/projectable-properties' },
         { text: '[ExpressiveFor] Mapping', link: '/reference/expressive-for' },
         { text: 'Null-Conditional Rewrite', link: '/reference/null-conditional-rewrite' },
         { text: 'Pattern Matching', link: '/reference/pattern-matching' },

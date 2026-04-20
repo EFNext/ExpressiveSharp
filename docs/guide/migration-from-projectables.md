@@ -122,7 +122,7 @@ Both the old `Ignore` and `Rewrite` behaviors converge to the same result in Exp
 
 | Old Property | Migration |
 |---|---|
-| `UseMemberBody = "SomeMethod"` | Replace with `[Expressive(Projectable = true)]` or `[ExpressiveFor]`. See [Migrating UseMemberBody](#migrating-usememberbody) below. |
+| `UseMemberBody = "SomeMethod"` | Replace with `[ExpressiveFor(..., Synthesize = true)]` or plain `[ExpressiveFor]`. See [Migrating UseMemberBody](#migrating-usememberbody) below. |
 | `AllowBlockBody = true` | Keep -- block bodies remain opt-in. Set per-member or globally via `Expressive_AllowBlockBody` MSBuild property. |
 | `ExpandEnumMethods = true` | Remove -- enum method expansion is enabled by default. |
 | `CompatibilityMode.Full / .Limited` | Remove -- only the full approach exists. |
@@ -131,37 +131,36 @@ Both the old `Ignore` and `Rewrite` behaviors converge to the same result in Exp
 
 In Projectables, `UseMemberBody` let you point one member's expression body at another member -- typically to work around syntax limitations or to provide an expression-tree-friendly alternative for projection middleware (HotChocolate, AutoMapper) that required a writable target.
 
-ExpressiveSharp offers **two replacement options**, depending on your scenario:
+ExpressiveSharp offers **two replacement shapes**, depending on your scenario:
 
-- **`[Expressive(Projectable = true)]`** -- the ergonomic fit when your goal was specifically to participate in projection middleware. Keeps the formula on the property itself via the `field ?? (<formula>)` pattern. Closest to Projectables' intent.
-- **`[ExpressiveFor]`** -- the verbose but explicit alternative. Works for external types too (scenarios `UseMemberBody` never supported).
+- **`[ExpressiveFor(..., Synthesize = true)]`** -- the closest analogue: you write only the formula; the generator synthesizes the settable target property on a `partial` class. The property participates in projection middleware because it has an `init` accessor. Best fit when you want a dedicated property backed purely by an expression.
+- **Plain `[ExpressiveFor]`** -- when the target property already exists (or lives on an external type you do not own). No property is synthesized; the stub maps to an existing member.
 
-Either is correct; pick based on ergonomic preference and whether you need the cross-type capability.
+Pick based on whether you want the generator to declare the target property for you.
 
-::: info About the `Projectable` name overlap
-ExpressiveSharp's `Projectable` attribute property and the EFCore.Projectables library's `[Projectable]` attribute share a name because both describe the same capability -- a computed property that participates in LINQ projections. They are different mechanisms; the shared word is intentional to reduce migration friction.
-:::
-
-**Option A -- `[Expressive(Projectable = true)]`** (single declaration):
+**Option A -- `[ExpressiveFor(..., Synthesize = true)]`** (formula-only, property is generated):
 
 ```csharp
 // Before (Projectables)
 [Projectable(UseMemberBody = nameof(FullNameProjection))]
-public string FullName { get; init; }
+public partial string FullName { get; init; }
 private string FullNameProjection => LastName + ", " + FirstName;
 
-// After (ExpressiveSharp) -- formula lives on the property
-[Expressive(Projectable = true)]
-public string FullName
+// After (ExpressiveSharp) -- partial class, stub only; FullName is generated
+public partial class Customer
 {
-    get => field ?? (LastName + ", " + FirstName);
-    init => field = value;
+    [ExpressiveFor("FullName", Synthesize = true)]
+    private string FullNameExpression => LastName + ", " + FirstName;
 }
 ```
 
-See the [Projectable Properties reference](../reference/projectable-properties) and the [Projection Middleware recipe](../recipes/projection-middleware) for the complete feature.
+The generator picks between a coalesce shape (non-nullable targets) and a ternary+flag shape (nullable targets) so materialized `null` stays distinguishable from "not materialized." See the [Synthesize section of the `[ExpressiveFor]` reference](../reference/expressive-for#synthesizing-a-property-with-synthesize-true) and the [Projection Middleware recipe](../recipes/projection-middleware).
 
-**Option B -- `[ExpressiveFor]`** (separate stub, also supports cross-type mapping):
+::: warning Target name must be a string literal
+When `Synthesize = true`, the target property does not yet exist during the generator's pass, so `nameof(FullName)` fails to resolve. Always pass the name as a string literal: `[ExpressiveFor("FullName", Synthesize = true)]`.
+:::
+
+**Option B -- plain `[ExpressiveFor]`** (target property already exists, or lives on an external type):
 
 **Scenario 1: Same-type member with an alternative body**
 

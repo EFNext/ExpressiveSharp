@@ -443,6 +443,15 @@ public class ExpressiveGenerator : IIncrementalGenerator
             throw new InvalidOperationException("ExpressionTreeEmission must be set");
 
         EmitExpressionTreeSource(descriptor, generatedClassName, methodSuffix, generatedFileName, stubMember, compilation, context);
+
+        // [ExpressiveFor(..., Synthesize = true)] also emits a user-facing partial class
+        // declaring the synthesized property. The file goes alongside the expression-factory file
+        // but in the user's namespace so the C# compiler merges it with their declaration.
+        if (descriptor.SynthesisSpec is { } synthesisSpec)
+        {
+            var synthesizedFileName = $"{generatedClassName}.{methodSuffix}.Synthesized.g.cs";
+            Emitter.SynthesizedPropertyEmitter.Emit(synthesisSpec, synthesizedFileName, context);
+        }
     }
 
     /// <summary>
@@ -504,6 +513,15 @@ public class ExpressiveGenerator : IIncrementalGenerator
             if (memberName is null)
                 return null;
 
+            // [ExpressiveFor(..., Synthesize = true)] — the target member doesn't exist yet;
+            // the registry entry is always a property keyed on the synthesized name.
+            if (attribute.Synthesize)
+            {
+                memberKind = ExpressionRegistryMemberType.Property;
+                memberLookupName = memberName;
+            }
+            else
+            {
             // Property stubs can only target properties; method stubs may target either.
             var isProperty = stubIsProperty
                 || targetType.GetMembers(memberName).OfType<IPropertySymbol>().Any();
@@ -534,6 +552,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
                 parameterTypeNames = [
                     ..targetMethod.Parameters.Select(p => p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
                 ];
+            }
             }
         }
 
