@@ -506,6 +506,59 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             "Should not warn for enum extension method in IExpressiveQueryable LINQ lambda");
     }
 
+    // ── Sibling-mapping suppression ─────────────────────────────────────────
+    //
+    // When a stub on the same type registers an expression for a member via
+    // [ExpressiveProperty("X")] or [ExpressiveFor(nameof(X))], the referenced member
+    // is effectively expressive — EXP0013 must not fire on it.
+
+    [TestMethod]
+    public async Task PropertyAccess_ToExpressivePropertySynthesizedTarget_DoesNotWarn()
+    {
+        var diagnostics = await RunAnalyzerAsync(
+            """
+            using ExpressiveSharp.Mapping;
+            namespace Foo {
+                partial class C {
+                    public int Value { get; set; }
+
+                    [ExpressiveProperty("Doubled")]
+                    int DoubledExpression => Value * 2;
+
+                    [Expressive]
+                    public int Quadrupled => Doubled * 2;
+                }
+            }
+            """);
+
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
+            "Should not warn for a reference to an [ExpressiveProperty]-synthesized target");
+    }
+
+    [TestMethod]
+    public async Task PropertyAccess_ToSameTypeExpressiveForTarget_DoesNotWarn()
+    {
+        var diagnostics = await RunAnalyzerAsync(
+            """
+            using ExpressiveSharp.Mapping;
+            namespace Foo {
+                class C {
+                    public int Value { get; set; }
+                    public int Doubled { get; set; }
+
+                    [ExpressiveFor(nameof(Doubled))]
+                    int DoubledExpression => Value * 2;
+
+                    [Expressive]
+                    public int Quadrupled => Doubled * 2;
+                }
+            }
+            """);
+
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
+            "Should not warn for a reference to an [ExpressiveFor]-mapped same-type target");
+    }
+
     // ── Helper ──────────────────────────────────────────────────────────────
 
     private async Task<ImmutableArray<Diagnostic>> RunAnalyzerAsync(string source)
