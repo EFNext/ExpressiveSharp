@@ -176,8 +176,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                 var line = nameLineSpan.StartLinePosition.Line;
                 var col  = nameLineSpan.StartLinePosition.Character;
 
-                var methodCode = TryEmitPolyfill(inv, model, line, col, fileTag, ct)
-                              ?? TryEmit(inv, model, line, col, fileTag, ct);
+                var methodCode = TryEmitPolyfill(inv, model, line, col, fileTag, spc)
+                              ?? TryEmit(inv, model, line, col, fileTag, spc);
                 if (methodCode is null) continue;
 
                 methodCodes.Add(methodCode);
@@ -187,15 +187,9 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             catch (OperationCanceledException) { throw; }
             catch (Exception ex)
             {
-                var lineSpan = inv.GetLocation().GetLineSpan();
                 spc.ReportDiagnostic(Diagnostic.Create(
                     Diagnostics.InterceptorEmissionFailed,
-                    Location.Create(
-                        lineSpan.Path,
-                        new TextSpan(0, 0),
-                        new LinePositionSpan(
-                            new LinePosition(lineSpan.StartLinePosition.Line, lineSpan.StartLinePosition.Character),
-                            new LinePosition(lineSpan.StartLinePosition.Line, lineSpan.StartLinePosition.Character))),
+                    inv.GetLocation(),
                     ex.GetType().Name + ": " + ex.Message));
             }
         }
@@ -280,7 +274,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         int line,
         int col,
         string fileTag,
-        CancellationToken ct)
+        SourceProductionContext spc)
     {
         if (model.GetSymbolInfo(inv).Symbol is not IMethodSymbol method)
             return null;
@@ -300,7 +294,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             return null;
         var hasTransformers = method.Parameters.Length == 2;
 
-        var interceptableLocation = model.GetInterceptableLocation(inv, ct);
+        var interceptableLocation = model.GetInterceptableLocation(inv, spc.CancellationToken);
         if (interceptableLocation is null)
             return null;
         var interceptAttr = interceptableLocation.GetInterceptsLocationAttributeSyntax();
@@ -323,7 +317,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             return null;
 
         // Use ExpressionTreeEmitter to build the expression tree
-        var emitResult = EmitLambdaBody(lam, elemSymbol, model, delegateFqn,
+        var emitResult = EmitLambdaBody(lam, elemSymbol, model, spc, delegateFqn,
             varPrefix: $"i{fileTag}{line}c{col}_", delegateVarName: "__func");
         if (emitResult is null)
             return null;
@@ -362,7 +356,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         int line,
         int col,
         string fileTag,
-        CancellationToken ct)
+        SourceProductionContext spc)
     {
         var ma = (MemberAccessExpressionSyntax)inv.Expression;
 
@@ -397,7 +391,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
         // Get the interceptable location using the Roslyn 5.0+ API.
         // This produces the correct [InterceptsLocation(version, data)] attribute text.
-        var interceptableLocation = model.GetInterceptableLocation(inv, ct);
+        var interceptableLocation = model.GetInterceptableLocation(inv, spc.CancellationToken);
 
         if (interceptableLocation is null)
             return null;
@@ -428,7 +422,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             targetTypeFqn = targetType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         }
 
-        return EmitGenericLambda(inv, model, interceptAttr, line, col, fileTag,
+        return EmitGenericLambda(inv, model, spc, interceptAttr, line, col, fileTag,
             methodName, elementSymbol, elementFqn, method, funcParamIndices, targetTypeFqn);
     }
 
@@ -437,13 +431,12 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     /// <summary>
     /// Uses <see cref="Emitter.ExpressionTreeEmitter"/> to build the expression tree for a lambda body.
     /// Returns the emitter result containing imperative Expression.* factory code, or null on failure.
-    /// Note: <c>context: null</c> is passed to <see cref="Emitter.ExpressionTreeEmitter"/>
-    /// intentionally — emitter diagnostics (EXP0008, EXP0018) are suppressed in this path.
     /// </summary>
     private static Emitter.EmitResult? EmitLambdaBody(
         LambdaExpressionSyntax lambda,
         INamedTypeSymbol elementSymbol,
         SemanticModel model,
+        SourceProductionContext spc,
         string delegateTypeFqn,
         string assignToVariable = "__lambda",
         string varPrefix = "",
@@ -455,8 +448,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         var bodyNode = lambda.Body is ExpressionSyntax expr ? (SyntaxNode)expr : lambda.Body;
         if (bodyNode is null) return null;
 
-        // context: null — SourceProductionContext is not available in the per-node transform.
-        var emitter = new Emitter.ExpressionTreeEmitter(model, context: null, varPrefix: varPrefix, delegateVarName: delegateVarName);
+        var emitter = new Emitter.ExpressionTreeEmitter(model, spc, varPrefix: varPrefix, delegateVarName: delegateVarName);
 
         if (typeAliases is not null)
         {
@@ -549,7 +541,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     /// Non-lambda parameters are forwarded directly to the Queryable.* call.
     /// </summary>
     private static string? EmitGenericLambda(
-        InvocationExpressionSyntax inv, SemanticModel model,
+        InvocationExpressionSyntax inv, SemanticModel model, SourceProductionContext spc,
         string interceptAttr, int line, int col, string fileTag,
         string methodName, INamedTypeSymbol elemSym, string elemFqn,
         IMethodSymbol method, List<int> funcParamIndices, string targetTypeFqn)
@@ -761,7 +753,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             var delegateName = single ? "__func" : $"__func{j + 1}";
             var funcType = (INamedTypeSymbol)method.Parameters[funcParamIndices[j]].Type;
             var lambdaElemSym = funcType.TypeArguments[0] as INamedTypeSymbol ?? elemSym;
-            var emitResult = EmitLambdaBody(lambdas[j], lambdaElemSym, model,
+            var emitResult = EmitLambdaBody(lambdas[j], lambdaElemSym, model, spc,
                 delegateFqns[j], lambdaVar, varPrefix: prefix,
                 typeAliases: hasAnyAnon ? typeAliases : null,
                 delegateVarName: delegateName);
