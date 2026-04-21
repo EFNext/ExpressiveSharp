@@ -3,10 +3,10 @@
 
 namespace ExpressiveSharp.Generated.Interceptors
 {
-    internal static class PolyfillInterceptors
+    internal static partial class PolyfillInterceptors
     {
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
-        internal static global::ExpressiveSharp.IExpressiveQueryable<T3> __Polyfill_Join_0<T0, T1, T2, T3>(
+        internal static global::ExpressiveSharp.IExpressiveQueryable<T3> __Polyfill_Join_361d_11_19<T0, T1, T2, T3>(
             this global::ExpressiveSharp.IExpressiveQueryable<T0> source,
             global::System.Collections.Generic.IEnumerable<T1> inner,
                     global::System.Func<T0, T2> __func1,
@@ -14,21 +14,21 @@ namespace ExpressiveSharp.Generated.Interceptors
                     global::System.Func<T0, T1, T3> __func3)
         {
             // Source: o => o.CustomerId
-            var i0a_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(T0), "o");
-            var i0a_expr_0 = global::System.Linq.Expressions.Expression.Property(i0a_p_o, typeof(T0).GetProperty("CustomerId")); // o.CustomerId
-            var __lambda1 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<T0, T2>>(i0a_expr_0, i0a_p_o);
+            var i361d11c19a_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(T0), "o");
+            var i361d11c19a_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d11c19a_p_o, typeof(T0).GetProperty("CustomerId")); // o.CustomerId
+            var __lambda1 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<T0, T2>>(i361d11c19a_expr_0, i361d11c19a_p_o);
             // Source: c => c.Id
-            var i0b_p_c = global::System.Linq.Expressions.Expression.Parameter(typeof(T1), "c");
-            var i0b_expr_0 = global::System.Linq.Expressions.Expression.Property(i0b_p_c, typeof(T1).GetProperty("Id")); // c.Id
-            var __lambda2 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<T1, T2>>(i0b_expr_0, i0b_p_c);
+            var i361d11c19b_p_c = global::System.Linq.Expressions.Expression.Parameter(typeof(T1), "c");
+            var i361d11c19b_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d11c19b_p_c, typeof(T1).GetProperty("Id")); // c.Id
+            var __lambda2 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<T1, T2>>(i361d11c19b_expr_0, i361d11c19b_p_c);
             // Source: (o, c) => new { o.Product, CustomerName = c.Name }
-            var i0c_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(T0), "o");
-            var i0c_p_c = global::System.Linq.Expressions.Expression.Parameter(typeof(T1), "c");
-            var i0c_expr_1 = global::System.Linq.Expressions.Expression.Property(i0c_p_o, typeof(T0).GetProperty("Product")); // o.Product
-            var i0c_expr_2 = global::System.Linq.Expressions.Expression.Property(i0c_p_c, typeof(T1).GetProperty("Name")); // c.Name
-            var i0c_expr_3 = typeof(T3).GetConstructors()[0];
-            var i0c_expr_0 = global::System.Linq.Expressions.Expression.New(i0c_expr_3, new global::System.Linq.Expressions.Expression[] { i0c_expr_1, i0c_expr_2 }, new global::System.Reflection.MemberInfo[] { typeof(T3).GetProperty("Product"), typeof(T3).GetProperty("CustomerName") });
-            var __lambda3 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<T0, T1, T3>>(i0c_expr_0, i0c_p_o, i0c_p_c);
+            var i361d11c19c_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(T0), "o");
+            var i361d11c19c_p_c = global::System.Linq.Expressions.Expression.Parameter(typeof(T1), "c");
+            var i361d11c19c_expr_1 = global::System.Linq.Expressions.Expression.Property(i361d11c19c_p_o, typeof(T0).GetProperty("Product")); // o.Product
+            var i361d11c19c_expr_2 = global::System.Linq.Expressions.Expression.Property(i361d11c19c_p_c, typeof(T1).GetProperty("Name")); // c.Name
+            var i361d11c19c_expr_3 = typeof(T3).GetConstructors()[0];
+            var i361d11c19c_expr_0 = global::System.Linq.Expressions.Expression.New(i361d11c19c_expr_3, new global::System.Linq.Expressions.Expression[] { i361d11c19c_expr_1, i361d11c19c_expr_2 }, new global::System.Reflection.MemberInfo[] { typeof(T3).GetProperty("Product"), typeof(T3).GetProperty("CustomerName") });
+            var __lambda3 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<T0, T1, T3>>(i361d11c19c_expr_0, i361d11c19c_p_o, i361d11c19c_p_c);
             return (global::ExpressiveSharp.IExpressiveQueryable<T3>)(object)
                 global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                     global::System.Linq.Queryable.Join(
