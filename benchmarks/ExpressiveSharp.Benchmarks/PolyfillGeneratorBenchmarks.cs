@@ -288,3 +288,129 @@ public static class BenchHelper { public static string Describe(int id) => $""#{
         return sources;
     }
 }
+
+/// <summary>
+/// Cold-build cost in a codebase where query files are mixed with ordinary non-lambda
+/// member-access calls (<c>sb.Append(x)</c>, <c>list.Add(x)</c>, <c>Console.WriteLine</c>)
+/// — the shape of real production code.
+/// <para>
+/// Fixed 10 files × 5 real call sites per file; <see cref="NoiseInvocationsPerFile"/>
+/// controls how many non-intercept invocations sit alongside them. The gap between
+/// <c>NoiseInvocationsPerFile = 0</c> and higher values reflects how well the generator
+/// filters out invocations it cannot intercept.
+/// </para>
+/// </summary>
+[MemoryDiagnoser]
+public class PolyfillColdBuildWithNoiseBenchmarks
+{
+    [Params(0, 25, 100)]
+    public int NoiseInvocationsPerFile { get; set; }
+
+    private const int FileCount = 10;
+    private const int CallSitesPerFile = 5;
+
+    private Compilation _compilation = null!;
+    private GeneratorDriver _warmedDriver = null!;
+    private Compilation _callSiteFileModified = null!;
+
+    [GlobalSetup]
+    public void Setup()
+    {
+        var sources = BuildSources(FileCount, CallSitesPerFile, NoiseInvocationsPerFile);
+        _compilation = CreateCompilation(sources);
+
+        _warmedDriver = CSharpGeneratorDriver
+            .Create(new PolyfillInterceptorGenerator())
+            .RunGenerators(_compilation);
+
+        // Index FileCount = last query file (has CallSitesPerFile real call sites + noise)
+        var callSiteTree = _compilation.SyntaxTrees.ElementAt(FileCount);
+        _callSiteFileModified = _compilation.ReplaceSyntaxTree(
+            callSiteTree,
+            callSiteTree.WithChangedText(SourceText.From(callSiteTree.GetText() + "\n// bench-edit")));
+    }
+
+    // ── Generator-only (no compilation rebuild) ──────────────────────────────
+
+    [Benchmark(Baseline = true)]
+    public GeneratorDriver Cold()
+        => CSharpGeneratorDriver
+            .Create(new PolyfillInterceptorGenerator())
+            .RunGenerators(_compilation);
+
+    [Benchmark]
+    public GeneratorDriver Incremental_EditCallSiteFile()
+        => _warmedDriver.RunGenerators(_callSiteFileModified);
+
+    // ── End-to-end (generator + Roslyn compilation rebuild) ──────────────────
+
+    [Benchmark]
+    public GeneratorDriver Cold_E2E()
+        => CSharpGeneratorDriver
+            .Create(new PolyfillInterceptorGenerator())
+            .RunGeneratorsAndUpdateCompilation(_compilation, out _, out _);
+
+    [Benchmark]
+    public GeneratorDriver Incremental_EditCallSiteFile_E2E()
+        => _warmedDriver.RunGeneratorsAndUpdateCompilation(_callSiteFileModified, out _, out _);
+
+    private static Compilation CreateCompilation(IReadOnlyList<string> sources)
+    {
+        var refs = Basic.Reference.Assemblies.Net100.References.All.ToList();
+        refs.Add(MetadataReference.CreateFromFile(typeof(ExpressiveAttribute).Assembly.Location));
+        return CSharpCompilation.Create(
+            "PolyfillColdBuildNoiseBench",
+            sources.Select((s, i) => CSharpSyntaxTree.ParseText(s, path: $"PolyfillNoise{i}.cs")),
+            refs,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+    }
+
+    private static IReadOnlyList<string> BuildSources(int fileCount, int sitesPerFile, int noisePerFile)
+    {
+        // index 0: entity
+        var sources = new List<string>
+        {
+            @"using System.Linq; using ExpressiveSharp; namespace PolyfillBench;
+public class BenchEntity { public int Id { get; set; } public string Name { get; set; } = """"; }"
+        };
+
+        // indices 1..fileCount: query files (real call sites + noise invocations)
+        var sb = new StringBuilder();
+        for (var f = 0; f < fileCount; f++)
+        {
+            sb.Clear();
+            sb.AppendLine("using System; using System.Linq; using System.Text; using System.Collections.Generic; using ExpressiveSharp;");
+            sb.AppendLine("namespace PolyfillBench;");
+            sb.AppendLine($"public static class NoisyQueries{f} {{");
+
+            for (var i = 0; i < sitesPerFile; i++)
+                sb.AppendLine($"  public static IQueryable<int> Q{f}_{i}(IExpressiveQueryable<BenchEntity> q) => q.Select(x => x.Id + {f * 100 + i});");
+
+            if (noisePerFile > 0)
+            {
+                sb.AppendLine($"  public static string Helper{f}() {{");
+                sb.AppendLine("    var buf = new StringBuilder();");
+                sb.AppendLine("    var items = new List<int>();");
+                for (var n = 0; n < noisePerFile; n++)
+                {
+                    // Rotate through common call shapes so the sample isn't pathologically uniform.
+                    switch (n % 5)
+                    {
+                        case 0: sb.AppendLine($"    buf.Append(\"a{n}\");"); break;
+                        case 1: sb.AppendLine($"    buf.AppendLine(\"line{n}\");"); break;
+                        case 2: sb.AppendLine($"    items.Add({n});"); break;
+                        case 3: sb.AppendLine($"    Console.WriteLine(\"msg{n}\");"); break;
+                        case 4: sb.AppendLine($"    buf.Insert(0, {n}.ToString());"); break;
+                    }
+                }
+                sb.AppendLine("    return buf.ToString();");
+                sb.AppendLine("  }");
+            }
+
+            sb.AppendLine("}");
+            sources.Add(sb.ToString());
+        }
+
+        return sources;
+    }
+}
