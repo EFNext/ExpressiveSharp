@@ -105,12 +105,14 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             {
                 ct.ThrowIfCancellationRequested();
                 var unit = (CompilationUnitSyntax)ctx.Node;
-                // Quick syntactic pre-filter: any member-access invocation with ≥1 argument?
+                // Every intercepted call site (Polyfill.Create + IExpressiveQueryable stubs)
+                // takes at least one lambda argument. Files with no lambda-bearing invocations
+                // can't contain anything we'd intercept, so drop them before semantic binding.
                 foreach (var descendant in unit.DescendantNodes())
                 {
                     if (descendant is InvocationExpressionSyntax inv &&
                         inv.Expression is MemberAccessExpressionSyntax &&
-                        inv.ArgumentList.Arguments.Count > 0)
+                        HasLambdaArgument(inv))
                         return unit;
                 }
                 return null;
@@ -162,8 +164,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         foreach (var descendant in unit.DescendantNodes())
         {
             if (descendant is not InvocationExpressionSyntax inv) continue;
-            if (inv.Expression is not MemberAccessExpressionSyntax) continue;
-            if (inv.ArgumentList.Arguments.Count == 0) continue;
+            if (inv.Expression is not MemberAccessExpressionSyntax ma) continue;
+            if (!HasLambdaArgument(inv)) continue;
 
             ct.ThrowIfCancellationRequested();
             try
@@ -171,13 +173,25 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                 // Use the METHOD NAME token position for stable, unique naming.
                 // Using the invocation's span-start would collide in chained calls
                 // (e.g. query.AsExpressive().Where(…) — both start at 'query').
-                var ma = (MemberAccessExpressionSyntax)inv.Expression;
                 var nameLineSpan = ma.Name.GetLocation().GetLineSpan();
                 var line = nameLineSpan.StartLinePosition.Line;
                 var col  = nameLineSpan.StartLinePosition.Character;
 
-                var methodCode = TryEmitPolyfill(inv, model, line, col, fileTag, spc)
-                              ?? TryEmit(inv, model, line, col, fileTag, spc);
+                // Exclusive dispatch: ExpressionPolyfill.Create<T> takes the polyfill path,
+                // everything else takes the IExpressiveQueryable path.
+                if (model.GetSymbolInfo(inv).Symbol is not IMethodSymbol method) continue;
+
+                string? methodCode;
+                if (ma.Name.Identifier.Text == PolyfillMethodName &&
+                    method.ContainingType?.ToDisplayString() == PolyfillTypeName)
+                {
+                    methodCode = TryEmitPolyfill(inv, model, method, line, col, fileTag, spc);
+                }
+                else
+                {
+                    methodCode = TryEmit(inv, ma, model, method, line, col, fileTag, spc);
+                }
+
                 if (methodCode is null) continue;
 
                 methodCodes.Add(methodCode);
@@ -271,19 +285,13 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     /// </summary>
     private static string? TryEmitPolyfill(InvocationExpressionSyntax inv,
         SemanticModel model,
+        IMethodSymbol method,
         int line,
         int col,
         string fileTag,
         SourceProductionContext spc)
     {
-        if (model.GetSymbolInfo(inv).Symbol is not IMethodSymbol method)
-            return null;
-
-        // Must be ExpressionPolyfill.Create<TDelegate>(...)
-        if (method.Name != PolyfillMethodName)
-            return null;
-        if (method.ContainingType?.ToDisplayString() != PolyfillTypeName)
-            return null;
+        // Caller guarantees method is ExpressionPolyfill.Create.
         if (method.TypeArguments.Length != 1)
             return null;
 
@@ -352,23 +360,20 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     // ── Per-invocation dispatch (IExpressiveQueryable) ───────────────────────
 
     private static string? TryEmit(InvocationExpressionSyntax inv,
+        MemberAccessExpressionSyntax ma,
         SemanticModel model,
+        IMethodSymbol method,
         int line,
         int col,
         string fileTag,
         SourceProductionContext spc)
     {
-        var ma = (MemberAccessExpressionSyntax)inv.Expression;
-
         // Receiver must be or implement IExpressiveQueryable<T>.
         if (model.GetTypeInfo(ma.Expression).Type is not INamedTypeSymbol receiverType)
             return null;
 
         // Check both the type itself and its implemented interfaces
         if (!IsExpressiveQueryable(receiverType))
-            return null;
-
-        if (model.GetSymbolInfo(inv).Symbol is not IMethodSymbol method)
             return null;
 
         // The stub convention: at least one non-receiver parameter must be a Func<> delegate,
@@ -519,6 +524,17 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         => type is INamedTypeSymbol { IsAnonymousType: true };
 
     // ── Formatting helpers ───────────────────────────────────────────────────
+
+    private static bool HasLambdaArgument(InvocationExpressionSyntax inv)
+    {
+        var args = inv.ArgumentList.Arguments;
+        for (var i = 0; i < args.Count; i++)
+        {
+            if (args[i].Expression is LambdaExpressionSyntax)
+                return true;
+        }
+        return false;
+    }
 
     /// <summary>
     /// Produces a unique, stable interceptor method name based on the call site's
