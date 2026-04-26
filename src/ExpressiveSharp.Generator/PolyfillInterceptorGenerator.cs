@@ -1,11 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Linq;
 using System.Text;
 using ExpressiveSharp.Generator.Infrastructure;
-using ExpressiveSharp.Generator.Models;
-using ExpressiveSharp.Generator.SyntaxRewriters;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -102,53 +96,111 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // Syntactic pre-filter: any member-access invocation with at least one argument
-        // is a candidate. The semantic check in Emit does the real filtering.
-        var candidates = context.SyntaxProvider.CreateSyntaxProvider(
-            predicate: static (node, _) =>
-                node is InvocationExpressionSyntax inv &&
-                inv.Expression is MemberAccessExpressionSyntax &&
-                inv.ArgumentList.Arguments.Count > 0,
-            transform: static (ctx, _) => (InvocationExpressionSyntax)ctx.Node);
+        // One pipeline item per SOURCE FILE (CompilationUnitSyntax = root node of each file).
+        // The syntactic scan filters out files that have no candidate invocations at all.
+        // This gives us one generated file per user source file — clean and predictable.
+        var candidateFiles = context.SyntaxProvider.CreateSyntaxProvider(
+            predicate: static (node, _) => node is CompilationUnitSyntax,
+            transform: static (ctx, ct) =>
+            {
+                ct.ThrowIfCancellationRequested();
+                var unit = (CompilationUnitSyntax)ctx.Node;
+                // Every intercepted call site (Polyfill.Create + IExpressiveQueryable stubs)
+                // takes at least one lambda argument. Files with no lambda-bearing invocations
+                // can't contain anything we'd intercept, so drop them before semantic binding.
+                foreach (var descendant in unit.DescendantNodes())
+                {
+                    if (descendant is InvocationExpressionSyntax inv &&
+                        inv.Expression is MemberAccessExpressionSyntax &&
+                        HasLambdaArgument(inv))
+                        return unit;
+                }
+                return null;
+            })
+            .Where(static x => x is not null)
+            .Select(static (x, _) => x!);
 
-        var globalOptions = context.AnalyzerConfigOptionsProvider
-            .Select(static (opts, _) => new ExpressiveGlobalOptions(opts.GlobalOptions));
+        // Combine with the compilation so ProcessFileAndEmit can build a SemanticModel.
+        //
+        // WithComparer uses REFERENCE equality on the CompilationUnitSyntax root node:
+        //   • Roslyn syntax trees are immutable — editing a noise file creates a new
+        //     Compilation but keeps every other file's syntax tree root as the EXACT
+        //     SAME object reference across incremental runs.
+        //   • All untouched source files compare as "equal" → RegisterSourceOutput
+        //     skipped entirely → O(1) incremental cost for noise-file edits.
+        //   • Only files that were actually edited get a new root reference → re-run.
+        var filesWithCompilation = candidateFiles
+            .Combine(context.CompilationProvider)
+            .WithComparer(CompilationUnitAndCompilationComparer.Instance);
 
-        // Combine with the full compilation so we can do semantic analysis in the output step.
-        context.RegisterSourceOutput(
-            candidates.Collect().Combine(context.CompilationProvider).Combine(globalOptions),
-            static (spc, pair) => Emit(pair.Left.Left, pair.Left.Right, pair.Right, spc));
+        // All semantic analysis, code emission, and EXP_EMIT_FAILED diagnostic reporting
+        // happen inside ProcessFileAndEmit. One output file is produced per source file,
+        // containing all interceptors for that file.
+        context.RegisterSourceOutput(filesWithCompilation,
+            static (spc, pair) => ProcessFileAndEmit(pair.Left, pair.Right, spc));
     }
 
-    // ── Emission ─────────────────────────────────────────────────────────────
+    // ── Per-file processing and emission ────────────────────────────────────
 
-    private static void Emit(
-        ImmutableArray<InvocationExpressionSyntax> invocations,
+    /// <summary>
+    /// Processes all candidate call sites in one source file and emits a single
+    /// interceptor file containing all generated methods for that file.
+    /// Called from <c>RegisterSourceOutput</c>; Roslyn replays cached output when
+    /// <see cref="CompilationUnitAndCompilationComparer"/> signals the file is unchanged.
+    /// </summary>
+    private static void ProcessFileAndEmit(
+        CompilationUnitSyntax unit,
         Compilation compilation,
-        ExpressiveGlobalOptions globalOptions,
         SourceProductionContext spc)
     {
-        var methodsBuilder = new StringBuilder();
-        var snippetCount = 0;
+        var ct = spc.CancellationToken;
+        var model = compilation.GetSemanticModel(unit.SyntaxTree);
+        var sourcePath = unit.SyntaxTree.FilePath;
+        var fileTag = GetFileTag(sourcePath);
 
-        foreach (var inv in invocations)
+        var methodCodes = new List<string>();
+        var needsClosureHelper = false;
+
+        foreach (var descendant in unit.DescendantNodes())
         {
-            spc.CancellationToken.ThrowIfCancellationRequested();
+            if (descendant is not InvocationExpressionSyntax inv) continue;
+            if (inv.Expression is not MemberAccessExpressionSyntax ma) continue;
+            if (!HasLambdaArgument(inv)) continue;
 
+            ct.ThrowIfCancellationRequested();
             try
             {
-                var snippet = TryEmitPolyfill(inv, compilation, spc, snippetCount, globalOptions)
-                           ?? TryEmit(inv, compilation, spc, snippetCount, globalOptions);
-                if (snippet is not null)
+                // Use the METHOD NAME token position for stable, unique naming.
+                // Using the invocation's span-start would collide in chained calls
+                // (e.g. query.AsExpressive().Where(…) — both start at 'query').
+                var nameLineSpan = ma.Name.GetLocation().GetLineSpan();
+                var line = nameLineSpan.StartLinePosition.Line;
+                var col  = nameLineSpan.StartLinePosition.Character;
+
+                // Exclusive dispatch: ExpressionPolyfill.Create<T> takes the polyfill path,
+                // everything else takes the IExpressiveQueryable path.
+                if (model.GetSymbolInfo(inv).Symbol is not IMethodSymbol method) continue;
+
+                string? methodCode;
+                if (ma.Name.Identifier.Text == PolyfillMethodName &&
+                    method.ContainingType?.ToDisplayString() == PolyfillTypeName)
                 {
-                    methodsBuilder.Append(snippet);
-                    snippetCount++;
+                    methodCode = TryEmitPolyfill(inv, model, method, line, col, fileTag, spc);
                 }
+                else
+                {
+                    methodCode = TryEmit(inv, ma, model, method, line, col, fileTag, spc);
+                }
+
+                if (methodCode is null) continue;
+
+                methodCodes.Add(methodCode);
+                if (methodCode.Contains("__ClosureHelper"))
+                    needsClosureHelper = true;
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex)
             {
-                // Report the failure so it doesn't hide bugs silently.
-                // The stub body will throw UnreachableException at runtime with a clear message.
                 spc.ReportDiagnostic(Diagnostic.Create(
                     Diagnostics.InterceptorEmissionFailed,
                     inv.GetLocation(),
@@ -156,19 +208,19 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             }
         }
 
-        if (snippetCount == 0) return;
+        if (methodCodes.Count == 0) return;
 
-        var methods = methodsBuilder.ToString();
-        var closureHelper = methods.Contains("__ClosureHelper") ? ClosureHelperSource : "";
+        var allMethods = string.Concat(methodCodes);
+        var closureHelper = needsClosureHelper ? ClosureHelperSource : "";
         var source = $$"""
             // <auto-generated/>
             #nullable disable
 
             namespace ExpressiveSharp.Generated.Interceptors
             {
-                internal static class PolyfillInterceptors
+                internal static partial class PolyfillInterceptors
                 {
-            {{methods}}    }{{closureHelper}}
+            {{allMethods}}    }{{closureHelper}}
             }
 
             namespace System.Runtime.CompilerServices
@@ -181,9 +233,48 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             }
             """;
 
-        spc.AddSource("PolyfillInterceptors.g.cs",
+        spc.AddSource(ComputeOutputFileName(sourcePath),
             SourceText.From(source, Encoding.UTF8));
     }
+
+    /// <summary>
+    /// Computes a stable output file name for a given source file.
+    /// One interceptor file is generated per source file, keyed by the full 32-bit
+    /// FNV-1a hash of the source path.
+    /// </summary>
+    private static string ComputeOutputFileName(string sourcePath)
+    {
+        unchecked
+        {
+            var hash = 2166136261u;
+            for (var i = 0; i < sourcePath.Length; i++)
+            {
+                hash ^= (uint)sourcePath[i];
+                hash *= 16777619u;
+            }
+            return "PolyfillInterceptors_" + hash.ToString("x8") + ".g.cs";
+        }
+    }
+
+    /// <summary>
+    /// Returns a short (4-char hex) tag derived from the source file path hash.
+    /// Used as a prefix in interceptor method names to prevent collisions between
+    /// files that have call sites at identical line/col positions.
+    /// </summary>
+    private static string GetFileTag(string sourcePath)
+    {
+        unchecked
+        {
+            var hash = 2166136261u;
+            for (var i = 0; i < sourcePath.Length; i++)
+            {
+                hash ^= (uint)sourcePath[i];
+                hash *= 16777619u;
+            }
+            return (hash & 0xFFFFu).ToString("x4");
+        }
+    }
+
 
     // ── ExpressionPolyfill.Create() interception ──────────────────────────
 
@@ -192,23 +283,15 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     /// an interceptor that returns a literal <c>Expression&lt;TDelegate&gt;</c> with the
     /// rewritten lambda body.
     /// </summary>
-    private static string? TryEmitPolyfill(
-        InvocationExpressionSyntax inv,
-        Compilation compilation,
-        SourceProductionContext spc,
-        int index,
-        ExpressiveGlobalOptions globalOptions)
+    private static string? TryEmitPolyfill(InvocationExpressionSyntax inv,
+        SemanticModel model,
+        IMethodSymbol method,
+        int line,
+        int col,
+        string fileTag,
+        SourceProductionContext spc)
     {
-        var model = compilation.GetSemanticModel(inv.SyntaxTree);
-
-        if (model.GetSymbolInfo(inv).Symbol is not IMethodSymbol method)
-            return null;
-
-        // Must be ExpressionPolyfill.Create<TDelegate>(...)
-        if (method.Name != PolyfillMethodName)
-            return null;
-        if (method.ContainingType?.ToDisplayString() != PolyfillTypeName)
-            return null;
+        // Caller guarantees method is ExpressionPolyfill.Create.
         if (method.TypeArguments.Length != 1)
             return null;
 
@@ -219,12 +302,10 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             return null;
         var hasTransformers = method.Parameters.Length == 2;
 
-        var interceptableLocation = Microsoft.CodeAnalysis.CSharp.CSharpExtensions.GetInterceptableLocation(
-            model, inv, spc.CancellationToken);
+        var interceptableLocation = model.GetInterceptableLocation(inv, spc.CancellationToken);
         if (interceptableLocation is null)
             return null;
-        var interceptAttr = Microsoft.CodeAnalysis.CSharp.CSharpExtensions
-            .GetInterceptsLocationAttributeSyntax(interceptableLocation);
+        var interceptAttr = interceptableLocation.GetInterceptsLocationAttributeSyntax();
 
         // Extract the delegate type — e.g., Func<Order, bool>
         var delegateType = method.TypeArguments[0];
@@ -233,7 +314,6 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         // Default to Rewrite (the whole point of Polyfill is enabling expression tree features),
         // but allow MSBuild global property to override.
         
-
         // Get the parameter types from the delegate to build Expression<TDelegate>
         // For Func<T1, T2, ..., TResult>, the lambda parameters map to T1..Tn
         if (delegateType is not INamedTypeSymbol delegateNamed || delegateNamed.TypeArguments.IsEmpty)
@@ -245,9 +325,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             return null;
 
         // Use ExpressionTreeEmitter to build the expression tree
-        var exprTypeFqn = $"global::System.Linq.Expressions.Expression<{delegateFqn}>";
-        var emitResult = EmitLambdaBody(lam, elemSymbol, model, spc, globalOptions, delegateFqn,
-            varPrefix: $"i{index}_", delegateVarName: "__func");
+        var emitResult = EmitLambdaBody(lam, elemSymbol, model, spc, delegateFqn,
+            varPrefix: $"i{fileTag}{line}c{col}_", delegateVarName: "__func");
         if (emitResult is null)
             return null;
 
@@ -255,7 +334,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         {
             return $$"""
                     {{interceptAttr}}
-                    internal static global::System.Linq.Expressions.Expression<{{delegateFqn}}> {{MethodId("Create", index)}}(
+                    internal static global::System.Linq.Expressions.Expression<{{delegateFqn}}> {{MethodId("Create", fileTag, line, col)}}(
                         {{delegateFqn}} __func,
                         params global::ExpressiveSharp.IExpressionTreeTransformer[] transformers)
                     {
@@ -269,7 +348,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
         return $$"""
                 {{interceptAttr}}
-                internal static global::System.Linq.Expressions.Expression<{{delegateFqn}}> {{MethodId("Create", index)}}(
+                internal static global::System.Linq.Expressions.Expression<{{delegateFqn}}> {{MethodId("Create", fileTag, line, col)}}(
                     {{delegateFqn}} __func)
                 {
         {{emitResult.Body}}            return __lambda;
@@ -280,25 +359,21 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
     // ── Per-invocation dispatch (IExpressiveQueryable) ───────────────────────
 
-    private static string? TryEmit(
-        InvocationExpressionSyntax inv,
-        Compilation compilation,
-        SourceProductionContext spc,
-        int index,
-        ExpressiveGlobalOptions globalOptions)
+    private static string? TryEmit(InvocationExpressionSyntax inv,
+        MemberAccessExpressionSyntax ma,
+        SemanticModel model,
+        IMethodSymbol method,
+        int line,
+        int col,
+        string fileTag,
+        SourceProductionContext spc)
     {
-        var model = compilation.GetSemanticModel(inv.SyntaxTree);
-        var ma = (MemberAccessExpressionSyntax)inv.Expression;
-
         // Receiver must be or implement IExpressiveQueryable<T>.
         if (model.GetTypeInfo(ma.Expression).Type is not INamedTypeSymbol receiverType)
             return null;
 
         // Check both the type itself and its implemented interfaces
         if (!IsExpressiveQueryable(receiverType))
-            return null;
-
-        if (model.GetSymbolInfo(inv).Symbol is not IMethodSymbol method)
             return null;
 
         // The stub convention: at least one non-receiver parameter must be a Func<> delegate,
@@ -321,14 +396,12 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
         // Get the interceptable location using the Roslyn 5.0+ API.
         // This produces the correct [InterceptsLocation(version, data)] attribute text.
-        var interceptableLocation = Microsoft.CodeAnalysis.CSharp.CSharpExtensions.GetInterceptableLocation(
-            model, inv, spc.CancellationToken);
+        var interceptableLocation = model.GetInterceptableLocation(inv, spc.CancellationToken);
 
         if (interceptableLocation is null)
             return null;
 
-        var interceptAttr = Microsoft.CodeAnalysis.CSharp.CSharpExtensions
-            .GetInterceptsLocationAttributeSyntax(interceptableLocation);
+        var interceptAttr = interceptableLocation.GetInterceptsLocationAttributeSyntax();
 
         // Element type T of IExpressiveQueryable<T>.
         // The receiver may be IExpressiveQueryable<T> directly, or a type that implements it.
@@ -337,7 +410,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             return null;
         var elementType = rewritableInterface.TypeArguments[0];
         if (elementType is not INamedTypeSymbol elementSymbol)
-            return null; // Skip when T is itself a type parameter
+            return null;
         var elementFqn = elementType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         var methodName = ma.Name.Identifier.Text;
 
@@ -354,7 +427,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             targetTypeFqn = targetType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         }
 
-        return EmitGenericLambda(inv, model, spc, interceptAttr, index, methodName, elementSymbol, elementFqn, method, funcParamIndices, targetTypeFqn, globalOptions);
+        return EmitGenericLambda(inv, model, spc, interceptAttr, line, col, fileTag,
+            methodName, elementSymbol, elementFqn, method, funcParamIndices, targetTypeFqn);
     }
 
     // ── Lambda helpers ───────────────────────────────────────────────────────
@@ -366,10 +440,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     private static Emitter.EmitResult? EmitLambdaBody(
         LambdaExpressionSyntax lambda,
         INamedTypeSymbol elementSymbol,
-
         SemanticModel model,
         SourceProductionContext spc,
-        ExpressiveGlobalOptions globalOptions,
         string delegateTypeFqn,
         string assignToVariable = "__lambda",
         string varPrefix = "",
@@ -453,7 +525,27 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
     // ── Formatting helpers ───────────────────────────────────────────────────
 
-    private static string MethodId(string op, int index) => $"__Polyfill_{op}_{index}";
+    private static bool HasLambdaArgument(InvocationExpressionSyntax inv)
+    {
+        var args = inv.ArgumentList.Arguments;
+        for (var i = 0; i < args.Count; i++)
+        {
+            if (args[i].Expression is LambdaExpressionSyntax)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Produces a unique, stable interceptor method name based on the call site's
+    /// source file hash + method-name-token position (line/col).
+    /// The file hash disambiguates call sites across different source files that happen
+    /// to share the same line/col (e.g., two files both have an <c>OrderBy</c> at 44:13).
+    /// The position component disambiguates multiple call sites within the same file.
+    /// Adding/removing methods in other files never shifts these identifiers.
+    /// </summary>
+    private static string MethodId(string op, string fileTag, int line, int col)
+        => $"__Polyfill_{op}_{fileTag}_{line}_{col}";
 
     /// <summary>
     /// Generic lambda emitter for all LINQ operators and user-defined stubs.
@@ -465,11 +557,10 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     /// Non-lambda parameters are forwarded directly to the Queryable.* call.
     /// </summary>
     private static string? EmitGenericLambda(
-        InvocationExpressionSyntax inv, SemanticModel model,
-        SourceProductionContext spc, string interceptAttr, int idx,
+        InvocationExpressionSyntax inv, SemanticModel model, SourceProductionContext spc,
+        string interceptAttr, int line, int col, string fileTag,
         string methodName, INamedTypeSymbol elemSym, string elemFqn,
-        IMethodSymbol method, List<int> funcParamIndices, string targetTypeFqn,
-        ExpressiveGlobalOptions globalOptions)
+        IMethodSymbol method, List<int> funcParamIndices, string targetTypeFqn)
     {
         // ── Extract all lambda expressions from the Func<> argument positions ──
         var lambdas = new List<LambdaExpressionSyntax>(funcParamIndices.Count);
@@ -583,7 +674,10 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                 if (typeAliases.TryGetValue(returnElemType!, out var retParam))
                     returnRef = retParam;
                 else
-                    returnRef = returnElemType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                    // Use ResolveTypeFqn so that composite return types like IGrouping<TKey, AnonType>
+                    // are resolved through the type aliases (e.g. IGrouping<T1, T0> instead of the
+                    // compiler-generated anonymous type name which is not valid C#).
+                    returnRef = ResolveTypeFqn(returnElemType!, typeAliases);
             }
             else
             {
@@ -671,11 +765,11 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         for (int j = 0; j < funcParamIndices.Count; j++)
         {
             var lambdaVar = single ? "__lambda" : $"__lambda{j + 1}";
-            var prefix = single ? $"i{idx}_" : $"i{idx}{(char)('a' + j)}_";
+            var prefix = single ? $"i{fileTag}{line}c{col}_" : $"i{fileTag}{line}c{col}{(char)('a' + j)}_";
             var delegateName = single ? "__func" : $"__func{j + 1}";
             var funcType = (INamedTypeSymbol)method.Parameters[funcParamIndices[j]].Type;
             var lambdaElemSym = funcType.TypeArguments[0] as INamedTypeSymbol ?? elemSym;
-            var emitResult = EmitLambdaBody(lambdas[j], lambdaElemSym, model, spc, globalOptions,
+            var emitResult = EmitLambdaBody(lambdas[j], lambdaElemSym, model, spc,
                 delegateFqns[j], lambdaVar, varPrefix: prefix,
                 typeAliases: hasAnyAnon ? typeAliases : null,
                 delegateVarName: delegateName);
@@ -691,7 +785,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             {
                 return $$"""
                         {{interceptAttr}}
-                        internal static global::ExpressiveSharp.IExpressiveQueryable<{{returnRef}}> {{MethodId(methodName, idx)}}(
+                        internal static global::ExpressiveSharp.IExpressiveQueryable<{{returnRef}}> {{MethodId(methodName, fileTag, line, col)}}(
                             this global::ExpressiveSharp.IExpressiveQueryable<{{elemFqn}}> source,
                             {{interceptorParamList}})
                         {
@@ -706,7 +800,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
             return $$"""
                     {{interceptAttr}}
-                    internal static {{returnRef}} {{MethodId(methodName, idx)}}(
+                    internal static {{returnRef}} {{MethodId(methodName, fileTag, line, col)}}(
                         this global::ExpressiveSharp.IExpressiveQueryable<{{elemFqn}}> source,
                         {{interceptorParamList}})
                     {
@@ -722,7 +816,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         {
             return $$"""
                     {{interceptAttr}}
-                    internal static global::ExpressiveSharp.IExpressiveQueryable<{{returnRef}}> {{MethodId(methodName, idx)}}{{typeParams}}(
+                    internal static global::ExpressiveSharp.IExpressiveQueryable<{{returnRef}}> {{MethodId(methodName, fileTag, line, col)}}{{typeParams}}(
                         this global::ExpressiveSharp.IExpressiveQueryable<{{elemRef}}> source,
                         {{interceptorParamList}})
                     {
@@ -738,7 +832,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
         return $$"""
                 {{interceptAttr}}
-                internal static {{returnRef}} {{MethodId(methodName, idx)}}{{typeParams}}(
+                internal static {{returnRef}} {{MethodId(methodName, fileTag, line, col)}}{{typeParams}}(
                     this global::ExpressiveSharp.IExpressiveQueryable<{{elemRef}}> source,
                     {{interceptorParamList}})
                 {
@@ -816,4 +910,39 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         return type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
     }
 
+    // ── CompilationUnitAndCompilationComparer ─────────────────────────────────
+
+    /// <summary>
+    /// Compares <c>(CompilationUnitSyntax, Compilation)</c> pairs using REFERENCE
+    /// equality on the syntax root only, completely ignoring the <c>Compilation</c>.
+    ///
+    /// <para>
+    /// Roslyn's incremental pipeline rebuilds the <see cref="Compilation"/> on every
+    /// file edit — even for files unrelated to our call sites. However, it keeps every
+    /// unchanged file's <see cref="SyntaxTree"/> root as the exact same object reference
+    /// across incremental runs.
+    /// </para>
+    /// <para>
+    /// By using reference equality on the <see cref="CompilationUnitSyntax"/>, editing
+    /// a noise file makes all untouched source-file pairs compare as "equal" → their
+    /// <c>RegisterSourceOutput</c> actions are skipped entirely → O(1) incremental cost
+    /// for noise-file edits, matching the pattern used by EntityFrameworkCore.Projectables.
+    /// </para>
+    /// </summary>
+    private sealed class CompilationUnitAndCompilationComparer
+        : IEqualityComparer<(CompilationUnitSyntax Left, Compilation Right)>
+    {
+        public readonly static CompilationUnitAndCompilationComparer Instance
+            = new CompilationUnitAndCompilationComparer();
+
+        private CompilationUnitAndCompilationComparer() { }
+
+        public bool Equals(
+            (CompilationUnitSyntax Left, Compilation Right) x,
+            (CompilationUnitSyntax Left, Compilation Right) y)
+            => ReferenceEquals(x.Left, y.Left);
+
+        public int GetHashCode((CompilationUnitSyntax Left, Compilation Right) obj)
+            => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.Left);
+    }
 }

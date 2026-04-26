@@ -21,6 +21,8 @@ public class ExpressiveReplacer : ExpressionVisitor
 
     private static readonly ConditionalWeakTable<Type, StrongBox<bool>> _compilerGeneratedClosureCache = new();
 
+    internal static void ClearCachesForMetadataUpdate() => _compilerGeneratedClosureCache.Clear();
+
     public ExpressiveReplacer(IExpressiveResolver resolver)
     {
         _resolver = resolver;

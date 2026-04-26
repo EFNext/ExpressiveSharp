@@ -53,7 +53,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
             .Combine(context.CompilationProvider)
             .WithComparer(new MemberDeclarationSyntaxAndCompilationEqualityComparer());
 
-        context.RegisterSourceOutput(compilationAndMemberPairs,
+        context.RegisterImplementationSourceOutput(compilationAndMemberPairs,
             static (spc, source) =>
             {
                 var ((member, attribute, globalOptions), compilation) = source;
@@ -166,7 +166,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
         // Collect all items and emit in a single batch to detect duplicates before AddSource.
         // Per-item emission would crash the generator on duplicate hint names (Roslyn deduplicates
         // after all per-item callbacks, not at the AddSource call site).
-        context.RegisterSourceOutput(compilationAndPairs.Collect(),
+        context.RegisterImplementationSourceOutput(compilationAndPairs.Collect(),
             static (spc, items) =>
             {
                 var emittedFileNames = new HashSet<string>();
