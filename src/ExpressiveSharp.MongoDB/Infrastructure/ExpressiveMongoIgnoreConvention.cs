@@ -1,4 +1,6 @@
 using System.Reflection;
+using ExpressiveSharp.Mapping;
+using ExpressiveSharp.Services;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
 
@@ -33,12 +35,19 @@ public sealed class ExpressiveMongoIgnoreConvention : ConventionBase, IClassMapC
     /// </summary>
     public const string ConventionPackName = "ExpressiveSharp.MongoDB";
 
+    // The resolver's caches are static, so a single shared instance is sufficient. Used
+    // to detect properties synthesized via [ExpressiveProperty] / [ExpressiveFor] — these
+    // carry no CLR marker attribute, so we identify them through the generated registry.
+    private static readonly IExpressiveResolver _resolver = new ExpressiveResolver();
+
     public ExpressiveMongoIgnoreConvention() : base("ExpressiveSharpIgnore") { }
 
     /// <summary>
     /// Runs during class-map construction. Inspects the class's CLR properties directly
     /// (instead of <see cref="BsonClassMap.DeclaredMemberMaps"/>, which may not be populated
-    /// yet at this stage) and unmaps any that carry <see cref="ExpressiveAttribute"/>.
+    /// yet at this stage) and unmaps any that carry <see cref="ExpressiveAttribute"/> or
+    /// <see cref="ExpressiveForAttribute"/>, or that are registered as synthesized by
+    /// <c>[ExpressiveProperty]</c> in the runtime expression registry.
     /// </summary>
     public void Apply(BsonClassMap classMap)
     {
@@ -53,7 +62,10 @@ public sealed class ExpressiveMongoIgnoreConvention : ConventionBase, IClassMapC
             {
                 continue;
             }
-            if (property.GetCustomAttribute<ExpressiveAttribute>(inherit: false) is null)
+
+            if (property.GetCustomAttribute<ExpressiveAttribute>(inherit: false) is null
+                && property.GetCustomAttribute<ExpressiveForAttribute>(inherit: false) is null
+                && _resolver.FindExternalExpression(property) is null)
             {
                 continue;
             }
