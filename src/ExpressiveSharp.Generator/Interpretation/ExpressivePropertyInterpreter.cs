@@ -130,6 +130,54 @@ static internal class ExpressivePropertyInterpreter
         return (descriptor, spec);
     }
 
+    /// <summary>
+    /// Builds the <see cref="SynthesizedPropertySpec"/> for a stub if it passes the same validation
+    /// rules as <see cref="GetDescriptor"/>, but reports no diagnostics. Used by
+    /// <c>PolyfillInterceptorGenerator</c> to compute the synthesized partial-class source for
+    /// in-memory compilation augmentation; diagnostic ownership stays with <see cref="GetDescriptor"/>
+    /// inside <c>ExpressiveGenerator</c>.
+    /// </summary>
+    public static SynthesizedPropertySpec? TryBuildSpec(
+        PropertyDeclarationSyntax stubProperty,
+        IPropertySymbol stubSymbol,
+        ExpressivePropertyAttributeData attributeData)
+    {
+        var targetName = attributeData.TargetName;
+        if (string.IsNullOrWhiteSpace(targetName)) return null;
+        if (stubSymbol.IsStatic) return null;
+        if (stubProperty.ExpressionBody is null) return null;
+
+        var containingType = stubSymbol.ContainingType;
+        if (!IsPartialType(containingType)) return null;
+
+        if (containingType.GetMembers(targetName!).Any(m =>
+            m is IPropertySymbol or IMethodSymbol or IFieldSymbol or IEventSymbol))
+            return null;
+
+        if (FindInheritedMember(containingType, targetName!) is not null) return null;
+
+        var returnType = stubSymbol.Type;
+        var useTernary = IsNullablePropertyType(returnType);
+        var propertyTypeFqn = returnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var backingFieldTypeFqn = useTernary ? propertyTypeFqn : MakeNullableTypeFqn(returnType);
+
+        return new SynthesizedPropertySpec
+        {
+            PropertyTypeFqn = propertyTypeFqn,
+            PropertyName = targetName!,
+            StubMemberName = stubSymbol.Name,
+            StubIsMethod = false,
+            UseTernaryShape = useTernary,
+            BackingFieldTypeFqn = backingFieldTypeFqn,
+            ContainingTypeName = containingType.Name,
+            ContainingTypeNamespace = containingType.ContainingNamespace.IsGlobalNamespace
+                ? null
+                : containingType.ContainingNamespace.ToDisplayString(),
+            ContainingTypePath = GetNestedInClassPath(containingType).ToList(),
+            ContainingTypeKeyword = GetTypeKeyword(containingType),
+        };
+    }
+
     private static ExpressiveDescriptor? BuildDescriptor(
         SemanticModel semanticModel,
         SourceProductionContext context,
