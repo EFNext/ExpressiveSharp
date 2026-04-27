@@ -2,11 +2,7 @@ using ExpressiveSharp.IntegrationTests.Scenarios.Store.Models;
 
 namespace ExpressiveSharp.IntegrationTests.Tests;
 
-/// <summary>
-/// Integration tests for anonymous type scenarios that verify the generated
-/// interceptors compile and produce correct results at runtime.
-/// Covers fixes for GitHub issues #8 (Join anonymous result) and #9 (anonymous element type).
-/// </summary>
+// Regression coverage for GitHub issues #8 (Join anonymous result) and #9 (anonymous element type).
 [TestClass]
 public class AnonymousTypeInterceptorTests
 {
@@ -17,10 +13,7 @@ public class AnonymousTypeInterceptorTests
         new Order { Id = 3, Tag = null, Price = 10, Quantity = 3 },
     };
 
-    /// <summary>
-    /// Issue #9: Where after Select into anonymous type should produce
-    /// a working interceptor with generic TElem parameter.
-    /// </summary>
+    // Issue #9: Where after Select into anonymous type — interceptor with generic TElem parameter.
     [TestMethod]
     public void Select_AnonymousType_ThenWhere_CompilesAndRuns()
     {
@@ -35,9 +28,6 @@ public class AnonymousTypeInterceptorTests
         Assert.IsTrue(results.Any(r => r.Id == 2)); // 75*20 = 1500 > 100
     }
 
-    /// <summary>
-    /// Issue #9: OrderByDescending after Select into anonymous type.
-    /// </summary>
     [TestMethod]
     public void Select_AnonymousType_ThenOrderByDescending_CompilesAndRuns()
     {
@@ -53,9 +43,6 @@ public class AnonymousTypeInterceptorTests
         Assert.AreEqual(3, results[2].Id); // 30
     }
 
-    /// <summary>
-    /// Issue #9: Select from anonymous element type to a concrete type.
-    /// </summary>
     [TestMethod]
     public void Select_AnonymousType_ThenSelectConcrete_CompilesAndRuns()
     {
@@ -68,10 +55,7 @@ public class AnonymousTypeInterceptorTests
         CollectionAssert.AreEquivalent(new[] { 1, 2, 3 }, results);
     }
 
-    /// <summary>
-    /// Issue #8: Join with anonymous result selector should produce
-    /// a working interceptor with generic type parameters.
-    /// </summary>
+    // Issue #8: Join with anonymous result selector — interceptor with generic type parameters.
     [TestMethod]
     public void Join_AnonymousResultSelector_CompilesAndRuns()
     {
@@ -94,10 +78,8 @@ public class AnonymousTypeInterceptorTests
         Assert.IsTrue(results.Any(r => r.OrderTag == "STD" && r.ProductName == "Gadget"));
     }
 
-    /// <summary>
-    /// Issue #9: DistinctBy after Select into anonymous type, exercising
-    /// EmitGenericSingleLambda with anonymous element type.
-    /// </summary>
+    // Issue #9: DistinctBy after Select into anonymous type — exercises EmitGenericSingleLambda
+    // with anonymous element type.
     [TestMethod]
     public void Select_AnonymousType_ThenDistinctBy_CompilesAndRuns()
     {

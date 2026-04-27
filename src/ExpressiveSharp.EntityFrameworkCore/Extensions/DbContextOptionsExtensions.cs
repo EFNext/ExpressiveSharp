@@ -8,20 +8,13 @@ namespace Microsoft.EntityFrameworkCore;
 public static class DbContextOptionsExtensions
 {
     /// <summary>
-    /// Enables ExpressiveSharp integration with EF Core. This will:
-    /// <list type="bullet">
-    /// <item>Automatically expand <c>[Expressive]</c> member references in LINQ queries</item>
-    /// <item>Mark <c>[Expressive]</c> properties as unmapped in the EF model</item>
-    /// <item>Expand <c>[Expressive]</c> calls in global query filters</item>
-    /// <item>Apply EF Core-compatible transformers (RemoveNullConditionalPatterns, FlattenBlockExpressions)</item>
-    /// </list>
+    /// Enables ExpressiveSharp integration with EF Core: expands <c>[Expressive]</c> members in
+    /// queries and global filters, marks them unmapped, and applies EF-compatible transformers.
     /// </summary>
     public static DbContextOptionsBuilder UseExpressives(this DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseExpressives(_ => { });
 
-    /// <summary>
-    /// Enables ExpressiveSharp integration with EF Core with additional plugin configuration.
-    /// </summary>
+    /// <inheritdoc cref="UseExpressives(DbContextOptionsBuilder)"/>
     /// <param name="optionsBuilder">The EF Core options builder.</param>
     /// <param name="configure">A callback to configure plugins (e.g., <c>options.UseRelationalExtensions()</c>).</param>
     public static DbContextOptionsBuilder UseExpressives(
@@ -38,9 +31,6 @@ public static class DbContextOptionsExtensions
         return optionsBuilder;
     }
 
-    /// <summary>
-    /// Enables ExpressiveSharp integration with EF Core (generic overload).
-    /// </summary>
     public static DbContextOptionsBuilder<TContext> UseExpressives<TContext>(
         this DbContextOptionsBuilder<TContext> optionsBuilder)
         where TContext : DbContext
@@ -49,9 +39,6 @@ public static class DbContextOptionsExtensions
         return optionsBuilder;
     }
 
-    /// <summary>
-    /// Enables ExpressiveSharp integration with EF Core with additional plugin configuration (generic overload).
-    /// </summary>
     public static DbContextOptionsBuilder<TContext> UseExpressives<TContext>(
         this DbContextOptionsBuilder<TContext> optionsBuilder,
         Action<ExpressiveOptionsBuilder> configure)

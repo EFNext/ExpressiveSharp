@@ -6,21 +6,18 @@ using Microsoft.EntityFrameworkCore.Storage;
 namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructure.Internal;
 
 /// <summary>
-/// SQL expression representing a window function call: FUNC_NAME(args) OVER(PARTITION BY ... ORDER BY ... [frame]).
-/// Used for RANK, DENSE_RANK, NTILE (ROW_NUMBER uses the built-in <see cref="RowNumberExpression"/>).
+/// SQL expression for <c>FUNC(args) OVER(PARTITION BY ... ORDER BY ... [frame])</c>. Used for
+/// RANK, DENSE_RANK, NTILE, aggregates, and navigation functions (ROW_NUMBER uses the built-in
+/// <see cref="RowNumberExpression"/>).
 /// <para>
-/// This expression is self-rendering: <see cref="VisitChildren"/> produces correct SQL through
-/// any provider's <see cref="QuerySqlGenerator"/> by interleaving <see cref="SqlFragmentExpression"/>
-/// nodes with the actual column/ordering expressions. This makes it fully provider-agnostic —
-/// no custom QuerySqlGenerator replacement is needed.
+/// Self-rendering: <see cref="VisitChildren"/> interleaves <see cref="SqlFragmentExpression"/>
+/// nodes with column/ordering expressions, producing correct SQL through any provider's
+/// <see cref="QuerySqlGenerator"/> — no custom generator replacement needed.
 /// </para>
 /// <para>
-/// <b>SQL standard assumption:</b> The function names (RANK, DENSE_RANK, NTILE) and the
-/// OVER(PARTITION BY ... ORDER BY ... [ROWS/RANGE BETWEEN ...]) clause syntax are hardcoded as
-/// literal SQL fragments. This relies on SQL:2003 window function syntax which is consistently
-/// implemented by all major databases (SQL Server 2012+, PostgreSQL 8.4+, SQLite 3.25+,
-/// MySQL 8.0+, Oracle 8i+, MariaDB 10.2+). If a provider deviates from this standard syntax,
-/// a provider-specific implementation would be needed.
+/// Function names and clause syntax are hardcoded as literal SQL fragments, relying on SQL:2003
+/// window function syntax (SQL Server 2012+, PostgreSQL 8.4+, SQLite 3.25+, MySQL 8.0+,
+/// Oracle 8i+, MariaDB 10.2+). A provider that deviates would need a custom implementation.
 /// </para>
 /// </summary>
 internal sealed class WindowFunctionSqlExpression : SqlExpression
@@ -54,11 +51,6 @@ internal sealed class WindowFunctionSqlExpression : SqlExpression
         FrameEnd = frameEnd;
     }
 
-    /// <summary>
-    /// Self-rendering: when any QuerySqlGenerator visits this expression via VisitExtension,
-    /// it calls VisitChildren, which visits SqlFragmentExpression and child SqlExpression nodes
-    /// in the correct order to produce <c>FUNC(args) OVER(PARTITION BY ... ORDER BY ... [frame])</c>.
-    /// </summary>
     protected override Expression VisitChildren(ExpressionVisitor visitor)
     {
         EmitWindowFunction(
@@ -67,17 +59,11 @@ internal sealed class WindowFunctionSqlExpression : SqlExpression
         return this;
     }
 
-    /// <summary>Diagnostic output for logging and ToString(). Not used for SQL generation.</summary>
     protected override void Print(ExpressionPrinter expressionPrinter) =>
         EmitWindowFunction(
             text => expressionPrinter.Append(text),
             expr => expressionPrinter.Visit(expr));
 
-    /// <summary>
-    /// Shared rendering logic for both SQL generation (<see cref="VisitChildren"/>) and
-    /// diagnostic output (<see cref="Print"/>). Produces the
-    /// <c>FUNC(args) OVER(PARTITION BY ... ORDER BY ... [ROWS/RANGE BETWEEN ...])</c> structure.
-    /// </summary>
     private void EmitWindowFunction(Action<string> appendText, Action<Expression> visitExpression)
     {
         appendText($"{FunctionName}(");

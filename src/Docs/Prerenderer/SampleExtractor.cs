@@ -32,7 +32,7 @@ internal static class SampleExtractor
                 continue;
             }
 
-            // Parse optional scenario from the opening line: "::: expressive-sample webshop"
+            // Optional scenario id: "::: expressive-sample webshop"
             var scenarioId = "webshop";
             var afterMarker = trimmed[ContainerOpen.Length..].Trim();
             if (afterMarker.Length > 0)

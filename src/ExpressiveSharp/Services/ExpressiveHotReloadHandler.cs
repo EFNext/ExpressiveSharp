@@ -18,11 +18,8 @@ internal static class ExpressiveHotReloadHandler
 
     public static void UpdateApplication(Type[]? updatedTypes) => ClearCache(updatedTypes);
 
-    /// <summary>
-    /// When the runtime tells us which types changed, use their assemblies directly.
-    /// Fall back to a full scan only when <paramref name="updatedTypes"/> is null or empty,
-    /// which the runtime may do for large/unknown change sets.
-    /// </summary>
+    // Falls back to scanning every loaded assembly when updatedTypes is null/empty,
+    // which the runtime does for large or unknown change sets.
     private static IEnumerable<Assembly> SelectAffectedAssemblies(Type[]? updatedTypes)
     {
         if (updatedTypes is { Length: > 0 })
@@ -38,11 +35,8 @@ internal static class ExpressiveHotReloadHandler
         return AppDomain.CurrentDomain.GetAssemblies();
     }
 
-    /// <summary>
-    /// Invokes <c>ResetMap()</c> on each assembly's generated <c>ExpressionRegistry</c> class
-    /// (when present) so the next <c>TryGet</c> rebuilds <c>LambdaExpression</c> instances
-    /// from the hot-reloaded factory IL.
-    /// </summary>
+    // Invokes ResetMap() on each assembly's generated ExpressionRegistry so the next
+    // TryGet rebuilds LambdaExpression instances from the hot-reloaded factory IL.
     private static void ResetGeneratedRegistries(IEnumerable<Assembly> assemblies)
     {
         foreach (var assembly in assemblies)

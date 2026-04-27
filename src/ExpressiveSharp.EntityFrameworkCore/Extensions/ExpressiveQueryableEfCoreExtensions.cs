@@ -11,9 +11,8 @@ namespace Microsoft.EntityFrameworkCore;
 
 /// <summary>
 /// Extension methods on <see cref="IExpressiveQueryable{T}"/> for EF Core operations.
-/// Passthrough stubs maintain the <see cref="IExpressiveQueryable{T}"/> chain.
 /// Async lambda stubs are intercepted by the source generator via <see cref="PolyfillTargetAttribute"/>
-/// to forward to <see cref="EntityFrameworkQueryableExtensions"/>.
+/// and forwarded to <see cref="EntityFrameworkQueryableExtensions"/>.
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class ExpressiveQueryableEfCoreExtensions
@@ -21,7 +20,6 @@ public static class ExpressiveQueryableEfCoreExtensions
     private const string InterceptedMessage =
         "This method must be intercepted by the ExpressiveSharp source generator. " +
         "Ensure the generator package is installed and the InterceptorsNamespaces MSBuild property is configured.";
-    // ── Tracking behavior ────────────────────────────────────────────────
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static IExpressiveQueryable<TEntity> AsNoTracking<TEntity>(
@@ -41,8 +39,6 @@ public static class ExpressiveQueryableEfCoreExtensions
         where TEntity : class
         => EntityFrameworkQueryableExtensions.AsTracking(source).AsExpressive();
 
-    // ── Query filters ────────────────────────────────────────────────────
-
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static IExpressiveQueryable<TEntity> IgnoreAutoIncludes<TEntity>(
         this IExpressiveQueryable<TEntity> source)
@@ -54,8 +50,6 @@ public static class ExpressiveQueryableEfCoreExtensions
         this IExpressiveQueryable<TEntity> source)
         where TEntity : class
         => EntityFrameworkQueryableExtensions.IgnoreQueryFilters(source).AsExpressive();
-
-    // ── Query tagging ────────────────────────────────────────────────────
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static IExpressiveQueryable<TEntity> TagWith<TEntity>(
@@ -72,7 +66,7 @@ public static class ExpressiveQueryableEfCoreExtensions
         where TEntity : class
         => EntityFrameworkQueryableExtensions.TagWithCallSite(source, filePath, lineNumber).AsExpressive();
 
-    // ── Include / ThenInclude (runtime, not intercepted) ───────────────
+    // Include / ThenInclude run at runtime, not intercepted.
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static IIncludableExpressiveQueryable<TEntity, TProperty> Include<TEntity, TProperty>(
@@ -107,8 +101,6 @@ public static class ExpressiveQueryableEfCoreExtensions
         where TEntity : class
         => new IncludableExpressiveQueryableWrapper<TEntity, TProperty>(
             EntityFrameworkQueryableExtensions.ThenInclude(source, navigationPropertyPath));
-
-    // ── Async predicate methods (intercepted) ────────────────────────────
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -145,8 +137,6 @@ public static class ExpressiveQueryableEfCoreExtensions
         CancellationToken cancellationToken = default)
         where TEntity : class
         => throw new UnreachableException(InterceptedMessage);
-
-    // ── Async element methods (intercepted) ──────────────────────────────
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -202,8 +192,6 @@ public static class ExpressiveQueryableEfCoreExtensions
         where TEntity : class
         => throw new UnreachableException(InterceptedMessage);
 
-    // ── Async Sum (intercepted) ──────────────────────────────────────────
-
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static Task<int> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, int> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
@@ -244,8 +232,6 @@ public static class ExpressiveQueryableEfCoreExtensions
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static Task<decimal?> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, decimal?> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
 
-    // ── Async Average (intercepted) ──────────────────────────────────────
-
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static Task<double> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, int> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
@@ -285,8 +271,6 @@ public static class ExpressiveQueryableEfCoreExtensions
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static Task<decimal?> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, decimal?> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
-
-    // ── Async Min / Max (intercepted) ────────────────────────────────────
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]

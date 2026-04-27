@@ -7,10 +7,9 @@ using ExpressiveSharp.Extensions;
 namespace ExpressiveSharp.Services;
 
 /// <summary>
-/// Expression visitor that replaces calls to members marked with <see cref="ExpressiveAttribute"/>
-/// with their generated expression tree equivalents. This is the generic base class; EF Core-specific
-/// subclasses can override <see cref="VisitMethodCallCore"/> and <see cref="VisitExtension"/> to add
-/// query provider awareness.
+/// Replaces calls to <see cref="ExpressiveAttribute"/>-marked members with their generated
+/// expression trees. EF Core-specific subclasses override <see cref="VisitMethodCallCore"/>
+/// and <see cref="VisitExtension"/> to add query-provider awareness.
 /// </summary>
 public class ExpressiveReplacer : ExpressionVisitor
 {
@@ -70,7 +69,6 @@ public class ExpressiveReplacer : ExpressionVisitor
             node = node.Update(node.Object, updatedArgs);
         }
 
-        // Allow subclasses to hook into method call processing (e.g., tracking detection).
         VisitMethodCallCore(node);
 
         var methodInfo = node.Object?.Type.GetConcreteMethod(node.Method) ?? node.Method;

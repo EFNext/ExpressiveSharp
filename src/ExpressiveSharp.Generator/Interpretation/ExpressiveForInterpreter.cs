@@ -8,11 +8,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ExpressiveSharp.Generator.Interpretation;
 
-/// <summary>
-/// Interprets [ExpressiveFor] and [ExpressiveForConstructor] stubs:
-/// resolves the target member on the external type, validates the signature,
-/// and builds an <see cref="ExpressiveDescriptor"/> with the stub's body as the expression source.
-/// </summary>
 static internal class ExpressiveForInterpreter
 {
     public static ExpressiveDescriptor? GetDescriptor(
@@ -31,9 +26,7 @@ static internal class ExpressiveForInterpreter
             _ => stubMember.GetLocation()
         };
 
-        // Resolve target type. Two cases:
-        //  - Two-arg form: [ExpressiveFor(typeof(T), "Name")] — resolve T from metadata name.
-        //  - Single-arg form: [ExpressiveFor("Name")] — default to the stub's containing type.
+        // Two-arg form [ExpressiveFor(typeof(T), "Name")] resolves T; single-arg form defaults to the stub's containing type.
         INamedTypeSymbol? targetType;
         if (attributeData.TargetTypeMetadataName is not null)
         {
@@ -53,8 +46,6 @@ static internal class ExpressiveForInterpreter
         }
 
         // Property stubs can only target properties (no parameter list to carry method args).
-        // Only the ExpressiveFor (MethodOrProperty) pipeline reaches this branch; the constructor
-        // attribute is method-target-only at the AttributeUsage level.
         if (stubMember is PropertyDeclarationSyntax stubProperty && stubSymbol is IPropertySymbol stubPropertySymbol)
         {
             if (attributeData.MemberKind == ExpressiveForMemberKind.Constructor)
@@ -93,11 +84,9 @@ static internal class ExpressiveForInterpreter
         if (memberName is null)
             return null;
 
-        // Try to find a property first
         var property = FindTargetProperty(targetType, memberName, stubSymbol);
         if (property is not null)
         {
-            // Check for [Expressive] conflict
             if (HasExpressiveAttribute(property, compilation))
             {
                 ReportConflict(context, stubMethod, memberName, targetType);
@@ -108,11 +97,9 @@ static internal class ExpressiveForInterpreter
                 globalOptions, context, targetType, property);
         }
 
-        // Try to find a method
         var method = FindTargetMethod(targetType, memberName, stubSymbol);
         if (method is not null)
         {
-            // Check for [Expressive] conflict
             if (HasExpressiveAttribute(method, compilation))
             {
                 ReportConflict(context, stubMethod, memberName, targetType);
@@ -123,7 +110,6 @@ static internal class ExpressiveForInterpreter
                 globalOptions, context, targetType, method);
         }
 
-        // Neither found
         context.ReportDiagnostic(Diagnostic.Create(
             Diagnostics.ExpressiveForMemberNotFound,
             stubMethod.Identifier.GetLocation(),
@@ -142,7 +128,6 @@ static internal class ExpressiveForInterpreter
         Compilation compilation,
         INamedTypeSymbol targetType)
     {
-        // For constructors, all stub params map to constructor params
         var ctor = FindTargetConstructor(targetType, stubSymbol);
         if (ctor is null)
         {
@@ -154,14 +139,12 @@ static internal class ExpressiveForInterpreter
             return null;
         }
 
-        // Check for [Expressive] conflict
         if (HasExpressiveAttribute(ctor, compilation))
         {
             ReportConflict(context, stubMethod, ".ctor", targetType);
             return null;
         }
 
-        // Return type must match the target type
         var stubReturnType = stubSymbol.ReturnType;
         if (!SymbolEqualityComparer.Default.Equals(stubReturnType, targetType))
         {
@@ -255,8 +238,8 @@ static internal class ExpressiveForInterpreter
     private static IMethodSymbol? FindTargetConstructor(
         INamedTypeSymbol targetType, IMethodSymbol stubSymbol)
     {
-        // Constructor stubs remain static-only: an instance stub producing a new instance of its
-        // own containing type has no natural `this` semantics and would produce incoherent code.
+        // Constructor stubs are static-only: an instance stub producing a new instance of its own
+        // containing type has no natural `this` semantics.
         if (!stubSymbol.IsStatic)
             return null;
 
@@ -294,7 +277,6 @@ static internal class ExpressiveForInterpreter
         INamedTypeSymbol targetType,
         IPropertySymbol targetProperty)
     {
-        // Validate return type
         if (!SymbolEqualityComparer.Default.Equals(stubSymbol.ReturnType, targetProperty.Type))
         {
             context.ReportDiagnostic(Diagnostic.Create(
@@ -306,7 +288,6 @@ static internal class ExpressiveForInterpreter
             return null;
         }
 
-        // For properties, the registry uses the getter's parameters (none for regular properties)
         var targetParams = System.Collections.Immutable.ImmutableArray<IParameterSymbol>.Empty;
 
         return BuildDescriptorFromStub(semanticModel, stubMethod, stubSymbol, attributeData,
@@ -324,7 +305,6 @@ static internal class ExpressiveForInterpreter
         INamedTypeSymbol targetType,
         IMethodSymbol targetMethod)
     {
-        // Validate return type
         if (!SymbolEqualityComparer.Default.Equals(stubSymbol.ReturnType, targetMethod.ReturnType))
         {
             context.ReportDiagnostic(Diagnostic.Create(
@@ -341,10 +321,6 @@ static internal class ExpressiveForInterpreter
             targetMethod.Parameters, isInstanceMember: !targetMethod.IsStatic);
     }
 
-    /// <summary>
-    /// Builds the <see cref="ExpressiveDescriptor"/> from a method stub's body,
-    /// using the target type's namespace/class path for generated class naming.
-    /// </summary>
     private static ExpressiveDescriptor? BuildDescriptorFromStub(
         SemanticModel semanticModel,
         MethodDeclarationSyntax stubMethod,
@@ -360,7 +336,6 @@ static internal class ExpressiveForInterpreter
         var rewriter = new DeclarationSyntaxRewriter(semanticModel);
         var allowBlockBody = attributeData.AllowBlockBody ?? globalOptions.AllowBlockBody;
 
-        // Extract body from the stub method.
         SyntaxNode bodySyntax;
         if (stubMethod.ExpressionBody is not null)
         {
@@ -389,7 +364,6 @@ static internal class ExpressiveForInterpreter
 
         var returnTypeName = rewriter.Visit(stubMethod.ReturnType).ToString();
 
-        // Explicit stub params (after syntax rewriting for default values / modifiers).
         var rewrittenParamList = (ParameterListSyntax)rewriter.Visit(stubMethod.ParameterList);
         var explicitSyntax = rewrittenParamList.Parameters.ToList();
         var explicitEmitterParams = stubSymbol.Parameters
@@ -405,9 +379,7 @@ static internal class ExpressiveForInterpreter
     }
 
     /// <summary>
-    /// Builds the <see cref="ExpressiveDescriptor"/> from a property stub's body.
-    /// Property stubs are always parameterless; an instance stub's <c>this</c> becomes a synthetic
-    /// receiver on the generated factory method.
+    /// Property stubs are parameterless; an instance stub's <c>this</c> becomes a synthetic receiver on the generated factory.
     /// </summary>
     private static ExpressiveDescriptor? BuildDescriptorFromPropertyStub(
         SemanticModel semanticModel,
@@ -422,7 +394,6 @@ static internal class ExpressiveForInterpreter
         var rewriter = new DeclarationSyntaxRewriter(semanticModel);
         var allowBlockBody = attributeData.AllowBlockBody ?? globalOptions.AllowBlockBody;
 
-        // Extract body: prefer the expression-bodied form, otherwise fall back to the get accessor.
         SyntaxNode? bodySyntax = null;
         if (stubProperty.ExpressionBody is not null)
         {
@@ -473,11 +444,6 @@ static internal class ExpressiveForInterpreter
             returnTypeName, bodySyntax);
     }
 
-    /// <summary>
-    /// Shared scaffolding for both method-stub and property-stub descriptor construction.
-    /// Builds the descriptor shell, synthesizes <c>@this</c> for instance stubs, appends the
-    /// caller-supplied explicit stub parameters, assembles the delegate type, and emits the body.
-    /// </summary>
     private static ExpressiveDescriptor BuildDescriptorCore(
         SemanticModel semanticModel,
         SourceProductionContext context,
@@ -512,8 +478,7 @@ static internal class ExpressiveForInterpreter
         foreach (var typeName in attributeData.TransformerTypeNames)
             descriptor.DeclaredTransformerTypeNames.Add(typeName);
 
-        // Target member's parameter types disambiguate method overloads in the registry;
-        // properties and parameterless targets keep ParameterTypeNames null.
+        // Parameter types disambiguate method overloads in the registry; properties and parameterless targets keep ParameterTypeNames null.
         if (!targetParameters.IsEmpty)
         {
             descriptor.ParameterTypeNames = targetParameters
@@ -523,7 +488,7 @@ static internal class ExpressiveForInterpreter
 
         var emitterParams = new List<EmitterParameter>();
 
-        // For instance stubs, prepend `@this` so IInstanceReferenceOperation in the body binds to it.
+        // Prepend `@this` so IInstanceReferenceOperation in the body binds to it.
         if (!stubSymbol.IsStatic)
         {
             var thisTypeFqn = stubSymbol.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);

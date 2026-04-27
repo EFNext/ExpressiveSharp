@@ -13,8 +13,6 @@ namespace ExpressiveSharp.Generator.Tests.ExpressiveGenerator;
 [TestClass]
 public class ExpressivePropertyTests : GeneratorTestBase
 {
-    // ── Happy-path snapshots ────────────────────────────────────────────────
-
     [TestMethod]
     public Task ReferenceTypeTarget_EmitsCoalesceForm()
     {
@@ -36,7 +34,6 @@ public class ExpressivePropertyTests : GeneratorTestBase
         var result = RunExpressiveGenerator(compilation);
 
         Assert.AreEqual(0, result.Diagnostics.Length);
-        // Two generated files: expression factory + synthesized partial.
         Assert.AreEqual(2, result.GeneratedTrees.Length);
 
         return Verifier.Verify(string.Join("\n\n// ===\n\n",
@@ -244,8 +241,6 @@ public class ExpressivePropertyTests : GeneratorTestBase
         return Verifier.Verify(string.Join("\n\n// ===\n\n",
             result.GeneratedTrees.Select(t => t.ToString())));
     }
-
-    // ── Diagnostic tests ────────────────────────────────────────────────────
 
     [TestMethod]
     public void TargetAlreadyExists_ReportsEXP0031()

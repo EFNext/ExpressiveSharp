@@ -5,11 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ExpressiveSharp.Generator.Comparers;
 
-/// <summary>
-/// Equality comparer for [ExpressiveFor] pipeline tuples,
-/// mirroring <see cref="MemberDeclarationSyntaxAndCompilationEqualityComparer"/> for the standard pipeline.
-/// The <c>Member</c> field is a <see cref="MemberDeclarationSyntax"/> to cover both method and property stubs.
-/// </summary>
+// Mirrors MemberDeclarationSyntaxAndCompilationEqualityComparer for the [ExpressiveFor] pipeline.
 internal class ExpressiveForMemberCompilationEqualityComparer
     : IEqualityComparer<((MemberDeclarationSyntax Member, ExpressiveForAttributeData Attribute, ExpressiveGlobalOptions GlobalOptions), Compilation)>
 {

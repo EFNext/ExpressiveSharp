@@ -7,8 +7,6 @@ namespace ExpressiveSharp.Generator.Tests.ExpressiveGenerator;
 [TestClass]
 public class GlobalOptionsTests : GeneratorTestBase
 {
-    // ── Block body (always on — no opt-in needed) ───────────────────────────
-
     [TestMethod]
     public void BlockBody_AlwaysAllowed_NoDiagnostics()
     {
@@ -30,8 +28,6 @@ public class GlobalOptionsTests : GeneratorTestBase
         Assert.AreEqual(0, result.Diagnostics.Length);
         Assert.AreEqual(1, result.GeneratedTrees.Length);
     }
-
-    // ── EnumMethodExpansion (enabled by default, disable via Disable flag) ──
 
     [TestMethod]
     public void EnumMethodExpansion_EnabledByDefault_ExpandsWithoutAttributeFlag()
@@ -85,8 +81,6 @@ public class GlobalOptionsTests : GeneratorTestBase
         Assert.IsFalse(generated.Contains("MyEnum.A =="));
     }
 
-    // ── NullConditionalMode ─────────────────────────────────────────────────
-
     [TestMethod]
     public void GlobalNullConditionalMode_Rewrite_AllowsNullConditionals()
     {
@@ -135,8 +129,6 @@ public class GlobalOptionsTests : GeneratorTestBase
         Assert.AreEqual(0, result.Diagnostics.Length);
         Assert.AreEqual(1, result.GeneratedTrees.Length);
     }
-
-    // ── Hard-coded defaults ─────────────────────────────────────────────────
 
     [TestMethod]
     public void NoGlobalOptions_HardCodedDefaultsApply_BlockBodyWorks()

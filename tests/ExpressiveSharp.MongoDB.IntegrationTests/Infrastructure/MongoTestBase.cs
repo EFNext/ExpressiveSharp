@@ -6,10 +6,6 @@ using MongoDB.Driver;
 
 namespace ExpressiveSharp.MongoDB.IntegrationTests.Infrastructure;
 
-/// <summary>
-/// Base class for all MongoDB integration tests. Creates a unique database per test,
-/// seeds embedded Order documents, and drops the database on cleanup.
-/// </summary>
 public abstract class MongoTestBase
 {
     protected IMongoDatabase Database { get; private set; } = null!;
@@ -41,10 +37,7 @@ public abstract class MongoTestBase
             await _client.DropDatabaseAsync(_dbName);
     }
 
-    /// <summary>
-    /// Seeds the database with embedded Order documents.
-    /// Customer and Address are embedded within each Order (document model).
-    /// </summary>
+    // Customer and Address are embedded within each Order (document model).
     protected virtual async Task SeedDataAsync()
     {
         var addressLookup = SeedData.Addresses.ToDictionary(a => a.Id);

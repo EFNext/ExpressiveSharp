@@ -7,10 +7,8 @@ using Microsoft.CodeAnalysis;
 
 namespace ExpressiveSharp.Docs.Prerenderer;
 
-/// <summary>
-/// Loads reference assemblies from disk (the build output of the referenced
-/// projects) instead of fetching via HTTP like the WASM <c>PlaygroundReferences</c>.
-/// </summary>
+// Loads reference assemblies from disk instead of fetching via HTTP like the
+// WASM PlaygroundReferences.
 internal sealed class LocalPlaygroundReferences : IPlaygroundReferences
 {
     private ImmutableArray<MetadataReference> _references;

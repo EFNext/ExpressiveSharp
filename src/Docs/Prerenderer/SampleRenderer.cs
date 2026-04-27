@@ -109,9 +109,9 @@ internal sealed class SampleRenderer : IAsyncDisposable
             (IQueryable?)runMethod.Invoke(null, new[] { arg })
                 ?? throw new InvalidOperationException("Snippet.Run returned null.");
 
-        // Isolate each sample from prior ones: clear resolver caches and
-        // restrict registry scanning to the current snippet's assembly so
-        // accumulated [ExpressiveFor] registrations don't collide.
+        // Isolate each sample: clear resolver caches and restrict registry
+        // scanning to the snippet's assembly so accumulated [ExpressiveFor]
+        // registrations from prior samples don't collide.
         ExpressiveSharp.Services.ExpressiveResolver.ResetAllCaches();
         var snippetAssembly = result.Assembly;
         ExpressiveSharp.Services.ExpressiveResolver.SetAssemblyScanFilter(
@@ -141,7 +141,7 @@ internal sealed class SampleRenderer : IAsyncDisposable
             }
         }
 
-        // Prerenderer-only providers — their client libraries throw on WASM.
+        // Prerenderer-only providers; their client libraries throw on WASM.
         if (scenario.Id == "webshop")
         {
             using var sqlServer = BuildSqlServerContext();
@@ -151,7 +151,6 @@ internal sealed class SampleRenderer : IAsyncDisposable
                 BuildMongoRoots(), static (q, _) => FormatMongoOutput(q.ToString()!));
         }
 
-        // Generator output
         var generatorOutput = FormatGeneratorOutput(result.GeneratedSources);
         targets["generator"] = new RenderedTarget("Generator output", "csharp", generatorOutput);
 
@@ -226,7 +225,7 @@ internal sealed class SampleRenderer : IAsyncDisposable
         using var workspace = new Microsoft.CodeAnalysis.AdhocWorkspace();
         var formatted = Formatter.Format(root, workspace).ToFullString().Trim();
 
-        // Collapse accidental blank lines the rewriter may introduce
+        // Collapse blank lines the rewriter may introduce.
         formatted = System.Text.RegularExpressions.Regex.Replace(formatted, @"\n\s*\n", "\n");
 
         if (formatted.StartsWith("_ = ", StringComparison.Ordinal))
@@ -244,7 +243,6 @@ internal sealed class SampleRenderer : IAsyncDisposable
             var visited = (Microsoft.CodeAnalysis.CSharp.Syntax.SwitchExpressionSyntax)base.VisitSwitchExpression(node)!;
             var newline = Microsoft.CodeAnalysis.CSharp.SyntaxFactory.EndOfLine("\n");
 
-            // Put each arm on its own line by injecting a newline before each arm's leading trivia
             var newArms = visited.Arms.Select(arm =>
                 arm.WithLeadingTrivia(arm.GetLeadingTrivia().Insert(0, newline)));
 
@@ -302,13 +300,12 @@ internal sealed class SampleRenderer : IAsyncDisposable
             if (c == '{' || c == '[')
             {
                 sb.Append(c);
-                // Check if contents are simple (no nested objects/arrays)
                 var closing = c == '{' ? '}' : ']';
                 var end = FindMatchingBrace(json, i, c, closing);
                 var inner = end > i ? json[(i + 1)..end] : "";
                 if (end > i && !ContainsNested(inner))
                 {
-                    // Keep short object/array inline
+                    // Keep primitive-only object/array inline.
                     sb.Append(inner).Append(closing);
                     i = end;
                     continue;
@@ -329,7 +326,6 @@ internal sealed class SampleRenderer : IAsyncDisposable
                 sb.Append(',');
                 sb.AppendLine();
                 sb.Append(new string(' ', depth * 4));
-                // Skip the following space if present
                 if (i + 1 < json.Length && json[i + 1] == ' ') i++;
             }
             else
@@ -410,7 +406,5 @@ internal sealed class SampleRenderer : IAsyncDisposable
         return sb.ToString();
     }
 
-    // All per-sample state is now disposed in Render() itself; nothing to
-    // clean up at the renderer level.
     public ValueTask DisposeAsync() => default;
 }

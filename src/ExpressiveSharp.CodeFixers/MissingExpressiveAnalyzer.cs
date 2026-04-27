@@ -42,8 +42,6 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
             SyntaxKind.InvocationExpression);
     }
 
-    // ── Prong 1: [Expressive] member bodies ─────────────────────────────────
-
     private static void AnalyzeExpressiveMember(SyntaxNodeAnalysisContext context)
     {
         var memberDecl = (MemberDeclarationSyntax)context.Node;
@@ -54,8 +52,6 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
 
         AnalyzeDescendants(context, memberDecl);
     }
-
-    // ── Prong 2: polyfill / rewritable-queryable lambdas ────────────────────
 
     private static void AnalyzePolyfillInvocation(SyntaxNodeAnalysisContext context)
     {
@@ -96,7 +92,6 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
         if (!method.IsExtensionMethod)
             return false;
 
-        // Check if the first parameter (the receiver) is IExpressiveQueryable<T>
         var originalMethod = method.ReducedFrom ?? method;
         if (originalMethod.Parameters.Length == 0)
             return false;
@@ -123,8 +118,6 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
         type.Name == "IExpressiveQueryable" &&
         type.ContainingNamespace?.ToDisplayString() == "ExpressiveSharp";
 
-    // ── Shared: walk descendants for member references ──────────────────────
-
     private static void AnalyzeDescendants(SyntaxNodeAnalysisContext context, SyntaxNode scope)
     {
         foreach (var node in scope.DescendantNodes())
@@ -150,7 +143,6 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
             else if (node is MemberAccessExpressionSyntax memberAccessExpr &&
                      memberAccessExpr.Parent is not InvocationExpressionSyntax)
             {
-                // Property/field access (not a method call receiver)
                 var info = context.SemanticModel.GetSymbolInfo(memberAccessExpr, context.CancellationToken);
                 if (info.Symbol is IPropertySymbol)
                 {
@@ -178,11 +170,8 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    /// <summary>
-    /// Returns true when the invocation's receiver (or first extension-method arg) is an enum
-    /// or Nullable&lt;Enum&gt;. The generator already expands these via TryEmitEnumMethodExpansion,
-    /// so EXP0013 would be a false positive.
-    /// </summary>
+    // Generator already expands enum/Nullable<Enum> receivers via TryEmitEnumMethodExpansion,
+    // so EXP0013 would be a false positive.
     private static bool HasEnumReceiver(
         IMethodSymbol method,
         InvocationExpressionSyntax invocation,
@@ -219,8 +208,7 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    // ── Core logic (matches ExpressionTreeEmitter.WarnIfMissingExpressive) ──
-
+    // Mirrors ExpressionTreeEmitter.WarnIfMissingExpressive.
     private static void WarnIfMissingExpressive(
         SyntaxNodeAnalysisContext context, ISymbol symbol, Location location)
     {
@@ -253,11 +241,9 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
     }
 
     /// <summary>
-    /// True when the containing type declares a sibling stub whose mapping attribute names
-    /// <paramref name="symbol"/> as its target — i.e. <c>[ExpressiveProperty("X")]</c> or
-    /// <c>[ExpressiveFor("X")]</c> / <c>[ExpressiveFor(typeof(ThisType), "X")]</c>. In any of
-    /// those cases the registry has an entry for the member even though it carries no direct
-    /// <c>[Expressive]</c> attribute.
+    /// True when a sibling stub declares <c>[ExpressiveProperty("X")]</c> or
+    /// <c>[ExpressiveFor("X")]</c> targeting <paramref name="symbol"/>. Such siblings register
+    /// an entry for the member even without a direct <c>[Expressive]</c> attribute.
     /// </summary>
     private static bool HasSiblingMappingTargetingMember(ISymbol symbol)
     {
@@ -294,11 +280,6 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    /// <summary>
-    /// Resolves <c>[ExpressiveFor]</c>'s target-name argument in either supported form and
-    /// checks it against <paramref name="targetName"/>, and — for the two-argument form —
-    /// verifies the <c>typeof(...)</c> argument matches <paramref name="containingType"/>.
-    /// </summary>
     private static bool MapsExpressiveForTo(AttributeData attr, INamedTypeSymbol containingType, string targetName)
     {
         if (attr.ConstructorArguments.Length == 1 &&

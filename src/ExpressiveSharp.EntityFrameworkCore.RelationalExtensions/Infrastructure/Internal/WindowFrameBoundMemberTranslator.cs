@@ -8,15 +8,10 @@ using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructure.Internal;
 
 /// <summary>
-/// Translates the no-argument <see cref="WindowFrameBound"/> static property getters
-/// (<c>UnboundedPreceding</c>, <c>CurrentRow</c>, <c>UnboundedFollowing</c>) into
-/// <see cref="WindowFrameBoundSqlExpression"/> intermediate nodes, which are then
-/// consumed by <see cref="WindowSpecMethodCallTranslator"/> when it sees
-/// <c>RowsBetween</c> / <c>RangeBetween</c>.
-/// <para>
-/// The offset-bearing variants (<c>Preceding(int)</c>, <c>Following(int)</c>) are
-/// methods and are handled by <see cref="WindowSpecMethodCallTranslator"/>.
-/// </para>
+/// Translates <see cref="WindowFrameBound"/> static property getters
+/// (<c>UnboundedPreceding</c>, <c>CurrentRow</c>, <c>UnboundedFollowing</c>) into intermediate
+/// <see cref="WindowFrameBoundSqlExpression"/> nodes. The offset-bearing
+/// <c>Preceding(int)</c>/<c>Following(int)</c> are methods and handled by <see cref="WindowSpecMethodCallTranslator"/>.
 /// </summary>
 internal sealed class WindowFrameBoundMemberTranslator : IMemberTranslator
 {

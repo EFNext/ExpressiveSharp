@@ -134,8 +134,6 @@ public class ExpressiveReplacerTests
         var replacer = new ExpressiveReplacer(resolver);
         var param = Expression.Parameter(typeof(Product), "p");
 
-        // Simulate: ((object)p).Price — a convert that doesn't match an [Expressive] member
-        // More realistically: test that non-expressive access through cast passes through
         var propertyAccess = Expression.Property(param, nameof(Product.Price));
         var result = replacer.Replace(propertyAccess);
 

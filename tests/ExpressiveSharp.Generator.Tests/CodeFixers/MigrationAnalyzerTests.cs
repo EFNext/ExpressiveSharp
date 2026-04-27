@@ -178,8 +178,6 @@ public sealed class MigrationAnalyzerTests : GeneratorTestBase
             "Expected namespace to be replaced with ExpressiveSharp");
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
-
     private async Task<ImmutableArray<Diagnostic>> GetMigrationDiagnosticsAsync(
         string source, string? customStub = null)
     {
@@ -221,17 +219,14 @@ public sealed class MigrationAnalyzerTests : GeneratorTestBase
 
         var project = workspace.AddProject(projectInfo);
 
-        // Add the Projectables stubs
         var stubDoc = workspace.AddDocument(project.Id, "Stubs.cs",
             SourceText.From(ProjectablesStub));
         project = stubDoc.Project;
 
-        // Add the source under test
         var testDoc = workspace.AddDocument(project.Id, "TestFile.cs",
             SourceText.From(source));
         project = testDoc.Project;
 
-        // Run analyzer
         var compilation = await project.GetCompilationAsync()
             ?? throw new System.Exception("Failed to get compilation");
 
@@ -243,13 +238,11 @@ public sealed class MigrationAnalyzerTests : GeneratorTestBase
         var diagnostic = diagnostics.FirstOrDefault(d => d.Id == expectedDiagnosticId);
         Assert.IsNotNull(diagnostic, $"Expected {expectedDiagnosticId} diagnostic");
 
-        // Find the document containing the diagnostic
         var diagnosticTree = diagnostic.Location.SourceTree;
         Assert.IsNotNull(diagnosticTree);
         var diagnosticDoc = project.Solution.GetDocument(diagnosticTree);
         Assert.IsNotNull(diagnosticDoc);
 
-        // Apply the code fix
         var codeFix = new MigrationCodeFixProvider();
         var actions = new System.Collections.Generic.List<CodeAction>();
         var context = new CodeFixContext(

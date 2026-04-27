@@ -22,15 +22,11 @@ public class ExpressiveGenerator : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // Snapshot global MSBuild defaults once per generator run.
         var globalOptions = context.AnalyzerConfigOptionsProvider
             .Select(static (opts, _) => new ExpressiveGlobalOptions(opts.GlobalOptions));
 
-        // ── [Expressive] pipeline ──────────────────────────────────────────────
-
-        // Extract only pure stable data from the attribute in the transform.
-        // No live Roslyn objects (no AttributeData, SemanticModel, Compilation, ISymbol) —
-        // those are always new instances and defeat incremental caching entirely.
+        // No live Roslyn objects (AttributeData, SemanticModel, Compilation, ISymbol) in the
+        // transform — they're always new instances and defeat incremental caching entirely.
         var memberDeclarations = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 ExpressiveAttributeName,
@@ -40,7 +36,6 @@ public class ExpressiveGenerator : IIncrementalGenerator
                     Attribute: new ExpressiveAttributeData(c.Attributes[0])
                 ));
 
-        // Flatten (Member, Attribute) + GlobalOptions into a single named tuple.
         var memberDeclarationsWithGlobalOptions = memberDeclarations
             .Combine(globalOptions)
             .Select(static (pair, _) => (
@@ -68,7 +63,6 @@ public class ExpressiveGenerator : IIncrementalGenerator
                 Execute(member, semanticModel, memberSymbol, attribute, globalOptions, compilation, spc);
             });
 
-        // Build the expression registry: collect all entries and emit a single registry file
         var registryEntries = compilationAndMemberPairs.Select(
             static (source, cancellationToken) => {
                 var ((member, _, _), compilation) = source;
@@ -84,28 +78,21 @@ public class ExpressiveGenerator : IIncrementalGenerator
                 return ExtractRegistryEntry(memberSymbol);
             });
 
-        // ── [ExpressiveFor] / [ExpressiveForConstructor] pipelines ──────────────
-
         var expressiveForDeclarations = CreateExpressiveForPipeline(
             context, globalOptions, ExpressiveForAttributeName, ExpressiveForMemberKind.MethodOrProperty);
 
         var expressiveForConstructorDeclarations = CreateExpressiveForPipeline(
             context, globalOptions, ExpressiveForConstructorAttributeName, ExpressiveForMemberKind.Constructor);
 
-        // Collect registry entries from [ExpressiveFor] pipelines
         var expressiveForRegistryEntries = expressiveForDeclarations.Select(
             static (source, _) => ExtractRegistryEntryForExternal(source));
         var expressiveForConstructorRegistryEntries = expressiveForConstructorDeclarations.Select(
             static (source, _) => ExtractRegistryEntryForExternal(source));
 
-        // ── [ExpressiveProperty] pipeline ───────────────────────────────────────
-
         var expressivePropertyDeclarations = CreateExpressivePropertyPipeline(context);
 
         var expressivePropertyRegistryEntries = expressivePropertyDeclarations.Select(
             static (source, _) => ExtractRegistryEntryForExpressiveProperty(source));
-
-        // ── Merged registry ─────────────────────────────────────────────────────
 
         var allRegistryEntries = registryEntries.Collect()
             .Combine(expressiveForRegistryEntries.Collect())
@@ -123,18 +110,11 @@ public class ExpressiveGenerator : IIncrementalGenerator
                 return builder.ToImmutable();
             });
 
-        // Delegate registry file emission to the dedicated ExpressionRegistryEmitter,
-        // which uses a string-based CodeWriter instead of SyntaxFactory.
         context.RegisterImplementationSourceOutput(
             allRegistryEntries,
             static (spc, entries) => ExpressionRegistryEmitter.Emit(entries, spc));
     }
 
-    /// <summary>
-    /// Creates the incremental pipeline for an [ExpressiveFor*] attribute type.
-    /// Discovers, interprets, emits expression factory source, and returns the pipeline
-    /// for registry entry extraction.
-    /// </summary>
     private static IncrementalValuesProvider<((MemberDeclarationSyntax Member, ExpressiveForAttributeData Attribute, ExpressiveGlobalOptions GlobalOptions), Compilation)>
         CreateExpressiveForPipeline(
             IncrementalGeneratorInitializationContext context,
@@ -210,7 +190,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
             throw new InvalidOperationException("Expected a memberName here");
         }
 
-        // Report EXP0012 when an [Expressive] method is a factory that could be a constructor.
+        // EXP0012: factory method that could be a constructor.
         if (member is MethodDeclarationSyntax factoryCandidate && SyntaxHelpers.TryGetFactoryMethodPattern(factoryCandidate, out _))
         {
             context.ReportDiagnostic(Diagnostic.Create(
@@ -234,8 +214,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
     }
 
     /// <summary>
-    /// Emits the generated source file using raw text when <see cref="Emitter.EmitResult"/> is available.
-    /// Each file declares the same <c>static partial class</c> — one per declaring type — and adds
+    /// Each file declares the same <c>static partial class</c> (one per declaring type) and adds
     /// a uniquely-named <c>{methodSuffix}_Expression()</c> method for this member.
     /// </summary>
     private static void EmitExpressionTreeSource(
@@ -254,7 +233,6 @@ public class ExpressiveGenerator : IIncrementalGenerator
         sb.AppendLine("#nullable disable");
         sb.AppendLine();
 
-        // Usings
         foreach (var usingDirective in expressive.UsingDirectives!)
         {
             sb.AppendLine(usingDirective.NormalizeWhitespace().ToFullString());
@@ -282,7 +260,6 @@ public class ExpressiveGenerator : IIncrementalGenerator
         var funcType = $"global::System.Func<{string.Join(", ", paramTypesList)}>";
         var returnType = $"global::System.Linq.Expressions.Expression<{funcType}>";
 
-        // Type parameters
         var typeParamList = expressive.ClassTypeParameterList?.NormalizeWhitespace().ToFullString() ?? "";
         var constraintClauses = expressive.ClassConstraintClauses is not null
             ? string.Join(" ", expressive.ClassConstraintClauses.Value.Select(c => c.NormalizeWhitespace().ToFullString()))
@@ -296,7 +273,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
         sb.AppendLine($"    static partial class {generatedClassName}{typeParamList} {constraintClauses}");
         sb.AppendLine("    {");
 
-        // Source comment showing the original C# member
+        // Emit the original C# member as a comment in the generated file for readability.
         var sourceText = member.NormalizeWhitespace().ToFullString();
         foreach (var line in sourceText.Split('\n'))
         {
@@ -304,13 +281,11 @@ public class ExpressiveGenerator : IIncrementalGenerator
             sb.AppendLine($"        // {trimmed}");
         }
 
-        // {methodSuffix}_Expression() method
         sb.AppendLine($"        static {returnType} {methodSuffix}_Expression{methodTypeParamList}() {methodConstraintClauses}");
         sb.AppendLine("        {");
         sb.Append(emission.Body);
         sb.AppendLine("        }");
 
-        // Transformers (when declared via attribute)
         if (expressive.DeclaredTransformerTypeNames.Count > 0)
         {
             sb.AppendLine();
@@ -325,41 +300,35 @@ public class ExpressiveGenerator : IIncrementalGenerator
         context.AddSource(generatedFileName, SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 
-    /// <summary>
-    /// Extracts a <see cref="ExpressionRegistryEntry"/> from a member declaration.
-    /// Returns null when the member does not have [Expressive], is an extension member,
-    /// or cannot be represented in the registry (e.g. a generic class member or generic method).
-    /// </summary>
     private static ExpressionRegistryEntry? ExtractRegistryEntry(ISymbol memberSymbol)
     {
         var containingType = memberSymbol.ContainingType;
 
-        // Determine whether this entry is metadata-only (excluded from runtime registry
-        // but still used for [EditorBrowsable] attribute-only partial file emission).
+        // Metadata-only entries are excluded from the runtime registry but still emit
+        // [EditorBrowsable] attribute-only partial files.
         var isMetadataOnly = false;
         string? classTypeParameters = null;
 
-        // C# 14 extension type members — metadata-only (fall back to reflection at runtime)
+        // C# 14 extension type members — fall back to reflection at runtime.
         if (containingType is { IsExtension: true })
         {
             isMetadataOnly = true;
         }
 
-        // Generic classes — metadata-only (registry can't represent open generic types)
+        // Generic classes — registry can't represent open generic types.
         if (containingType.TypeParameters.Length > 0)
         {
             isMetadataOnly = true;
             classTypeParameters = "<" + string.Join(", ", containingType.TypeParameters.Select(tp => tp.Name)) + ">";
         }
 
-        // Determine member kind and lookup name
         ExpressionRegistryMemberType memberKind;
         string memberLookupName;
         var parameterTypeNames = ImmutableArray<string>.Empty;
 
         if (memberSymbol is IMethodSymbol methodSymbol)
         {
-            // Generic methods — metadata-only (same reason as generic classes)
+            // Generic methods — same reason as generic classes.
             if (methodSymbol.TypeParameters.Length > 0)
             {
                 isMetadataOnly = true;
@@ -386,7 +355,6 @@ public class ExpressiveGenerator : IIncrementalGenerator
             memberLookupName = memberSymbol.Name;
         }
 
-        // Build the generated class name and method name using the same logic as Execute
         var classNamespace = containingType.ContainingNamespace.IsGlobalNamespace
             ? null
             : containingType.ContainingNamespace.ToDisplayString();
@@ -416,10 +384,6 @@ public class ExpressiveGenerator : IIncrementalGenerator
             ClassTypeParameters: classTypeParameters);
     }
 
-    /// <summary>
-    /// Processes an [ExpressiveFor] / [ExpressiveForConstructor] stub: resolves the target member,
-    /// validates the stub, and emits the expression tree factory source file.
-    /// </summary>
     private static void ExecuteFor(
         MemberDeclarationSyntax stubMember,
         SemanticModel semanticModel,
@@ -456,7 +420,6 @@ public class ExpressiveGenerator : IIncrementalGenerator
     }
 
     /// <summary>
-    /// Extracts a <see cref="ExpressionRegistryEntry"/> for an [ExpressiveFor] stub.
     /// The entry points to the external target member, not the stub itself.
     /// </summary>
     private static ExpressionRegistryEntry? ExtractRegistryEntryForExternal(
@@ -529,8 +492,8 @@ public class ExpressiveGenerator : IIncrementalGenerator
                 memberKind = ExpressionRegistryMemberType.Method;
                 memberLookupName = memberName;
 
-                // Signature matching via the shared matcher so the registry entry can never
-                // disagree with what ExpressiveForInterpreter accepted.
+                // Use the shared matcher so the registry entry can never disagree with
+                // what ExpressiveForInterpreter accepted.
                 var stubParams = stubMethodSymbol!.Parameters;
                 var targetMethod = targetType.GetMembers(memberName).OfType<IMethodSymbol>()
                     .Where(m => m.MethodKind is not (MethodKind.PropertyGet or MethodKind.PropertySet))
@@ -547,7 +510,6 @@ public class ExpressiveGenerator : IIncrementalGenerator
             }
         }
 
-        // Build generated class name using the target type's path (matching main's new API)
         var classNamespace = targetType.ContainingNamespace.IsGlobalNamespace
             ? null
             : targetType.ContainingNamespace.ToDisplayString();
@@ -563,7 +525,6 @@ public class ExpressiveGenerator : IIncrementalGenerator
 
         var expressionMethodName = methodSuffix + "_Expression";
 
-        // Capture stub location for duplicate detection diagnostics
         var stubLocation = member switch
         {
             MethodDeclarationSyntax m => m.Identifier.GetLocation(),
@@ -594,11 +555,6 @@ public class ExpressiveGenerator : IIncrementalGenerator
         yield return typeSymbol.Name;
     }
 
-    /// <summary>
-    /// Incremental pipeline for <c>[ExpressiveProperty]</c>. Discovers property stubs, runs the
-    /// interpreter, and emits both the expression-tree factory and the synthesized partial-class
-    /// declaration.
-    /// </summary>
     private static IncrementalValuesProvider<((PropertyDeclarationSyntax Stub, ExpressivePropertyAttributeData Attribute), Compilation)>
         CreateExpressivePropertyPipeline(IncrementalGeneratorInitializationContext context)
     {
@@ -631,10 +587,6 @@ public class ExpressiveGenerator : IIncrementalGenerator
         return compilationAndPairs;
     }
 
-    /// <summary>
-    /// Runs the <c>[ExpressiveProperty]</c> interpreter and emits both the expression-tree factory
-    /// file and the user-facing partial-class declaration with the synthesized property.
-    /// </summary>
     private static void ExecuteExpressiveProperty(
         PropertyDeclarationSyntax stub,
         IPropertySymbol stubSymbol,
@@ -671,9 +623,8 @@ public class ExpressiveGenerator : IIncrementalGenerator
     }
 
     /// <summary>
-    /// Extracts a registry entry for an <c>[ExpressiveProperty]</c> stub. The entry is always
-    /// property-kind and keyed on the synthesized target name (which doesn't exist on the target
-    /// type yet — the synthesized partial declaration fills it in).
+    /// Keyed on the synthesized target name, which doesn't exist on the target type yet —
+    /// the synthesized partial declaration fills it in.
     /// </summary>
     private static ExpressionRegistryEntry? ExtractRegistryEntryForExpressiveProperty(
         ((PropertyDeclarationSyntax Stub, ExpressivePropertyAttributeData Attribute), Compilation) source)

@@ -3,24 +3,16 @@ using Microsoft.CodeAnalysis;
 
 namespace ExpressiveSharp.Generator.Interpretation;
 
-/// <summary>
-/// Shared signature-matching rules for <c>[ExpressiveFor]</c> stubs.
-/// Kept central so the interpreter (which validates + emits) and the registry extractor
-/// (which builds the runtime lookup entry) can never disagree about which target member
-/// a stub maps to — a divergence here produces either silently-missing bodies or
-/// orphaned registry entries.
-/// </summary>
+// Kept central so the interpreter (validates + emits) and the registry extractor (builds
+// the runtime lookup entry) can never disagree about which target member a stub maps to —
+// divergence produces silently-missing bodies or orphaned registry entries.
 static internal class ExpressiveForSignatureMatcher
 {
-    /// <summary>
-    /// Four-quadrant matrix for method-target ↔ method-stub matching:
-    /// <list type="bullet">
-    ///   <item>static target + static stub: stub params = target params</item>
-    ///   <item>instance target + static stub: stub params = [receiver] + target params (receiver type = targetType)</item>
-    ///   <item>instance target + instance stub on targetType: stub params = target params (<c>this</c> is receiver)</item>
-    ///   <item>static target + instance stub: never matches (no way to receive a non-null instance)</item>
-    /// </list>
-    /// </summary>
+    // Four-quadrant matrix for method-target ↔ method-stub matching:
+    //   static target + static stub: stub params = target params
+    //   instance target + static stub: stub params = [receiver] + target params (receiver = targetType)
+    //   instance target + instance stub on targetType: stub params = target params (`this` is receiver)
+    //   static target + instance stub: never matches (no way to receive a non-null instance)
     public static bool MatchesMethodSignature(
         IMethodSymbol target,
         INamedTypeSymbol targetType,
@@ -41,7 +33,6 @@ static internal class ExpressiveForSignatureMatcher
         }
         else
         {
-            // Either both static, or both instance (receiver implicit via `this`).
             expectedStubParamCount = target.Parameters.Length;
             offset = 0;
         }
@@ -67,16 +58,12 @@ static internal class ExpressiveForSignatureMatcher
         return true;
     }
 
-    /// <summary>
-    /// Matching rules for property-target ↔ method-stub (the parameter-count encoding is the
-    /// same matrix but restricted to zero target parameters):
-    /// <list type="bullet">
-    ///   <item>static property + static stub (0 params): match.</item>
-    ///   <item>instance property + static stub (1 param of targetType): match.</item>
-    ///   <item>instance property + instance stub on targetType (0 params): match (<c>this</c> is receiver).</item>
-    ///   <item>static property + instance stub: never matches.</item>
-    /// </list>
-    /// </summary>
+    // Property-target ↔ method-stub matching (same matrix as MatchesMethodSignature, but
+    // target has zero parameters):
+    //   static property + static stub (0 params): match.
+    //   instance property + static stub (1 param of targetType): match.
+    //   instance property + instance stub on targetType (0 params): match (`this` is receiver).
+    //   static property + instance stub: never matches.
     public static bool MatchesPropertyFromMethodStub(
         IPropertySymbol target,
         INamedTypeSymbol targetType,
@@ -102,9 +89,7 @@ static internal class ExpressiveForSignatureMatcher
                SymbolEqualityComparer.Default.Equals(stubContainingType, targetType);
     }
 
-    /// <summary>
-    /// Matching rules for property-target ↔ property-stub (parameterless stub, <c>this</c> as receiver).
-    /// </summary>
+    // Property-target ↔ property-stub: parameterless stub, `this` as receiver.
     public static bool MatchesPropertyFromPropertyStub(
         IPropertySymbol target,
         INamedTypeSymbol targetType,

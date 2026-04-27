@@ -3,10 +3,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ExpressiveSharp.Generator.Comparers;
 
-/// <summary>
-/// Equality comparer for MemberDeclarationSyntax nodes that treats nodes as equal if they are from the same syntax
-/// tree and have the same structure, even if they are different instances.
-/// </summary>
 internal class MemberDeclarationSyntaxEqualityComparer : IEqualityComparer<MemberDeclarationSyntax>
 {
     public bool Equals(MemberDeclarationSyntax x, MemberDeclarationSyntax y)
@@ -16,15 +12,13 @@ internal class MemberDeclarationSyntaxEqualityComparer : IEqualityComparer<Membe
             return true;
         }
 
-        // Must be in the same file — if the syntax tree changed, treat as different
-        // (Roslyn reuses SyntaxTree objects for unchanged files, so a new SyntaxTree
-        // means the file was edited, even if this specific node text looks the same)
+        // Roslyn reuses SyntaxTree objects for unchanged files, so a new SyntaxTree
+        // means the file was edited even if this specific node text looks the same.
         if (!ReferenceEquals(x.SyntaxTree, y.SyntaxTree))
         {
             return false;
         }
 
-        // Pré-filtres O(1) avant IsEquivalentTo
         if (x.RawKind != y.RawKind)
         {
             return false;
@@ -35,7 +29,6 @@ internal class MemberDeclarationSyntaxEqualityComparer : IEqualityComparer<Membe
             return false;
         }
 
-        // Comparaison structurelle Roslyn — pas d'allocation de string
         return x.IsEquivalentTo(y);
     }
 

@@ -2,30 +2,18 @@ using Microsoft.CodeAnalysis;
 
 namespace ExpressiveSharp.Generator.Models;
 
-/// <summary>
-/// Plain-data snapshot of an [ExpressiveFor] or [ExpressiveForConstructor] attribute's arguments.
-/// Immutable record struct — safe for incremental generator caching.
-/// </summary>
+// Plain-data snapshot of an [ExpressiveFor] or [ExpressiveForConstructor] attribute's
+// arguments. Immutable record struct — safe for incremental generator caching.
 readonly internal record struct ExpressiveForAttributeData
 {
-    /// <summary>
-    /// Fully qualified name of the target type (using <see cref="SymbolDisplayFormat.FullyQualifiedFormat"/>).
-    /// </summary>
     public string TargetTypeFullName { get; }
 
-    /// <summary>
-    /// Metadata name of the target type (for <see cref="Compilation.GetTypeByMetadataName"/>).
-    /// </summary>
+    // For Compilation.GetTypeByMetadataName.
     public string? TargetTypeMetadataName { get; }
 
-    /// <summary>
-    /// The target member name. Null for constructors.
-    /// </summary>
+    // Null for constructors.
     public string? MemberName { get; }
 
-    /// <summary>
-    /// The kind of target member this mapping represents.
-    /// </summary>
     public ExpressiveForMemberKind MemberKind { get; }
 
     public bool? AllowBlockBody { get; }
@@ -38,9 +26,7 @@ readonly internal record struct ExpressiveForAttributeData
         bool? allowBlockBody = null;
         var transformerTypeNames = new List<string>();
 
-        // Extract target type from first constructor argument.
-        // ExpressiveFor has two constructors: (Type, string) and (string).
-        // ExpressiveForConstructor has a single (Type) constructor.
+        // ExpressiveFor has two ctors: (Type, string) and (string). ExpressiveForConstructor has (Type).
         if (attribute.ConstructorArguments.Length > 0 &&
             attribute.ConstructorArguments[0].Value is INamedTypeSymbol targetTypeSymbol)
         {
@@ -55,21 +41,20 @@ readonly internal record struct ExpressiveForAttributeData
 
         if (memberKind != ExpressiveForMemberKind.Constructor)
         {
+            // [ExpressiveFor(typeof(T), "Name")]
             if (attribute.ConstructorArguments.Length > 1 &&
                 attribute.ConstructorArguments[1].Value is string memberNameTwoArg)
             {
-                // Two-argument form: [ExpressiveFor(typeof(T), "Name")]
                 MemberName = memberNameTwoArg;
             }
+            // [ExpressiveFor("Name")] — target defaults to the stub's containing type.
             else if (attribute.ConstructorArguments.Length == 1 &&
                      attribute.ConstructorArguments[0].Value is string memberNameOneArg)
             {
-                // Single-argument form: [ExpressiveFor("Name")] — target defaults to stub's containing type
                 MemberName = memberNameOneArg;
             }
         }
 
-        // Extract named arguments
         foreach (var namedArgument in attribute.NamedArguments)
         {
             var key = namedArgument.Key;
@@ -101,7 +86,6 @@ readonly internal record struct ExpressiveForAttributeData
 
     private static string? GetMetadataName(INamedTypeSymbol symbol)
     {
-        // Build the metadata name by traversing containing types and namespace
         var parts = new List<string>();
         var current = symbol;
 
@@ -126,9 +110,7 @@ readonly internal record struct ExpressiveForAttributeData
 
 internal enum ExpressiveForMemberKind
 {
-    /// <summary>Method or property — determined by resolving the target member.</summary>
+    // Determined by resolving the target member.
     MethodOrProperty,
-
-    /// <summary>Constructor.</summary>
     Constructor,
 }

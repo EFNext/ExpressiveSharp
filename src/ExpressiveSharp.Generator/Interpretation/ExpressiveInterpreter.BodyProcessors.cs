@@ -11,10 +11,6 @@ namespace ExpressiveSharp.Generator.Interpretation;
 
 static internal partial class ExpressiveInterpreter
 {
-    /// <summary>
-    /// Fills <paramref name="descriptor"/> from a method declaration body.
-    /// Returns <c>false</c> and reports diagnostics on failure.
-    /// </summary>
     private static bool TryApplyMethodBody(
         MethodDeclarationSyntax methodDeclarationSyntax,
         ISymbol memberSymbol,
@@ -65,10 +61,6 @@ static internal partial class ExpressiveInterpreter
         return true;
     }
 
-    /// <summary>
-    /// Fills <paramref name="descriptor"/> from a property declaration body.
-    /// Returns <c>false</c> and reports diagnostics on failure.
-    /// </summary>
     private static bool TryApplyPropertyBody(
         PropertyDeclarationSyntax propertyDeclarationSyntax,
         ISymbol memberSymbol,
@@ -129,10 +121,7 @@ static internal partial class ExpressiveInterpreter
         return true;
     }
 
-    /// <summary>
-    /// Fills <paramref name="descriptor"/> from a constructor declaration body.
-    /// Constructors produce <c>Expression.MemberInit</c> (object initializer) for EF Core projections.
-    /// </summary>
+    // Constructors produce Expression.MemberInit (object initializer) for EF Core projections.
     private static bool TryApplyConstructorBody(
         ConstructorDeclarationSyntax constructorDeclarationSyntax,
         ISymbol memberSymbol,
@@ -172,7 +161,7 @@ static internal partial class ExpressiveInterpreter
             }
         }
 
-        // Verify parameterless constructor exists — skip when chaining to a parameterized ctor.
+        // Skip the parameterless-ctor check when chaining to a parameterized ctor.
         if (chainedTargetCtor is null)
         {
             var hasAccessibleParameterlessConstructor = containingType.Constructors
@@ -210,10 +199,9 @@ static internal partial class ExpressiveInterpreter
                 memberSymbol.Name));
         }
 
-        // Pass the constructor body to the emitter — it will emit the block as-is.
         // The constructor body contains property assignments (this.Prop = expr) which
-        // the IOperation tree represents as ISimpleAssignmentOperation nodes.
-        // We use EmitConstructorBody which wraps the result in Expression.MemberInit.
+        // the IOperation tree represents as ISimpleAssignmentOperation nodes; the emitter
+        // wraps the result in Expression.MemberInit.
         var bodySyntax = (SyntaxNode?)constructorDeclarationSyntax.Body
             ?? constructorDeclarationSyntax.ExpressionBody?.Expression;
 
@@ -230,7 +218,7 @@ static internal partial class ExpressiveInterpreter
 
         var emitter = new ExpressionTreeEmitter(semanticModel, context);
 
-        // Build emitter parameters (constructor params, no @this)
+        // Constructor params, no @this.
         var emitterParams = new List<EmitterParameter>();
         foreach (var param in methodSymbol.Parameters)
         {
@@ -251,9 +239,6 @@ static internal partial class ExpressiveInterpreter
         return true;
     }
 
-    /// <summary>
-    /// Shared helper: emits expression tree building code for a method body.
-    /// </summary>
     private static EmitResult EmitExpressionTree(
         SyntaxNode bodyExpression,
         SemanticModel semanticModel,
@@ -272,10 +257,7 @@ static internal partial class ExpressiveInterpreter
             descriptor.ReturnTypeName!, delegateTypeFqn);
     }
 
-    /// <summary>
-    /// Shared helper: emits expression tree building code for a property body.
-    /// Properties always have a single @this parameter.
-    /// </summary>
+    // Properties always have a single @this parameter.
     private static EmitResult EmitExpressionTreeForProperty(
         SyntaxNode bodyExpression,
         SemanticModel semanticModel,
@@ -286,7 +268,6 @@ static internal partial class ExpressiveInterpreter
         var emitter = new ExpressionTreeEmitter(semanticModel, context);
         var emitterParams = new List<EmitterParameter>();
 
-        // Properties always have the implicit @this parameter
         if (descriptor.ParametersList?.Parameters.Count > 0)
         {
             var thisParam = descriptor.ParametersList.Parameters[0];
@@ -302,18 +283,13 @@ static internal partial class ExpressiveInterpreter
             descriptor.ReturnTypeName!, delegateTypeFqn);
     }
 
-    /// <summary>
-    /// Builds the list of <see cref="EmitterParameter"/> for the emitter,
-    /// including the implicit @this parameter when applicable.
-    /// </summary>
     private static List<EmitterParameter> BuildEmitterParameters(
         ExpressiveDescriptor descriptor,
         IMethodSymbol methodSymbol)
     {
         var result = new List<EmitterParameter>();
 
-        // Check if the descriptor has more parameters than the method
-        // (the extra one is the implicit @this)
+        // An extra parameter on the descriptor (vs. the method symbol) is the implicit @this.
         var hasThisParam = descriptor.ParametersList?.Parameters.Count > methodSymbol.Parameters.Length;
         if (hasThisParam && descriptor.ParametersList is not null)
         {
@@ -333,11 +309,8 @@ static internal partial class ExpressiveInterpreter
         return result;
     }
 
-    /// <summary>
-    /// Walks a block body's IOperation tree and reports diagnostics for constructs
-    /// that cannot be translated to expression trees. Called at interpretation time
-    /// (before emission) so users get early compile-time feedback.
-    /// </summary>
+    // Reports diagnostics at interpretation time (before emission) so users get early
+    // compile-time feedback for constructs that cannot be translated to expression trees.
     private static void ValidateBlockBody(
         SemanticModel semanticModel,
         SyntaxNode bodySyntax,
@@ -428,19 +401,14 @@ static internal partial class ExpressiveInterpreter
                 return;
         }
 
-        // Recurse into child operations
         foreach (var child in operation.ChildOperations)
         {
             WalkOperations(child, memberName, context);
         }
     }
 
-    /// <summary>
-    /// Returns true when the deconstruction has the shape
-    /// <c>(member, member, ...) = (value, value, ...)</c> — two tuple literals of equal arity
-    /// with the left side referencing only properties or fields of <c>this</c>. Only this shape
-    /// is supported by the constructor-body emitter.
-    /// </summary>
+    // Accepts only `(member, member, ...) = (value, value, ...)` where the left side
+    // references properties or fields of `this` — the shape the ctor-body emitter handles.
     private static bool IsSimpleTupleLiteralDeconstruction(IDeconstructionAssignmentOperation decon)
     {
         var target = UnwrapConversions(decon.Target);

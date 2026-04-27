@@ -6,9 +6,8 @@ using Microsoft.EntityFrameworkCore.Storage;
 namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructure.Internal;
 
 /// <summary>
-/// Intermediate SQL expression that carries the PARTITION BY, ORDER BY, and optional
-/// frame (ROWS/RANGE BETWEEN) clauses of a window specification. This node is consumed
-/// by the window function translator and should never reach final SQL rendering.
+/// Intermediate node carrying PARTITION BY, ORDER BY, and optional frame clauses. Consumed by
+/// the window function translator; should never reach final SQL rendering.
 /// </summary>
 internal sealed class WindowSpecSqlExpression : SqlExpression
 {

@@ -147,7 +147,6 @@ public class FlattenConcatArrayCallsTests
 
         var result = _sut.Transform(call);
 
-        // Compile and invoke to verify the result is correct
         var lambda = Expression.Lambda<Func<string>>(result);
         var compiled = lambda.Compile();
         Assert.AreEqual("Hello world! How are you?", compiled());

@@ -17,58 +17,36 @@ namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.WindowFunctio
 /// </summary>
 public static class WindowFunction
 {
-    // ── Ranking functions ────────────────────────────────────────────────
-
-    /// <summary>
-    /// Translates to <c>ROW_NUMBER() OVER(...)</c>.
-    /// Returns a sequential number for each row within the window partition.
-    /// </summary>
+    /// <summary>Translates to <c>ROW_NUMBER() OVER(...)</c>.</summary>
     public static long RowNumber(OrderedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
     /// <summary>
-    /// Translates to <c>ROW_NUMBER() OVER()</c> with no ordering or partitioning.
-    /// Row numbering is non-deterministic. Used internally by the indexed Select transformer.
+    /// Translates to <c>ROW_NUMBER() OVER()</c> with no ordering. Used internally by the
+    /// indexed Select transformer; row numbering is non-deterministic without an OrderBy.
     /// </summary>
     public static long RowNumber() =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
-    /// <summary>
-    /// Translates to <c>RANK() OVER(...)</c>.
-    /// Returns the rank of each row within the window partition, with gaps for ties.
-    /// </summary>
+    /// <summary>Translates to <c>RANK() OVER(...)</c> (with gaps for ties).</summary>
     public static long Rank(OrderedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
-    /// <summary>
-    /// Translates to <c>DENSE_RANK() OVER(...)</c>.
-    /// Returns the rank of each row within the window partition, without gaps for ties.
-    /// </summary>
+    /// <summary>Translates to <c>DENSE_RANK() OVER(...)</c> (no gaps for ties).</summary>
     public static long DenseRank(OrderedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
-    /// <summary>
-    /// Translates to <c>NTILE(<paramref name="buckets"/>) OVER(...)</c>.
-    /// Distributes rows into the specified number of roughly equal groups.
-    /// </summary>
+    /// <summary>Translates to <c>NTILE(<paramref name="buckets"/>) OVER(...)</c>.</summary>
     public static long Ntile(int buckets, OrderedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
-    /// <summary>
-    /// Translates to <c>PERCENT_RANK() OVER(...)</c>.
-    /// Returns the relative rank of each row as a value between 0.0 and 1.0.
-    /// </summary>
+    /// <summary>Translates to <c>PERCENT_RANK() OVER(...)</c>.</summary>
     public static double PercentRank(OrderedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
-    /// <summary>
-    /// Translates to <c>CUME_DIST() OVER(...)</c>.
-    /// Returns the cumulative distribution of each row as a value between 0.0 and 1.0.
-    /// </summary>
+    /// <summary>Translates to <c>CUME_DIST() OVER(...)</c>.</summary>
     public static double CumeDist(OrderedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
-
-    // ── Aggregate functions ──────────────────────────────────────────────
 
     /// <summary>Translates to <c>SUM(expression) OVER(...)</c>.</summary>
     public static T Sum<T>(T expression, OrderedWindowDefinition window) =>
@@ -88,7 +66,7 @@ public static class WindowFunction
 
     // int/long → double (matching Queryable.Average semantics)
 
-    /// <summary>Translates to <c>AVG(expression) OVER(...)</c>. Returns <c>double</c> for integer input.</summary>
+    /// <summary>Translates to <c>AVG(expression) OVER(...)</c> with <c>double</c> result for integer input.</summary>
     public static double Average(int expression, OrderedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
@@ -104,7 +82,7 @@ public static class WindowFunction
     public static double? Average(int? expression, FramedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
-    /// <summary>Translates to <c>AVG(expression) OVER(...)</c>. Returns <c>double</c> for long input.</summary>
+    /// <summary>Translates to <c>AVG(expression) OVER(...)</c> with <c>double</c> result for long input.</summary>
     public static double Average(long expression, OrderedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
@@ -120,7 +98,7 @@ public static class WindowFunction
     public static double? Average(long? expression, FramedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
-    /// <summary>Translates to <c>COUNT(*) OVER(...)</c>. Counts all rows in the window.</summary>
+    /// <summary>Translates to <c>COUNT(*) OVER(...)</c>.</summary>
     public static int Count(OrderedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
@@ -128,7 +106,7 @@ public static class WindowFunction
     public static int Count(FramedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
-    /// <summary>Translates to <c>COUNT(expression) OVER(...)</c>. Counts non-null values.</summary>
+    /// <summary>Translates to <c>COUNT(expression) OVER(...)</c> (counts non-null values).</summary>
     public static int Count<T>(T expression, OrderedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
@@ -152,18 +130,11 @@ public static class WindowFunction
     public static T Max<T>(T expression, FramedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
-    // ── Navigation functions ─────────────────────────────────────────────
-    // LAG/LEAD access a row at a specific offset from the current row.
-    // The SQL standard forbids frame clauses on these — OrderedWindowDefinition only.
-    //
-    // Without a default value, the SQL result is NULL when no row exists at the
-    // requested offset. For value types, project into a nullable column explicitly:
+    // LAG/LEAD return NULL when no row exists at the requested offset (without a default).
+    // For value types, project into a nullable column explicitly:
     //   (double?)WindowFunction.Lag(o.Price, Window.OrderBy(o.Price))
 
-    /// <summary>
-    /// Translates to <c>LAG(expression) OVER(...)</c>. Returns the previous row's value (offset 1).
-    /// The result is NULL when no previous row exists; cast to a nullable type if needed.
-    /// </summary>
+    /// <summary>Translates to <c>LAG(expression) OVER(...)</c> (offset 1).</summary>
     public static T Lag<T>(T expression, OrderedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
@@ -175,10 +146,7 @@ public static class WindowFunction
     public static T Lag<T>(T expression, int offset, T defaultValue, OrderedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
-    /// <summary>
-    /// Translates to <c>LEAD(expression) OVER(...)</c>. Returns the next row's value (offset 1).
-    /// The result is NULL when no next row exists; cast to a nullable type if needed.
-    /// </summary>
+    /// <summary>Translates to <c>LEAD(expression) OVER(...)</c> (offset 1).</summary>
     public static T Lead<T>(T expression, OrderedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
@@ -190,11 +158,7 @@ public static class WindowFunction
     public static T Lead<T>(T expression, int offset, T defaultValue, OrderedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
-    /// <summary>
-    /// Translates to <c>FIRST_VALUE(expression) OVER(...)</c>.
-    /// Returns the first value in the window frame. The result depends on the frame;
-    /// with the default frame this is the first row of the partition.
-    /// </summary>
+    /// <summary>Translates to <c>FIRST_VALUE(expression) OVER(...)</c>.</summary>
     public static T FirstValue<T>(T expression, OrderedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
@@ -203,10 +167,9 @@ public static class WindowFunction
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
     /// <summary>
-    /// Translates to <c>LAST_VALUE(expression) OVER(...)</c>.
-    /// Returns the last value in the window frame. With the default frame this returns
-    /// the <em>current row's</em> value — use an explicit frame like
-    /// <c>.RowsBetween(UnboundedPreceding, UnboundedFollowing)</c> to get the partition's last value.
+    /// Translates to <c>LAST_VALUE(expression) OVER(...)</c>. With the default frame this returns
+    /// the <em>current row's</em> value — use <c>.RowsBetween(UnboundedPreceding, UnboundedFollowing)</c>
+    /// for the partition's last value.
     /// </summary>
     public static T LastValue<T>(T expression, OrderedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
@@ -215,10 +178,7 @@ public static class WindowFunction
     public static T LastValue<T>(T expression, FramedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 
-    /// <summary>
-    /// Translates to <c>NTH_VALUE(expression, <paramref name="n"/>) OVER(...)</c>.
-    /// Returns the value at the Nth row in the window frame (1-based).
-    /// </summary>
+    /// <summary>Translates to <c>NTH_VALUE(expression, <paramref name="n"/>) OVER(...)</c> (1-based).</summary>
     public static T NthValue<T>(T expression, int n, OrderedWindowDefinition window) =>
         throw new InvalidOperationException("This method is translated to SQL and cannot be called directly.");
 

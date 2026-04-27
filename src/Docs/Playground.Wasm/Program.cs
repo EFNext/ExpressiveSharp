@@ -11,10 +11,9 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.RegisterCustomElement<PlaygroundHost>("expressive-playground");
 
 // BaseAddress must point to the playground's own directory (where _framework/
-// lives) so PlaygroundReferences can fetch reference DLLs. When the web
-// component is hosted on a VitePress page, HostEnvironment.BaseAddress is
-// the docs site root — not the playground subdirectory. We detect this by
-// checking whether the base ends with /playground/.
+// lives) so PlaygroundReferences can fetch reference DLLs. On a VitePress page
+// HostEnvironment.BaseAddress is the docs site root, not the playground
+// subdirectory — detect by checking whether the base ends with /playground/.
 var baseAddress = builder.HostEnvironment.BaseAddress;
 if (!baseAddress.TrimEnd('/').EndsWith("/_playground", StringComparison.OrdinalIgnoreCase)
     && !baseAddress.TrimEnd('/').EndsWith("/playground", StringComparison.OrdinalIgnoreCase))
@@ -29,8 +28,6 @@ builder.Services.AddSingleton<PlaygroundRuntime>();
 
 var host = builder.Build();
 
-// Register Monaco completion + hover providers via our JS interop module.
-// The DotNetObjectReference callbacks dispatch to PlaygroundLanguageServices.
 var runtime = host.Services.GetRequiredService<PlaygroundRuntime>();
 var jsRuntime = host.Services.GetRequiredService<IJSRuntime>();
 
@@ -40,10 +37,8 @@ await jsRuntime.InvokeVoidAsync("monacoInterop.registerHoverProvider", providerR
 
 await host.RunAsync();
 
-/// <summary>
-/// Bridge object exposed to JS via DotNetObjectReference. Monaco's completion
-/// and hover providers call back into these [JSInvokable] methods.
-/// </summary>
+// Bridge object exposed to JS via DotNetObjectReference. Monaco's completion
+// and hover providers call back into these [JSInvokable] methods.
 internal sealed class MonacoLanguageProviderBridge
 {
     private readonly PlaygroundRuntime _runtime;

@@ -4,20 +4,15 @@ using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructure.Internal;
 
 /// <summary>
-/// Temporarily wraps <see cref="WindowFunctionSqlExpression"/> nodes in
+/// Temporarily replaces <see cref="WindowFunctionSqlExpression"/> nodes with
 /// <see cref="SqlFragmentExpression"/> placeholders so the provider's
-/// <see cref="Microsoft.EntityFrameworkCore.Query.SqlNullabilityProcessor"/>
-/// can traverse the tree without throwing on unknown expression types.
-/// After nullability processing, the originals are restored.
+/// <see cref="Microsoft.EntityFrameworkCore.Query.SqlNullabilityProcessor"/> can traverse the tree
+/// without throwing on unknown expression types. Originals are restored after nullability processing.
 /// </summary>
 internal static class WindowFunctionSqlExpressionWrapper
 {
     private const string PlaceholderPrefix = "__wf_placeholder_";
 
-    /// <summary>
-    /// Replaces all <see cref="WindowFunctionSqlExpression"/> nodes in the tree with
-    /// <see cref="SqlFragmentExpression"/> placeholders, stashing the originals for later restoration.
-    /// </summary>
     public static Expression WrapAll(Expression expression, out Dictionary<string, WindowFunctionSqlExpression> stash)
     {
         var visitor = new WrapVisitor();
@@ -26,10 +21,6 @@ internal static class WindowFunctionSqlExpressionWrapper
         return result;
     }
 
-    /// <summary>
-    /// Restores all placeholder <see cref="SqlFragmentExpression"/> nodes back to
-    /// their original <see cref="WindowFunctionSqlExpression"/>.
-    /// </summary>
     public static Expression UnwrapAll(Expression expression, Dictionary<string, WindowFunctionSqlExpression> stash)
         => new UnwrapVisitor(stash).Visit(expression);
 

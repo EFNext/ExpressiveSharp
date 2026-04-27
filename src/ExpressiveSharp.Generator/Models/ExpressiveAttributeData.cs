@@ -2,14 +2,10 @@ using Microsoft.CodeAnalysis;
 
 namespace ExpressiveSharp.Generator.Models;
 
-/// <summary>
-/// Plain-data snapshot of the [Expressive] attribute arguments.
-/// </summary>
 readonly internal record struct ExpressiveAttributeData
 {
     public bool? AllowBlockBody { get; }
 
-    // Custom transformer type names (fully qualified)
     public IReadOnlyList<string> TransformerTypeNames { get; }
 
     public ExpressiveAttributeData(AttributeData attribute)

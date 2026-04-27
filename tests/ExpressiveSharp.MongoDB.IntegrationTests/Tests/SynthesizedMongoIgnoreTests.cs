@@ -8,11 +8,6 @@ using MongoDB.Driver;
 
 namespace ExpressiveSharp.MongoDB.IntegrationTests.Tests;
 
-/// <summary>
-/// Verifies that <c>[ExpressiveProperty]</c> stubs are unmapped from BSON
-/// serialization by the <c>ExpressiveMongoIgnoreConvention</c>, and that the formula is
-/// correctly rewritten when referenced inside LINQ queries against the MongoDB provider.
-/// </summary>
 [TestClass]
 public class SynthesizedMongoIgnoreTests
 {
@@ -86,7 +81,6 @@ public class SynthesizedMongoIgnoreTests
     }
 }
 
-/// <summary>Self-contained document for synthesized-property Mongo tests.</summary>
 public partial class SynthesizedMongoDocument
 {
     public int Id { get; set; }

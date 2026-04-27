@@ -4,8 +4,6 @@ namespace ExpressiveSharp.Generator.Infrastructure;
 
 static internal class Diagnostics
 {
-    // ── Errors ──────────────────────────────────────────────────────────────
-
     public readonly static DiagnosticDescriptor RequiresBodyDefinition = new DiagnosticDescriptor(
         id: "EXP0001",
         title: "Method or property should expose a body definition",
@@ -45,8 +43,6 @@ static internal class Diagnostics
         category: "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
-
-    // ── Warnings ────────────────────────────────────────────────────────────
 
     public readonly static DiagnosticDescriptor UnsupportedStatementInBlockBody = new DiagnosticDescriptor(
         id: "EXP0006",
@@ -96,10 +92,8 @@ static internal class Diagnostics
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
-    // NOTE: EXP0013 (MemberCouldBeExpressive) is now emitted by MissingExpressiveAnalyzer
-    // in ExpressiveSharp.CodeFixers, so VS can pair it with the code fix provider.
-
-    // ── Info ────────────────────────────────────────────────────────────────
+    // EXP0013 (MemberCouldBeExpressive) is emitted by MissingExpressiveAnalyzer
+    // in ExpressiveSharp.CodeFixers so VS can pair it with the code fix provider.
 
     public readonly static DiagnosticDescriptor FactoryMethodShouldBeConstructor = new DiagnosticDescriptor(
         id: "EXP0012",
@@ -108,8 +102,6 @@ static internal class Diagnostics
         category: "Design",
         DiagnosticSeverity.Info,
         isEnabledByDefault: true);
-
-    // ── [ExpressiveFor] Diagnostics ─────────────────────────────────────────
 
     public readonly static DiagnosticDescriptor ExpressiveForTargetTypeNotFound = new DiagnosticDescriptor(
         id: "EXP0014",
@@ -127,7 +119,7 @@ static internal class Diagnostics
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    // NOTE: EXP0016 (ExpressiveForStubMustBeStatic) is retired. Instance stubs are now permitted
+    // EXP0016 (ExpressiveForStubMustBeStatic) is retired — instance stubs are now permitted
     // on the target type itself. Constructor stubs remain static-only; signature mismatches fall
     // back to EXP0015 (ExpressiveForMemberNotFound).
 
@@ -163,11 +155,9 @@ static internal class Diagnostics
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    // NOTE: EXP0021–EXP0030 (Projectable diagnostics) were retired when the
+    // EXP0021–EXP0030 (Projectable diagnostics) were retired when the
     // [Expressive(Projectable = true)] feature was superseded by [ExpressiveProperty].
     // The codes are not reused.
-
-    // ── [ExpressiveProperty] Diagnostics ─────────────────────────────────────
 
     public readonly static DiagnosticDescriptor ExpressivePropertyTargetExists = new DiagnosticDescriptor(
         id: "EXP0031",

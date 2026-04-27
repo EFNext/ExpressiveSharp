@@ -6,10 +6,6 @@ using MongoDB.Driver.Linq;
 
 namespace ExpressiveSharp.MongoDB.IntegrationTests.Tests;
 
-/// <summary>
-/// Verifies MongoDB-specific async methods work through delegate-based stubs
-/// with <c>[PolyfillTarget(typeof(MongoQueryable))]</c>.
-/// </summary>
 [TestClass]
 public class AsyncMethodTests : MongoTestBase
 {

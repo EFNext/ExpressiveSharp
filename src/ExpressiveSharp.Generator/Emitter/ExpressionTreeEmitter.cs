@@ -9,16 +9,13 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace ExpressiveSharp.Generator.Emitter;
 
-/// <summary>
-/// Describes a parameter for expression tree emission.
-/// </summary>
 internal sealed class EmitterParameter
 {
     public string Name { get; }
     public string TypeFqn { get; }
-    /// <summary>Optional: the Roslyn parameter symbol, used to match <see cref="IParameterReferenceOperation"/>.</summary>
+    /// <summary>Optional: matched against <see cref="IParameterReferenceOperation"/>.</summary>
     public IParameterSymbol? Symbol { get; }
-    /// <summary>When true, this parameter is matched by <see cref="IInstanceReferenceOperation"/>.</summary>
+    /// <summary>When true, matched against <see cref="IInstanceReferenceOperation"/>.</summary>
     public bool IsThis { get; }
 
     public EmitterParameter(string name, string typeFqn, IParameterSymbol? symbol = null, bool isThis = false)
@@ -30,10 +27,6 @@ internal sealed class EmitterParameter
     }
 }
 
-/// <summary>
-/// Walks Roslyn <see cref="IOperation"/> nodes and emits C# code that builds
-/// an equivalent <c>System.Linq.Expressions.Expression</c> tree using factory methods.
-/// </summary>
 internal sealed class ExpressionTreeEmitter
 {
     private const string Expr = "global::System.Linq.Expressions.Expression";
@@ -55,11 +48,9 @@ internal sealed class ExpressionTreeEmitter
     private readonly string _varPrefix;
     private readonly string? _delegateVarName;
     /// <summary>
-    /// The fully-qualified return type of the outer lambda currently being emitted. Set by
-    /// <see cref="Emit"/> and <see cref="EmitConstructor"/>. Used by <see cref="EmitUnsupported"/>
-    /// to emit a type-compatible <c>Default</c> stub when an operation has no inferable type —
-    /// without this, unsupported top-level ops wrap <c>Default(object)</c> in a typed
-    /// <c>Lambda&lt;Func&lt;…, T&gt;&gt;</c> and blow up the registry's static initializer at load time.
+    /// Fully-qualified return type of the outer lambda. Used by <see cref="EmitUnsupported"/>
+    /// to emit a type-compatible <c>Default</c> stub — without this, top-level unsupported ops
+    /// wrap <c>Default(object)</c> in a typed lambda and crash the registry's static initializer.
     /// </summary>
     private string? _outerReturnTypeFqn;
 
@@ -77,22 +68,15 @@ internal sealed class ExpressionTreeEmitter
     }
 
     /// <summary>
-    /// Registers a type alias so that <paramref name="type"/> is emitted as <paramref name="alias"/>
-    /// (e.g., a generic type parameter name) instead of its fully qualified name.
-    /// Used for anonymous types that cannot be named in generated C# source.
+    /// Emits <paramref name="type"/> as <paramref name="alias"/>. Used for anonymous types,
+    /// which cannot be named in generated C# source.
     /// </summary>
     public void RegisterTypeAlias(ITypeSymbol type, string alias)
         => _typeAliases[type] = alias;
 
-    /// <summary>
-    /// Returns the fully qualified type name, substituting registered aliases for anonymous types.
-    /// </summary>
     private string ResolveTypeFqn(ITypeSymbol type)
         => _typeAliases.TryGetValue(type, out var alias) ? alias : type.ToDisplayString(_fqnFormat);
 
-    /// <summary>
-    /// Translates a lambda body expression into imperative <c>Expression.*</c> factory code.
-    /// </summary>
     public EmitResult Emit(
         SyntaxNode bodySyntax,
         IReadOnlyList<EmitterParameter> parameters,
@@ -101,7 +85,6 @@ internal sealed class ExpressionTreeEmitter
         string? assignToVariable = null)
     {
         _outerReturnTypeFqn = returnTypeFqn;
-        // Emit parameter declarations
         var paramVarNames = new List<string>();
         foreach (var param in parameters)
         {
@@ -115,11 +98,9 @@ internal sealed class ExpressionTreeEmitter
                 _thisVarName = varName;
         }
 
-        // Unwrap syntax wrappers that don't produce their own IOperation.
-        // Without this, GetOperation returns null and the entire expression is silently lost.
+        // Without unwrapping, GetOperation returns null on transparent syntax wrappers and the body is silently lost.
         bodySyntax = UnwrapTransparentSyntax(bodySyntax);
 
-        // Get IOperation for the body and emit it
         var operation = _semanticModel.GetOperation(bodySyntax);
         if (operation is null)
         {
@@ -141,8 +122,7 @@ internal sealed class ExpressionTreeEmitter
 
         var bodyVar = EmitOperation(operation);
 
-        // If the body's type doesn't match the delegate return type, insert an Expression.Convert.
-        // This handles cases like int → int? (Nullable<int>) in Join key selectors.
+        // Insert Expression.Convert for body/return type mismatch — e.g. int → int? in Join key selectors.
         if (operation.Type is not null)
         {
             var bodyTypeFqn = ResolveTypeFqn(operation.Type);
@@ -165,11 +145,6 @@ internal sealed class ExpressionTreeEmitter
         return BuildResult();
     }
 
-    /// <summary>
-    /// Translates a constructor body into a <c>MemberInit</c> expression tree.
-    /// Collects property assignments from the body and emits
-    /// <c>Expression.MemberInit(Expression.New(parameterless_ctor), bindings...)</c>.
-    /// </summary>
     public EmitResult EmitConstructor(
         SyntaxNode bodySyntax,
         IReadOnlyList<EmitterParameter> parameters,
@@ -180,7 +155,6 @@ internal sealed class ExpressionTreeEmitter
         IReadOnlyList<SyntaxNode>? chainedArgExpressions = null)
     {
         _outerReturnTypeFqn = returnTypeFqn;
-        // Emit parameter declarations
         var paramVarNames = new List<string>();
         foreach (var param in parameters)
         {
@@ -195,8 +169,7 @@ internal sealed class ExpressionTreeEmitter
         var newVar = NextVar();
         if (chainedTargetCtor is { Parameters.Length: > 0 } && chainedArgExpressions is not null)
         {
-            // `: this(args)` chain → invoke the target ctor directly so its bindings (including
-            // record primary-ctor positional parameters) flow through.
+            // `: this(args)` chain — invoke the target ctor so its bindings (incl. record primary-ctor params) flow through.
             var argVars = new List<string>();
             foreach (var argSyntax in chainedArgExpressions)
             {
@@ -218,7 +191,6 @@ internal sealed class ExpressionTreeEmitter
         }
         else
         {
-            // Parameterless ctor path (no chain, or `: this()` with no args).
             var parameterlessCtor = containingType.Constructors
                 .FirstOrDefault(c => !c.IsStatic && c.Parameters.IsEmpty);
             var ctorField = parameterlessCtor is not null
@@ -235,13 +207,9 @@ internal sealed class ExpressionTreeEmitter
             }
         }
 
-        // Accumulate property assignments: propName → (symbol, emitted value var)
         var propertyAssignments = new Dictionary<string, (ISymbol Symbol, string ValueVar)>();
 
-        // Process the constructor body, collecting property assignments.
-        // Block-bodied ctors produce an IBlockOperation; expression-bodied ctors produce the
-        // body's operation directly (e.g. a bare ISimpleAssignmentOperation or
-        // IDeconstructionAssignmentOperation).
+        // Block-bodied ctors yield an IBlockOperation; expression-bodied ctors yield the body's operation directly.
         var operation = _semanticModel.GetOperation(UnwrapTransparentSyntax(bodySyntax));
         if (operation is IBlockOperation block)
         {
@@ -252,7 +220,6 @@ internal sealed class ExpressionTreeEmitter
             ProcessConstructorStatement(operation, propertyAssignments);
         }
 
-        // Build MemberInit bindings from accumulated assignments
         var bindingVars = new List<string>();
         foreach (var kvp in propertyAssignments)
         {
@@ -295,11 +262,6 @@ internal sealed class ExpressionTreeEmitter
         return BuildResult();
     }
 
-    /// <summary>
-    /// Processes constructor statements, accumulating property assignments into the map.
-    /// Handles simple assignments, if/else (merges branches with ternary), local variables,
-    /// and early returns (ignored — assignments before the return are kept).
-    /// </summary>
     private void ProcessConstructorStatements(
         ImmutableArray<IOperation> operations,
         Dictionary<string, (ISymbol Symbol, string ValueVar)> assignments)
@@ -311,10 +273,7 @@ internal sealed class ExpressionTreeEmitter
         }
     }
 
-    /// <summary>
-    /// Processes a single constructor-body statement. Returns false when processing should stop
-    /// (e.g., after an early <c>return</c>).
-    /// </summary>
+    /// <summary>Returns false to halt further statements (e.g. after an early <c>return</c>).</summary>
     private bool ProcessConstructorStatement(
         IOperation op,
         Dictionary<string, (ISymbol Symbol, string ValueVar)> assignments)
@@ -330,12 +289,10 @@ internal sealed class ExpressionTreeEmitter
                 return true;
 
             case IDeconstructionAssignmentOperation deconRoot:
-                // Expression-bodied ctor: `public Ctor(X o) => (A, B) = (o.A, o.B);`
                 ProcessConstructorDeconstruction(deconRoot, assignments);
                 return true;
 
             case ISimpleAssignmentOperation bareAssignment:
-                // Expression-bodied ctor with a single `A = x` body.
                 ProcessConstructorAssignment(bareAssignment, assignments);
                 return true;
 
@@ -357,8 +314,6 @@ internal sealed class ExpressionTreeEmitter
                         if (declarator.Initializer is not null)
                         {
                             var initVar = EmitOperation(declarator.Initializer.Value);
-                            // For constructor local variables, store the value expression
-                            // so it can be referenced later (e.g. in conditions)
                             var assignVar = NextVar();
                             AppendLine($"var {assignVar} = {Expr}.Assign({localVar}, {initVar});");
                         }
@@ -367,16 +322,13 @@ internal sealed class ExpressionTreeEmitter
                 return true;
 
             case IReturnOperation:
-                // Early returns in constructors — stop processing further statements
                 return false;
 
             case IBlockOperation nestedBlock:
-                // Nested block scope (e.g. { if (...) { ... } })
                 ProcessConstructorStatements(nestedBlock.Operations, assignments);
                 return true;
 
             default:
-                // Skip other statement types
                 return true;
         }
     }
@@ -385,9 +337,7 @@ internal sealed class ExpressionTreeEmitter
         IDeconstructionAssignmentOperation decon,
         Dictionary<string, (ISymbol Symbol, string ValueVar)> assignments)
     {
-        // The walker has already validated the shape: both sides are tuple literals of equal
-        // arity and every left-side element is a property/field reference on `this`. We
-        // synthesize one assignment per pair.
+        // Walker has validated: both sides are equal-arity tuple literals; left elements are property/field refs on `this`.
         var target = UnwrapConversions(decon.Target);
         var value = UnwrapConversions(decon.Value);
         if (target is not ITupleOperation targetTuple || value is not ITupleOperation valueTuple
@@ -452,7 +402,6 @@ internal sealed class ExpressionTreeEmitter
         IConditionalOperation conditional,
         Dictionary<string, (ISymbol Symbol, string ValueVar)> assignments)
     {
-        // Collect assignments from both branches
         var trueAssignments = new Dictionary<string, (ISymbol Symbol, string ValueVar)>();
         var falseAssignments = new Dictionary<string, (ISymbol Symbol, string ValueVar)>();
 
@@ -467,24 +416,21 @@ internal sealed class ExpressionTreeEmitter
             ProcessConstructorAssignment(falseAssign, falseAssignments);
         else if (conditional.WhenFalse is IConditionalOperation elseIf)
         {
-            // else if chain
             ProcessConstructorConditional(elseIf, falseAssignments);
         }
 
         var conditionVar = EmitOperation(conditional.Condition);
 
-        // Merge: for each property assigned in either branch, produce a ternary
+        // For each property assigned in either branch, emit a ternary that picks the right value at construction time.
         var allProps = new HashSet<string>(trueAssignments.Keys.Union(falseAssignments.Keys));
         foreach (var propName in allProps)
         {
             trueAssignments.TryGetValue(propName, out var trueEntry);
             falseAssignments.TryGetValue(propName, out var falseEntry);
 
-            // Determine symbol (from whichever branch has it)
             var symbol = trueEntry.Symbol ?? falseEntry.Symbol;
             if (symbol is null) continue;
 
-            // Determine type for the ternary
             var typeFqn = symbol switch
             {
                 IPropertySymbol p => p.Type.ToDisplayString(_fqnFormat),
@@ -492,11 +438,10 @@ internal sealed class ExpressionTreeEmitter
                 _ => "object"
             };
 
-            // True value: from true branch, or fall back to previous assignment
+            // Missing branches fall back to the previously accumulated value (or default if none).
             var trueVal = trueEntry.ValueVar;
             if (trueVal is null)
             {
-                // Property not assigned in true branch — use the previously accumulated value
                 if (assignments.TryGetValue(propName, out var prev))
                     trueVal = prev.ValueVar;
                 else
@@ -506,7 +451,6 @@ internal sealed class ExpressionTreeEmitter
                 }
             }
 
-            // False value: from false branch, or fall back to previous assignment
             var falseVal = falseEntry.ValueVar;
             if (falseVal is null)
             {
@@ -524,8 +468,6 @@ internal sealed class ExpressionTreeEmitter
             assignments[propName] = (symbol, ternaryVar);
         }
     }
-
-    // ── Main dispatch ────────────────────────────────────────────────────────
 
     private string EmitOperation(IOperation operation)
     {
@@ -579,7 +521,6 @@ internal sealed class ExpressionTreeEmitter
             _ => EmitUnsupported(operation),
         };
 
-        // Annotate the first line emitted by this operation with the source syntax
         if (_lineCount > lineCountBefore && operation.Syntax is not null)
         {
             var syntaxText = operation.Syntax.ToString().Replace("\r", "").Replace("\n", " ");
@@ -590,8 +531,6 @@ internal sealed class ExpressionTreeEmitter
 
         return result;
     }
-
-    // ── Literals ─────────────────────────────────────────────────────────────
 
     private string EmitLiteral(ILiteralOperation literal)
     {
@@ -613,15 +552,12 @@ internal sealed class ExpressionTreeEmitter
         return resultVar;
     }
 
-    // ── Parameter & instance references ──────────────────────────────────────
-
     private string EmitParameterReference(IParameterReferenceOperation paramRef)
     {
         if (_symbolToVar.TryGetValue(paramRef.Parameter, out var varName))
             return varName;
 
-        // Outer-scope parameter — captured variable from enclosing method.
-        // Extract its value from the delegate's closure at runtime.
+        // Outer-scope param — pull the captured value from the delegate's closure at runtime.
         if (_delegateVarName is not null)
         {
             var resultVar = EmitCapturedVariable(paramRef.Parameter.Name, paramRef.Parameter.Type);
@@ -629,7 +565,7 @@ internal sealed class ExpressionTreeEmitter
             return resultVar;
         }
 
-        // Fallback: parameter not in our map (non-interceptor path)
+        // Non-interceptor path — fresh ParameterExpression.
         var fallbackVar = NextVar();
         var typeFqn = paramRef.Parameter.Type.ToDisplayString(_fqnFormat);
         AppendLine($"var {fallbackVar} = {Expr}.Parameter(typeof({typeFqn}), \"{paramRef.Parameter.Name}\");");
@@ -642,7 +578,7 @@ internal sealed class ExpressionTreeEmitter
         if (_localToVar.TryGetValue(localRef.Local, out var varName))
             return varName;
 
-        // Outer-scope local — captured variable from enclosing method.
+        // Outer-scope local — pull from the delegate's closure.
         if (_delegateVarName is not null)
         {
             var resultVar = EmitCapturedVariable(localRef.Local.Name, localRef.Local.Type);
@@ -650,7 +586,6 @@ internal sealed class ExpressionTreeEmitter
             return resultVar;
         }
 
-        // Fallback: local not yet declared (shouldn't happen in well-formed code)
         var fallbackVar = NextVar();
         var typeFqn = localRef.Local.Type.ToDisplayString(_fqnFormat);
         AppendLine($"var {fallbackVar} = {Expr}.Variable(typeof({typeFqn}), \"{localRef.Local.Name}\");");
@@ -673,9 +608,7 @@ internal sealed class ExpressionTreeEmitter
         if (_thisVarName is not null)
             return _thisVarName;
 
-        // Outer-scope `this` — captured from the enclosing instance method.
-        // The compiler stores `this` under a generated field name (e.g. <>4__this),
-        // so we resolve it by type rather than by name.
+        // Captured `this` is stored under a compiler-generated field name (e.g. <>4__this), so resolve by type.
         if (_delegateVarName is not null && instanceType is not null)
         {
             _thisVarName = $"{_varPrefix}__this";
@@ -684,26 +617,19 @@ internal sealed class ExpressionTreeEmitter
             return _thisVarName;
         }
 
-        // Fallback (non-interceptor path, e.g. [Expressive] members)
         _thisVarName = "p___this";
         AppendLine($"var {_thisVarName} = {Expr}.Parameter(typeof(object), \"@this\");");
         return _thisVarName;
     }
 
-    // ── Member access ────────────────────────────────────────────────────────
-
     private string EmitPropertyReference(IPropertyReferenceOperation propRef)
     {
-        // In the interceptor path, instance property access (this.Property) may be captured
-        // directly by the C# compiler as a closure field with the backing field name,
-        // or indirectly through a captured `this`. Delegate to the closure helper which
-        // handles both cases.
+        // Interceptor path: this.Property may be captured as a closure field directly (auto-prop backing
+        // field) or via captured `this`. ResolveCapturedInstanceMember handles both.
         if (_delegateVarName is not null &&
             propRef.Instance is IInstanceReferenceOperation &&
             propRef.Property.GetMethod is { } getter)
         {
-            // Auto-properties have a backing field with the same name pattern;
-            // the closure may capture the property's backing field directly.
             var resultVar = NextVar();
             var propName = propRef.Property.Name;
             var enclosingTypeFqn = ResolveTypeFqn(propRef.Instance.Type!);
@@ -729,9 +655,7 @@ internal sealed class ExpressionTreeEmitter
 
     private string EmitFieldReference(IFieldReferenceOperation fieldRef)
     {
-        // In the interceptor path, instance field access (this._field) may be captured
-        // directly as a closure field, or indirectly through a captured `this`.
-        // Delegate to the closure helper which handles both cases.
+        // Interceptor path: this._field may be captured directly or via captured `this`. Helper handles both.
         if (_delegateVarName is not null && fieldRef.Instance is IInstanceReferenceOperation)
         {
             var resultVar = NextVar();
@@ -757,15 +681,13 @@ internal sealed class ExpressionTreeEmitter
         return fieldResultVar;
     }
 
-    // ── Invocations ──────────────────────────────────────────────────────────
-
     private bool TryEmitEnumMethodExpansion(IInvocationOperation invocation, out string resultVar)
     {
         resultVar = "";
 
         var method = invocation.TargetMethod;
 
-        // Determine the enum receiver — could be instance call or extension method (first arg)
+        // Receiver could be the instance call's instance, or the first arg of an extension method.
         ITypeSymbol? receiverType = null;
         IOperation? receiverOperation = null;
 
@@ -783,7 +705,6 @@ internal sealed class ExpressionTreeEmitter
         if (receiverType is null || receiverOperation is null)
             return false;
 
-        // Handle Nullable<EnumType>
         ITypeSymbol enumType;
         var isNullable = false;
         if (receiverType is INamedTypeSymbol { IsGenericType: true } nullableType &&
@@ -815,11 +736,10 @@ internal sealed class ExpressionTreeEmitter
         var returnTypeFqn = returnType.ToDisplayString(_fqnFormat);
         var enumTypeFqn = enumType.ToDisplayString(_fqnFormat);
 
-        // Resolve the original (unreduced) method for the static call
+        // Use unreduced method so the static call form has the correct signature for extension methods.
         var originalMethod = method.ReducedFrom ?? method;
         var methodField = _fieldCache.EnsureMethodInfo(originalMethod);
 
-        // Build default value
         string defaultVar;
         if (returnType.IsReferenceType || returnType.NullableAnnotation == NullableAnnotation.Annotated ||
             (returnType is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T }))
@@ -833,16 +753,14 @@ internal sealed class ExpressionTreeEmitter
             AppendLine($"var {defaultVar} = {Expr}.Default(typeof({returnTypeFqn}));");
         }
 
-        // Build ternary chain for each enum value (reverse order)
+        // Build the ternary chain in reverse so the first member ends up as the outermost (and first-tested) branch.
         var currentVar = defaultVar;
         foreach (var member in enumMembers.AsEnumerable().Reverse())
         {
-            // Enum value constant
             var enumValueVar = NextVar();
             AppendLine($"var {enumValueVar} = {Expr}.Constant({enumTypeFqn}.{member.Name}, typeof({enumTypeFqn}));");
 
-            // Method call: static methods pass enum value as first arg,
-            // instance methods use enum value as the receiver
+            // Static path passes the enum value as the first arg; instance path uses it as the receiver.
             string callVar;
             if (originalMethod.IsStatic)
             {
@@ -870,17 +788,15 @@ internal sealed class ExpressionTreeEmitter
                 AppendLine($"var {callVar} = {Expr}.Call({enumValueVar}, {methodField}, {callArgsExpr});");
             }
 
-            // Condition: receiver == enumValue
             var condVar = NextVar();
             AppendLine($"var {condVar} = {Expr}.Equal({receiverVar}, {enumValueVar});");
 
-            // Ternary: condition ? call : current
             var ternaryVar = NextVar();
             AppendLine($"var {ternaryVar} = {Expr}.Condition({condVar}, {callVar}, {currentVar}, typeof({returnTypeFqn}));");
             currentVar = ternaryVar;
         }
 
-        // Nullable wrapper: receiver == null ? default : chain
+        // For Nullable<TEnum>, wrap in: receiver == null ? default : chain
         if (isNullable)
         {
             var nullConst = NextVar();
@@ -901,8 +817,6 @@ internal sealed class ExpressionTreeEmitter
 
     private string EmitInvocation(IInvocationOperation invocation)
     {
-        // Enum method expansion: when the receiver is an enum type, expand to ternary chain
-        // Always expand enum method calls to ternary chains
         if (TryEmitEnumMethodExpansion(invocation, out var enumResult))
         {
             return enumResult;
@@ -936,8 +850,6 @@ internal sealed class ExpressionTreeEmitter
         return resultVar;
     }
 
-    // ── Binary operators ─────────────────────────────────────────────────────
-
     private string EmitBinary(IBinaryOperation binary)
     {
         var exprType = MapBinaryOperatorKind(binary.OperatorKind);
@@ -947,16 +859,13 @@ internal sealed class ExpressionTreeEmitter
             return EmitUnsupported(binary);
         }
 
-        // String concatenation via + uses string.Concat, not Expression.Add.
-        // Only matches the built-in compiler intrinsic (OperatorMethod is null).
-        // User-defined operator+ that returns string will have OperatorMethod set
-        // and is correctly handled by the existing MakeBinary path below.
+        // Built-in string + uses string.Concat, not Expression.Add. User-defined operator+ returning string
+        // has OperatorMethod set and falls through to MakeBinary.
         if (binary.OperatorKind == BinaryOperatorKind.Add
             && binary.OperatorMethod is null
             && binary.Type?.SpecialType == SpecialType.System_String)
             return EmitStringConcatenation(binary);
 
-        // Use checked variants when in a checked context
         if (binary.IsChecked)
         {
             exprType = exprType switch
@@ -991,9 +900,7 @@ internal sealed class ExpressionTreeEmitter
         var leftVar = EmitOperation(binary.LeftOperand);
         var rightVar = EmitOperation(binary.RightOperand);
 
-        // Choose the correct Concat overload based on operand types.
-        // If both operands are string, use Concat(string, string).
-        // Otherwise (e.g. object + string from implicit boxing), use Concat(object, object).
+        // Concat(string, string) vs Concat(object, object) — non-string operands (e.g. boxed via object+string) need the latter.
         var bothString = binary.LeftOperand.Type?.SpecialType == SpecialType.System_String
                       && binary.RightOperand.Type?.SpecialType == SpecialType.System_String;
 
@@ -1031,11 +938,9 @@ internal sealed class ExpressionTreeEmitter
         };
     }
 
-    // ── Unary operators ──────────────────────────────────────────────────────
-
     private string EmitUnary(IUnaryOperation unary)
     {
-        // Special case: ^ operator (Index from end) → new Index(operand, fromEnd: true)
+        // ^x is the Index-from-end operator; expression trees have no native form, so we synthesize a ctor call.
         if (unary.OperatorKind == UnaryOperatorKind.Hat)
         {
             return EmitIndexFromEnd(unary);
@@ -1048,7 +953,6 @@ internal sealed class ExpressionTreeEmitter
             return EmitUnsupported(unary);
         }
 
-        // Use checked variant when in a checked context
         if (unary.IsChecked && exprType == "Negate")
         {
             exprType = "NegateChecked";
@@ -1083,15 +987,12 @@ internal sealed class ExpressionTreeEmitter
         };
     }
 
-    // ── Type conversions ─────────────────────────────────────────────────────
-
     private string EmitConversion(IConversionOperation conversion)
     {
         if (conversion.Conversion.IsIdentity)
             return EmitOperation(conversion.Operand);
 
-        // Throw expressions are void-typed; Expression.Convert(void, T) is invalid.
-        // Emit Expression.Throw(exception, targetType) directly instead.
+        // Throw expressions are void-typed and Expression.Convert(void, T) is invalid; emit a typed Throw directly.
         if (conversion.Operand is IThrowOperation throwOp && throwOp.Exception is not null)
             return EmitThrowWithType(throwOp, conversion.Type);
 
@@ -1114,16 +1015,13 @@ internal sealed class ExpressionTreeEmitter
         return resultVar;
     }
 
-    // ── Conditional (ternary) ────────────────────────────────────────────────
-
     private string EmitConditional(IConditionalOperation conditional)
     {
         var resultVar = NextVar();
         var testVar = EmitOperation(conditional.Condition);
         var ifTrueVar = EmitOperation(conditional.WhenTrue);
 
-        // Determine the result type. For statement-form if/else (not ternary),
-        // conditional.Type is null or void. Infer from the branch return types.
+        // Statement-form if/else gives null or void Type; infer from the branch return types.
         var condType = conditional.Type;
         if (condType is null || condType.SpecialType == SpecialType.System_Void
             || condType.SpecialType == SpecialType.System_Object)
@@ -1139,7 +1037,6 @@ internal sealed class ExpressionTreeEmitter
             var ifFalseVar = EmitOperation(conditional.WhenFalse);
             if (condType is null || condType.SpecialType == SpecialType.System_Void)
             {
-                // Statement-form if/else: use IfThenElse (returns void)
                 AppendLine($"var {resultVar} = {Expr}.IfThenElse({testVar}, {ifTrueVar}, {ifFalseVar});");
             }
             else
@@ -1151,7 +1048,6 @@ internal sealed class ExpressionTreeEmitter
         {
             if (condType is null || condType.SpecialType == SpecialType.System_Void)
             {
-                // Statement-form if (no else): use IfThen (returns void)
                 AppendLine($"var {resultVar} = {Expr}.IfThen({testVar}, {ifTrueVar});");
             }
             else
@@ -1162,8 +1058,6 @@ internal sealed class ExpressionTreeEmitter
 
         return resultVar;
     }
-
-    // ── Object creation ──────────────────────────────────────────────────────
 
     private string EmitObjectCreation(IObjectCreationOperation creation)
     {
@@ -1200,7 +1094,6 @@ internal sealed class ExpressionTreeEmitter
                     if (initializer is ISimpleAssignmentOperation assignment &&
                         assignment.Target is IMemberReferenceOperation memberRef)
                     {
-                        // Member binding: new T { Prop = value }
                         var valueVar = EmitOperation(assignment.Value);
                         var bindingVar = NextVar();
 
@@ -1225,7 +1118,6 @@ internal sealed class ExpressionTreeEmitter
                     }
                     else if (initializer is IInvocationOperation invocation)
                     {
-                        // Collection initializer: .Add(element) call
                         var addMethodField = _fieldCache.EnsureMethodInfo(invocation.TargetMethod);
                         var elemVars = new List<string>();
                         foreach (var arg in invocation.Arguments)
@@ -1247,13 +1139,11 @@ internal sealed class ExpressionTreeEmitter
 
                 if (elementInitVars.Count > 0)
                 {
-                    // Collection initializer: Expression.ListInit(new, elementInits)
                     var elementsExpr = string.Join(", ", elementInitVars);
                     AppendLine($"var {resultVar} = {Expr}.ListInit({newVar}, {elementsExpr});");
                 }
                 else
                 {
-                    // Member initializer: Expression.MemberInit(new, bindings)
                     var bindingsExpr = string.Join(", ", bindingVars);
                     AppendLine($"var {resultVar} = {Expr}.MemberInit({newVar}, {bindingsExpr});");
                 }
@@ -1280,22 +1170,18 @@ internal sealed class ExpressionTreeEmitter
         return resultVar;
     }
 
-    // ── Anonymous object creation ───────────────────────────────────────────
-
     private string EmitAnonymousObjectCreation(IAnonymousObjectCreationOperation creation)
     {
         var anonType = creation.Type;
         if (anonType is null || !_typeAliases.ContainsKey(anonType))
         {
-            // No alias registered (e.g., nested anonymous type or [Expressive] path).
-            // Cannot generate valid C# — fall back to unsupported.
+            // No alias registered — anonymous type can't be named in generated source.
             return EmitUnsupported(creation);
         }
 
         var resultVar = NextVar();
         var typeFqn = ResolveTypeFqn(anonType);
 
-        // Emit each initializer value and collect property names.
         var valueVars = new List<string>();
         var propertyNames = new List<string>();
         foreach (var initializer in creation.Initializers)
@@ -1308,12 +1194,11 @@ internal sealed class ExpressionTreeEmitter
             }
             else
             {
-                // Direct value expression — property name comes from the type symbol.
                 valueVars.Add(EmitOperation(initializer));
             }
         }
 
-        // If property names weren't extracted from assignments, derive from the type symbol.
+        // Direct value-expression initializers don't surface property names; fall back to walking the type.
         if (propertyNames.Count < valueVars.Count && anonType is INamedTypeSymbol namedType)
         {
             propertyNames.Clear();
@@ -1324,9 +1209,8 @@ internal sealed class ExpressionTreeEmitter
             }
         }
 
-        // Inline runtime reflection — cannot use ReflectionFieldCache because the anonymous
-        // type is referenced via a generic type parameter (e.g., TResult) that is only
-        // available at the method level, not in static field initializers.
+        // Inline reflection rather than ReflectionFieldCache — the anon type is referenced via a generic
+        // parameter (e.g. TResult) that's only in scope at method level, not in static field initializers.
         var ctorVar = NextVar();
         AppendLine($"var {ctorVar} = typeof({typeFqn}).GetConstructors()[0];");
 
@@ -1342,8 +1226,6 @@ internal sealed class ExpressionTreeEmitter
         AppendLine($"var {resultVar} = {Expr}.New({ctorVar}, {argsArray}, {membersArray});");
         return resultVar;
     }
-
-    // ── Default & typeof ─────────────────────────────────────────────────────
 
     private string EmitDefault(IDefaultValueOperation defaultVal)
     {
@@ -1361,8 +1243,6 @@ internal sealed class ExpressionTreeEmitter
         return resultVar;
     }
 
-    // ── Type checking ────────────────────────────────────────────────────────
-
     private string EmitIsType(IIsTypeOperation isType)
     {
         var resultVar = NextVar();
@@ -1372,8 +1252,6 @@ internal sealed class ExpressionTreeEmitter
         return resultVar;
     }
 
-    // ── Null coalescing ──────────────────────────────────────────────────────
-
     private string EmitCoalesce(ICoalesceOperation coalesce)
     {
         var resultVar = NextVar();
@@ -1382,8 +1260,6 @@ internal sealed class ExpressionTreeEmitter
         AppendLine($"var {resultVar} = {Expr}.Coalesce({leftVar}, {rightVar});");
         return resultVar;
     }
-
-    // ── Throw expressions ─────────────────────────────────────────────────────
 
     private string EmitThrow(IThrowOperation throwOp)
     {
@@ -1410,8 +1286,6 @@ internal sealed class ExpressionTreeEmitter
 
         return resultVar;
     }
-
-    // ── Arrays ───────────────────────────────────────────────────────────────
 
     private string EmitArrayCreation(IArrayCreationOperation arrayCreate)
     {
@@ -1469,8 +1343,6 @@ internal sealed class ExpressionTreeEmitter
         return resultVar;
     }
 
-    // ── Nested lambdas & delegates ───────────────────────────────────────────
-
     private string EmitNestedLambda(IAnonymousFunctionOperation lambda)
     {
         var lambdaSymbol = lambda.Symbol;
@@ -1501,8 +1373,6 @@ internal sealed class ExpressionTreeEmitter
         return EmitOperation(delegateCreate.Target);
     }
 
-    // ── Tuples ───────────────────────────────────────────────────────────────
-
     private string EmitTuple(ITupleOperation tuple)
     {
         var tupleType = tuple.Type as INamedTypeSymbol;
@@ -1514,8 +1384,7 @@ internal sealed class ExpressionTreeEmitter
 
     private string EmitTupleConstruction(INamedTypeSymbol tupleType, IReadOnlyList<IOperation> elements)
     {
-        // For 8+ element tuples, C# nests as ValueTuple<T1,...,T7, ValueTuple<T8,...>>.
-        // The underlying type strips tuple element names.
+        // 8+ element tuples nest as ValueTuple<T1..T7, ValueTuple<T8..>>; underlying type strips element names.
         var underlyingType = tupleType.TupleUnderlyingType ?? tupleType;
         var typeArgs = underlyingType.TypeArguments;
 
@@ -1524,7 +1393,6 @@ internal sealed class ExpressionTreeEmitter
             && restType.OriginalDefinition.ContainingNamespace?.ToDisplayString() == "System"
             && restType.OriginalDefinition.Name == "ValueTuple")
         {
-            // First 7 elements are direct, the 8th is a nested ValueTuple
             var first7 = new List<string>();
             for (var i = 0; i < 7; i++)
             {
@@ -1548,7 +1416,6 @@ internal sealed class ExpressionTreeEmitter
             return resultVar;
         }
 
-        // Standard case: ≤7 elements
         var elementVars = new List<string>();
         foreach (var element in elements)
         {
@@ -1573,8 +1440,6 @@ internal sealed class ExpressionTreeEmitter
 
         return result;
     }
-
-    // ── Tuple binary (== / !=) ────────────────────────────────────────────
 
     private string EmitTupleBinary(ITupleBinaryOperation tupleBinary)
     {
@@ -1606,7 +1471,6 @@ internal sealed class ExpressionTreeEmitter
 
         bool isEquality = tupleBinary.OperatorKind == BinaryOperatorKind.Equals;
 
-        // Build element-wise comparisons
         var comparisons = new List<string>();
         for (var i = 0; i < leftFields.Count; i++)
         {
@@ -1623,7 +1487,7 @@ internal sealed class ExpressionTreeEmitter
             comparisons.Add(cmpVar);
         }
 
-        // Fold: == uses AndAlso, != uses OrElse(NotEqual) but simpler to negate the whole thing
+        // For !=, fold with AndAlso then Not — equivalent to OrElse over NotEqual but simpler to emit.
         var resultVar = comparisons[0];
         for (var i = 1; i < comparisons.Count; i++)
         {
@@ -1641,8 +1505,6 @@ internal sealed class ExpressionTreeEmitter
 
         return resultVar;
     }
-
-    // ── Pattern matching ────────────────────────────────────────────────────
 
     private string EmitIsPattern(IIsPatternOperation isPattern)
     {
@@ -1685,9 +1547,7 @@ internal sealed class ExpressionTreeEmitter
 
     private string EmitDeclarationPattern(IDeclarationPatternOperation declaration, string operandVar)
     {
-        // Declaration patterns with named variables (e.g. `x is string s`) are not
-        // representable in expression trees — pattern variables don't exist.
-        // Discard designations (e.g. `x is string _`) are pure type checks.
+        // Pattern variables don't exist in expression trees, so emit a pure TypeIs even for `x is T name`.
         var resultVar = NextVar();
         var typeFqn = declaration.NarrowedType.ToDisplayString(_fqnFormat);
         AppendLine($"var {resultVar} = {Expr}.TypeIs({operandVar}, typeof({typeFqn}));");
@@ -1712,7 +1572,7 @@ internal sealed class ExpressionTreeEmitter
             ReportDiagnostic(Diagnostics.UnsupportedOperator,
                 relational.Syntax?.GetLocation() ?? Location.None,
                 relational.OperatorKind.ToString());
-            // Fall back to constant false (never matches) — safer than true (always matches)
+            // Fall back to constant false — never-matches is safer than always-matches when the operator is unknown.
             AppendLine($"var {resultVar} = {Expr}.Constant(false);");
             return resultVar;
         }
@@ -1750,11 +1610,9 @@ internal sealed class ExpressionTreeEmitter
     {
         var conditions = new List<string>();
 
-        // Find Count/Length property on the collection type
         var countProp = operandType?.GetMembers("Count").OfType<IPropertySymbol>().FirstOrDefault()
             ?? operandType?.GetMembers("Length").OfType<IPropertySymbol>().FirstOrDefault();
 
-        // Find indexer (this[int])
         var indexer = operandType?.GetMembers()
             .OfType<IPropertySymbol>()
             .FirstOrDefault(p => p.IsIndexer && p.Parameters.Length == 1
@@ -1770,12 +1628,11 @@ internal sealed class ExpressionTreeEmitter
 
         var countField = _fieldCache.EnsurePropertyInfo(countProp);
 
-        // Check if there's a slice pattern (.. rest) — determines exact vs minimum length
+        // A `..` slice means minimum-length match; otherwise exact-length.
         var hasSlice = listPattern.Patterns.Any(p => p is ISlicePatternOperation);
         var fixedPatterns = listPattern.Patterns.Where(p => p is not ISlicePatternOperation).ToList();
         var requiredCount = fixedPatterns.Count;
 
-        // Length check: exact match if no slice, minimum if slice present
         var countAccess = NextVar();
         AppendLine($"var {countAccess} = {Expr}.Property({operandVar}, {countField});");
         var countConst = NextVar();
@@ -1791,13 +1648,11 @@ internal sealed class ExpressionTreeEmitter
         }
         conditions.Add(lengthCheck);
 
-        // Element checks: pattern[i] against collection[i]
         var elementIndex = 0;
         foreach (var subPattern in listPattern.Patterns)
         {
             if (subPattern is ISlicePatternOperation)
             {
-                // Skip slice — it matches "the rest"
                 continue;
             }
 
@@ -1807,11 +1662,10 @@ internal sealed class ExpressionTreeEmitter
                 continue;
             }
 
-            // Access collection[elementIndex]
             var idxConst = NextVar();
             AppendLine($"var {idxConst} = {Expr}.Constant({elementIndex});");
-            var elementAccess = NextVar();
 
+            var elementAccess = NextVar();
             if (operandType is IArrayTypeSymbol)
             {
                 AppendLine($"var {elementAccess} = {Expr}.ArrayIndex({operandVar}, {idxConst});");
@@ -1828,7 +1682,6 @@ internal sealed class ExpressionTreeEmitter
             elementIndex++;
         }
 
-        // Combine all conditions with AndAlso
         if (conditions.Count == 0)
         {
             var trueVar = NextVar();
@@ -1851,7 +1704,7 @@ internal sealed class ExpressionTreeEmitter
     {
         var conditions = new List<string>();
 
-        // Null check for reference types and Nullable<T>
+        // Null-check anything that could be null at runtime: reference types and Nullable<T>.
         if (operandType is null
             || !operandType.IsValueType
             || operandType.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
@@ -1863,7 +1716,7 @@ internal sealed class ExpressionTreeEmitter
             conditions.Add(nullCheck);
         }
 
-        // Type guard — MatchedType is set when the pattern has an explicit type (e.g. `is SomeType { ... }`)
+        // MatchedType is set for `is SomeType { ... }` shapes — emit a TypeIs guard plus a cast for member access.
         string memberBase = operandVar;
         if (recursive.MatchedType is not null && !SymbolEqualityComparer.Default.Equals(recursive.InputType, recursive.NarrowedType))
         {
@@ -1872,12 +1725,10 @@ internal sealed class ExpressionTreeEmitter
             AppendLine($"var {typeCheck} = {Expr}.TypeIs({operandVar}, typeof({narrowedTypeFqn}));");
             conditions.Add(typeCheck);
 
-            // Cast for member access
             memberBase = NextVar();
             AppendLine($"var {memberBase} = {Expr}.Convert({operandVar}, typeof({narrowedTypeFqn}));");
         }
 
-        // Property sub-patterns
         foreach (var prop in recursive.PropertySubpatterns)
         {
             if (prop.Member is not IMemberReferenceOperation memberRef)
@@ -1917,7 +1768,6 @@ internal sealed class ExpressionTreeEmitter
             conditions.Add(subCondition);
         }
 
-        // Positional sub-patterns (deconstruct)
         if (recursive.DeconstructionSubpatterns.Length > 0)
         {
             var targetType = recursive.NarrowedType as INamedTypeSymbol ?? operandType as INamedTypeSymbol;
@@ -1927,12 +1777,14 @@ internal sealed class ExpressionTreeEmitter
             {
                 var subPattern = recursive.DeconstructionSubpatterns[i];
                 if (subPattern is IDiscardPatternOperation)
+                {
                     continue;
+                }
 
                 string? propName = null;
                 ITypeSymbol? propType = null;
 
-                // Try to resolve via Deconstruct parameter name → property name
+                // Resolve positional element either via Deconstruct parameter name → matching property, or tuple ItemN.
                 if (deconstructSymbol is not null && i < deconstructSymbol.Parameters.Length)
                 {
                     var paramName = deconstructSymbol.Parameters[i].Name;
@@ -1946,7 +1798,6 @@ internal sealed class ExpressionTreeEmitter
                     }
                 }
 
-                // Fallback: tuple Item1, Item2, ...
                 if (propName is null && targetType is not null)
                 {
                     var itemName = $"Item{i + 1}";
@@ -1968,7 +1819,6 @@ internal sealed class ExpressionTreeEmitter
                     continue;
                 }
 
-                // Access the property/field on memberBase
                 var accessVar = NextVar();
                 var memberSymbol = targetType?.GetMembers(propName).FirstOrDefault();
                 if (memberSymbol is IPropertySymbol ps)
@@ -1994,7 +1844,6 @@ internal sealed class ExpressionTreeEmitter
             }
         }
 
-        // Combine all conditions with AndAlso
         if (conditions.Count == 0)
         {
             var resultVar = NextVar();
@@ -2013,14 +1862,10 @@ internal sealed class ExpressionTreeEmitter
         return combined;
     }
 
-    // ── Switch expressions ──────────────────────────────────────────────────
-
     /// <summary>
-    /// Translates a <c>switch (expr) { case X: return ...; default: return ...; }</c> statement
-    /// into a nested-ternary expression equivalent to the corresponding switch expression.
-    /// Each case clause must be a single-value constant pattern and each case body must be a
-    /// single <c>return</c> statement. Fall-through, <c>goto case</c>, and non-return bodies
-    /// are not supported and fall back to the default-stub behavior.
+    /// Lowers a switch statement to a ternary chain. Requires single-value constant patterns and
+    /// single-return case bodies; fall-through, <c>goto case</c>, and non-return bodies fall back
+    /// to the default-stub behavior.
     /// </summary>
     private string EmitSwitchStatement(ISwitchOperation switchStmt)
     {
@@ -2091,7 +1936,7 @@ internal sealed class ExpressionTreeEmitter
             AppendLine($"var {currentVar} = {Expr}.Default(typeof({typeFqn}));");
         }
 
-        // Fold arms in reverse so the first matching arm wins.
+        // Fold in reverse so the first matching arm ends up as the outermost (first-tested) ternary.
         for (var i = arms.Count - 1; i >= 0; i--)
         {
             var (condVar, valueVar, _) = arms[i];
@@ -2103,11 +1948,7 @@ internal sealed class ExpressionTreeEmitter
         return currentVar;
     }
 
-    /// <summary>
-    /// Returns the single <see cref="IReturnOperation"/> inside a switch case's body, or null
-    /// if the body does not reduce to a single return (e.g. multiple statements, break-only,
-    /// goto case, throw).
-    /// </summary>
+    /// <summary>Returns the single return operation in a case body, or null if the shape isn't supported.</summary>
     private static IReturnOperation? FindCaseReturn(ISwitchCaseOperation switchCase)
     {
         foreach (var op in switchCase.Body)
@@ -2119,8 +1960,10 @@ internal sealed class ExpressionTreeEmitter
                 case IBlockOperation block:
                     foreach (var inner in block.Operations)
                     {
-                        if (inner is IReturnOperation innerRet) return innerRet;
-                        // Anything other than the return means we don't support this shape.
+                        if (inner is IReturnOperation innerRet)
+                        {
+                            return innerRet;
+                        }
                         return null;
                     }
                     return null;
@@ -2136,7 +1979,6 @@ internal sealed class ExpressionTreeEmitter
         var governingVar = EmitOperation(switchExpr.Value);
         var typeFqn = switchExpr.Type?.ToDisplayString(_fqnFormat) ?? "object";
 
-        // Find default arm (discard pattern) or use Expression.Default as fallback
         string? currentVar = null;
         ISwitchExpressionArmOperation? defaultArm = null;
         foreach (var arm in switchExpr.Arms)
@@ -2158,17 +2000,18 @@ internal sealed class ExpressionTreeEmitter
             AppendLine($"var {currentVar} = {Expr}.Default(typeof({typeFqn}));");
         }
 
-        // Build ternary chain in reverse (skip default arm)
+        // Fold in reverse so earlier arms wrap later ones; default arm is the innermost fallback.
         var arms = switchExpr.Arms;
         for (var i = arms.Length - 1; i >= 0; i--)
         {
             var arm = arms[i];
             if (arm.Pattern is IDiscardPatternOperation)
+            {
                 continue;
+            }
 
             var conditionVar = EmitPattern(arm.Pattern, governingVar, switchExpr.Value.Type);
 
-            // Combine with when-clause if present
             if (arm.Guard is not null)
             {
                 var guardVar = EmitOperation(arm.Guard);
@@ -2186,15 +2029,13 @@ internal sealed class ExpressionTreeEmitter
         return currentVar;
     }
 
-    // ── Null-conditional access ─────────────────────────────────────────────
-
     private string EmitConditionalAccess(IConditionalAccessOperation condAccess)
     {
         var receiverVar = EmitOperation(condAccess.Operation);
         var receiverType = condAccess.Operation.Type;
         var typeFqn = condAccess.Type?.ToDisplayString(_fqnFormat) ?? "object";
 
-        // For Nullable<T>, member access needs .Value
+        // Member access on a Nullable<T> goes through .Value — unwrap before pushing onto the receiver stack.
         var accessVar = receiverVar;
         if (receiverType is { IsValueType: true } &&
             receiverType.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
@@ -2204,14 +2045,13 @@ internal sealed class ExpressionTreeEmitter
             accessVar = valueVar;
         }
 
-        // Push receiver for IConditionalAccessInstanceOperation resolution
+        // The stack is read by IConditionalAccessInstanceOperation when emitting WhenNotNull.
         _conditionalAccessReceiverStack.Push((accessVar, receiverType));
 
         var whenNotNullVar = EmitOperation(condAccess.WhenNotNull);
 
-        // Always emit faithful null-check ternary: receiver != null ? whenNotNull : default(T)
-        // If the whenNotNull type differs from the overall type (e.g. int vs int?),
-        // insert Expression.Convert to match.
+        // Faithful null-check ternary: receiver != null ? whenNotNull : default(T). When whenNotNull
+        // differs from the result type (e.g. int vs int?), wrap it in a Convert to match.
         var whenNotNullType = condAccess.WhenNotNull.Type;
         var overallType = condAccess.Type;
         var needsConvert = whenNotNullType is not null && overallType is not null
@@ -2247,18 +2087,14 @@ internal sealed class ExpressionTreeEmitter
             return varName;
         }
 
-        // Should not happen if the IOperation tree is well-formed
         ReportDiagnostic(Diagnostics.UnsupportedOperation, Location.None, "ConditionalAccessInstance (empty receiver stack)");
         var resultVar = NextVar();
         AppendLine($"var {resultVar} = {Expr}.Default(typeof(object));");
         return resultVar;
     }
 
-    // ── Block bodies ─────────────────────────────────────────────────────────
-
     private string EmitBlock(IBlockOperation block)
     {
-        // Single return statement: just emit the return value directly (no Block needed)
         if (block.Operations.Length == 1 && block.Operations[0] is IReturnOperation singleReturn)
         {
             return EmitReturn(singleReturn);
@@ -2268,10 +2104,9 @@ internal sealed class ExpressionTreeEmitter
     }
 
     /// <summary>
-    /// Emits a flat sequence of statements as either a single expression (if trivially reducible)
-    /// or <c>Expression.Block(variables, statements)</c>. Handles early-return patterns by
-    /// restructuring into nested <c>Condition</c> expressions so the final value is the correct
-    /// branch value, not just the last statement.
+    /// Lowers a statement list to a single expression. Early-return shapes are restructured into
+    /// nested <c>Condition</c>s so every path yields a value (rather than appending the early
+    /// return as an unrelated statement).
     /// </summary>
     private string EmitStatementSequence(IReadOnlyList<IOperation> ops, ITypeSymbol? fallbackType)
     {
@@ -2292,7 +2127,6 @@ internal sealed class ExpressionTreeEmitter
             return empty;
         }
 
-        // If no variables, and only one statement, just return it directly.
         if (variables.Count == 0 && statements.Count == 1)
         {
             return statements[0];
@@ -2320,7 +2154,7 @@ internal sealed class ExpressionTreeEmitter
                     continue;
 
                 case IReturnOperation returnOp:
-                    // Return becomes the block's final value; subsequent ops are dead code.
+                    // Return is the block's final value; the rest of `ops` is dead code.
                     if (returnOp.ReturnedValue is not null)
                     {
                         statements.Add(EmitOperation(returnOp.ReturnedValue));
@@ -2328,7 +2162,7 @@ internal sealed class ExpressionTreeEmitter
                     return;
 
                 case IConditionalOperation cond when TryEmitEarlyReturnConditional(cond, ops, i + 1, statements):
-                    // The conditional consumed the remaining tail — stop processing.
+                    // Tail was folded into the conditional; nothing more to emit at this level.
                     return;
 
                 case IExpressionStatementOperation exprStmt:
@@ -2367,18 +2201,15 @@ internal sealed class ExpressionTreeEmitter
     }
 
     /// <summary>
-    /// Restructures an <c>if</c> statement whose branches contain early <c>return</c>s into
-    /// a nested <c>Condition</c> expression. Returning branches become the Condition's arms;
-    /// non-returning branches are merged with the tail (<paramref name="ops"/> from
-    /// <paramref name="tailStart"/>) so every path resolves to a value. Returns true when this
-    /// restructuring was performed (and thus the tail has been consumed).
+    /// Restructures `if (...) return X;` shapes into a nested <c>Condition</c>. Returning branches
+    /// become Condition arms; non-returning branches are merged with the tail so every path yields
+    /// a value. Returns true when the tail has been consumed.
     /// </summary>
     private bool TryEmitEarlyReturnConditional(IConditionalOperation cond, IReadOnlyList<IOperation> ops, int tailStart, List<string> statements)
     {
         var trueReturns = AlwaysReturns(cond.WhenTrue);
         var falseReturns = cond.WhenFalse is not null && AlwaysReturns(cond.WhenFalse);
 
-        // Only engage for early-return shapes; if/then without a return is handled by the normal path.
         if (!trueReturns && !falseReturns)
         {
             return false;
@@ -2389,7 +2220,7 @@ internal sealed class ExpressionTreeEmitter
             ?? (cond.WhenFalse is not null ? InferBranchType(cond.WhenFalse) : null);
         var typeFqn = resultType?.ToDisplayString(_fqnFormat) ?? _outerReturnTypeFqn ?? "object";
 
-        // Allocate result var first to keep snapshot numbering stable with the previous EmitConditional.
+        // Allocate result var before the test so snapshot numbering stays stable vs. EmitConditional.
         var resultVar = NextVar();
         var testVar = EmitOperation(cond.Condition);
 
@@ -2406,7 +2237,6 @@ internal sealed class ExpressionTreeEmitter
         }
         else
         {
-            // No else branch — the tail becomes the else.
             falseVar = EmitTail(ops, tailStart, resultType);
         }
 
@@ -2448,12 +2278,7 @@ internal sealed class ExpressionTreeEmitter
         return EmitStatementSequence(tail, expectedType);
     }
 
-    /// <summary>
-    /// Returns true when executing <paramref name="op"/> always transfers control via
-    /// <c>return</c> (so subsequent statements are unreachable). Used to detect early-return
-    /// shapes that must be restructured into nested <c>Condition</c> expressions rather than
-    /// appended as side-effect statements in a <c>Block</c>.
-    /// </summary>
+    /// <summary>True when every path through <paramref name="op"/> ends in a <c>return</c>.</summary>
     private static bool AlwaysReturns(IOperation? op)
     {
         if (op is null)
@@ -2485,8 +2310,6 @@ internal sealed class ExpressionTreeEmitter
         return resultVar;
     }
 
-    // ── String interpolation ────────────────────────────────────────────────
-
     private string EmitInterpolatedString(IInterpolatedStringOperation operation)
     {
         var partVars = new List<string>();
@@ -2508,8 +2331,7 @@ internal sealed class ExpressionTreeEmitter
                 {
                     if (interp.Alignment is not null)
                     {
-                        // Alignment specifiers have no expression tree equivalent.
-                        // Report diagnostic but continue emitting the interpolation without alignment.
+                        // Alignment specifiers have no expression tree equivalent — report and drop.
                         ReportDiagnostic(Diagnostics.IgnoredOperation,
                             interp.Alignment.Syntax?.GetLocation() ?? Location.None,
                             "Alignment specifier in string interpolation");
@@ -2520,7 +2342,6 @@ internal sealed class ExpressionTreeEmitter
 
                     if (interp.FormatString is not null)
                     {
-                        // Has format specifier: call ToString(format)
                         var formatValue = interp.FormatString.ConstantValue.Value?.ToString() ?? "";
                         var toStringMethod = FindToStringWithFormat(innerType);
                         if (toStringMethod is not null)
@@ -2534,7 +2355,6 @@ internal sealed class ExpressionTreeEmitter
                         }
                         else
                         {
-                            // Type doesn't have ToString(string) — format specifier is lost
                             ReportDiagnostic(Diagnostics.UnsupportedOperation,
                                 interp.FormatString.Syntax?.GetLocation() ?? Location.None,
                                 $"Format specifier '{formatValue}' on type without ToString(string)");
@@ -2543,12 +2363,10 @@ internal sealed class ExpressionTreeEmitter
                     }
                     else if (innerType is not null && innerType.SpecialType != SpecialType.System_String)
                     {
-                        // Non-string type: call ToString()
                         partVars.Add(EmitToStringCall(innerVar, innerType));
                     }
                     else
                     {
-                        // Already string-typed
                         partVars.Add(innerVar);
                     }
 
@@ -2557,7 +2375,6 @@ internal sealed class ExpressionTreeEmitter
             }
         }
 
-        // Reduce parts using optimal string.Concat overload
         if (partVars.Count == 0)
         {
             var emptyVar = NextVar();
@@ -2566,7 +2383,9 @@ internal sealed class ExpressionTreeEmitter
         }
 
         if (partVars.Count == 1)
+        {
             return partVars[0];
+        }
 
         if (partVars.Count == 2)
         {
@@ -2589,9 +2408,8 @@ internal sealed class ExpressionTreeEmitter
             return resultVar;
         }
 
-        // 5+ parts: use string.Concat(string[]) to faithfully represent the interpolation.
-        // Runtime transformers (e.g., FlattenConcatArrayCalls) rewrite this for providers
-        // like EF Core that cannot translate NewArrayInit to SQL.
+        // 5+ parts: emit string.Concat(string[]). FlattenConcatArrayCalls rewrites this for providers
+        // like EF Core that can't translate NewArrayInit to SQL.
         {
             var arrayVar = NextVar();
             AppendLine($"var {arrayVar} = {Expr}.NewArrayInit(typeof(string), {string.Join(", ", partVars)});");
@@ -2612,7 +2430,6 @@ internal sealed class ExpressionTreeEmitter
             return strVar;
         }
 
-        // Fallback: box to object and call object.ToString()
         var boxed = NextVar();
         AppendLine($"var {boxed} = {Expr}.Convert({innerVar}, typeof(object));");
         var result = NextVar();
@@ -2622,7 +2439,10 @@ internal sealed class ExpressionTreeEmitter
 
     private IMethodSymbol? FindParameterlessToString(ITypeSymbol? type)
     {
-        if (type is null) return null;
+        if (type is null)
+        {
+            return null;
+        }
         return type.GetMembers("ToString")
             .OfType<IMethodSymbol>()
             .FirstOrDefault(m => m.Parameters.Length == 0 && !m.IsStatic);
@@ -2630,7 +2450,10 @@ internal sealed class ExpressionTreeEmitter
 
     private IMethodSymbol? FindToStringWithFormat(ITypeSymbol? type)
     {
-        if (type is null) return null;
+        if (type is null)
+        {
+            return null;
+        }
         return type.GetMembers("ToString")
             .OfType<IMethodSymbol>()
             .FirstOrDefault(m => m.Parameters.Length == 1
@@ -2643,7 +2466,9 @@ internal sealed class ExpressionTreeEmitter
     private string EnsureStringConcatMethod()
     {
         if (_concatMethodField is not null)
+        {
             return _concatMethodField;
+        }
 
         var stringType = _semanticModel.Compilation.GetSpecialType(SpecialType.System_String);
         var concatMethod = stringType.GetMembers("Concat")
@@ -2757,8 +2582,6 @@ internal sealed class ExpressionTreeEmitter
         return _fieldCache.EnsureMethodInfo(methodDef.Construct(elementType));
     }
 
-    // ── Index from end (^ operator) ───────────────────────────────────────────
-
     private string EmitIndexFromEnd(IUnaryOperation unary)
     {
         var resultVar = NextVar();
@@ -2771,8 +2594,6 @@ internal sealed class ExpressionTreeEmitter
         return resultVar;
     }
 
-    // ── Range (.. operator) ─────────────────────────────────────────────────
-
     private string EmitRange(IRangeOperation range)
     {
         var resultVar = NextVar();
@@ -2784,7 +2605,6 @@ internal sealed class ExpressionTreeEmitter
         }
         else
         {
-            // Implicit start: Index.Start (== new Index(0, fromEnd: false))
             startVar = NextVar();
             var zeroConst = NextVar();
             AppendLine($"var {zeroConst} = {Expr}.Constant(0);");
@@ -2802,7 +2622,6 @@ internal sealed class ExpressionTreeEmitter
         }
         else
         {
-            // Implicit end: Index.End (== new Index(0, fromEnd: true))
             endVar = NextVar();
             var zeroConst = NextVar();
             AppendLine($"var {zeroConst} = {Expr}.Constant(0);");
@@ -2819,8 +2638,6 @@ internal sealed class ExpressionTreeEmitter
         return resultVar;
     }
 
-    // ── With expressions ─────────────────────────────────────────────────────
-
     private string EmitWith(IWithOperation withOp)
     {
         var resultVar = NextVar();
@@ -2828,26 +2645,23 @@ internal sealed class ExpressionTreeEmitter
         var type = withOp.Type!;
         var typeFqn = type.ToDisplayString(_fqnFormat);
 
-        // Find the clone method (records have a <Clone>$ method)
+        // Records expose a synthesized <Clone>$ method that returns the base type (object).
         var cloneMethod = type.GetMembers("<Clone>$")
             .OfType<IMethodSymbol>()
             .FirstOrDefault();
 
         if (cloneMethod is not null)
         {
-            // Clone the original: clone = original.<Clone>$()
             var cloneField = _fieldCache.EnsureMethodInfo(cloneMethod);
             var cloneVar = NextVar();
             AppendLine($"var {cloneVar} = {Expr}.Call({operandVar}, {cloneField});");
 
-            // Cast to the target type (Clone returns object)
+            // <Clone>$ returns the base type — cast back to the record's concrete type.
             var typedClone = NextVar();
             AppendLine($"var {typedClone} = {Expr}.Convert({cloneVar}, typeof({typeFqn}));");
 
-            // Apply property modifications from the initializer
             if (withOp.Initializer is not null)
             {
-                // Store in a variable so we can modify properties
                 var tempVar = NextVar();
                 AppendLine($"var {tempVar} = {Expr}.Variable(typeof({typeFqn}), \"withTemp\");");
                 var assignTemp = NextVar();
@@ -2870,7 +2684,6 @@ internal sealed class ExpressionTreeEmitter
                     }
                 }
 
-                // Block: { var temp = clone; temp.Prop = value; temp }
                 statements.Add(tempVar);
                 AppendLine($"var {resultVar} = {Expr}.Block(new global::System.Linq.Expressions.ParameterExpression[] {{ {tempVar} }}, {string.Join(", ", statements)});");
             }
@@ -2889,8 +2702,6 @@ internal sealed class ExpressionTreeEmitter
 
         return resultVar;
     }
-
-    // ── Collection expressions ──────────────────────────────────────────────
 
     private string EmitCollectionExpression(ICollectionExpressionOperation collExpr)
     {
@@ -2912,8 +2723,6 @@ internal sealed class ExpressionTreeEmitter
             return EmitCollectionExpressionWithSpread(collExpr, resultVar);
         }
 
-        // ── No-spread path (unchanged) ──────────────────────────────────────
-
         var elementVars = new List<string>();
         foreach (var element in collExpr.Elements)
         {
@@ -2924,14 +2733,12 @@ internal sealed class ExpressionTreeEmitter
 
         if (type is IArrayTypeSymbol arrayType)
         {
-            // Array: Expression.NewArrayInit(typeof(T), elements)
             var elementTypeFqn = arrayType.ElementType.ToDisplayString(_fqnFormat);
             AppendLine($"var {resultVar} = {Expr}.NewArrayInit(typeof({elementTypeFqn}), {elementsExpr});");
         }
         else if (type is INamedTypeSymbol namedType && namedType.IsGenericType
             && namedType.OriginalDefinition.SpecialType == SpecialType.None)
         {
-            // List/Collection: Expression.ListInit(new T(), ElementInit(Add, element)...)
             var ctor = namedType.Constructors.FirstOrDefault(c => c.Parameters.Length == 0);
             if (ctor is not null)
             {
@@ -2957,7 +2764,7 @@ internal sealed class ExpressionTreeEmitter
                 }
                 else
                 {
-                    // No Add method — just return empty collection
+                    // No Add method — leave the collection empty.
                     AppendLine($"var {resultVar} = {newVar};");
                 }
             }
@@ -2978,7 +2785,6 @@ internal sealed class ExpressionTreeEmitter
     {
         var type = collExpr.Type!;
 
-        // Determine element type
         ITypeSymbol elementType;
         if (type is IArrayTypeSymbol arrayType)
         {
@@ -2995,7 +2801,6 @@ internal sealed class ExpressionTreeEmitter
 
         var elementTypeFqn = elementType.ToDisplayString(_fqnFormat);
 
-        // Resolve Enumerable.ToArray/ToList for materialization
         var materializeMethod = type is IArrayTypeSymbol ? "ToArray" : "ToList";
         var materializeField = ResolveEnumerableMethod(materializeMethod, 1, elementType);
 
@@ -3007,7 +2812,7 @@ internal sealed class ExpressionTreeEmitter
             return EmitUnsupported(collExpr);
         }
 
-        // Build segments: consecutive literals become NewArrayInit, spreads become their operand
+        // Group runs of literals into NewArrayInit segments; spread elements pass through as-is.
         var segments = new List<string>();
         var currentLiterals = new List<string>();
 
@@ -3015,7 +2820,6 @@ internal sealed class ExpressionTreeEmitter
         {
             if (element is ISpreadOperation spread)
             {
-                // Flush any accumulated literals as an array segment
                 if (currentLiterals.Count > 0)
                 {
                     var arrVar = NextVar();
@@ -3031,7 +2835,6 @@ internal sealed class ExpressionTreeEmitter
             }
         }
 
-        // Flush trailing literals
         if (currentLiterals.Count > 0)
         {
             var arrVar = NextVar();
@@ -3039,7 +2842,6 @@ internal sealed class ExpressionTreeEmitter
             segments.Add(arrVar);
         }
 
-        // Left-fold Concat (resolve Concat only when needed)
         var current = segments[0];
         if (segments.Count > 1)
         {
@@ -3060,12 +2862,9 @@ internal sealed class ExpressionTreeEmitter
             }
         }
 
-        // Materialize to target type
         AppendLine($"var {resultVar} = {Expr}.Call({materializeField}, {current});");
         return resultVar;
     }
-
-    // ── Assignments ─────────────────────────────────────────────────────────
 
     private string EmitSimpleAssignment(ISimpleAssignmentOperation assign)
     {
@@ -3091,7 +2890,7 @@ internal sealed class ExpressionTreeEmitter
             return EmitUnsupported(compoundAssign);
         }
 
-        // String += uses string.Concat, not Expression.Add
+        // String += compiles to string.Concat, not Expression.Add — same caveat as in EmitBinary.
         if (compoundAssign.OperatorKind == BinaryOperatorKind.Add
             && compoundAssign.OperatorMethod is null
             && compoundAssign.Type?.SpecialType == SpecialType.System_String)
@@ -3118,7 +2917,6 @@ internal sealed class ExpressionTreeEmitter
             };
         }
 
-        // sum += x → Expression.Assign(sum, Expression.MakeBinary(Add, sum, x))
         var binaryVar = NextVar();
         AppendLine($"var {binaryVar} = {Expr}.MakeBinary(global::System.Linq.Expressions.ExpressionType.{exprType}, {targetVar}, {valueVar});");
         AppendLine($"var {resultVar} = {Expr}.Assign({targetVar}, {binaryVar});");
@@ -3146,16 +2944,12 @@ internal sealed class ExpressionTreeEmitter
         return resultVar;
     }
 
-    // ── Loops ───────────────────────────────────────────────────────────────
-
     private string EmitForEachLoop(IForEachLoopOperation forEach)
     {
         var resultVar = NextVar();
 
-        // Emit collection expression
         var collectionVar = EmitOperation(forEach.Collection);
 
-        // Determine element type and collection interface
         var elementType = forEach.LoopControlVariable switch
         {
             IVariableDeclaratorOperation declarator => declarator.Symbol.Type,
@@ -3168,19 +2962,17 @@ internal sealed class ExpressionTreeEmitter
 
         var elementTypeFqn = elementType?.ToDisplayString(_fqnFormat) ?? "object";
 
-        // Create iteration variable
         var iterVarName = forEach.LoopControlVariable is IVariableDeclaratorOperation decl
             ? decl.Symbol.Name : "item";
         var iterVar = NextVar();
         AppendLine($"var {iterVar} = {Expr}.Variable(typeof({elementTypeFqn}), \"{iterVarName}\");");
 
-        // Register the iteration variable so EmitLocalReference can find it
+        // Register the loop variable so its body references resolve to iterVar.
         if (forEach.LoopControlVariable is IVariableDeclaratorOperation varDecl)
         {
             _localToVar[varDecl.Symbol] = iterVar;
         }
 
-        // Create enumerator variable
         var collectionType = forEach.Collection.Type;
         var enumerableInterface = collectionType is INamedTypeSymbol nt
             ? nt.AllInterfaces.Concat(new[] { nt })
@@ -3203,7 +2995,7 @@ internal sealed class ExpressionTreeEmitter
                     .SelectMany(i => i.GetMembers("MoveNext").OfType<IMethodSymbol>())
                     .FirstOrDefault(m => m.Parameters.Length == 0);
 
-                // Prefer the generic Current (returns T) over the non-generic one (returns object)
+                // Prefer the generic Current (T) over the non-generic IEnumerator.Current (object).
                 currentProperty = enumeratorType.GetMembers("Current").OfType<IPropertySymbol>().FirstOrDefault()
                     ?? enumeratorType.AllInterfaces
                         .SelectMany(i => i.GetMembers("Current").OfType<IPropertySymbol>())
@@ -3225,7 +3017,6 @@ internal sealed class ExpressionTreeEmitter
         var currentField = _fieldCache.EnsurePropertyInfo(currentProperty);
         var enumeratorTypeFqn = getEnumeratorMethod.ReturnType.ToDisplayString(_fqnFormat);
 
-        // var enumerator = collection.GetEnumerator();
         var enumVar = NextVar();
         AppendLine($"var {enumVar} = {Expr}.Variable(typeof({enumeratorTypeFqn}), \"enumerator\");");
         var getEnumCall = NextVar();
@@ -3233,11 +3024,9 @@ internal sealed class ExpressionTreeEmitter
         var assignEnum = NextVar();
         AppendLine($"var {assignEnum} = {Expr}.Assign({enumVar}, {getEnumCall});");
 
-        // Break label
         var breakLabel = NextVar();
         AppendLine($"var {breakLabel} = {Expr}.Label(\"break\");");
 
-        // Body: assign Current to iteration variable, then execute loop body
         var getCurrent = NextVar();
         AppendLine($"var {getCurrent} = {Expr}.Property({enumVar}, {currentField});");
         var assignCurrent = NextVar();
@@ -3248,7 +3037,6 @@ internal sealed class ExpressionTreeEmitter
         var bodyBlock = NextVar();
         AppendLine($"var {bodyBlock} = {Expr}.Block({assignCurrent}, {bodyVar});");
 
-        // Loop: if (MoveNext()) { body } else { break }
         var moveNextCall = NextVar();
         AppendLine($"var {moveNextCall} = {Expr}.Call({enumVar}, {moveNextField});");
         var breakExpr = NextVar();
@@ -3258,7 +3046,6 @@ internal sealed class ExpressionTreeEmitter
         var loopExpr = NextVar();
         AppendLine($"var {loopExpr} = {Expr}.Loop({ifThenElse}, {breakLabel});");
 
-        // Wrap in block: { var enumerator = ...; var item; loop; }
         AppendLine($"var {resultVar} = {Expr}.Block(new global::System.Linq.Expressions.ParameterExpression[] {{ {enumVar}, {iterVar} }}, {assignEnum}, {loopExpr});");
         return resultVar;
     }
@@ -3267,7 +3054,6 @@ internal sealed class ExpressionTreeEmitter
     {
         var resultVar = NextVar();
 
-        // Emit initializers (Before)
         var initVars = new List<string>();
         var blockVariables = new List<string>();
         foreach (var beforeOp in forLoop.Before)
@@ -3301,26 +3087,21 @@ internal sealed class ExpressionTreeEmitter
             }
         }
 
-        // Break label
         var breakLabel = NextVar();
         AppendLine($"var {breakLabel} = {Expr}.Label(\"break\");");
 
-        // Condition
         var conditionVar = forLoop.Condition is not null
             ? EmitOperation(forLoop.Condition)
             : null;
 
-        // Body
         var bodyVar = EmitOperation(forLoop.Body);
 
-        // Increment (AtLoopBottom)
         var incrementVars = new List<string>();
         foreach (var bottomOp in forLoop.AtLoopBottom)
         {
             incrementVars.Add(EmitOperation(bottomOp));
         }
 
-        // Build loop body: if (condition) { body; increment; } else { break; }
         var loopBodyParts = new List<string> { bodyVar };
         loopBodyParts.AddRange(incrementVars);
         var loopBodyBlock = NextVar();
@@ -3344,7 +3125,6 @@ internal sealed class ExpressionTreeEmitter
         var loopExpr = NextVar();
         AppendLine($"var {loopExpr} = {Expr}.Loop({loopContent}, {breakLabel});");
 
-        // Wrap: { initializers; loop; }
         var allStatements = new List<string>();
         allStatements.AddRange(initVars);
         allStatements.Add(loopExpr);
@@ -3364,11 +3144,9 @@ internal sealed class ExpressionTreeEmitter
     {
         var resultVar = NextVar();
 
-        // Break label
         var breakLabel = NextVar();
         AppendLine($"var {breakLabel} = {Expr}.Label(\"break\");");
 
-        // Condition and body
         var conditionVar = whileLoop.Condition is not null
             ? EmitOperation(whileLoop.Condition)
             : null;
@@ -3379,14 +3157,12 @@ internal sealed class ExpressionTreeEmitter
 
         if (conditionVar is null)
         {
-            // Infinite loop (no condition) — unlikely in [Expressive] but handle gracefully
             var loopExpr = NextVar();
             AppendLine($"var {loopExpr} = {Expr}.Loop({bodyVar}, {breakLabel});");
             AppendLine($"var {resultVar} = {loopExpr};");
         }
         else if (whileLoop.ConditionIsTop)
         {
-            // while (cond) { body; } → Loop(IfThenElse(cond, body, break), label)
             var ifThenElse = NextVar();
             AppendLine($"var {ifThenElse} = {Expr}.IfThenElse({conditionVar}, {bodyVar}, {breakExpr});");
             var loopExpr = NextVar();
@@ -3395,7 +3171,7 @@ internal sealed class ExpressionTreeEmitter
         }
         else
         {
-            // do { body; } while (cond); → Loop(Block(body, IfThen(!cond, break)), label)
+            // do/while: cond is checked at the bottom, so we emit Block(body, IfThen(!cond, break)) inside the Loop.
             var negatedCond = NextVar();
             AppendLine($"var {negatedCond} = {Expr}.Not({conditionVar});");
             var ifBreak = NextVar();
@@ -3410,8 +3186,6 @@ internal sealed class ExpressionTreeEmitter
         return resultVar;
     }
 
-    // ── Unsupported fallback ─────────────────────────────────────────────────
-
     private string EmitUnsupported(IOperation operation)
     {
         ReportDiagnostic(Diagnostics.UnsupportedOperation,
@@ -3419,10 +3193,9 @@ internal sealed class ExpressionTreeEmitter
             operation.Kind.ToString());
 
         var resultVar = NextVar();
-        // Prefer the operation's own type. For statements (switch, block, return, …) the
-        // IOperation type is either null or void — falling back to the enclosing lambda's
-        // declared return type avoids a Lambda<Func<T,R>>(Default(object), …) mismatch that
-        // would throw at ExpressionRegistry static-init time and poison the whole assembly.
+        // Statement-shaped ops (switch, block, return…) have null/void IOperation.Type; fall back to the
+        // outer lambda's return type to avoid a Lambda<Func<T,R>>(Default(object),…) mismatch that
+        // would throw at ExpressionRegistry static-init time and poison the assembly.
         var isUsableType = operation.Type is not null
             && operation.Type.SpecialType != SpecialType.System_Void;
         var typeFqn = isUsableType
@@ -3433,8 +3206,6 @@ internal sealed class ExpressionTreeEmitter
         return resultVar;
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
-
     private string NextVar() => $"{_varPrefix}expr_{_varCounter++}";
 
     private void AppendLine(string line)
@@ -3443,28 +3214,33 @@ internal sealed class ExpressionTreeEmitter
         _lineCount++;
     }
 
-    /// <summary>
-    /// Infers the effective type of a conditional branch (which may be a block with a return).
-    /// </summary>
+    /// <summary>Returns the effective branch type, looking through blocks-with-return.</summary>
     private static ITypeSymbol? InferBranchType(IOperation? branch)
     {
-        if (branch is null) return null;
+        if (branch is null)
+        {
+            return null;
+        }
         if (branch.Type is not null && branch.Type.SpecialType != SpecialType.System_Void)
+        {
             return branch.Type;
+        }
 
-        // Block containing a single return statement
         if (branch is IBlockOperation block)
         {
             foreach (var op in block.Operations)
             {
                 if (op is IReturnOperation ret && ret.ReturnedValue?.Type is { } retType)
+                {
                     return retType;
+                }
             }
         }
 
-        // Direct return
         if (branch is IReturnOperation directRet && directRet.ReturnedValue?.Type is { } directType)
+        {
             return directType;
+        }
 
         return null;
     }
@@ -3481,7 +3257,9 @@ internal sealed class ExpressionTreeEmitter
     {
         var capacity = 0;
         foreach (var line in _lines)
-            capacity += line.Length + 1; // +1 for newline
+        {
+            capacity += line.Length + 1;
+        }
         var sb = new StringBuilder(capacity);
         foreach (var line in _lines)
         {
@@ -3496,9 +3274,8 @@ internal sealed class ExpressionTreeEmitter
     }
 
     /// <summary>
-    /// Unwraps syntax nodes that are transparent to the IOperation model.
-    /// These wrappers (checked, unchecked, parenthesized, null-forgiving !)
-    /// cause <c>GetOperation</c> to return null if not stripped first.
+    /// Strips syntax wrappers (checked/unchecked, parens, null-forgiving <c>!</c>) that are
+    /// transparent to IOperation — without this, <c>GetOperation</c> returns null on them.
     /// </summary>
     private static SyntaxNode UnwrapTransparentSyntax(SyntaxNode node)
     {

@@ -5,10 +5,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ExpressiveSharp.Generator.Comparers;
 
-/// <summary>
-/// Equality comparer for tuples of (MemberDeclarationSyntax, ExpressiveAttributeData, ExpressiveGlobalOptions) and Compilation,
-/// used as keys in the registry to determine if a member's expressive status has changed across incremental generation steps.
-/// </summary>
 internal class MemberDeclarationSyntaxAndCompilationEqualityComparer
     : IEqualityComparer<((MemberDeclarationSyntax Member, ExpressiveAttributeData Attribute, ExpressiveGlobalOptions GlobalOptions), Compilation)>
 {
@@ -21,7 +17,6 @@ internal class MemberDeclarationSyntaxAndCompilationEqualityComparer
         var (xLeft, xCompilation) = x;
         var (yLeft, yCompilation) = y;
 
-        // 1. Fast reference equality short-circuit
         if (ReferenceEquals(xLeft.Member, yLeft.Member) &&
             ReferenceEquals(xCompilation, yCompilation) &&
             xLeft.GlobalOptions == yLeft.GlobalOptions)
@@ -29,34 +24,28 @@ internal class MemberDeclarationSyntaxAndCompilationEqualityComparer
             return true;
         }
 
-        // 2. The syntax tree of the member's own file must be the same object
-        //    (Roslyn reuses SyntaxTree instances for unchanged files, even when
-        //    the Compilation object itself is new due to edits elsewhere)
-        //    Single pointer comparison — very cheap.
+        // Roslyn reuses SyntaxTree instances for unchanged files even when the Compilation
+        // object itself is new due to edits elsewhere — pointer comparison is enough.
         if (!ReferenceEquals(xLeft.Member.SyntaxTree, yLeft.Member.SyntaxTree))
         {
             return false;
         }
 
-        // 3. Attribute arguments (primitive record struct) — cheap value comparison
         if (xLeft.Attribute != yLeft.Attribute)
         {
             return false;
         }
 
-        // 4. Global options (primitive record struct) — cheap value comparison
         if (xLeft.GlobalOptions != yLeft.GlobalOptions)
         {
             return false;
         }
 
-        // 5. Member text — string allocation, only reached when the SyntaxTree is shared
         if (!_memberComparer.Equals(xLeft.Member, yLeft.Member))
         {
             return false;
         }
 
-        // 6. Assembly-level references — most expensive (ImmutableArray enumeration)
         return xCompilation.ExternalReferences.SequenceEqual(yCompilation.ExternalReferences);
     }
 
@@ -71,7 +60,6 @@ internal class MemberDeclarationSyntaxAndCompilationEqualityComparer
             hash = hash * 31 + left.Attribute.GetHashCode();
             hash = hash * 31 + left.GlobalOptions.GetHashCode();
 
-            // Incorporate compilation external references to align with Equals
             var references = compilation.ExternalReferences;
             var referencesHash = 17;
             referencesHash = referencesHash * 31 + references.Length;

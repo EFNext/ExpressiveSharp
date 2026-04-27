@@ -4,23 +4,11 @@ using System.Reflection;
 namespace ExpressiveSharp.Transformers;
 
 /// <summary>
-/// Replaces field access on inline <c>ValueTuple</c> construction with the corresponding
-/// constructor argument, enabling LINQ providers (EF Core, etc.) to translate tuple comparisons.
+/// Replaces field access on an inline <c>ValueTuple</c> construction with the corresponding
+/// constructor argument, e.g. <c>new (a, b).Item1</c> -> <c>a</c>. This lets providers translate
+/// <c>(Price, Quantity) == (50.0, 5)</c> as <c>Price == 50.0 AND Quantity == 5</c> instead of
+/// failing on the unsupported <c>ValueTuple</c> construction.
 /// </summary>
-/// <remarks>
-/// <para>
-/// Rewrites patterns like:
-/// <code>
-/// Expression.Field(Expression.New(ValueTuple&lt;T1,T2&gt; ctor, a, b), "Item1")
-/// </code>
-/// Into:
-/// <code>
-/// a
-/// </code>
-/// This allows <c>(Price, Quantity) == (50.0, 5)</c> to be translated as
-/// <c>Price == 50.0 AND Quantity == 5</c> instead of requiring <c>ValueTuple</c> construction.
-/// </para>
-/// </remarks>
 public sealed class FlattenTupleComparisons : ExpressionVisitor, IExpressionTreeTransformer
 {
     public Expression Transform(Expression expression)
@@ -28,7 +16,6 @@ public sealed class FlattenTupleComparisons : ExpressionVisitor, IExpressionTree
 
     protected override Expression VisitMember(MemberExpression node)
     {
-        // First, visit the inner expression so nested patterns are handled
         var visited = (MemberExpression)base.VisitMember(node);
 
         if (visited.Expression is NewExpression newExpr

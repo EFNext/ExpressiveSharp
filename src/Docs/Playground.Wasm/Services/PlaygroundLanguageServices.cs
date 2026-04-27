@@ -1,12 +1,10 @@
-// PlaygroundLanguageServices — long-lived AdhocWorkspace that backs Monaco's
-// completion + hover providers. Separate from SnippetCompiler (which builds
-// fresh CSharpCompilations per keystroke for the run path); the workspace's
-// incremental semantic model gives sub-ms per-keystroke completion.
-//
-// Architecture inspired by DotNetLab/src/Compiler/LanguageServices.cs (MIT):
-// one AdhocWorkspace, one Project, one Document per <expressive-playground>
-// instance routed by Monaco model URI. The DefaultPersistentStorageConfiguration
-// cctor PNSE is bypassed by the WorkspaceShim project — see its header.
+// Long-lived AdhocWorkspace backing Monaco's completion + hover providers; the
+// incremental semantic model gives sub-ms per-keystroke completion. Separate
+// from SnippetCompiler, which builds fresh CSharpCompilations per run.
+// One Document per <expressive-playground> instance, routed by Monaco model
+// URI. The DefaultPersistentStorageConfiguration cctor PNSE on WASM is bypassed
+// by the WorkspaceShim project — see its header.
+// Architecture inspired by DotNetLab/src/Compiler/LanguageServices.cs (MIT).
 
 using ExpressiveSharp.Docs.Playground.Core.Services;
 using ExpressiveSharp.Docs.Playground.Core.Services.Scenarios;
@@ -38,11 +36,10 @@ internal sealed class PlaygroundLanguageServices : IDisposable
             throw new InvalidOperationException(
                 "PlaygroundReferences must be loaded before PlaygroundLanguageServices is constructed.");
 
-        // Append the WorkspaceShim assembly AFTER MefHostServices.DefaultAssemblies.
-        // The shim's NoOpPersistentStorageConfiguration is exported with
-        // ServiceLayer.Test which gives it MEF priority over Roslyn's broken
-        // DefaultPersistentStorageConfiguration, so the latter's cctor never
-        // runs and Process.GetCurrentProcess() (PNSE on WASM) is never called.
+        // Append WorkspaceShim AFTER DefaultAssemblies. Its NoOpPersistentStorageConfiguration
+        // exports with ServiceLayer.Test, gaining MEF priority over Roslyn's
+        // DefaultPersistentStorageConfiguration so the latter's cctor never runs
+        // (it calls Process.GetCurrentProcess() — PNSE on WASM).
         var hostServices = MefHostServices.Create(
             MefHostServices.DefaultAssemblies
                 .Append(typeof(NoOpPersistentStorageConfiguration).Assembly));
@@ -56,8 +53,7 @@ internal sealed class PlaygroundLanguageServices : IDisposable
             assemblyName: "PlaygroundProject",
             language: LanguageNames.CSharp,
             metadataReferences: references.References,
-            // WithConcurrentBuild(false): WASM is single-threaded, parallel
-            // Roslyn compile threads deadlock or throw.
+            // WASM is single-threaded; parallel Roslyn compile threads deadlock or throw.
             compilationOptions: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
                 .WithNullableContextOptions(NullableContextOptions.Enable)
                 .WithConcurrentBuild(false),
@@ -67,12 +63,9 @@ internal sealed class PlaygroundLanguageServices : IDisposable
         _projectId = projectInfo.Id;
     }
 
-    /// <summary>
-    /// Forces MEF composition during page load instead of lazily on the first
-    /// keystroke. Adds a throwaway document, asks for its CompletionService
-    /// (the act of resolving it triggers MEF + the cctor moment WorkspaceShim
-    /// guards against), discards. Subsequent real completions hit warm caches.
-    /// </summary>
+    // Forces MEF composition during page load instead of lazily on the first
+    // keystroke. Resolving CompletionService triggers MEF + the cctor moment
+    // WorkspaceShim guards against; subsequent real completions hit warm caches.
     public async Task PrewarmAsync()
     {
         await _lock.WaitAsync();
@@ -117,8 +110,7 @@ internal sealed class PlaygroundLanguageServices : IDisposable
         await _lock.WaitAsync();
         try
         {
-            // Drop any prior document under the same URI (rare — happens if
-            // an instance disposes and remounts) to avoid duplicate routing.
+            // Drop any prior document under the same URI (instance dispose + remount).
             if (_modelToDocument.TryGetValue(modelUri, out var existingId))
             {
                 _workspace.TryApplyChanges(_workspace.CurrentSolution.RemoveDocument(existingId));
@@ -137,7 +129,7 @@ internal sealed class PlaygroundLanguageServices : IDisposable
         }
     }
 
-    // Per-keystroke (no debounce — Roslyn diffs the syntax tree, sub-ms).
+    // Called per-keystroke; no debounce — Roslyn diffs the syntax tree (sub-ms).
     public async Task UpdateEditorAsync(string modelUri, string snippetText, string? setupText, IPlaygroundScenario scenario)
     {
         var wrap = SnippetWrap.Build(scenario.WrapperTemplate, snippetText, setupText);
@@ -158,7 +150,6 @@ internal sealed class PlaygroundLanguageServices : IDisposable
         }
     }
 
-    // Best-effort: silently no-ops if the model URI is unknown.
     public async Task UnregisterEditorAsync(string modelUri)
     {
         await _lock.WaitAsync();
@@ -236,9 +227,9 @@ internal sealed class PlaygroundLanguageServices : IDisposable
     }
 
     // Returns -1 if the position falls outside the snippet region.
+    // Monaco is 1-based, LinePosition is 0-based.
     private static int MonacoPositionToCaretOffset(MonacoPosition position, SourceText text, SnippetWrap wrap)
     {
-        // Monaco is 1-based, LinePosition is 0-based.
         var snippetRelative = new LinePosition(
             line: Math.Max(0, position.LineNumber - 1),
             character: Math.Max(0, position.Column - 1));

@@ -3,14 +3,10 @@ using System.Linq.Expressions;
 namespace ExpressiveSharp.Transformers;
 
 /// <summary>
-/// Replaces <see cref="ExpressionType.Throw"/> nodes with <see cref="Expression.Default(Type)"/>.
+/// Replaces <see cref="ExpressionType.Throw"/> nodes with <see cref="Expression.Default(Type)"/>
+/// so providers like EF Core (which can't translate <c>Throw</c> to SQL) still see a node of
+/// the same type, preserving surrounding <c>Coalesce</c>/<c>Condition</c> structure.
 /// </summary>
-/// <remarks>
-/// This is useful for LINQ providers like EF Core that cannot translate
-/// <c>Expression.Throw</c> to SQL. The throw node is replaced with a
-/// type-compatible default, preserving the surrounding tree structure
-/// (e.g., <c>Coalesce</c>, <c>Condition</c>) and its type contracts.
-/// </remarks>
 public sealed class ReplaceThrowWithDefault : ExpressionVisitor, IExpressionTreeTransformer
 {
     public Expression Transform(Expression expression)

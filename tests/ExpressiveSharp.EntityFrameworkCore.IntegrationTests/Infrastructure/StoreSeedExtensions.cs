@@ -4,16 +4,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Infrastructure;
 
-/// <summary>
-/// Shared seed logic for tests that exercise the Store scenario graph
-/// (Address → Customer → Order → LineItem). Every EF Core feature test base
-/// that needs the canonical Store dataset calls <see cref="SeedStoreAsync"/>
-/// rather than duplicating the four-entity insert ceremony.
-///
-/// Entities are re-materialized (not the originals from <see cref="SeedData"/>)
-/// to avoid tracker conflicts when the same seed runs against multiple
-/// contexts in the same test session.
-/// </summary>
+// Entities are re-materialized (not the originals from SeedData) to avoid
+// tracker conflicts when the same seed runs against multiple contexts in the
+// same test session.
 internal static class StoreSeedExtensions
 {
     public static async Task SeedStoreAsync(this DbContext context)

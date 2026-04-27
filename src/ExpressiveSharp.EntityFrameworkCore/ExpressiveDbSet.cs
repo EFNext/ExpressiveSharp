@@ -9,19 +9,8 @@ namespace ExpressiveSharp.EntityFrameworkCore;
 
 /// <summary>
 /// A <see cref="DbSet{TEntity}"/> wrapper that also implements <see cref="IExpressiveQueryable{T}"/>,
-/// enabling delegate-based LINQ methods with modern C# syntax (e.g., <c>?.</c>) directly on the set.
+/// enabling delegate-based LINQ methods with modern C# syntax directly on the set.
 /// </summary>
-/// <example>
-/// <code>
-/// public class MyDbContext : DbContext
-/// {
-///     public ExpressiveDbSet&lt;Order&gt; Orders => Set&lt;Order&gt;().AsExpressiveDbSet();
-/// }
-///
-/// // Now you can use ?. directly:
-/// ctx.Orders.Where(o => o.Customer?.Name == "Alice")
-/// </code>
-/// </example>
 public class ExpressiveDbSet<TEntity> : DbSet<TEntity>, IExpressiveQueryable<TEntity>
     where TEntity : class
 {
@@ -34,18 +23,12 @@ public class ExpressiveDbSet<TEntity> : DbSet<TEntity>, IExpressiveQueryable<TEn
         _queryable = inner;
     }
 
-    // ── IQueryable ───────────────────────────────────────────────────────
-
     Type IQueryable.ElementType => _queryable.ElementType;
     Expression IQueryable.Expression => _queryable.Expression;
     IQueryProvider IQueryable.Provider => _queryable.Provider;
 
-    // ── IEnumerable ──────────────────────────────────────────────────────
-
     IEnumerator<TEntity> IEnumerable<TEntity>.GetEnumerator() => _queryable.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)_queryable).GetEnumerator();
-
-    // ── DbSet<TEntity> virtual members ───────────────────────────────────
 
     public override IEntityType EntityType => _inner.EntityType;
     public override LocalView<TEntity> Local => _inner.Local;

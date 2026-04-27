@@ -11,10 +11,6 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace ExpressiveSharp.EntityFrameworkCore.Infrastructure.Internal;
 
-/// <summary>
-/// Registers ExpressiveSharp services into the EF Core service provider:
-/// conventions for model building and a query compiler decorator for automatic expansion.
-/// </summary>
 public class ExpressiveOptionsExtension : IDbContextOptionsExtension
 {
     private readonly IReadOnlyList<IExpressivePlugin> _plugins;
@@ -43,16 +39,13 @@ public class ExpressiveOptionsExtension : IDbContextOptionsExtension
     [SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required to decorate query compiler")]
     public void ApplyServices(IServiceCollection services)
     {
-        // The expressive resolver is stateless at the instance level (all caches are process-static),
-        // so a singleton lifetime is appropriate and cheap to share across scopes.
+        // Stateless at instance level (caches are process-static) — safe as singleton.
         services.TryAddSingleton<IExpressiveResolver, ExpressiveResolver>();
 
-        // Register conventions
         services.AddScoped<IConventionSetPlugin, ExpressiveDbSetDiscoveryConventionPlugin>();
         services.AddScoped<IConventionSetPlugin, ExpressivePropertiesNotMappedConventionPlugin>();
         services.AddScoped<IConventionSetPlugin, ExpressiveExpandQueryFiltersConventionPlugin>();
 
-        // Decorate IQueryCompiler with ExpressiveQueryCompiler
         var targetDescriptor = services.FirstOrDefault(x => x.ServiceType == typeof(IQueryCompiler));
 
         var decoratorFactory = ActivatorUtilities.CreateFactory(
@@ -70,22 +63,17 @@ public class ExpressiveOptionsExtension : IDbContextOptionsExtension
         {
             // UseExpressives() called before provider (e.g. AddSqlite optionsAction) — deferred decoration.
             // Pre-register IQueryCompiler so the provider's TryAdd becomes a no-op.
-            // At resolution time, all provider services (IDatabase, IModel, etc.) are available.
             services.AddScoped<IQueryCompiler>(sp =>
                 (IQueryCompiler)decoratorFactory(sp, [ActivatorUtilities.CreateInstance<QueryCompiler>(sp)]));
         }
 
-        // Apply plugin services
         foreach (var plugin in _plugins)
             plugin.ApplyServices(services);
 
-        // Collect plugin transformers (captured by value in the closure)
         var extraTransformers = _plugins
             .SelectMany(p => p.GetTransformers())
             .ToArray();
 
-        // Register a dedicated ExpressiveOptions instance with EF Core transformers
-        // plus any transformers contributed by plugins
         var preserveThrow = _preserveThrowExpressions;
         services.AddSingleton(sp =>
         {

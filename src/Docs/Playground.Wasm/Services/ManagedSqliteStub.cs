@@ -1,16 +1,12 @@
-// ManagedSqliteStub — a fully-managed SQLitePCL.ISQLite3Provider implementation
-// that EF Core can interrogate at startup *without* needing the native sqlite3
-// engine. The playground only ever calls ToQueryString() on a queryable; that
-// path goes through EF Core's relational query translator and never executes
-// real SQL, but the SqliteUpdateSqlGenerator constructor probes
-// connection.ServerVersion → SQLitePCL.raw.sqlite3_libversion() during DI
-// graph construction. This stub answers the metadata calls that EF Core makes
-// during model build, and throws NotSupportedException for anything that would
-// require running real queries.
+// Fully-managed SQLitePCL.ISQLite3Provider so EF Core can be interrogated at
+// startup without the native sqlite3 engine. The playground only calls
+// ToQueryString() — never executes real SQL — but SqliteUpdateSqlGenerator's
+// ctor probes connection.ServerVersion → sqlite3_libversion() during DI graph
+// construction. This stub answers the metadata calls EF Core makes during
+// model build; everything else throws.
 //
-// The interface has 152 methods (utf8z is a ref struct so DispatchProxy can't
-// be used). Most just throw — only a handful of "metadata" calls have real
-// answers. Generated from reflection at design time and committed.
+// utf8z is a ref struct so DispatchProxy can't be used; the 152 methods are
+// generated from reflection at design time and committed.
 
 #pragma warning disable IDE0060 // Unused parameters — interface forces us to declare them
 
@@ -20,10 +16,7 @@ namespace ExpressiveSharp.Docs.Playground.Wasm.Services;
 
 public sealed class ManagedSqliteStub : ISQLite3Provider
 {
-    /// <summary>
-    /// Registers this stub as the global SQLitePCL provider. Idempotent.
-    /// Must be called before any DbContext that uses Sqlite.Core is constructed.
-    /// </summary>
+    // Idempotent — must be called before any DbContext using Sqlite.Core is constructed.
     public static void Register()
     {
         try
@@ -32,36 +25,29 @@ public sealed class ManagedSqliteStub : ISQLite3Provider
         }
         catch (System.InvalidOperationException)
         {
-            // SetProvider throws if a provider is already registered. Tolerate
-            // double-registration so the stub can be installed eagerly from
-            // multiple host entrypoints (Program.cs, test setup, etc).
+            // SetProvider throws if a provider is already registered; tolerate
+            // double-registration from multiple host entrypoints.
         }
     }
 
-    // ── Metadata calls EF Core makes during DbContext init ─────────────────
-
-    // Reported as the SQLite library version. EF Core uses this for feature
-    // detection (RETURNING clause support added in 3.35). Reporting a recent
-    // version unlocks all relational translator features.
+    // EF Core uses libversion for feature detection (RETURNING added in 3.35).
+    // Reporting a recent version unlocks all relational translator features.
     public utf8z sqlite3_libversion() => utf8z.FromString("3.45.0");
 
-    // Companion to libversion. Format is major*1_000_000 + minor*1_000 + patch.
+    // Format is major*1_000_000 + minor*1_000 + patch.
     public int sqlite3_libversion_number() => 3045000;
 
     public utf8z sqlite3_sourceid() => utf8z.FromString("managed-stub-no-sourceid");
 
-    // 1 = single-threaded. WASM is single-threaded anyway.
     public int sqlite3_threadsafe() => 1;
 
     public string GetNativeLibraryName() => "managed-stub";
 
-    // SQLitePCL.raw initializes by calling these once. They must succeed.
+    // SQLitePCL.raw calls these once during init — they must succeed.
     public int sqlite3_initialize() => 0; // SQLITE_OK
     public int sqlite3_shutdown() => 0;
     public int sqlite3_config_log(global::SQLitePCL.delegate_log @func, global::System.Object @v) => 0;
     public int sqlite3_enable_shared_cache(int @enable) => 0;
-
-    // ── Everything else throws ─────────────────────────────────────────────
 
     private static System.Exception NotSupported(string method) =>
         new System.NotSupportedException(

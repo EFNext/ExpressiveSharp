@@ -5,10 +5,9 @@ using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructure.Internal;
 
 /// <summary>
-/// Intermediate SQL expression that represents a single window frame boundary.
-/// Produced by <see cref="WindowSpecMethodCallTranslator"/> when it encounters
-/// <c>WindowFrameBound.*</c> members, and consumed by the same translator when
-/// it sees <c>RowsBetween</c> / <c>RangeBetween</c>. Never reaches final SQL rendering.
+/// Intermediate frame-boundary node produced by <see cref="WindowSpecMethodCallTranslator"/>
+/// from <c>WindowFrameBound.*</c> members and consumed by the same translator at
+/// <c>RowsBetween</c> / <c>RangeBetween</c>. Never reaches final SQL rendering.
 /// </summary>
 internal sealed class WindowFrameBoundSqlExpression : SqlExpression
 {

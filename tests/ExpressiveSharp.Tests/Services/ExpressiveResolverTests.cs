@@ -85,8 +85,6 @@ public class ExpressiveResolverTests
             "Expected Product.Total expression to contain a Multiply node");
     }
 
-    // ── [ExpressiveProperty] ─────────────────────────────────────────────────
-    //
     // The most load-bearing correctness point: the generator must register the formula lambda
     // under the synthesized property's getter MethodHandle. If the registry were keyed off the
     // stub member (e.g. FullNameExpression), `ExpressiveReplacer` would never find a match at

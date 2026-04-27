@@ -15,11 +15,9 @@ public class Order
     [Expressive]
     public double Total => Price * Quantity;
 
-    // Multi-level null-conditional chain: Order → Customer → Address → Country
     [Expressive]
     public string? CustomerCountry => Customer?.Address?.Country;
 
-    // Tuple projection
     [Expressive]
     public (int Id, string Grade, double Total) GetOrderSummaryTuple()
         => (Id, GetGrade(), Total);
@@ -80,19 +78,17 @@ public class Order
     [Expressive]
     public string Summary => $"Order #{Id}: {Tag ?? "N/A"}";
 
-    // String concatenation via + operator (tests Expression.Call(string.Concat) emission)
     [Expressive]
     public string SummaryConcat => "Order #" + Id + ": " + (Tag ?? "N/A");
 
-    // Format specifier: works in-memory but not translatable to SQL
+    // Format specifier: works in-memory but not translatable to SQL.
     [Expressive]
     public string FormattedPrice => $"{Price:F2}";
 
-    // 5+ interpolation parts: tests string.Concat(string[]) overload
+    // 5+ interpolation parts: exercises string.Concat(string[]) overload.
     [Expressive]
     public string DetailedSummary => $"Order #{Id}: {Tag ?? "N/A"} (${Price})";
 
-    // Loop-based computed members (foreach → Expression.Loop)
     [Expressive(AllowBlockBody = true)]
     public int ItemCount()
     {
@@ -136,23 +132,18 @@ public class Order
         return total;
     }
 
-    // Collection expression: array literal
     [Expressive]
     public int[] PriceBreakpoints => [10, 50, 100];
 
-    // Tuple equality
     [Expressive]
     public bool IsPriceQuantityMatch => (Price, Quantity) == (50.0, 5);
 
-    // Tuple inequality
     [Expressive]
     public bool IsPriceQuantityDifferent => (Price, Quantity) != (50.0, 5);
 
-    // Checked arithmetic
     [Expressive]
     public double CheckedTotal => checked(Price * Quantity);
 
-    // Throw expression in null-coalescing
     [Expressive]
     public string SafeTag => Tag ?? throw new InvalidOperationException("Tag is required");
 }

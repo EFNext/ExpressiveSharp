@@ -8,10 +8,6 @@ using MongoDB.Driver.Linq;
 
 namespace ExpressiveSharp.MongoDB.IntegrationTests.Tests;
 
-/// <summary>
-/// Verifies that the <see cref="IExpressiveMongoQueryable{T}"/> wrapper correctly
-/// implements the expected interfaces and preserves MongoDB capabilities.
-/// </summary>
 [TestClass]
 public class ExpressiveMongoQueryableTests : MongoTestBase
 {
@@ -43,14 +39,12 @@ public class ExpressiveMongoQueryableTests : MongoTestBase
         var baseline = Orders.AsQueryable();
         var expressive = Orders.AsExpressive();
 
-        // Both should have the same root expression (ConstantExpression pointing to the collection)
         Assert.AreEqual(baseline.Expression.NodeType, expressive.Expression.NodeType);
     }
 
     [TestMethod]
     public async Task ChainedOperations_MaintainWrapperType()
     {
-        // After Where/Select, the result should still go through our provider
         var filtered = Query.Where(o => o.Price > 50);
         Assert.IsInstanceOfType<ExpressiveMongoQueryProvider>(filtered.Provider);
 
@@ -61,7 +55,6 @@ public class ExpressiveMongoQueryableTests : MongoTestBase
     [TestMethod]
     public async Task ToCursorAsync_WorksThroughWrapper()
     {
-        // MongoDB-specific: ToCursorAsync should work through the wrapper
         using var cursor = await MongoQueryable.ToCursorAsync(Query);
         var results = new List<Order>();
         while (await cursor.MoveNextAsync())

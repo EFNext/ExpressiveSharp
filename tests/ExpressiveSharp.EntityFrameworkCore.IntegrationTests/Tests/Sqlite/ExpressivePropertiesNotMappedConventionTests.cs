@@ -5,11 +5,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Tests.Sqlite;
 
-/// <summary>
-/// Verifies the <see cref="ExpressivePropertiesNotMappedConvention"/> ignores properties that
-/// would otherwise be mapped to columns when they have no backing database value —
-/// either via <c>[Expressive]</c> directly, or as the target of an <c>[ExpressiveFor]</c> stub.
-/// </summary>
 [TestClass]
 public class ExpressivePropertiesNotMappedConventionTests
 {
@@ -106,24 +101,21 @@ public class ExpressivePropertiesNotMappedConventionTests
         Assert.AreEqual(14, results[1].DoubledValue);
     }
 
-    // ── Test-local models ────────────────────────────────────────────────
-
     public class NotMappedItem
     {
         public int Id { get; set; }
         public int Value { get; set; }
 
-        /// <summary>Computed by [Expressive] — existing convention path.</summary>
         [Expressive]
         public int DoubledValue => Value * 2;
 
-        /// <summary>Targeted by a co-located property stub (new single-arg form).</summary>
+        // Targeted by a co-located property stub (single-arg [ExpressiveFor] form).
         public string DescribedValue { get; set; } = "";
 
         [ExpressiveFor(nameof(DescribedValue))]
         public string DescribedValueExpression => "value=" + Value;
 
-        /// <summary>Targeted by a stub declared in an external static class.</summary>
+        // Targeted by a stub declared in an external static class.
         public string ExternalDescribedValue { get; set; } = "";
     }
 

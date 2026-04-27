@@ -4,16 +4,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Infrastructure;
 
-/// <summary>
-/// Tests the <c>UseExpressives()</c> convention plugins:
-/// <list type="bullet">
-///   <item>Marking <c>[Expressive]</c> properties as unmapped</item>
-///   <item>Expanding <c>[Expressive]</c> calls inside global query filters</item>
-/// </list>
-/// The convention checks are model-level and don't need a database, but the
-/// query-filter test requires real execution to verify the filter actually
-/// shapes results correctly.
-/// </summary>
 public abstract class UseExpressivesConventionTestBase : EFCoreRelationalTestBase
 {
     [TestMethod]

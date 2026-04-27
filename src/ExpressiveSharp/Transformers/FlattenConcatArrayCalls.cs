@@ -4,20 +4,10 @@ using System.Reflection;
 namespace ExpressiveSharp.Transformers;
 
 /// <summary>
-/// Rewrites <c>string.Concat(new string[] { a, b, c, ... })</c> into a chain of
-/// <c>string.Concat</c> calls using the 2-, 3-, or 4-arg overloads.
+/// Rewrites <c>string.Concat(new string[] { a, b, c, ... })</c> into a chain of 2/3/4-arg
+/// <c>string.Concat</c> calls so providers like EF Core (which can't translate <c>NewArrayInit</c>
+/// with non-constant elements) can emit SQL concatenation.
 /// </summary>
-/// <remarks>
-/// <para>
-/// EF Core and other LINQ providers cannot translate <c>NewArrayInit</c> with non-constant
-/// elements to SQL. This transformer flattens the array form into individual <c>Concat</c>
-/// calls that providers can translate to SQL string concatenation.
-/// </para>
-/// <para>
-/// For example, <c>string.Concat(new string[] { a, b, c, d, e })</c> becomes
-/// <c>string.Concat(string.Concat(a, b, c, d), e)</c>.
-/// </para>
-/// </remarks>
 public sealed class FlattenConcatArrayCalls : ExpressionVisitor, IExpressionTreeTransformer
 {
     private static readonly MethodInfo Concat2 = typeof(string).GetMethod(
@@ -36,7 +26,6 @@ public sealed class FlattenConcatArrayCalls : ExpressionVisitor, IExpressionTree
     {
         var visited = (MethodCallExpression)base.VisitMethodCall(node);
 
-        // Match: string.Concat(string[]) where the argument is NewArrayInit
         if (visited.Method.DeclaringType == typeof(string)
             && visited.Method.Name == nameof(string.Concat)
             && visited.Arguments.Count == 1
@@ -57,16 +46,11 @@ public sealed class FlattenConcatArrayCalls : ExpressionVisitor, IExpressionTree
         return visited;
     }
 
-    /// <summary>
-    /// Reduces a list of parts into chained Concat calls, consuming up to 4 parts
-    /// at a time starting from the left.
-    /// </summary>
     private static Expression ReduceParts(IList<Expression> parts)
     {
         var i = 0;
         Expression current;
 
-        // First chunk: consume up to 4
         var firstChunkSize = Math.Min(4, parts.Count);
         current = firstChunkSize switch
         {
@@ -76,8 +60,7 @@ public sealed class FlattenConcatArrayCalls : ExpressionVisitor, IExpressionTree
         };
         i = firstChunkSize;
 
-        // Remaining parts: fold with Concat2, consuming up to 3 new parts per step
-        // (current + up to 3 new = 4 args max via Concat4)
+        // Each step consumes up to 3 new parts (current + 3 = 4 args max via Concat4).
         while (i < parts.Count)
         {
             var remaining = parts.Count - i;

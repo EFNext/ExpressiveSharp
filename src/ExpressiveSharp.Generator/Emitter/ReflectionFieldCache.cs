@@ -2,14 +2,6 @@ using Microsoft.CodeAnalysis;
 
 namespace ExpressiveSharp.Generator.Emitter;
 
-/// <summary>
-/// Returns inline reflection expressions for
-/// <see cref="System.Reflection.MethodInfo"/>, <see cref="System.Reflection.PropertyInfo"/>,
-/// <see cref="System.Reflection.ConstructorInfo"/>, and <see cref="System.Reflection.FieldInfo"/>
-/// needed by the emitted expression-tree-building code.
-/// Each method returns a C# expression string that evaluates to the
-/// reflection object at runtime.
-/// </summary>
 internal sealed class ReflectionFieldCache
 {
     private static readonly SymbolDisplayFormat _fullyQualifiedFormat =
@@ -25,18 +17,12 @@ internal sealed class ReflectionFieldCache
     private string ResolveTypeFqn(ITypeSymbol type)
         => _typeAliases.TryGetValue(type, out var alias) ? alias : type.ToDisplayString(_fullyQualifiedFormat);
 
-    /// <summary>
-    /// Returns an inline reflection expression for a <see cref="System.Reflection.PropertyInfo"/>.
-    /// </summary>
     public string EnsurePropertyInfo(IPropertySymbol property)
     {
         var typeFqn = ResolveTypeFqn(property.ContainingType);
         return $"typeof({typeFqn}).GetProperty(\"{property.Name}\")";
     }
 
-    /// <summary>
-    /// Returns an inline reflection expression for a <see cref="System.Reflection.FieldInfo"/>.
-    /// </summary>
     public string EnsureFieldInfo(IFieldSymbol field)
     {
         var typeFqn = ResolveTypeFqn(field.ContainingType);
@@ -46,9 +32,6 @@ internal sealed class ReflectionFieldCache
         return $"typeof({typeFqn}).GetField(\"{field.Name}\", {flags})";
     }
 
-    /// <summary>
-    /// Returns an inline reflection expression for a <see cref="System.Reflection.MethodInfo"/>.
-    /// </summary>
     public string EnsureMethodInfo(IMethodSymbol method)
     {
         var typeFqn = ResolveTypeFqn(method.ContainingType);
@@ -96,9 +79,6 @@ internal sealed class ReflectionFieldCache
         }
     }
 
-    /// <summary>
-    /// Returns an inline reflection expression for a <see cref="System.Reflection.ConstructorInfo"/>.
-    /// </summary>
     public string EnsureConstructorInfo(IMethodSymbol constructor)
     {
         var typeFqn = ResolveTypeFqn(constructor.ContainingType);

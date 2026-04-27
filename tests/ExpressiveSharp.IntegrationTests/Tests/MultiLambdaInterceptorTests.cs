@@ -26,17 +26,13 @@ public class MultiLambdaInterceptorTests
         },
     };
 
-    /// <summary>
-    /// SelectMany with result selector uses two lambdas that share the parameter name 'o'.
-    /// This tests that the generator emits unique variable names for each lambda body.
-    /// </summary>
+    // Both lambdas reuse parameter name 'o' — verifies generator emits unique
+    // local variable names per lambda body.
     [TestMethod]
     public void SelectMany_WithResultSelector_SharedParamName_CompilesAndRuns()
     {
         var source = _orders.AsQueryable();
 
-        // Both lambdas use 'o' — this triggers the duplicate variable name bug
-        // if the generator doesn't prefix local variables per lambda.
         var results = source.AsExpressive()
             .SelectMany(o => o.Items, (o, item) => o.Tag + ": " + item.ProductName)
             .ToList();
@@ -47,11 +43,8 @@ public class MultiLambdaInterceptorTests
         CollectionAssert.Contains(results, "B: Doohickey");
     }
 
-    /// <summary>
-    /// Join with three lambdas where outer and inner key selectors share parameter patterns.
-    /// Tests unique variable naming across all three lambda bodies.
-    /// Uses non-nullable int keys (Id) to avoid nullable type mismatch issues.
-    /// </summary>
+    // Three lambdas with overlapping param patterns — exercises unique variable naming
+    // across lambda bodies. Uses non-nullable int keys to avoid type mismatch.
     [TestMethod]
     public void Join_ThreeLambdas_CompilesAndRuns()
     {
@@ -74,10 +67,8 @@ public class MultiLambdaInterceptorTests
         CollectionAssert.Contains(results, "B: Gadget");
     }
 
-    /// <summary>
-    /// Join where the outer key is nullable (int?) but the inner key is non-nullable (int).
-    /// The emitter must insert an implicit conversion so the expression tree compiles.
-    /// </summary>
+    // Nullable outer key (int?) vs non-nullable inner key (int) — emitter must
+    // insert an implicit conversion so the expression tree compiles.
     [TestMethod]
     public void Join_NullableOuterKey_NonNullableInnerKey_CompilesAndRuns()
     {

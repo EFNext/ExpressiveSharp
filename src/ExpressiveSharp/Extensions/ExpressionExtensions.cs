@@ -6,17 +6,14 @@ namespace ExpressiveSharp;
 public static class ExpressionExtensions
 {
     /// <summary>
-    /// Replaces all calls to properties and methods that are marked with the <c>Expressive</c>
-    /// attribute with their respective expression trees, then applies any globally registered
-    /// default transformers (see <see cref="ExpressiveOptions.Default"/>).
+    /// Replaces calls to <c>[Expressive]</c> members with their generated expression trees,
+    /// then applies the transformers registered on <see cref="ExpressiveOptions.Default"/>.
     /// </summary>
     public static Expression ExpandExpressives(this Expression expression)
         => expression.ExpandExpressives(ExpressiveOptions.Default);
 
     /// <summary>
-    /// Replaces all calls to properties and methods that are marked with the <c>Expressive</c>
-    /// attribute with their respective expression trees, then applies transformers from the
-    /// specified <see cref="ExpressiveOptions"/> instance.
+    /// Like <see cref="ExpandExpressives(Expression)"/> but uses transformers from the given options.
     /// </summary>
     public static Expression ExpandExpressives(this Expression expression, ExpressiveOptions options)
     {
@@ -30,9 +27,7 @@ public static class ExpressionExtensions
     }
 
     /// <summary>
-    /// Replaces all calls to properties and methods that are marked with the <c>Expressive</c>
-    /// attribute with their respective expression trees, then applies the specified transformers
-    /// (instead of the global defaults).
+    /// Like <see cref="ExpandExpressives(Expression)"/> but uses the explicitly supplied transformers.
     /// </summary>
     public static Expression ExpandExpressives(
         this Expression expression,

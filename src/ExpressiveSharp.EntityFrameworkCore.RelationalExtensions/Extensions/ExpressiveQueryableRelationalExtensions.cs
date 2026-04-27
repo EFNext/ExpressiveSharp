@@ -8,15 +8,11 @@ using Microsoft.EntityFrameworkCore.Query;
 namespace Microsoft.EntityFrameworkCore;
 
 /// <summary>
-/// Extension methods on <see cref="IExpressiveQueryable{T}"/> for EF Core bulk update operations.
-/// These stubs are intercepted by the ExpressiveSharp source generator via <see cref="PolyfillTargetAttribute"/>
-/// to forward to the appropriate EF Core ExecuteUpdate method.
+/// Bulk update stubs intercepted by the source generator via <see cref="PolyfillTargetAttribute"/>.
+/// EF Core 8/9 only — EF Core 10+ uses <c>Action&lt;UpdateSettersBuilder&lt;T&gt;&gt;</c> which natively
+/// supports modern C# syntax in the outer lambda; use <c>ExpressionPolyfill.Create()</c> for inner
+/// <c>SetProperty</c> value expressions.
 /// </summary>
-/// <remarks>
-/// Only available on EF Core 8/9. In EF Core 10+, <c>ExecuteUpdate</c> uses <c>Action&lt;UpdateSettersBuilder&lt;T&gt;&gt;</c>
-/// which natively supports modern C# syntax in the outer lambda. For inner <c>SetProperty</c> value expressions,
-/// use <c>ExpressionPolyfill.Create()</c> to enable modern C# syntax.
-/// </remarks>
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class ExpressiveQueryableRelationalExtensions
 {
@@ -24,9 +20,8 @@ public static class ExpressiveQueryableRelationalExtensions
         "This method must be intercepted by the ExpressiveSharp source generator. " +
         "Ensure the generator package is installed and the InterceptorsNamespaces MSBuild property is configured.";
 
-    // ── Bulk update methods (intercepted) ────────────────────────────────
-    // EF Core 8: ExecuteUpdate lives on RelationalQueryableExtensions (Relational package)
-    // EF Core 9: ExecuteUpdate moved to EntityFrameworkQueryableExtensions (Core package)
+    // EF Core 8: ExecuteUpdate lives on RelationalQueryableExtensions (Relational package).
+    // EF Core 9: moved to EntityFrameworkQueryableExtensions (Core package).
 
 #if NET9_0
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
