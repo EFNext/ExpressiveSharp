@@ -37,6 +37,25 @@ internal sealed class SynthesizedPropertySpec
     /// <summary>Containing type path from outermost to target (for nested types).</summary>
     public IReadOnlyList<string> ContainingTypePath { get; set; } = System.Array.Empty<string>();
 
-    /// <summary>Keyword for the containing type declaration (<c>class</c>, <c>record</c>, <c>struct</c>, etc.).</summary>
+    /// <summary>
+    /// Type keyword (<c>class</c>, <c>struct</c>, <c>record</c>, <c>record struct</c>) for each entry in
+    /// <see cref="ContainingTypePath"/>. Same length and ordering as <see cref="ContainingTypePath"/>.
+    /// The last element equals <see cref="ContainingTypeKeyword"/>.
+    /// </summary>
+    public IReadOnlyList<string> ContainingTypeKeywords { get; set; } = System.Array.Empty<string>();
+
+    /// <summary>Keyword for the innermost containing type declaration (<c>class</c>, <c>record</c>, <c>struct</c>, etc.).</summary>
     public string ContainingTypeKeyword { get; set; } = "class";
+
+    /// <summary>
+    /// Name of the backing field for the materialized value. Chosen at interpret time to avoid
+    /// collisions with user-declared members on the containing type.
+    /// </summary>
+    public string BackingFieldName { get; set; } = "";
+
+    /// <summary>
+    /// Name of the "has value" flag field (ternary shape only). Chosen at interpret time to
+    /// avoid collisions with user-declared members on the containing type.
+    /// </summary>
+    public string HasValueFlagName { get; set; } = "";
 }

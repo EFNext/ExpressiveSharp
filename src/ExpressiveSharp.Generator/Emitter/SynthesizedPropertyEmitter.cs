@@ -40,14 +40,14 @@ static internal class SynthesizedPropertyEmitter
         var baseIndent = hasNamespace ? "    " : "";
         var nestingDepth = spec.ContainingTypePath.Count;
 
-        // Emit partial-class wrappers for any enclosing (nested) types, from outermost in.
-        // The innermost is the type we attach the synthesized member to.
+        // Emit partial wrappers for any enclosing (nested) types, from outermost in.
+        // Each level uses its actual type keyword so a struct/record container doesn't get
+        // emitted as `partial class`.
         for (var i = 0; i < nestingDepth; i++)
         {
             var indent = baseIndent + new string(' ', i * 4);
             var name = spec.ContainingTypePath[i];
-            // Only the innermost knows its keyword; enclosing nests are "partial class" as a safe default.
-            var keyword = i == nestingDepth - 1 ? spec.ContainingTypeKeyword : "class";
+            var keyword = spec.ContainingTypeKeywords[i];
             sb.AppendLine($"{indent}partial {keyword} {name}");
             sb.AppendLine($"{indent}{{");
         }
@@ -72,43 +72,34 @@ static internal class SynthesizedPropertyEmitter
 
     private static string BuildCoalesceBody(SynthesizedPropertySpec spec, string indent)
     {
-        var fieldName = MakeBackingFieldName(spec.PropertyName);
         var stubCall = spec.StubIsMethod ? $"{spec.StubMemberName}()" : spec.StubMemberName;
 
         var sb = new StringBuilder();
-        sb.AppendLine($"{indent}private {spec.BackingFieldTypeFqn} {fieldName};");
+        sb.AppendLine($"{indent}private {spec.BackingFieldTypeFqn} {spec.BackingFieldName};");
         sb.AppendLine($"{indent}public {spec.PropertyTypeFqn} {spec.PropertyName}");
         sb.AppendLine($"{indent}{{");
-        sb.AppendLine($"{indent}    get => {fieldName} ?? {stubCall};");
-        sb.AppendLine($"{indent}    init => {fieldName} = value;");
+        sb.AppendLine($"{indent}    get => {spec.BackingFieldName} ?? {stubCall};");
+        sb.AppendLine($"{indent}    init => {spec.BackingFieldName} = value;");
         sb.AppendLine($"{indent}}}");
         return sb.ToString();
     }
 
     private static string BuildTernaryBody(SynthesizedPropertySpec spec, string indent)
     {
-        var fieldName = MakeBackingFieldName(spec.PropertyName);
-        var flagName = MakeHasValueFlagName(spec.PropertyName);
         var stubCall = spec.StubIsMethod ? $"{spec.StubMemberName}()" : spec.StubMemberName;
 
         var sb = new StringBuilder();
-        sb.AppendLine($"{indent}private {spec.BackingFieldTypeFqn} {fieldName};");
-        sb.AppendLine($"{indent}private bool {flagName};");
+        sb.AppendLine($"{indent}private {spec.BackingFieldTypeFqn} {spec.BackingFieldName};");
+        sb.AppendLine($"{indent}private bool {spec.HasValueFlagName};");
         sb.AppendLine($"{indent}public {spec.PropertyTypeFqn} {spec.PropertyName}");
         sb.AppendLine($"{indent}{{");
-        sb.AppendLine($"{indent}    get => {flagName} ? {fieldName} : {stubCall};");
+        sb.AppendLine($"{indent}    get => {spec.HasValueFlagName} ? {spec.BackingFieldName} : {stubCall};");
         sb.AppendLine($"{indent}    init");
         sb.AppendLine($"{indent}    {{");
-        sb.AppendLine($"{indent}        {flagName} = true;");
-        sb.AppendLine($"{indent}        {fieldName} = value;");
+        sb.AppendLine($"{indent}        {spec.HasValueFlagName} = true;");
+        sb.AppendLine($"{indent}        {spec.BackingFieldName} = value;");
         sb.AppendLine($"{indent}    }}");
         sb.AppendLine($"{indent}}}");
         return sb.ToString();
     }
-
-    private static string MakeBackingFieldName(string propertyName) =>
-        "_" + char.ToLowerInvariant(propertyName[0]) + propertyName.Substring(1);
-
-    private static string MakeHasValueFlagName(string propertyName) =>
-        "_" + char.ToLowerInvariant(propertyName[0]) + propertyName.Substring(1) + "HasValue";
 }

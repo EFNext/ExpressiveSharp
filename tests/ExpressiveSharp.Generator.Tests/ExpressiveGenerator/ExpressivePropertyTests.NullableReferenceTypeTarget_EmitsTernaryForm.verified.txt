@@ -46,9 +46,9 @@ namespace Foo
 {
     partial class Account
     {
-        private string _fullName;
+        private string? _fullName;
         private bool _fullNameHasValue;
-        public string FullName
+        public string? FullName
         {
             get => _fullNameHasValue ? _fullName : FullNameExpression;
             init

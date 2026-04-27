@@ -184,6 +184,67 @@ public class ExpressivePropertyTests : GeneratorTestBase
             result.GeneratedTrees.Select(t => t.ToString())));
     }
 
+    [TestMethod]
+    public Task BackingFieldNameCollision_AppendsSuffix()
+    {
+        // User type already declares `_fullName` — synthesized backing field must avoid the
+        // collision (verified by a string contains assertion rather than full snapshot since
+        // only the field name choice is the contract being tested).
+        var compilation = CreateCompilation(
+            """
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                partial class Account {
+                    private string? _fullName;
+                    public string FirstName { get; set; } = "";
+                    public string LastName  { get; set; } = "";
+
+                    [ExpressiveProperty("FullName")]
+                    private string FullNameExpression => LastName + ", " + FirstName;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        var generated = string.Join("\n", result.GeneratedTrees.Select(t => t.ToString()));
+        StringAssert.Contains(generated, "private string? _fullName2;",
+            "Backing field should be renamed to avoid collision with the user-declared _fullName field.");
+        Assert.IsFalse(generated.Contains("private string? _fullName;\n        public string FullName"),
+            "Synthesized backing field must not be the colliding name `_fullName`.");
+        return Task.CompletedTask;
+    }
+
+    [TestMethod]
+    public Task NestedInsideNonClassContainer_EmitsCorrectOuterKeyword()
+    {
+        // Partial class nested inside a partial struct — outer wrapper must be `partial struct`,
+        // not the previous hard-coded `partial class` (which produced uncompilable output).
+        var compilation = CreateCompilation(
+            """
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                public partial struct Outer {
+                    public partial class Inner {
+                        public string FirstName { get; set; } = "";
+
+                        [ExpressiveProperty("Name")]
+                        private string NameExpression => FirstName;
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(2, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(string.Join("\n\n// ===\n\n",
+            result.GeneratedTrees.Select(t => t.ToString())));
+    }
+
     // ── Diagnostic tests ────────────────────────────────────────────────────
 
     [TestMethod]

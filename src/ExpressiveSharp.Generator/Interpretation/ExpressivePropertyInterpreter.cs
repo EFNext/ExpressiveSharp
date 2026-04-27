@@ -23,6 +23,11 @@ namespace ExpressiveSharp.Generator.Interpretation;
 /// </remarks>
 static internal class ExpressivePropertyInterpreter
 {
+    private static readonly SymbolDisplayFormat FullyQualifiedNullableFormat =
+        SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+            SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
+            | SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
+
     public static (ExpressiveDescriptor Descriptor, SynthesizedPropertySpec Spec)? GetDescriptor(
         SemanticModel semanticModel,
         PropertyDeclarationSyntax stubProperty,
@@ -107,8 +112,9 @@ static internal class ExpressivePropertyInterpreter
         // Synthesis spec for the partial-class emitter.
         var returnType = stubSymbol.Type;
         var useTernary = IsNullablePropertyType(returnType);
-        var propertyTypeFqn = returnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var propertyTypeFqn = returnType.ToDisplayString(FullyQualifiedNullableFormat);
         var backingFieldTypeFqn = useTernary ? propertyTypeFqn : MakeNullableTypeFqn(returnType);
+        var (backingFieldName, hasValueFlagName) = ChooseBackingNames(containingType, targetName!, useTernary);
 
         var spec = new SynthesizedPropertySpec
         {
@@ -118,11 +124,14 @@ static internal class ExpressivePropertyInterpreter
             StubIsMethod = false, // rule 1 enforces property stub
             UseTernaryShape = useTernary,
             BackingFieldTypeFqn = backingFieldTypeFqn,
+            BackingFieldName = backingFieldName,
+            HasValueFlagName = hasValueFlagName,
             ContainingTypeName = containingType.Name,
             ContainingTypeNamespace = containingType.ContainingNamespace.IsGlobalNamespace
                 ? null
                 : containingType.ContainingNamespace.ToDisplayString(),
             ContainingTypePath = GetNestedInClassPath(containingType).ToList(),
+            ContainingTypeKeywords = GetNestedInClassKeywords(containingType).ToList(),
             ContainingTypeKeyword = GetTypeKeyword(containingType),
         };
 
@@ -158,8 +167,9 @@ static internal class ExpressivePropertyInterpreter
 
         var returnType = stubSymbol.Type;
         var useTernary = IsNullablePropertyType(returnType);
-        var propertyTypeFqn = returnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var propertyTypeFqn = returnType.ToDisplayString(FullyQualifiedNullableFormat);
         var backingFieldTypeFqn = useTernary ? propertyTypeFqn : MakeNullableTypeFqn(returnType);
+        var (backingFieldName, hasValueFlagName) = ChooseBackingNames(containingType, targetName!, useTernary);
 
         return new SynthesizedPropertySpec
         {
@@ -169,11 +179,14 @@ static internal class ExpressivePropertyInterpreter
             StubIsMethod = false,
             UseTernaryShape = useTernary,
             BackingFieldTypeFqn = backingFieldTypeFqn,
+            BackingFieldName = backingFieldName,
+            HasValueFlagName = hasValueFlagName,
             ContainingTypeName = containingType.Name,
             ContainingTypeNamespace = containingType.ContainingNamespace.IsGlobalNamespace
                 ? null
                 : containingType.ContainingNamespace.ToDisplayString(),
             ContainingTypePath = GetNestedInClassPath(containingType).ToList(),
+            ContainingTypeKeywords = GetNestedInClassKeywords(containingType).ToList(),
             ContainingTypeKeyword = GetTypeKeyword(containingType),
         };
     }
@@ -297,6 +310,40 @@ static internal class ExpressivePropertyInterpreter
                 yield return name;
         }
         yield return typeSymbol.Name;
+    }
+
+    private static IEnumerable<string> GetNestedInClassKeywords(INamedTypeSymbol typeSymbol)
+    {
+        if (typeSymbol.ContainingType is not null)
+        {
+            foreach (var keyword in GetNestedInClassKeywords(typeSymbol.ContainingType))
+                yield return keyword;
+        }
+        yield return GetTypeKeyword(typeSymbol);
+    }
+
+    private static (string BackingFieldName, string HasValueFlagName) ChooseBackingNames(
+        INamedTypeSymbol containingType, string propertyName, bool useTernary)
+    {
+        var existing = new HashSet<string>(containingType.GetMembers().Select(m => m.Name));
+        var camel = char.ToLowerInvariant(propertyName[0]) + propertyName.Substring(1);
+        var basePrefix = "_" + camel;
+
+        // Single suffix shared across the pair so collision-resolved names stay related
+        // (`_foo2` / `_foo2HasValue`, never `_foo2` / `_foo3HasValue`).
+        var suffix = 0;
+        while (true)
+        {
+            var suffixStr = suffix == 0 ? "" : suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var fieldName = basePrefix + suffixStr;
+            var flagName = basePrefix + suffixStr + "HasValue";
+            var fieldOk = !existing.Contains(fieldName);
+            var flagOk = !useTernary || !existing.Contains(flagName);
+            if (fieldOk && flagOk)
+                return (fieldName, useTernary ? flagName : "");
+            // First retry uses suffix 2 (skip 1 — `_foo1` reads worse than `_foo2`).
+            suffix = suffix == 0 ? 2 : suffix + 1;
+        }
     }
 
     private static INamedTypeSymbol? FindInheritedMember(INamedTypeSymbol type, string memberName)

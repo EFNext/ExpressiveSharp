@@ -143,7 +143,7 @@ Pick based on whether you want the generator to declare the target property for 
 ```csharp
 // Before (Projectables)
 [Projectable(UseMemberBody = nameof(FullNameProjection))]
-public partial string FullName { get; init; }
+public string FullName { get; init; }
 private string FullNameProjection => LastName + ", " + FirstName;
 
 // After (ExpressiveSharp) -- partial class, stub only; FullName is generated
