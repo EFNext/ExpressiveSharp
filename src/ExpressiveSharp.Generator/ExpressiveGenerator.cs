@@ -36,6 +36,14 @@ public class ExpressiveGenerator : IIncrementalGenerator
         // synthesis here and augment our local compilation for binding only — never AddSource.
         var synthesizedSources = BuildSynthesizedSourcesPipeline(context);
 
+        // Augment the compilation once per (compilation, synth) pair. The result is reused
+        // across every member of every pipeline, so we don't re-parse synthesized partials
+        // and rebuild a Compilation per [Expressive] / [ExpressiveFor] / [ExpressiveProperty]
+        // member.
+        var bindingCompilationProvider = context.CompilationProvider
+            .Combine(synthesizedSources)
+            .Select(static (pair, ct) => AugmentCompilation(pair.Left, pair.Right, ct));
+
         // ── [Expressive] pipeline ──────────────────────────────────────────────
 
         // Extract only pure stable data from the attribute in the transform.
@@ -59,19 +67,17 @@ public class ExpressiveGenerator : IIncrementalGenerator
                 GlobalOptions: pair.Right
             ));
 
+        // Combine with the augmented compilation directly: validation has no synthesized-sibling
+        // conflicts in this pipeline (only [ExpressiveProperty] does), so binding-against-augmented
+        // is correct everywhere.
         var compilationAndMemberPairs = memberDeclarationsWithGlobalOptions
-            .Combine(context.CompilationProvider)
+            .Combine(bindingCompilationProvider)
             .WithComparer(new MemberDeclarationSyntaxAndCompilationEqualityComparer());
 
-        var compilationAndMemberPairsWithSynth = compilationAndMemberPairs
-            .Combine(synthesizedSources)
-            .WithComparer(MemberCompilationAndSynthesizedSourcesComparer.Instance);
-
-        context.RegisterImplementationSourceOutput(compilationAndMemberPairsWithSynth,
+        context.RegisterImplementationSourceOutput(compilationAndMemberPairs,
             static (spc, source) =>
             {
-                var (((member, attribute, globalOptions), compilation), synth) = source;
-                var bindingCompilation = AugmentCompilation(compilation, synth, spc.CancellationToken);
+                var ((member, attribute, globalOptions), bindingCompilation) = source;
                 var semanticModel = bindingCompilation.GetSemanticModel(member.SyntaxTree);
                 var memberSymbol = semanticModel.GetDeclaredSymbol(member);
 
@@ -86,9 +92,9 @@ public class ExpressiveGenerator : IIncrementalGenerator
         // Build the expression registry: collect all entries and emit a single registry file
         var registryEntries = compilationAndMemberPairs.Select(
             static (source, cancellationToken) => {
-                var ((member, _, _), compilation) = source;
+                var ((member, _, _), bindingCompilation) = source;
 
-                var semanticModel = compilation.GetSemanticModel(member.SyntaxTree);
+                var semanticModel = bindingCompilation.GetSemanticModel(member.SyntaxTree);
                 var memberSymbol = semanticModel.GetDeclaredSymbol(member, cancellationToken);
 
                 if (memberSymbol is null)
@@ -102,10 +108,10 @@ public class ExpressiveGenerator : IIncrementalGenerator
         // ── [ExpressiveFor] / [ExpressiveForConstructor] pipelines ──────────────
 
         var expressiveForDeclarations = CreateExpressiveForPipeline(
-            context, globalOptions, synthesizedSources, ExpressiveForAttributeName, ExpressiveForMemberKind.MethodOrProperty);
+            context, globalOptions, bindingCompilationProvider, ExpressiveForAttributeName, ExpressiveForMemberKind.MethodOrProperty);
 
         var expressiveForConstructorDeclarations = CreateExpressiveForPipeline(
-            context, globalOptions, synthesizedSources, ExpressiveForConstructorAttributeName, ExpressiveForMemberKind.Constructor);
+            context, globalOptions, bindingCompilationProvider, ExpressiveForConstructorAttributeName, ExpressiveForMemberKind.Constructor);
 
         // Collect registry entries from [ExpressiveFor] pipelines
         var expressiveForRegistryEntries = expressiveForDeclarations.Select(
@@ -115,7 +121,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
 
         // ── [ExpressiveProperty] pipeline ───────────────────────────────────────
 
-        var expressivePropertyDeclarations = CreateExpressivePropertyPipeline(context, synthesizedSources);
+        var expressivePropertyDeclarations = CreateExpressivePropertyPipeline(context, bindingCompilationProvider);
 
         var expressivePropertyRegistryEntries = expressivePropertyDeclarations.Select(
             static (source, _) => ExtractRegistryEntryForExpressiveProperty(source));
@@ -154,7 +160,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
         CreateExpressiveForPipeline(
             IncrementalGeneratorInitializationContext context,
             IncrementalValueProvider<ExpressiveGlobalOptions> globalOptions,
-            IncrementalValueProvider<ImmutableArray<(string HintName, string Source)>> synthesizedSources,
+            IncrementalValueProvider<Compilation> bindingCompilationProvider,
             string attributeFullName,
             ExpressiveForMemberKind memberKind)
     {
@@ -175,33 +181,24 @@ public class ExpressiveGenerator : IIncrementalGenerator
                 GlobalOptions: pair.Right
             ));
 
+        // Combine with the augmented compilation directly. The augmented compilation is
+        // shared across the entire run via bindingCompilationProvider's Select cache, so
+        // we don't re-parse synthesized partials per member.
         var compilationAndPairs = declarationsWithGlobalOptions
-            .Combine(context.CompilationProvider)
+            .Combine(bindingCompilationProvider)
             .WithComparer(new ExpressiveForMemberCompilationEqualityComparer());
-
-        var compilationAndPairsWithSynth = compilationAndPairs
-            .Combine(synthesizedSources)
-            .WithComparer(ExpressiveForMemberCompilationAndSynthesizedSourcesComparer.Instance);
 
         // Collect all items and emit in a single batch to detect duplicates before AddSource.
         // Per-item emission would crash the generator on duplicate hint names (Roslyn deduplicates
         // after all per-item callbacks, not at the AddSource call site).
-        context.RegisterImplementationSourceOutput(compilationAndPairsWithSynth.Collect(),
+        context.RegisterImplementationSourceOutput(compilationAndPairs.Collect(),
             static (spc, items) =>
             {
-                if (items.Length == 0)
-                {
-                    return;
-                }
                 var emittedFileNames = new HashSet<string>();
-
-                // All items share the same compilation/synth pair; augment once per run.
-                var (((_, _, _), firstCompilation), firstSynth) = items[0];
-                var bindingCompilation = AugmentCompilation(firstCompilation, firstSynth, spc.CancellationToken);
 
                 foreach (var source in items)
                 {
-                    var (((member, attribute, globalOptions), _), _) = source;
+                    var ((member, attribute, globalOptions), bindingCompilation) = source;
                     var semanticModel = bindingCompilation.GetSemanticModel(member.SyntaxTree);
                     var stubSymbol = semanticModel.GetDeclaredSymbol(member);
 
@@ -659,11 +656,8 @@ public class ExpressiveGenerator : IIncrementalGenerator
                 // get duplicate-member binding errors that would mask the real diagnostic.
                 var seen = new HashSet<string>();
                 var builder = ImmutableArray.CreateBuilder<(string HintName, string Source)>(arr.Length);
-                foreach (var item in arr)
-                {
-                    if (seen.Add(item.DedupKey))
-                        builder.Add((item.HintName, item.Source));
-                }
+                foreach (var item in arr.Where(item => seen.Add(item.DedupKey)))
+                    builder.Add((item.HintName, item.Source));
                 return builder.Count == arr.Length ? builder.MoveToImmutable() : builder.ToImmutable();
             })
             .WithComparer(SynthesizedSourceArrayComparer.Instance);
@@ -715,7 +709,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
     private static IncrementalValuesProvider<((PropertyDeclarationSyntax Stub, ExpressivePropertyAttributeData Attribute), Compilation)>
         CreateExpressivePropertyPipeline(
             IncrementalGeneratorInitializationContext context,
-            IncrementalValueProvider<ImmutableArray<(string HintName, string Source)>> synthesizedSources)
+            IncrementalValueProvider<Compilation> bindingCompilationProvider)
     {
         var declarations = context.SyntaxProvider
             .ForAttributeWithMetadataName(
@@ -728,25 +722,19 @@ public class ExpressiveGenerator : IIncrementalGenerator
 
         var compilationAndPairs = declarations.Combine(context.CompilationProvider);
 
-        var compilationAndPairsWithSynth = compilationAndPairs.Combine(synthesizedSources);
+        // Pair every (decl, originalCompilation) with the augmented compilation. Validation
+        // and ChooseBackingNames must use the original compilation (augmentation would otherwise
+        // false-positive EXP0031 against synthesized siblings); body-binding uses the augmented
+        // SemanticModel so cross-references between [ExpressiveProperty] stubs resolve.
+        var compilationAndPairsWithBinding = compilationAndPairs.Combine(bindingCompilationProvider);
 
-        context.RegisterSourceOutput(compilationAndPairsWithSynth.Collect(),
+        context.RegisterSourceOutput(compilationAndPairsWithBinding.Collect(),
             static (spc, items) =>
             {
-                if (items.Length == 0)
-                {
-                    return;
-                }
                 var emittedFileNames = new HashSet<string>();
-                // All items share the same compilation/synth pair; augment once per run.
-                var (((_, _), firstCompilation), firstSynth) = items[0];
-                var bindingCompilation = AugmentCompilation(firstCompilation, firstSynth, spc.CancellationToken);
                 foreach (var source in items)
                 {
-                    var (((stub, attribute), compilation), _) = source;
-                    // Original compilation for validation + ChooseBackingNames — augmentation
-                    // would otherwise false-positive EXP0031 by treating the synthesized
-                    // sibling as a pre-existing conflict.
+                    var (((stub, attribute), compilation), bindingCompilation) = source;
                     var semanticModel = compilation.GetSemanticModel(stub.SyntaxTree);
                     if (semanticModel.GetDeclaredSymbol(stub) is not IPropertySymbol stubSymbol)
                         continue;
