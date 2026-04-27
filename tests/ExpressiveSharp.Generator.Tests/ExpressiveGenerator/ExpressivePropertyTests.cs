@@ -1,0 +1,360 @@
+using System.Linq;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using VerifyMSTest;
+using ExpressiveSharp.Generator.Tests.Infrastructure;
+
+namespace ExpressiveSharp.Generator.Tests.ExpressiveGenerator;
+
+/// <summary>
+/// Tests for <c>[ExpressiveProperty]</c> — synthesizes a settable property on the stub's
+/// containing partial type. Two shapes: coalesce (non-nullable targets) and ternary+flag
+/// (nullable targets, including both ref-nullable and value-nullable).
+/// </summary>
+[TestClass]
+public class ExpressivePropertyTests : GeneratorTestBase
+{
+    // ── Happy-path snapshots ────────────────────────────────────────────────
+
+    [TestMethod]
+    public Task ReferenceTypeTarget_EmitsCoalesceForm()
+    {
+        // Non-nullable reference target — coalesce shape with a nullable backing field.
+        var compilation = CreateCompilation(
+            """
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                partial class Account {
+                    public string FirstName { get; set; } = "";
+                    public string LastName  { get; set; } = "";
+
+                    [ExpressiveProperty("FullName")]
+                    private string FullNameExpression => LastName + ", " + FirstName;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        // Two generated files: expression factory + synthesized partial.
+        Assert.AreEqual(2, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(string.Join("\n\n// ===\n\n",
+            result.GeneratedTrees.Select(t => t.ToString())));
+    }
+
+    [TestMethod]
+    public Task NullableReferenceTypeTarget_EmitsTernaryForm()
+    {
+        // Nullable reference target — ternary+flag shape (coalesce would collide with stored null).
+        var compilation = CreateCompilation(
+            """
+            #nullable enable
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                partial class Account {
+                    public string? FirstName { get; set; }
+                    public string? LastName  { get; set; }
+
+                    [ExpressiveProperty("FullName")]
+                    private string? FullNameExpression =>
+                        LastName is null || FirstName is null ? null : (LastName + ", " + FirstName);
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(2, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(string.Join("\n\n// ===\n\n",
+            result.GeneratedTrees.Select(t => t.ToString())));
+    }
+
+    [TestMethod]
+    public Task NonNullableValueTypeTarget_EmitsCoalesceForm()
+    {
+        // Non-nullable value target — coalesce shape with Nullable<T> backing field.
+        var compilation = CreateCompilation(
+            """
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                partial class Account {
+                    public decimal TotalAmount { get; set; }
+                    public decimal Discount    { get; set; }
+
+                    [ExpressiveProperty("Amount")]
+                    private decimal AmountExpression => TotalAmount - Discount;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(2, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(string.Join("\n\n// ===\n\n",
+            result.GeneratedTrees.Select(t => t.ToString())));
+    }
+
+    [TestMethod]
+    public Task NullableValueTypeTarget_EmitsTernaryForm()
+    {
+        // Nullable value target — ternary+flag (issue #35 scenario).
+        var compilation = CreateCompilation(
+            """
+            #nullable enable
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                partial class Account {
+                    public decimal? TotalAmount { get; set; }
+                    public decimal? Discount    { get; set; }
+
+                    [ExpressiveProperty("Amount")]
+                    private decimal? AmountExpression =>
+                        TotalAmount != null && Discount != null
+                            ? TotalAmount.Value - Discount.Value
+                            : (decimal?)null;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(2, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(string.Join("\n\n// ===\n\n",
+            result.GeneratedTrees.Select(t => t.ToString())));
+    }
+
+    [TestMethod]
+    public Task PartialRecord_EmitsCorrectly()
+    {
+        // Target is a partial record — the synthesized file must emit `partial record`.
+        var compilation = CreateCompilation(
+            """
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                partial record Person {
+                    public string FirstName { get; init; } = "";
+                    public string LastName  { get; init; } = "";
+
+                    [ExpressiveProperty("FullName")]
+                    private string FullNameExpression => LastName + ", " + FirstName;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(2, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(string.Join("\n\n// ===\n\n",
+            result.GeneratedTrees.Select(t => t.ToString())));
+    }
+
+    [TestMethod]
+    public Task PartialStruct_EmitsCorrectly()
+    {
+        // Target is a partial struct — the synthesized file must emit `partial struct`.
+        var compilation = CreateCompilation(
+            """
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                partial struct Point {
+                    public double X { get; set; }
+                    public double Y { get; set; }
+
+                    [ExpressiveProperty("Magnitude")]
+                    private double MagnitudeExpression => System.Math.Sqrt(X * X + Y * Y);
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(2, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(string.Join("\n\n// ===\n\n",
+            result.GeneratedTrees.Select(t => t.ToString())));
+    }
+
+    [TestMethod]
+    public Task BackingFieldNameCollision_AppendsSuffix()
+    {
+        // User type already declares `_fullName` — synthesized backing field must avoid the
+        // collision (verified by a string contains assertion rather than full snapshot since
+        // only the field name choice is the contract being tested).
+        var compilation = CreateCompilation(
+            """
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                partial class Account {
+                    private string? _fullName;
+                    public string FirstName { get; set; } = "";
+                    public string LastName  { get; set; } = "";
+
+                    [ExpressiveProperty("FullName")]
+                    private string FullNameExpression => LastName + ", " + FirstName;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        var generated = string.Join("\n", result.GeneratedTrees.Select(t => t.ToString()));
+        StringAssert.Contains(generated, "private string? _fullName2;",
+            "Backing field should be renamed to avoid collision with the user-declared _fullName field.");
+        Assert.IsFalse(generated.Contains("private string? _fullName;\n        public string FullName"),
+            "Synthesized backing field must not be the colliding name `_fullName`.");
+        return Task.CompletedTask;
+    }
+
+    [TestMethod]
+    public Task NestedInsideNonClassContainer_EmitsCorrectOuterKeyword()
+    {
+        // Partial class nested inside a partial struct — outer wrapper must be `partial struct`,
+        // not the previous hard-coded `partial class` (which produced uncompilable output).
+        var compilation = CreateCompilation(
+            """
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                public partial struct Outer {
+                    public partial class Inner {
+                        public string FirstName { get; set; } = "";
+
+                        [ExpressiveProperty("Name")]
+                        private string NameExpression => FirstName;
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(2, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(string.Join("\n\n// ===\n\n",
+            result.GeneratedTrees.Select(t => t.ToString())));
+    }
+
+    // ── Diagnostic tests ────────────────────────────────────────────────────
+
+    [TestMethod]
+    public void TargetAlreadyExists_ReportsEXP0031()
+    {
+        var compilation = CreateCompilation(
+            """
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                partial class Account {
+                    public string FullName { get; set; } = "";
+
+                    [ExpressiveProperty("FullName")]
+                    private string FullNameExpression => "x";
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0031"));
+    }
+
+    [TestMethod]
+    public void NonPartialContainer_ReportsEXP0032()
+    {
+        var compilation = CreateCompilation(
+            """
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                class Account {
+                    public string FirstName { get; set; } = "";
+
+                    [ExpressiveProperty("FullName")]
+                    private string FullNameExpression => FirstName;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0032"));
+    }
+
+    [TestMethod]
+    public void AccessorListFormRejected_EXP0033()
+    {
+        // Accessor-list form (`{ get => expr; }`) is rejected in favor of top-level `=> expr`.
+        var compilation = CreateCompilation(
+            """
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                partial class Account {
+                    public string FirstName { get; set; } = "";
+
+                    [ExpressiveProperty("FullName")]
+                    private string FullNameExpression { get { return FirstName; } }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0033"));
+    }
+
+    [TestMethod]
+    public void StaticStubRejected_EXP0034()
+    {
+        var compilation = CreateCompilation(
+            """
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                partial class Account {
+                    public static string Theme = "dark";
+
+                    [ExpressiveProperty("EffectiveTheme")]
+                    private static string EffectiveThemeExpression => Theme;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0034"));
+    }
+
+    [TestMethod]
+    public void ShadowsInheritedMember_ReportsEXP0035()
+    {
+        // Target name already exists on the base type — silently hiding it would be a footgun.
+        var compilation = CreateCompilation(
+            """
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                class Base {
+                    public string Name { get; set; } = "";
+                }
+
+                partial class Derived : Base {
+                    public string Prefix { get; set; } = "";
+
+                    [ExpressiveProperty("Name")]
+                    private string NameExpression => Prefix + "/";
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0035"));
+    }
+}

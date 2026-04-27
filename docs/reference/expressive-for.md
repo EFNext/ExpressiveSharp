@@ -133,6 +133,10 @@ public static class MyDtoBuilder
 }
 ```
 
+## Synthesizing a new property
+
+`[ExpressiveFor]` maps onto an **existing** member. If the target property does not yet exist and you want the generator to declare it for you (for example, so HotChocolate or EF Core projection middleware can bind to a settable member), use [`[ExpressiveProperty]`](./expressive-property) instead — it's the focused attribute for that case.
+
 ## Properties
 
 Both `[ExpressiveFor]` and `[ExpressiveForConstructor]` support the same optional properties as `[Expressive]`:

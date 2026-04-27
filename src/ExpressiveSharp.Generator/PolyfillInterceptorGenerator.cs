@@ -1,8 +1,13 @@
+using System.Collections.Immutable;
 using System.Text;
+using ExpressiveSharp.Generator.Emitter;
 using ExpressiveSharp.Generator.Infrastructure;
+using ExpressiveSharp.Generator.Interpretation;
+using ExpressiveSharp.Generator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 using Microsoft.CodeAnalysis.Text;
 
 namespace ExpressiveSharp.Generator;
@@ -25,6 +30,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
     private const string PolyfillTypeName = "ExpressiveSharp.ExpressionPolyfill";
     private const string PolyfillMethodName = "Create";
+
+    private const string ExpressivePropertyAttributeName = "ExpressiveSharp.Mapping.ExpressivePropertyAttribute";
 
     private const string ClosureHelperSource = """
 
@@ -133,11 +140,55 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             .Combine(context.CompilationProvider)
             .WithComparer(CompilationUnitAndCompilationComparer.Instance);
 
+        // ── Synthesized-property sources for compilation augmentation ─────────────
+        //
+        // [ExpressiveProperty]-decorated stubs cause ExpressiveGenerator to emit a partial-class
+        // file declaring the synthesized property (e.g. Rectangle.IsSquareProp). Roslyn source
+        // generators all run against the SAME input compilation — one generator never sees
+        // another's AddSource output — so without help, the SemanticModel below cannot bind
+        // references to synthesized properties inside intercepted lambdas. We mirror the
+        // synthesis pipeline here, producing the same partial-class source strings, and use
+        // them to augment the in-memory compilation just for binding (we do NOT call AddSource
+        // — ExpressiveGenerator owns the user-visible emission).
+        var synthesizedDeclarations = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                ExpressivePropertyAttributeName,
+                predicate: static (s, _) => s is PropertyDeclarationSyntax,
+                transform: static (c, _) => (
+                    Stub: (PropertyDeclarationSyntax)c.TargetNode,
+                    Attribute: new ExpressivePropertyAttributeData(c.Attributes[0])
+                ));
+
+        var synthesizedSources = synthesizedDeclarations
+            .Combine(context.CompilationProvider)
+            .Select(static (pair, ct) =>
+            {
+                ct.ThrowIfCancellationRequested();
+                var ((stub, attribute), compilation) = pair;
+                var semanticModel = compilation.GetSemanticModel(stub.SyntaxTree);
+                if (semanticModel.GetDeclaredSymbol(stub, ct) is not IPropertySymbol stubSymbol)
+                    return default;
+
+                var spec = ExpressivePropertyInterpreter.TryBuildSpec(stub, stubSymbol, attribute);
+                if (spec is null) return default;
+
+                var hint = $"{spec.ContainingTypeName}.{spec.PropertyName}.Synthesized.augment.cs";
+                var source = SynthesizedPropertyEmitter.BuildSource(spec);
+                return (HintName: hint, Source: source);
+            })
+            .Where(static t => t.Source is not null)
+            .Collect()
+            .WithComparer(SynthesizedSourceArrayComparer.Instance);
+
+        var filesWithCompilationAndSynth = filesWithCompilation
+            .Combine(synthesizedSources)
+            .WithComparer(FileAndSynthesizedSourcesComparer.Instance);
+
         // All semantic analysis, code emission, and EXP_EMIT_FAILED diagnostic reporting
         // happen inside ProcessFileAndEmit. One output file is produced per source file,
         // containing all interceptors for that file.
-        context.RegisterSourceOutput(filesWithCompilation,
-            static (spc, pair) => ProcessFileAndEmit(pair.Left, pair.Right, spc));
+        context.RegisterSourceOutput(filesWithCompilationAndSynth,
+            static (spc, pair) => ProcessFileAndEmit(pair.Left.Left, pair.Left.Right, pair.Right, spc));
     }
 
     // ── Per-file processing and emission ────────────────────────────────────
@@ -151,10 +202,33 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     private static void ProcessFileAndEmit(
         CompilationUnitSyntax unit,
         Compilation compilation,
+        ImmutableArray<(string HintName, string Source)> synthesizedSources,
         SourceProductionContext spc)
     {
         var ct = spc.CancellationToken;
-        var model = compilation.GetSemanticModel(unit.SyntaxTree);
+
+        // Augment the compilation in-memory with the synthesized partial-class declarations
+        // (one per [ExpressiveProperty] stub). The augmented Compilation is local to this
+        // emitter — it never escapes via AddSource — so there is no double-emission. Without
+        // this, the SemanticModel below cannot bind references like `Rectangle { IsSquareProp: ... }`
+        // because ExpressiveGenerator's synthesized property is invisible to this generator.
+        var modelCompilation = compilation;
+        if (synthesizedSources.Length > 0)
+        {
+            var parseOptions = compilation.SyntaxTrees.FirstOrDefault()?.Options as CSharpParseOptions
+                ?? CSharpParseOptions.Default;
+            var trees = new SyntaxTree[synthesizedSources.Length];
+            for (var i = 0; i < synthesizedSources.Length; i++)
+            {
+                trees[i] = CSharpSyntaxTree.ParseText(
+                    synthesizedSources[i].Source,
+                    parseOptions,
+                    cancellationToken: ct);
+            }
+            modelCompilation = compilation.AddSyntaxTrees(trees);
+        }
+
+        var model = modelCompilation.GetSemanticModel(unit.SyntaxTree);
         var sourcePath = unit.SyntaxTree.FilePath;
         var fileTag = GetFileTag(sourcePath);
 
@@ -453,6 +527,22 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         var bodyNode = lambda.Body is ExpressionSyntax expr ? (SyntaxNode)expr : lambda.Body;
         if (bodyNode is null) return null;
 
+        // Pre-check: if Roslyn can't bind something in the body (e.g. a synthesized member that
+        // isn't visible to this generator's compilation), the IOperation tree contains
+        // IInvalidOperation nodes and the emitted expression tree would be garbage. Surface
+        // EXP0010 so the user notices instead of silently falling back to the delegate stub.
+        // We don't fail on a null IOperation — that can mean transparent syntax that the
+        // emitter unwraps separately, not a binding failure.
+        var bodyOperation = model.GetOperation(bodyNode);
+        if (bodyOperation is not null && ContainsInvalidOperation(bodyOperation))
+        {
+            spc.ReportDiagnostic(Diagnostic.Create(
+                Diagnostics.InterceptorEmissionFailed,
+                lambda.GetLocation(),
+                "lambda body contains unresolvable references — the original delegate stub will be used at runtime"));
+            return null;
+        }
+
         var emitter = new Emitter.ExpressionTreeEmitter(model, spc, varPrefix: varPrefix, delegateVarName: delegateVarName);
 
         if (typeAliases is not null)
@@ -522,6 +612,20 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     /// </summary>
     private static bool IsAnonymousType(ITypeSymbol type)
         => type is INamedTypeSymbol { IsAnonymousType: true };
+
+    /// <summary>
+    /// Walks an <see cref="IOperation"/> tree looking for any <c>IInvalidOperation</c>, which
+    /// Roslyn produces when binding fails (unknown member, malformed reference, etc.).
+    /// </summary>
+    private static bool ContainsInvalidOperation(IOperation op)
+    {
+        if (op is IInvalidOperation) return true;
+        foreach (var child in op.ChildOperations)
+        {
+            if (ContainsInvalidOperation(child)) return true;
+        }
+        return false;
+    }
 
     // ── Formatting helpers ───────────────────────────────────────────────────
 
@@ -944,5 +1048,85 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
         public int GetHashCode((CompilationUnitSyntax Left, Compilation Right) obj)
             => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.Left);
+    }
+
+    // ── SynthesizedSourceArrayComparer ─────────────────────────────────────────
+
+    /// <summary>
+    /// Sequence-equality on the collected (HintName, Source) pairs from the synthesized-property
+    /// pipeline. ImmutableArray's default equality is reference, so without this comparer Roslyn
+    /// would treat every regenerated array as distinct and invalidate every downstream consumer
+    /// on every input edit.
+    /// </summary>
+    private sealed class SynthesizedSourceArrayComparer
+        : IEqualityComparer<ImmutableArray<(string HintName, string Source)>>
+    {
+        public readonly static SynthesizedSourceArrayComparer Instance = new();
+
+        private SynthesizedSourceArrayComparer() { }
+
+        public bool Equals(
+            ImmutableArray<(string HintName, string Source)> x,
+            ImmutableArray<(string HintName, string Source)> y)
+        {
+            if (x.Length != y.Length) return false;
+            for (var i = 0; i < x.Length; i++)
+            {
+                if (x[i].HintName != y[i].HintName) return false;
+                if (x[i].Source != y[i].Source) return false;
+            }
+            return true;
+        }
+
+        public int GetHashCode(ImmutableArray<(string HintName, string Source)> obj)
+        {
+            unchecked
+            {
+                var hash = 17;
+                for (var i = 0; i < obj.Length; i++)
+                {
+                    hash = hash * 31 + (obj[i].HintName?.GetHashCode() ?? 0);
+                    hash = hash * 31 + (obj[i].Source?.GetHashCode() ?? 0);
+                }
+                return hash;
+            }
+        }
+    }
+
+    // ── FileAndSynthesizedSourcesComparer ──────────────────────────────────────
+
+    /// <summary>
+    /// Combined comparer for the per-file pipeline + synthesized-source array. ANDs the existing
+    /// <see cref="CompilationUnitAndCompilationComparer"/> reference-equality on the file root with
+    /// sequence-equality on the synthesized array.
+    ///
+    /// <para>
+    /// Editing a file with no <c>[ExpressiveProperty]</c> change → file ref unchanged AND array
+    /// unchanged → skip. Editing an <c>[ExpressiveProperty]</c> attribute → array changes → all
+    /// files re-emit (correct: synthesized binding may affect any file's lambdas).
+    /// </para>
+    /// </summary>
+    private sealed class FileAndSynthesizedSourcesComparer
+        : IEqualityComparer<((CompilationUnitSyntax Left, Compilation Right) Left, ImmutableArray<(string HintName, string Source)> Right)>
+    {
+        public readonly static FileAndSynthesizedSourcesComparer Instance = new();
+
+        private FileAndSynthesizedSourcesComparer() { }
+
+        public bool Equals(
+            ((CompilationUnitSyntax Left, Compilation Right) Left, ImmutableArray<(string HintName, string Source)> Right) x,
+            ((CompilationUnitSyntax Left, Compilation Right) Left, ImmutableArray<(string HintName, string Source)> Right) y)
+            => CompilationUnitAndCompilationComparer.Instance.Equals(x.Left, y.Left)
+                && SynthesizedSourceArrayComparer.Instance.Equals(x.Right, y.Right);
+
+        public int GetHashCode(
+            ((CompilationUnitSyntax Left, Compilation Right) Left, ImmutableArray<(string HintName, string Source)> Right) obj)
+        {
+            unchecked
+            {
+                return CompilationUnitAndCompilationComparer.Instance.GetHashCode(obj.Left) * 31
+                    + SynthesizedSourceArrayComparer.Instance.GetHashCode(obj.Right);
+            }
+        }
     }
 }

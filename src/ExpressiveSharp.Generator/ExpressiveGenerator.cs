@@ -18,6 +18,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
     private const string ExpressiveAttributeName = "ExpressiveSharp.ExpressiveAttribute";
     private const string ExpressiveForAttributeName = "ExpressiveSharp.Mapping.ExpressiveForAttribute";
     private const string ExpressiveForConstructorAttributeName = "ExpressiveSharp.Mapping.ExpressiveForConstructorAttribute";
+    private const string ExpressivePropertyAttributeName = "ExpressiveSharp.Mapping.ExpressivePropertyAttribute";
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -97,19 +98,28 @@ public class ExpressiveGenerator : IIncrementalGenerator
         var expressiveForConstructorRegistryEntries = expressiveForConstructorDeclarations.Select(
             static (source, _) => ExtractRegistryEntryForExternal(source));
 
+        // ── [ExpressiveProperty] pipeline ───────────────────────────────────────
+
+        var expressivePropertyDeclarations = CreateExpressivePropertyPipeline(context);
+
+        var expressivePropertyRegistryEntries = expressivePropertyDeclarations.Select(
+            static (source, _) => ExtractRegistryEntryForExpressiveProperty(source));
+
         // ── Merged registry ─────────────────────────────────────────────────────
 
         var allRegistryEntries = registryEntries.Collect()
             .Combine(expressiveForRegistryEntries.Collect())
             .Combine(expressiveForConstructorRegistryEntries.Collect())
+            .Combine(expressivePropertyRegistryEntries.Collect())
             .Select(static (pair, _) =>
             {
-                var ((expressiveEntries, forEntries), forCtorEntries) = pair;
+                var (((expressiveEntries, forEntries), forCtorEntries), propEntries) = pair;
                 var builder = ImmutableArray.CreateBuilder<ExpressionRegistryEntry?>(
-                    expressiveEntries.Length + forEntries.Length + forCtorEntries.Length);
+                    expressiveEntries.Length + forEntries.Length + forCtorEntries.Length + propEntries.Length);
                 builder.AddRange(expressiveEntries);
                 builder.AddRange(forEntries);
                 builder.AddRange(forCtorEntries);
+                builder.AddRange(propEntries);
                 return builder.ToImmutable();
             });
 
@@ -582,5 +592,125 @@ public class ExpressiveGenerator : IIncrementalGenerator
             }
         }
         yield return typeSymbol.Name;
+    }
+
+    /// <summary>
+    /// Incremental pipeline for <c>[ExpressiveProperty]</c>. Discovers property stubs, runs the
+    /// interpreter, and emits both the expression-tree factory and the synthesized partial-class
+    /// declaration.
+    /// </summary>
+    private static IncrementalValuesProvider<((PropertyDeclarationSyntax Stub, ExpressivePropertyAttributeData Attribute), Compilation)>
+        CreateExpressivePropertyPipeline(IncrementalGeneratorInitializationContext context)
+    {
+        var declarations = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                ExpressivePropertyAttributeName,
+                predicate: static (s, _) => s is PropertyDeclarationSyntax,
+                transform: static (c, _) => (
+                    Stub: (PropertyDeclarationSyntax)c.TargetNode,
+                    Attribute: new ExpressivePropertyAttributeData(c.Attributes[0])
+                ));
+
+        var compilationAndPairs = declarations.Combine(context.CompilationProvider);
+
+        context.RegisterSourceOutput(compilationAndPairs.Collect(),
+            static (spc, items) =>
+            {
+                var emittedFileNames = new HashSet<string>();
+                foreach (var source in items)
+                {
+                    var ((stub, attribute), compilation) = source;
+                    var semanticModel = compilation.GetSemanticModel(stub.SyntaxTree);
+                    if (semanticModel.GetDeclaredSymbol(stub) is not IPropertySymbol stubSymbol)
+                        continue;
+
+                    ExecuteExpressiveProperty(stub, stubSymbol, semanticModel, attribute, spc, emittedFileNames);
+                }
+            });
+
+        return compilationAndPairs;
+    }
+
+    /// <summary>
+    /// Runs the <c>[ExpressiveProperty]</c> interpreter and emits both the expression-tree factory
+    /// file and the user-facing partial-class declaration with the synthesized property.
+    /// </summary>
+    private static void ExecuteExpressiveProperty(
+        PropertyDeclarationSyntax stub,
+        IPropertySymbol stubSymbol,
+        SemanticModel semanticModel,
+        ExpressivePropertyAttributeData attribute,
+        SourceProductionContext context,
+        HashSet<string> emittedFileNames)
+    {
+        var result = ExpressivePropertyInterpreter.GetDescriptor(
+            semanticModel, stub, stubSymbol, attribute, context);
+        if (result is null) return;
+
+        var (descriptor, synthesisSpec) = result.Value;
+
+        if (descriptor.MemberName is null)
+            throw new InvalidOperationException("Expected a memberName here");
+        if (descriptor.ExpressionTreeEmission is null)
+            throw new InvalidOperationException("ExpressionTreeEmission must be set");
+
+        var generatedClassName = ExpressionClassNameGenerator.GenerateClassName(
+            descriptor.ClassNamespace, descriptor.NestedInClassNames);
+        var methodSuffix = ExpressionClassNameGenerator.GenerateMethodSuffix(
+            descriptor.MemberName, descriptor.ParameterTypeNames);
+        var generatedFileName = $"{generatedClassName}.{methodSuffix}.g.cs";
+
+        if (!emittedFileNames.Add(generatedFileName))
+            return;
+
+        EmitExpressionTreeSource(descriptor, generatedClassName, methodSuffix, generatedFileName,
+            stub, compilation: null, context);
+
+        var synthesizedFileName = $"{generatedClassName}.{methodSuffix}.Synthesized.g.cs";
+        Emitter.SynthesizedPropertyEmitter.Emit(synthesisSpec, synthesizedFileName, context);
+    }
+
+    /// <summary>
+    /// Extracts a registry entry for an <c>[ExpressiveProperty]</c> stub. The entry is always
+    /// property-kind and keyed on the synthesized target name (which doesn't exist on the target
+    /// type yet — the synthesized partial declaration fills it in).
+    /// </summary>
+    private static ExpressionRegistryEntry? ExtractRegistryEntryForExpressiveProperty(
+        ((PropertyDeclarationSyntax Stub, ExpressivePropertyAttributeData Attribute), Compilation) source)
+    {
+        var ((stub, attribute), compilation) = source;
+        if (attribute.TargetName is null || string.IsNullOrWhiteSpace(attribute.TargetName))
+            return null;
+
+        var semanticModel = compilation.GetSemanticModel(stub.SyntaxTree);
+        if (semanticModel.GetDeclaredSymbol(stub) is not IPropertySymbol stubSymbol)
+            return null;
+
+        var containingType = stubSymbol.ContainingType;
+        if (containingType.TypeParameters.Length > 0)
+            return null;
+
+        var classNamespace = containingType.ContainingNamespace.IsGlobalNamespace
+            ? null
+            : containingType.ContainingNamespace.ToDisplayString();
+        var nestedTypePath = GetRegistryNestedTypePath(containingType);
+
+        var generatedClassFullName = ExpressionClassNameGenerator.GenerateClassFullName(
+            classNamespace, nestedTypePath);
+        var methodSuffix = ExpressionClassNameGenerator.GenerateMethodSuffix(
+            attribute.TargetName, parameterTypeNames: null);
+        var expressionMethodName = methodSuffix + "_Expression";
+
+        var stubLocation = stub.Identifier.GetLocation();
+        var stubLineSpan = stubLocation.GetLineSpan();
+
+        return new ExpressionRegistryEntry(
+            DeclaringTypeFullName: containingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            MemberKind: ExpressionRegistryMemberType.Property,
+            MemberLookupName: attribute.TargetName,
+            GeneratedClassFullName: generatedClassFullName,
+            ExpressionMethodName: expressionMethodName,
+            ParameterTypeNames: ImmutableArray<string>.Empty,
+            StubLocation: new SourceLocation(stubLineSpan.Path, stubLocation.SourceSpan, stubLineSpan.Span));
     }
 }

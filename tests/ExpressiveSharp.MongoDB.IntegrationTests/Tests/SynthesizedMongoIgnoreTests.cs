@@ -1,4 +1,4 @@
-using ExpressiveSharp.MongoDB.Extensions;
+using ExpressiveSharp.Mapping;
 using ExpressiveSharp.MongoDB.Infrastructure;
 using ExpressiveSharp.MongoDB.IntegrationTests.Infrastructure;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -9,16 +9,16 @@ using MongoDB.Driver;
 namespace ExpressiveSharp.MongoDB.IntegrationTests.Tests;
 
 /// <summary>
-/// Verifies that <c>[Expressive(Projectable = true)]</c> properties are unmapped from BSON
+/// Verifies that <c>[ExpressiveProperty]</c> stubs are unmapped from BSON
 /// serialization by the <c>ExpressiveMongoIgnoreConvention</c>, and that the formula is
 /// correctly rewritten when referenced inside LINQ queries against the MongoDB provider.
 /// </summary>
 [TestClass]
-public class ProjectableMongoIgnoreTests
+public class SynthesizedMongoIgnoreTests
 {
     private MongoClient? _client;
     private string? _dbName;
-    private IMongoCollection<ProjectableMongoDocument> _collection = null!;
+    private IMongoCollection<SynthesizedMongoDocument> _collection = null!;
 
     [TestInitialize]
     public async Task InitMongo()
@@ -29,20 +29,17 @@ public class ProjectableMongoIgnoreTests
         // IMPORTANT: The ignore convention must be registered BEFORE the first call to
         // IMongoDatabase.GetCollection<T>(), which builds and caches the BSON class map for
         // T eagerly. A convention registered afterward would not apply to the cached map.
-        // Users who want [Expressive] properties unmapped from BSON must either call
-        // EnsureRegistered() before accessing collections, or go through
-        // ExpressiveMongoCollection<T>/AsExpressive() *before* the first GetCollection<T>.
         ExpressiveMongoIgnoreConvention.EnsureRegistered();
 
         _client = new MongoClient(MongoContainerFixture.ConnectionString);
         _dbName = $"test_{Guid.NewGuid():N}";
         var database = _client.GetDatabase(_dbName);
-        _collection = database.GetCollection<ProjectableMongoDocument>("people");
+        _collection = database.GetCollection<SynthesizedMongoDocument>("people");
 
         await _collection.InsertManyAsync(
         [
-            new ProjectableMongoDocument { Id = 1, FirstName = "Ada",  LastName = "Lovelace" },
-            new ProjectableMongoDocument { Id = 2, FirstName = "Alan", LastName = "Turing" },
+            new SynthesizedMongoDocument { Id = 1, FirstName = "Ada",  LastName = "Lovelace" },
+            new SynthesizedMongoDocument { Id = 2, FirstName = "Alan", LastName = "Turing" },
         ]);
     }
 
@@ -54,39 +51,32 @@ public class ProjectableMongoIgnoreTests
     }
 
     [TestMethod]
-    public void ProjectableProperty_IsNotInClassMap()
+    public void SynthesizedProperty_IsNotInClassMap()
     {
-        // Force-build the class map and confirm the convention unmapped FullName.
-        var classMap = BsonClassMap.LookupClassMap(typeof(ProjectableMongoDocument));
+        var classMap = BsonClassMap.LookupClassMap(typeof(SynthesizedMongoDocument));
         var mappedNames = classMap.AllMemberMaps.Select(m => m.MemberName).ToArray();
 
-        CollectionAssert.Contains(mappedNames, nameof(ProjectableMongoDocument.FirstName));
-        CollectionAssert.Contains(mappedNames, nameof(ProjectableMongoDocument.LastName));
-        CollectionAssert.DoesNotContain(mappedNames, nameof(ProjectableMongoDocument.FullName),
-            "Projectable property FullName must be unmapped from the BsonClassMap");
+        CollectionAssert.Contains(mappedNames, nameof(SynthesizedMongoDocument.FirstName));
+        CollectionAssert.Contains(mappedNames, nameof(SynthesizedMongoDocument.LastName));
+        CollectionAssert.DoesNotContain(mappedNames, nameof(SynthesizedMongoDocument.FullName),
+            "Synthesized property FullName must be unmapped from the BsonClassMap");
     }
 
     [TestMethod]
-    public async Task ProjectableProperty_IsNotPersistedToBsonDocument()
+    public async Task SynthesizedProperty_IsNotPersistedToBsonDocument()
     {
-        // Query the raw BSON document to verify the Projectable property's backing field
-        // is not serialized. Without the ExpressiveMongoIgnoreConvention, the writable
-        // FullName property would be serialized to the document as a real field.
         var rawCollection = _collection.Database.GetCollection<BsonDocument>("people");
         var rawDocument = await rawCollection.Find(FilterDefinition<BsonDocument>.Empty).FirstAsync();
 
         Assert.IsTrue(rawDocument.Contains("FirstName"), "FirstName should be persisted");
         Assert.IsTrue(rawDocument.Contains("LastName"),  "LastName should be persisted");
         Assert.IsFalse(rawDocument.Contains("FullName"),
-            "Projectable property FullName must NOT be persisted to the BSON document");
+            "Synthesized property FullName must NOT be persisted to the BSON document");
     }
 
     [TestMethod]
-    public async Task ProjectableProperty_RoundTrip_RetainsDependenciesOnly()
+    public async Task SynthesizedProperty_RoundTrip_RetainsDependenciesOnly()
     {
-        // Insert a document, read it back, confirm FirstName/LastName survived materialization
-        // and FullName (on the re-read instance) is computed from the formula since the backing
-        // field is null for freshly-deserialized documents.
         var retrieved = await _collection.Find(d => d.Id == 1).FirstAsync();
 
         Assert.AreEqual("Ada", retrieved.FirstName);
@@ -96,17 +86,13 @@ public class ProjectableMongoIgnoreTests
     }
 }
 
-/// <summary>Self-contained document for Projectable Mongo tests.</summary>
-public class ProjectableMongoDocument
+/// <summary>Self-contained document for synthesized-property Mongo tests.</summary>
+public partial class SynthesizedMongoDocument
 {
     public int Id { get; set; }
     public string FirstName { get; set; } = "";
     public string LastName { get; set; } = "";
 
-    [Expressive(Projectable = true)]
-    public string FullName
-    {
-        get => field ?? (LastName + ", " + FirstName);
-        init => field = value;
-    }
+    [ExpressiveProperty("FullName")]
+    private string FullNameExpression => LastName + ", " + FirstName;
 }

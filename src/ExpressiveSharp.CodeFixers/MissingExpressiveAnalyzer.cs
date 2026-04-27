@@ -233,6 +233,11 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
         if (HasExpressiveAttribute(symbol))
             return;
 
+        // A sibling stub with [ExpressiveProperty("X")] or [ExpressiveFor(... "X")]
+        // on the same containing type registers an expression for this member.
+        if (HasSiblingMappingTargetingMember(symbol))
+            return;
+
         if (!HasExpandableBody(symbol, context.CancellationToken))
             return;
 
@@ -246,6 +251,77 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
             properties: null,
             symbol.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat)));
     }
+
+    /// <summary>
+    /// True when the containing type declares a sibling stub whose mapping attribute names
+    /// <paramref name="symbol"/> as its target — i.e. <c>[ExpressiveProperty("X")]</c> or
+    /// <c>[ExpressiveFor("X")]</c> / <c>[ExpressiveFor(typeof(ThisType), "X")]</c>. In any of
+    /// those cases the registry has an entry for the member even though it carries no direct
+    /// <c>[Expressive]</c> attribute.
+    /// </summary>
+    private static bool HasSiblingMappingTargetingMember(ISymbol symbol)
+    {
+        var containingType = symbol.ContainingType;
+        if (containingType is null)
+            return false;
+
+        var targetName = symbol.Name;
+
+        foreach (var sibling in containingType.GetMembers())
+        {
+            if (SymbolEqualityComparer.Default.Equals(sibling, symbol))
+                continue;
+
+            foreach (var attr in sibling.GetAttributes())
+            {
+                if (attr.AttributeClass is not { } attrClass) continue;
+                var ns = attrClass.ContainingNamespace?.ToDisplayString();
+                if (ns != "ExpressiveSharp.Mapping") continue;
+
+                if (attrClass.Name == "ExpressivePropertyAttribute"
+                    && ExtractStringArg(attr, 0) == targetName)
+                {
+                    return true;
+                }
+
+                if (attrClass.Name == "ExpressiveForAttribute" && MapsExpressiveForTo(attr, containingType, targetName))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Resolves <c>[ExpressiveFor]</c>'s target-name argument in either supported form and
+    /// checks it against <paramref name="targetName"/>, and — for the two-argument form —
+    /// verifies the <c>typeof(...)</c> argument matches <paramref name="containingType"/>.
+    /// </summary>
+    private static bool MapsExpressiveForTo(AttributeData attr, INamedTypeSymbol containingType, string targetName)
+    {
+        if (attr.ConstructorArguments.Length == 1 &&
+            attr.ConstructorArguments[0].Value is string singleArg)
+        {
+            return singleArg == targetName;
+        }
+
+        if (attr.ConstructorArguments.Length == 2 &&
+            attr.ConstructorArguments[0].Value is INamedTypeSymbol targetType &&
+            attr.ConstructorArguments[1].Value is string twoArgName)
+        {
+            return twoArgName == targetName
+                && SymbolEqualityComparer.Default.Equals(targetType, containingType);
+        }
+
+        return false;
+    }
+
+    private static string? ExtractStringArg(AttributeData attr, int index) =>
+        attr.ConstructorArguments.Length > index
+            ? attr.ConstructorArguments[index].Value as string
+            : null;
 
     private static bool HasExpressiveAttribute(ISymbol symbol)
     {

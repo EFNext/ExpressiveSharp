@@ -85,50 +85,49 @@ public class ExpressiveResolverTests
             "Expected Product.Total expression to contain a Multiply node");
     }
 
-    // ── [Expressive(Projectable = true)] ────────────────────────────────────
+    // ── [ExpressiveProperty] ─────────────────────────────────────────────────
     //
-    // The most load-bearing correctness point in the Projectable design: the generator must
-    // register the formula lambda under the property's getter MethodHandle, not under the
-    // backing field's. If the registry were keyed off the backing field, `ExpressiveReplacer`
-    // would never find a match at runtime (it looks up via `PropertyInfo.GetMethod`) and the
-    // rewrite would silently never fire.
+    // The most load-bearing correctness point: the generator must register the formula lambda
+    // under the synthesized property's getter MethodHandle. If the registry were keyed off the
+    // stub member (e.g. FullNameExpression), `ExpressiveReplacer` would never find a match at
+    // runtime when user code accesses the public property and the rewrite would silently never fire.
 
     [TestMethod]
-    public void FindGeneratedExpression_ProjectableProperty_ResolvesByPropertyGetter()
+    public void FindGeneratedExpression_SynthesizedProperty_ResolvesByPropertyGetter()
     {
-        var propertyInfo = typeof(ProjectableCustomer).GetProperty(nameof(ProjectableCustomer.FullName))!;
+        var propertyInfo = typeof(SynthesizedCustomer).GetProperty(nameof(SynthesizedCustomer.FullName))!;
 
         var result = _resolver.FindGeneratedExpression(propertyInfo);
 
-        Assert.IsNotNull(result, "Resolver must return a lambda for a Projectable property");
+        Assert.IsNotNull(result, "Resolver must return a lambda for a synthesized property");
         Assert.IsInstanceOfType<LambdaExpression>(result);
     }
 
     [TestMethod]
-    public void FindGeneratedExpression_ProjectableProperty_BodyIsFormulaOnly()
+    public void FindGeneratedExpression_SynthesizedProperty_BodyIsFormulaOnly()
     {
-        var propertyInfo = typeof(ProjectableCustomer).GetProperty(nameof(ProjectableCustomer.FullName))!;
+        var propertyInfo = typeof(SynthesizedCustomer).GetProperty(nameof(SynthesizedCustomer.FullName))!;
 
         var result = _resolver.FindGeneratedExpression(propertyInfo);
 
         Assert.IsNotNull(result);
-        // The body must be the formula (string.Concat chain) — NOT the raw accessor body,
-        // which would have had a CoalesceExpression wrapping a field reference.
+        // The body must be the stub's formula — the synthesized property's own get accessor
+        // (which contains the `??` coalesce) is invisible to the registry.
         Assert.IsFalse(ContainsNodeType(result.Body, ExpressionType.Coalesce),
-            "Projectable expression body must be the formula only, not the wrapping '??' coalesce");
-        Assert.IsTrue(ContainsMemberAccess(result.Body, nameof(ProjectableCustomer.LastName))
-                      && ContainsMemberAccess(result.Body, nameof(ProjectableCustomer.FirstName)),
-            "Projectable expression body must reference both dependencies of the formula");
+            "Synthesized-property expression body must be the formula only, not the wrapping '??' coalesce");
+        Assert.IsTrue(ContainsMemberAccess(result.Body, nameof(SynthesizedCustomer.LastName))
+                      && ContainsMemberAccess(result.Body, nameof(SynthesizedCustomer.FirstName)),
+            "Synthesized-property expression body must reference both dependencies of the formula");
     }
 
     [TestMethod]
-    public void FindGeneratedExpression_ProjectableProperty_BackingFieldIsNotInRegistry()
+    public void FindGeneratedExpression_SynthesizedProperty_BackingFieldIsNotInRegistry()
     {
-        // Reflect across the compiler-synthesized backing field for FullName. Calling
+        // Reflect across the generator-emitted backing field for FullName. Calling
         // FindGeneratedExpressionViaReflection on it should return null — the registry is
         // keyed on the property's getter, not on the backing field.
-        var backingField = typeof(ProjectableCustomer).GetFields(BindingFlags.Instance | BindingFlags.NonPublic)
-            .FirstOrDefault(f => f.Name.Contains("FullName"));
+        var backingField = typeof(SynthesizedCustomer).GetFields(BindingFlags.Instance | BindingFlags.NonPublic)
+            .FirstOrDefault(f => f.Name.Contains("fullName", StringComparison.OrdinalIgnoreCase));
 
         if (backingField is null)
         {
@@ -171,18 +170,14 @@ public class ExpressiveResolverTests
 }
 
 /// <summary>
-/// Test-local fixture for Projectable resolver tests. Declared here (not in the shared
-/// <c>TestFixtures</c>) to keep the Projectable-specific dependency contained.
+/// Test-local fixture for synthesized-property resolver tests. Declared here (not in the shared
+/// <c>TestFixtures</c>) to keep the <c>[ExpressiveProperty]</c> dependency contained.
 /// </summary>
-public class ProjectableCustomer
+public partial class SynthesizedCustomer
 {
     public string FirstName { get; set; } = "";
     public string LastName { get; set; } = "";
 
-    [Expressive(Projectable = true)]
-    public string FullName
-    {
-        get => field ?? (LastName + ", " + FirstName);
-        init => field = value;
-    }
+    [ExpressiveSharp.Mapping.ExpressiveProperty("FullName")]
+    private string FullNameExpression => LastName + ", " + FirstName;
 }

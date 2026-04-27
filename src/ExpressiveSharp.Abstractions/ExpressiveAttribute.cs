@@ -27,15 +27,4 @@ public sealed class ExpressiveAttribute : Attribute
     /// Each type must have a parameterless constructor.
     /// </summary>
     public Type[]? Transformers { get; set; }
-
-    /// <summary>
-    /// When <c>true</c>, the property's body is treated as a SQL formula and the property gains
-    /// dual semantics: in-memory reads evaluate the formula, while values materialized from
-    /// query results (e.g. by EF Core or HotChocolate's projection middleware) are stored and
-    /// returned verbatim. Requires the property's get accessor to use the pattern
-    /// <c>=&gt; field ?? (&lt;formula&gt;)</c> (or with a manually declared private nullable backing field
-    /// in place of <c>field</c>), and an init or set accessor that stores into the same backing
-    /// location. The property must not be nullable.
-    /// </summary>
-    public bool Projectable { get; set; }
 }

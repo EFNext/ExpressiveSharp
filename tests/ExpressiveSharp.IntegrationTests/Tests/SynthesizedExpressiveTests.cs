@@ -1,24 +1,24 @@
 using System.Linq.Expressions;
+using ExpressiveSharp.Mapping;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpressiveSharp.IntegrationTests.Tests;
 
 /// <summary>
-/// Provider-agnostic tests for <c>[Expressive(Projectable = true)]</c>. Verifies the dual-direction
-/// runtime behavior: in-memory reads evaluate the formula (because the backing field is null),
-/// while values assigned through the <c>init</c> accessor are stored and returned verbatim.
+/// Provider-agnostic tests for <c>[ExpressiveProperty]</c>. Verifies the
+/// dual-direction runtime behavior of the generated property: in-memory reads evaluate the
+/// stub (because the backing field is not yet materialized), while values assigned through
+/// the synthesized <c>init</c> accessor are stored and returned verbatim.
 /// </summary>
 [TestClass]
-public class ProjectableExpressiveTests
+public class SynthesizedExpressiveTests
 {
     // ── In-memory runtime behavior ──────────────────────────────────────────
 
     [TestMethod]
     public void InMemoryConstruction_ReadsComputeFromFormula()
     {
-        // Cognitive-trap regression guard: if we ever regressed back to the partial-property
-        // design, this would return the default (empty string) instead of the formula.
-        var entity = new ProjectableEntity { Name = "Ada", Email = "ada@example.com" };
+        var entity = new SynthesizedEntity { Name = "Ada", Email = "ada@example.com" };
 
         Assert.AreEqual("Ada <ada@example.com>", entity.DisplayLabel);
     }
@@ -26,7 +26,7 @@ public class ProjectableExpressiveTests
     [TestMethod]
     public void InMemoryMutation_FormulaReflectsChanges()
     {
-        var entity = new ProjectableEntity { Name = "Ada", Email = "ada@example.com" };
+        var entity = new SynthesizedEntity { Name = "Ada", Email = "ada@example.com" };
         var firstRead = entity.DisplayLabel;
         entity.Name = "Augusta";
         var secondRead = entity.DisplayLabel;
@@ -39,9 +39,7 @@ public class ProjectableExpressiveTests
     [TestMethod]
     public void InitAccessor_StoredValueWins()
     {
-        // When the property is assigned via init (as EF or HC does after materialization from SQL),
-        // the stored value should take precedence over the formula on subsequent reads.
-        var entity = new ProjectableEntity
+        var entity = new SynthesizedEntity
         {
             Name = "Ada",
             Email = "ada@example.com",
@@ -55,7 +53,7 @@ public class ProjectableExpressiveTests
     [TestMethod]
     public void InitAccessor_StoredValueSurvivesDependencyMutation()
     {
-        var entity = new ProjectableEntity
+        var entity = new SynthesizedEntity
         {
             Name = "Ada",
             Email = "ada@example.com",
@@ -71,7 +69,7 @@ public class ProjectableExpressiveTests
     [TestMethod]
     public void NullDependencies_FormulaUsesFallbacks()
     {
-        var entity = new ProjectableEntity { Name = null, Email = null };
+        var entity = new SynthesizedEntity { Name = null, Email = null };
 
         Assert.AreEqual("(unnamed) <no-email>", entity.DisplayLabel);
     }
@@ -79,18 +77,17 @@ public class ProjectableExpressiveTests
     // ── Expression-tree expansion ──────────────────────────────────────────
 
     [TestMethod]
-    public void ExpandExpressives_Select_RewritesProjectableToFormula()
+    public void ExpandExpressives_Select_RewritesSynthesizedToFormula()
     {
-        var source = new List<ProjectableEntity>
+        var source = new List<SynthesizedEntity>
         {
             new() { Name = "Ada",  Email = "ada@example.com" },
             new() { Name = "Alan", Email = "alan@example.com" },
         }.AsQueryable();
 
-        Expression<Func<ProjectableEntity, string>> labelExpr = c => c.DisplayLabel;
-        var expanded = (Expression<Func<ProjectableEntity, string>>)labelExpr.ExpandExpressives();
+        Expression<Func<SynthesizedEntity, string>> labelExpr = c => c.DisplayLabel;
+        var expanded = (Expression<Func<SynthesizedEntity, string>>)labelExpr.ExpandExpressives();
 
-        // After expansion, the body is the formula — no reference to c.DisplayLabel remains.
         var labels = source.Select(expanded.Compile()).ToList();
 
         Assert.AreEqual(2, labels.Count);
@@ -101,14 +98,14 @@ public class ProjectableExpressiveTests
     [TestMethod]
     public void Ternary_ExpandExpressives_Select_RewritesToFormula()
     {
-        var source = new List<DiscountedProjectableEntity>
+        var source = new List<DiscountedSynthesizedEntity>
         {
             new() { TotalAmount = 100m, Discount = 20m },
             new() { TotalAmount = 50m,  Discount = 5m },
         }.AsQueryable();
 
-        Expression<Func<DiscountedProjectableEntity, decimal?>> expr = c => c.DiscountedAmount;
-        var expanded = (Expression<Func<DiscountedProjectableEntity, decimal?>>)expr.ExpandExpressives();
+        Expression<Func<DiscountedSynthesizedEntity, decimal?>> expr = c => c.DiscountedAmount;
+        var expanded = (Expression<Func<DiscountedSynthesizedEntity, decimal?>>)expr.ExpandExpressives();
 
         var values = source.Select(expanded.Compile()).ToList();
 
@@ -121,68 +118,52 @@ public class ProjectableExpressiveTests
     public void ExpandExpressives_MemberInit_RewritesRhsOfProjection()
     {
         // Projection middleware pattern: `new T { DisplayLabel = src.DisplayLabel }`.
-        // The RHS references a Projectable member and must be rewritten.
-        var source = new List<ProjectableEntity>
+        // The RHS references a synthesized member and must be rewritten.
+        var source = new List<SynthesizedEntity>
         {
             new() { Name = "Ada",  Email = "ada@example.com" },
         }.AsQueryable();
 
-        Expression<Func<ProjectableEntity, ProjectableEntity>> projectExpr = c => new ProjectableEntity
+        Expression<Func<SynthesizedEntity, SynthesizedEntity>> projectExpr = c => new SynthesizedEntity
         {
             Name = c.Name,
             Email = c.Email,
             DisplayLabel = c.DisplayLabel,
         };
-        var expanded = (Expression<Func<ProjectableEntity, ProjectableEntity>>)projectExpr.ExpandExpressives();
+        var expanded = (Expression<Func<SynthesizedEntity, SynthesizedEntity>>)projectExpr.ExpandExpressives();
         var projected = source.Select(expanded.Compile()).ToList();
 
         Assert.AreEqual(1, projected.Count);
-        // The init accessor stored the formula's result; the stored value wins on read.
         Assert.AreEqual("Ada <ada@example.com>", projected[0].DisplayLabel);
     }
 }
 
 /// <summary>
-/// Test-local fixture with a Projectable property. Declared here to keep the
-/// Projectable dependency out of the shared Store scenario models.
+/// Non-nullable reference-type target — exercises the coalesce shape of the synthesized property.
 /// </summary>
-public class ProjectableEntity
+public partial class SynthesizedEntity
 {
     public string? Name { get; set; }
     public string? Email { get; set; }
 
-    [Expressive(Projectable = true)]
-    public string DisplayLabel
-    {
-        get => field ?? ((Name ?? "(unnamed)") + " <" + (Email ?? "no-email") + ">");
-        init => field = value;
-    }
+    [ExpressiveProperty("DisplayLabel")]
+    private string DisplayLabelExpression =>
+        (Name ?? "(unnamed)") + " <" + (Email ?? "no-email") + ">";
 }
 
 /// <summary>
-/// Exercises the ternary + has-value-flag projectable pattern with a nullable value-type
-/// property (<c>decimal?</c>). The flag distinguishes "not materialized" from "materialized
-/// to null", which the coalesce shape cannot do for nullable property types.
+/// Nullable value-type target — exercises the ternary+flag shape of the synthesized property.
+/// The flag distinguishes "not materialized" from "materialized to null", which the coalesce
+/// shape cannot do for nullable property types.
 /// </summary>
-public class DiscountedProjectableEntity
+public partial class DiscountedSynthesizedEntity
 {
     public decimal? TotalAmount { get; set; }
     public decimal? Discount { get; set; }
 
-    private bool _discountedAmountHasValue;
-
-    [Expressive(Projectable = true)]
-    public decimal? DiscountedAmount
-    {
-        get => _discountedAmountHasValue
-            ? field
-            : (TotalAmount != null && Discount != null
-                ? TotalAmount.Value - Discount.Value
-                : (decimal?)null);
-        init
-        {
-            _discountedAmountHasValue = true;
-            field = value;
-        }
-    }
+    [ExpressiveProperty("DiscountedAmount")]
+    private decimal? DiscountedAmountExpression =>
+        TotalAmount != null && Discount != null
+            ? TotalAmount.Value - Discount.Value
+            : (decimal?)null;
 }
