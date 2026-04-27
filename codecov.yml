@@ -9,6 +9,12 @@ coverage:
         target: 75%
         informational: true
 
+comment:
+  require_changes: true
+  require_base: true
+  require_head: true
+  layout: "condensed_header, diff, files"
+
 ignore:
   - "tests/**"
   - "benchmarks/**"
