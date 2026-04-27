@@ -30,10 +30,9 @@ public sealed class ConvertLoopsToLinq : ExpressionVisitor, IExpressionTreeTrans
 
     protected override Expression VisitBlock(BlockExpression node)
     {
-        // First, recursively visit sub-expressions
         var visited = (BlockExpression)base.VisitBlock(node);
 
-        // Look for the foreach accumulator pattern:
+        // Foreach accumulator pattern:
         // Block([accumulator], [Assign(accumulator, init), innerBlock, accumulator])
         if (TryMatchForEachAccumulator(visited, out var result))
             return result;
@@ -89,7 +88,6 @@ public sealed class ConvertLoopsToLinq : ExpressionVisitor, IExpressionTreeTrans
             || innerBlock.Variables.Count != 2)
             return false;
 
-        // Find the enumerator and iteration variable
         // Inner block: [Assign(enumerator, Call(collection, GetEnumerator)), Loop(...)]
         if (innerBlock.Expressions.Count < 2)
             return false;
@@ -110,7 +108,6 @@ public sealed class ConvertLoopsToLinq : ExpressionVisitor, IExpressionTreeTrans
         if (collection is null)
             return false;
 
-        // Find the Loop expression
         if (innerBlock.Expressions[1] is not LoopExpression loop)
             return false;
 
@@ -122,11 +119,10 @@ public sealed class ConvertLoopsToLinq : ExpressionVisitor, IExpressionTreeTrans
 
         var loopBody = ifThenElse.IfTrue;
 
-        // The loop body block: Block(Assign(iterVar, Property(enum, Current)), <userBody>)
+        // Loop body block: Block(Assign(iterVar, Property(enum, Current)), <userBody>)
         if (loopBody is not BlockExpression bodyBlock || bodyBlock.Expressions.Count < 2)
             return false;
 
-        // First expression in body: Assign(iterVar, Property(enumerator, Current))
         if (bodyBlock.Expressions[0] is not BinaryExpression { NodeType: ExpressionType.Assign } currentAssign)
             return false;
 
@@ -134,15 +130,12 @@ public sealed class ConvertLoopsToLinq : ExpressionVisitor, IExpressionTreeTrans
         if (iterVar is null)
             return false;
 
-        // The user's loop body is the second expression (or remaining expressions in the block)
         var userBody = bodyBlock.Expressions.Count == 2
             ? bodyBlock.Expressions[1]
             : Expression.Block(bodyBlock.Expressions.Skip(1));
 
-        // Determine the element type from the iteration variable
         var elementType = iterVar.Type;
 
-        // Now match the user body against known patterns
         if (TryMatchCountPattern(userBody, accumulator, initValue, collection, iterVar, elementType, out result))
             return true;
 
@@ -525,8 +518,6 @@ public sealed class ConvertLoopsToLinq : ExpressionVisitor, IExpressionTreeTrans
 
         return true;
     }
-
-    // ── Helpers ──────────────────────────────────────────────────────────────
 
     private static bool IsConstant(Expression expr, object? value)
     {

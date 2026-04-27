@@ -1,8 +1,7 @@
 namespace ExpressiveSharp.Docs.Playground.Wasm.Services;
 
-// DTOs for JSInterop serialization with Monaco editor.
-// These replace the BlazorMonaco C# types with plain records
-// that serialize cleanly to/from the Monaco JS API.
+// DTOs for JSInterop with Monaco editor; replace BlazorMonaco's types with
+// plain records that serialize cleanly to/from the Monaco JS API.
 
 public sealed class MonacoPosition
 {
@@ -50,7 +49,6 @@ public sealed class MonacoMarkerData
     public int EndColumn { get; set; }
 }
 
-// Completion types
 public sealed class MonacoCompletionList
 {
     public List<MonacoCompletionItem> Suggestions { get; set; } = new();
@@ -68,7 +66,6 @@ public sealed class MonacoCompletionItem
     public MonacoRange? Range { get; set; }
 }
 
-// Hover types
 public sealed class MonacoHover
 {
     public List<MonacoMarkdownString> Contents { get; set; } = new();
@@ -81,7 +78,7 @@ public sealed class MonacoMarkdownString
     public bool IsTrusted { get; set; }
 }
 
-// Monaco CompletionItemKind enum values (matching monaco.languages.CompletionItemKind)
+// Values match monaco.languages.CompletionItemKind.
 public static class MonacoCompletionItemKind
 {
     public const int Method = 0;
@@ -109,7 +106,7 @@ public static class MonacoCompletionItemKind
     public const int TypeParameter = 24;
 }
 
-// Monaco MarkerSeverity values (matching monaco.MarkerSeverity)
+// Values match monaco.MarkerSeverity.
 public static class MonacoMarkerSeverity
 {
     public const int Hint = 1;

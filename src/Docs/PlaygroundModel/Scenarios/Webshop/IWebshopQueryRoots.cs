@@ -2,10 +2,8 @@ using ExpressiveSharp;
 
 namespace ExpressiveSharp.Docs.PlaygroundModel.Webshop;
 
-/// <summary>
-/// Query context passed to sample snippets; each render target supplies its own
-/// implementation (EF Core DbContext, MongoDB collections, in-memory arrays).
-/// </summary>
+// Query context passed to sample snippets; each render target supplies its
+// own implementation (EF Core DbContext, MongoDB collections, etc.).
 public interface IWebshopQueryRoots
 {
     IExpressiveQueryable<Customer> Customers { get; }

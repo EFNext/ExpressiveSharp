@@ -2,13 +2,9 @@ using Microsoft.CodeAnalysis;
 
 namespace ExpressiveSharp.Generator.Models;
 
-/// <summary>
-/// Plain-data snapshot of an <c>[ExpressiveProperty]</c> attribute's arguments.
-/// Immutable record struct — safe for incremental generator caching.
-/// </summary>
+// Immutable record struct — safe for incremental generator caching.
 readonly internal record struct ExpressivePropertyAttributeData
 {
-    /// <summary>The target property name passed to the attribute constructor.</summary>
     public string? TargetName { get; }
 
     public IReadOnlyList<string> TransformerTypeNames { get; }

@@ -162,8 +162,6 @@ public sealed class MissingExpressiveImportAnalyzerTests : GeneratorTestBase
             "Should not report any diagnostic for plain IQueryable");
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
-
     private async Task<ImmutableArray<Diagnostic>> GetDiagnosticsAsync(string source)
     {
         using var workspace = new Microsoft.CodeAnalysis.AdhocWorkspace();

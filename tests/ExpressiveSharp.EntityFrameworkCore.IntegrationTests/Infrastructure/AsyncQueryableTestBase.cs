@@ -4,18 +4,10 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Infrastructure;
 
-/// <summary>
-/// Integration tests for <see cref="IExpressiveQueryable{T}"/> async terminal
-/// methods, multi-lambda operators, chain continuity, and null-conditional
-/// syntax in delegate lambdas. These exercise the polyfill interceptor path
-/// that rewrites delegate-based LINQ calls into expression trees.
-/// </summary>
 public abstract class AsyncQueryableTestBase : EFCoreRelationalTestBase
 {
     [TestInitialize]
     public Task SeedStoreData() => Context.SeedStoreAsync();
-
-    // ── Async terminal methods with predicates ─────────────────────────
 
     [TestMethod]
     public async Task AnyAsync_WithPredicate_Executes()
@@ -73,8 +65,6 @@ public abstract class AsyncQueryableTestBase : EFCoreRelationalTestBase
         Assert.IsNull(result);
     }
 
-    // ── Async aggregation with selectors ───────────────────────────────
-
     [TestMethod]
     public async Task SumAsync_WithSelector_Executes()
     {
@@ -103,8 +93,6 @@ public abstract class AsyncQueryableTestBase : EFCoreRelationalTestBase
         // (120 + 75 + 10 + 50) / 4 = 63.75
         Assert.AreEqual(63.75, result, 0.001);
     }
-
-    // ── Chain continuity + async execution ─────────────────────────────
 
     [TestMethod]
     public async Task AsNoTracking_Where_ToListAsync_ExecutesCorrectly()
@@ -139,8 +127,6 @@ public abstract class AsyncQueryableTestBase : EFCoreRelationalTestBase
         Assert.AreEqual(120, result.Price);
     }
 
-    // ── Multi-lambda methods ───────────────────────────────────────────
-
     [TestMethod]
     public async Task GroupBy_WithElementSelector_Executes()
     {
@@ -168,8 +154,6 @@ public abstract class AsyncQueryableTestBase : EFCoreRelationalTestBase
         CollectionAssert.Contains(results, "Bob");
     }
 
-    // ── Passthrough chain-continuity ───────────────────────────────────
-
     [TestMethod]
     public async Task Take_Skip_Where_ToListAsync_ExecutesCorrectly()
     {
@@ -181,8 +165,6 @@ public abstract class AsyncQueryableTestBase : EFCoreRelationalTestBase
 
         Assert.AreEqual(2, results.Count);
     }
-
-    // ── Null-conditional in async context ──────────────────────────────
 
     [TestMethod]
     public async Task NullConditional_InWhere_ToListAsync_ExecutesCorrectly()
@@ -204,12 +186,6 @@ public abstract class AsyncQueryableTestBase : EFCoreRelationalTestBase
         Assert.IsNotNull(result);
         Assert.AreEqual(2, result!.Id);
     }
-
-    // ── SelectMany / GroupJoin / DistinctBy / TakeWhile / Contains ──────
-    //
-    // These were previously uncovered — the polyfill interceptor rewrites
-    // each delegate-based call into an expression tree before EF Core sees
-    // it. If any of these break per-provider we want to know.
 
     [TestMethod]
     public async Task SelectMany_WithCollection_Executes()

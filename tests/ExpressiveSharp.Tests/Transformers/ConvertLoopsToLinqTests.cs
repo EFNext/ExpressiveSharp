@@ -76,7 +76,6 @@ public class ConvertLoopsToLinqTests
 
         var result = _sut.Transform(loopExpr);
 
-        // Should be a MethodCallExpression to Enumerable.Sum
         Assert.IsInstanceOfType<MethodCallExpression>(result);
         var call = (MethodCallExpression)result;
         Assert.AreEqual("Sum", call.Method.Name);
@@ -152,7 +151,6 @@ public class ConvertLoopsToLinqTests
 
         var result = _sut.Transform(loopExpr);
 
-        // Should be Sum(Where(...))
         Assert.IsInstanceOfType<MethodCallExpression>(result);
         var sumCall = (MethodCallExpression)result;
         Assert.AreEqual("Sum", sumCall.Method.Name);
@@ -178,7 +176,6 @@ public class ConvertLoopsToLinqTests
     [TestMethod]
     public void ForEach_Sum_ExecutesCorrectly()
     {
-        // End-to-end: build loop, transform, compile, execute
         var items = Expression.Parameter(typeof(List<int>), "items");
         var sum = Expression.Variable(typeof(int), "sum");
 
@@ -250,7 +247,6 @@ public class ConvertLoopsToLinqTests
 
         var result = _sut.Transform(loopExpr);
 
-        // Should be ToList(Select(...))
         Assert.IsInstanceOfType<MethodCallExpression>(result);
         var toListCall = (MethodCallExpression)result;
         Assert.AreEqual("ToList", toListCall.Method.Name);

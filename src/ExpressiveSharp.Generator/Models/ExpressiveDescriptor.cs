@@ -34,21 +34,11 @@ internal class ExpressiveDescriptor
 
     public SyntaxList<TypeParameterConstraintClauseSyntax>? ConstraintClauses { get; set; }
 
-    /// <summary>
-    /// Contains the imperative <c>Expression.*</c> factory code
-    /// that builds the expression tree.
-    /// </summary>
     public EmitResult? ExpressionTreeEmission { get; set; }
 
-    /// <summary>
-    /// Fully qualified type names of transformers to apply at runtime,
-    /// declared via the [Expressive] attribute's built-in flags and Transformers property.
-    /// </summary>
+    // Fully qualified, declared via the [Expressive] attribute's Transformers property.
     public List<string> DeclaredTransformerTypeNames { get; } = new();
 
-    /// <summary>
-    /// When <c>[ExpressiveProperty]</c> is applied, this carries the instructions for
-    /// emitting the synthesized property on the stub's containing type.
-    /// </summary>
+    // Set by [ExpressiveProperty] — carries instructions for the synthesized property.
     public SynthesizedPropertySpec? SynthesisSpec { get; set; }
 }

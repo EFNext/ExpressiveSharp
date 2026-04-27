@@ -13,8 +13,6 @@ namespace ExpressiveSharp.IntegrationTests.Tests;
 [TestClass]
 public class SynthesizedExpressiveTests
 {
-    // ── In-memory runtime behavior ──────────────────────────────────────────
-
     [TestMethod]
     public void InMemoryConstruction_ReadsComputeFromFormula()
     {
@@ -73,8 +71,6 @@ public class SynthesizedExpressiveTests
 
         Assert.AreEqual("(unnamed) <no-email>", entity.DisplayLabel);
     }
-
-    // ── Expression-tree expansion ──────────────────────────────────────────
 
     [TestMethod]
     public void ExpandExpressives_Select_RewritesSynthesizedToFormula()

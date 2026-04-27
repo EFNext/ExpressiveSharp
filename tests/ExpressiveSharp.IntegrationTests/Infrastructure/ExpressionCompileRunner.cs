@@ -3,15 +3,6 @@ using ExpressiveSharp.IntegrationTests.Scenarios.Store.Models;
 
 namespace ExpressiveSharp.IntegrationTests.Infrastructure;
 
-/// <summary>
-/// In-memory helper used by the ExpressionCompile test classes. Compiles
-/// expression trees to delegates and runs them against seeded
-/// <see cref="List{T}"/> collections — no database involved.
-///
-/// Validates that expanded expression trees are behaviorally correct at
-/// runtime (verification level 3 in docs/advanced/testing-strategy.md) without
-/// relying on any ORM-specific translation.
-/// </summary>
 internal sealed class ExpressionCompileRunner
 {
     private List<Order> _orders = new();

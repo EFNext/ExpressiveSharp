@@ -9,8 +9,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ExpressiveSharp.EntityFrameworkCore.CodeFixers;
 
 /// <summary>
-/// Provides code fixes for migrating from EntityFrameworkCore.Projectables to ExpressiveSharp.
-/// Handles all three migration diagnostics: attribute rename, method call replacement, and namespace updates.
+/// Code fixes for migrating from EntityFrameworkCore.Projectables to ExpressiveSharp:
+/// attribute rename, method call replacement, and namespace updates.
 /// </summary>
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(MigrationCodeFixProvider))]
 [Shared]
@@ -99,7 +99,7 @@ public sealed class MigrationCodeFixProvider : CodeFixProvider
 
     /// <summary>
     /// Replaces <c>[Projectable(...)]</c> with <c>[Expressive]</c>, keeping only the <c>Transformers</c>
-    /// property if present. All other properties are removed as they have no equivalent.
+    /// property; other Projectable properties have no Expressive equivalent.
     /// </summary>
     private static async Task<Document> ReplaceProjectableAttributeAsync(
         Document document,
@@ -112,13 +112,11 @@ public sealed class MigrationCodeFixProvider : CodeFixProvider
             return document;
         }
 
-        // Build new attribute name
         var oldName = attribute.Name.ToString();
         var newName = oldName == "ProjectableAttribute" ? "ExpressiveAttribute" : "Expressive";
         var newAttributeName = SyntaxFactory.IdentifierName(newName)
             .WithTriviaFrom(attribute.Name);
 
-        // Filter arguments: keep only Transformers
         AttributeArgumentListSyntax? newArgList = null;
         if (attribute.ArgumentList is { Arguments.Count: > 0 })
         {
@@ -141,8 +139,8 @@ public sealed class MigrationCodeFixProvider : CodeFixProvider
     }
 
     /// <summary>
-    /// Replaces <c>UseProjectables(...)</c> with <c>UseExpressives()</c>,
-    /// removing any configuration callback argument.
+    /// Replaces <c>UseProjectables(...)</c> with <c>UseExpressives()</c>, dropping any
+    /// configuration callback (no equivalent in ExpressiveSharp).
     /// </summary>
     private static async Task<Document> ReplaceUseProjectablesAsync(
         Document document,
@@ -160,12 +158,10 @@ public sealed class MigrationCodeFixProvider : CodeFixProvider
             return document;
         }
 
-        // Replace method name
         var newName = SyntaxFactory.IdentifierName("UseExpressives")
             .WithTriviaFrom(memberAccess.Name);
         var newMemberAccess = memberAccess.WithName(newName);
 
-        // Remove all arguments (the callback is no longer needed)
         var newArgList = SyntaxFactory.ArgumentList()
             .WithOpenParenToken(invocation.ArgumentList.OpenParenToken)
             .WithCloseParenToken(invocation.ArgumentList.CloseParenToken);
@@ -178,10 +174,6 @@ public sealed class MigrationCodeFixProvider : CodeFixProvider
         return document.WithSyntaxRoot(newRoot);
     }
 
-    /// <summary>
-    /// Replaces <c>using EntityFrameworkCore.Projectables*</c> with the corresponding
-    /// <c>using ExpressiveSharp*</c> namespace.
-    /// </summary>
     private static async Task<Document> ReplaceUsingDirectiveAsync(
         Document document,
         UsingDirectiveSyntax usingDirective,
@@ -198,7 +190,6 @@ public sealed class MigrationCodeFixProvider : CodeFixProvider
 
         if (newNamespace is null)
         {
-            // No mapping — remove the using directive entirely
             var newRoot = root.RemoveNode(usingDirective, SyntaxRemoveOptions.KeepLeadingTrivia);
             return document.WithSyntaxRoot(newRoot!);
         }
@@ -218,9 +209,8 @@ public sealed class MigrationCodeFixProvider : CodeFixProvider
     {
         "EntityFrameworkCore.Projectables" => "ExpressiveSharp",
         "EntityFrameworkCore.Projectables.Extensions" => "ExpressiveSharp",
-        // Infrastructure namespace (CompatibilityMode, ProjectableOptionsBuilder) has no equivalent
+        // CompatibilityMode, ProjectableOptionsBuilder have no Expressive equivalent.
         "EntityFrameworkCore.Projectables.Infrastructure" => null,
-        // Any other sub-namespace — map the root
         _ when oldNamespace.StartsWith("EntityFrameworkCore.Projectables.") =>
             "ExpressiveSharp" + oldNamespace.Substring("EntityFrameworkCore.Projectables".Length),
         _ => "ExpressiveSharp",

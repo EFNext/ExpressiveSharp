@@ -2,8 +2,6 @@ namespace ExpressiveSharp.Mapping;
 
 /// <summary>
 /// Maps an external method or property to an expression-tree body provided by the decorated stub method.
-/// The stub's body is compiled into an <c>Expression&lt;TDelegate&gt;</c> that replaces
-/// calls to the target member during expression-tree expansion.
 /// </summary>
 /// <remarks>
 /// <para>For <b>static methods</b>, the stub parameters must match the target method's parameters exactly.</para>
@@ -16,25 +14,21 @@ namespace ExpressiveSharp.Mapping;
 public sealed class ExpressiveForAttribute : Attribute
 {
     /// <summary>
-    /// The type that declares the target member, or <c>null</c> when the single-argument constructor
-    /// is used (in which case the target defaults to the stub's containing type at generator time).
+    /// The declaring type of the target member, or <c>null</c> when the single-argument constructor
+    /// is used (the target then defaults to the stub's containing type).
     /// </summary>
     public Type? TargetType { get; }
 
-    /// <summary>
-    /// The name of the target member on <see cref="TargetType"/>.
-    /// </summary>
     public string MemberName { get; }
 
     /// <summary>
-    /// When <c>true</c>, allows block-bodied stubs (methods with <c>{ }</c> bodies).
-    /// When not explicitly set, the MSBuild property <c>Expressive_AllowBlockBody</c> is used
-    /// (defaults to <c>false</c>).
+    /// When <c>true</c>, allows block-bodied stubs. When not explicitly set, the MSBuild property
+    /// <c>Expressive_AllowBlockBody</c> is used (defaults to <c>false</c>).
     /// </summary>
     public bool AllowBlockBody { get; set; }
 
     /// <summary>
-    /// Additional <see cref="IExpressionTreeTransformer"/> types to apply at runtime.
+    /// <see cref="IExpressionTreeTransformer"/> types to apply at runtime.
     /// Each type must have a parameterless constructor.
     /// </summary>
     public Type[]? Transformers { get; set; }
@@ -46,8 +40,7 @@ public sealed class ExpressiveForAttribute : Attribute
     }
 
     /// <summary>
-    /// Shorthand for <c>[ExpressiveFor(typeof(ContainingType), memberName)]</c> —
-    /// use when the target member is on the same type as the stub.
+    /// Shorthand for <c>[ExpressiveFor(typeof(ContainingType), memberName)]</c>.
     /// </summary>
     public ExpressiveForAttribute(string memberName)
     {

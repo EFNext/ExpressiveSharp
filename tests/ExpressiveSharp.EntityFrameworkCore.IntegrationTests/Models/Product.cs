@@ -1,10 +1,7 @@
 namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Models;
 
-/// <summary>
-/// Entity used for ExecuteUpdate integration tests. Distinct from the shared
-/// Order/Customer graph because bulk update tests need their own data set that
-/// can be mutated freely per test without affecting other scenarios.
-/// </summary>
+// Used for ExecuteUpdate tests; isolated from the shared Order/Customer graph
+// so bulk-update tests can mutate freely.
 public class Product
 {
     public int Id { get; set; }

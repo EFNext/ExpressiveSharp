@@ -51,11 +51,9 @@ public sealed class MissingExpressiveImportAnalyzer : DiagnosticAnalyzer
         if (symbolInfo.Symbol is not IMethodSymbol method)
             return;
 
-        // Only care about System.Linq.Queryable methods
         if (!IsQueryableMethod(method))
             return;
 
-        // Get the receiver expression and its type
         if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess)
             return;
 
@@ -64,13 +62,12 @@ public sealed class MissingExpressiveImportAnalyzer : DiagnosticAnalyzer
         if (receiverType is null || !IsOrImplementsExpressiveQueryable(receiverType))
             return;
 
-        // Check if a matching stub exists in ExpressiveQueryableLinqExtensions
         var stubType = context.SemanticModel.Compilation
             .GetTypeByMetadataName("ExpressiveSharp.ExpressiveQueryableLinqExtensions");
 
         if (stubType != null && stubType.GetMembers(method.Name).Length > 0)
         {
-            // Stub exists but wasn't resolved — missing using
+            // Stub exists but wasn't resolved — missing using.
             context.ReportDiagnostic(Diagnostic.Create(
                 StubNotResolved,
                 memberAccess.Name.GetLocation(),
@@ -78,7 +75,7 @@ public sealed class MissingExpressiveImportAnalyzer : DiagnosticAnalyzer
         }
         else
         {
-            // No stub exists — chain will be broken
+            // No stub exists — chain will be broken.
             context.ReportDiagnostic(Diagnostic.Create(
                 NoStubExists,
                 memberAccess.Name.GetLocation(),

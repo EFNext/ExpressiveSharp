@@ -7,8 +7,8 @@ using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 namespace ExpressiveSharp.EntityFrameworkCore.Infrastructure.Internal;
 
 /// <summary>
-/// Convention that expands <see cref="ExpressiveAttribute"/> member calls within
-/// global query filters at model-finalizing time.
+/// Expands <see cref="ExpressiveAttribute"/> member calls within global query filters
+/// at model-finalizing time.
 /// </summary>
 public class ExpressiveExpandQueryFiltersConvention : IModelFinalizingConvention
 {

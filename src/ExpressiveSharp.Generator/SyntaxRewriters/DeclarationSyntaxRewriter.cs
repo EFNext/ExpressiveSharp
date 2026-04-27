@@ -19,21 +19,19 @@ internal class DeclarationSyntaxRewriter : CSharpSyntaxRewriter
 
         if (visitedNode is ParameterSyntax visitedParameterSyntax)
         {
-            // Strip the this keyword of any parameter
             var thisKeywordIndex = visitedParameterSyntax.Modifiers.IndexOf(SyntaxKind.ThisKeyword);
             if (thisKeywordIndex != -1)
             {
                 visitedNode = visitedParameterSyntax.WithModifiers(node.Modifiers.RemoveAt(thisKeywordIndex));
             }
 
-            // Strip the params keyword of any parameter
             var paramsKeywordIndex = ((ParameterSyntax)visitedNode).Modifiers.IndexOf(SyntaxKind.ParamsKeyword);
             if (paramsKeywordIndex != -1)
             {
                 visitedNode = ((ParameterSyntax)visitedNode).WithModifiers(node.Modifiers.RemoveAt(paramsKeywordIndex));
             }
 
-            // Remove default values from parameters as this is not accepted in an expression tree
+            // Default values are not accepted in expression trees.
             if (visitedParameterSyntax.Default is not null)
             {
                 visitedNode = ((ParameterSyntax)visitedNode).WithDefault(null);

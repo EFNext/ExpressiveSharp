@@ -5,16 +5,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Tests.Sqlite;
 
-/// <summary>
-/// EF Core SQLite tests for <c>[ExpressiveProperty]</c>. Uses a self-contained
-/// DbContext with a synthesized entity so the test doesn't depend on shared scenario models.
-/// Verifies:
-/// <list type="bullet">
-///   <item>The synthesized property is auto-Ignored in the EF model (no column is generated).</item>
-///   <item>Queries referencing the property emit SQL with the inlined formula.</item>
-///   <item>Projection into <c>new T { Member = ... }</c> materializes via the <c>init</c> accessor.</item>
-/// </list>
-/// </summary>
 [TestClass]
 public class SynthesizedExpressiveSqlTests
 {
@@ -93,7 +83,6 @@ public class SynthesizedExpressiveSqlTests
     }
 }
 
-/// <summary>Self-contained entity for synthesized-property EF Core tests.</summary>
 public partial class SynthesizedPerson
 {
     public int Id { get; set; }
@@ -104,7 +93,6 @@ public partial class SynthesizedPerson
     private string FullNameExpression => LastName + ", " + FirstName;
 }
 
-/// <summary>Self-contained DbContext for synthesized-property EF Core tests.</summary>
 public class SynthesizedDbContext(DbContextOptions<SynthesizedDbContext> options) : DbContext(options)
 {
     public DbSet<SynthesizedPerson> People => Set<SynthesizedPerson>();

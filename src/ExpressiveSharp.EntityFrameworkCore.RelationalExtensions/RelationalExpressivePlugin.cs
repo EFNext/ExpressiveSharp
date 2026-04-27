@@ -10,13 +10,13 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions;
 
 /// <summary>
-/// Plugin that registers window function services into the EF Core service provider.
-/// Activated via <c>.UseExpressives(o => o.UseRelationalExtensions())</c>.
+/// Plugin that registers window function services. Activated via
+/// <c>.UseExpressives(o => o.UseRelationalExtensions())</c>.
 /// </summary>
 public sealed class RelationalExpressivePlugin : IExpressivePlugin
 {
-    // Stable hash — this plugin is stateless, so all instances are equivalent.
-    // Used by ExpressiveOptionsExtension to compute the EF Core service provider cache key.
+    // Stateless — all instances are equivalent. Used by ExpressiveOptionsExtension to compute
+    // the EF Core service provider cache key.
     public override int GetHashCode() => typeof(RelationalExpressivePlugin).GetHashCode();
 
     public override bool Equals(object? obj) => obj is RelationalExpressivePlugin;
@@ -24,18 +24,9 @@ public sealed class RelationalExpressivePlugin : IExpressivePlugin
     [SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required to decorate EF Core services")]
     public void ApplyServices(IServiceCollection services)
     {
-        // Register method call translator plugin (scoped — matches EF Core's service lifetimes)
         services.AddScoped<IMethodCallTranslatorPlugin, WindowFunctionTranslatorPlugin>();
-
-        // Register member translator plugin for WindowFrameBound property getters
-        // (UnboundedPreceding, CurrentRow, UnboundedFollowing)
         services.AddScoped<IMemberTranslatorPlugin, WindowFunctionMemberTranslatorPlugin>();
-
-        // Register evaluatable expression filter
         services.AddSingleton<IEvaluatableExpressionFilterPlugin, WindowFunctionEvaluatableExpressionFilter>();
-
-        // Decorate the SQL nullability processor factory to handle WindowFunctionSqlExpression.
-        // Uses the decorator pattern to preserve the provider's existing factory.
         DecorateParameterBasedSqlProcessorFactory(services);
     }
 
@@ -63,9 +54,8 @@ public sealed class RelationalExpressivePlugin : IExpressivePlugin
         }
         else
         {
-            // UseExpressives() called before provider — deferred decoration.
-            // Pre-register so the provider's TryAdd becomes a no-op.
-            // At resolution time, create the default factory and wrap it.
+            // UseExpressives() called before provider — pre-register so the provider's TryAdd
+            // becomes a no-op; create the default factory at resolution time and wrap it.
             services.AddScoped<IRelationalParameterBasedSqlProcessorFactory>(sp =>
             {
                 var inner = ActivatorUtilities.CreateInstance<RelationalParameterBasedSqlProcessorFactory>(sp);

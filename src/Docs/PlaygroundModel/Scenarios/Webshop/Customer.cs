@@ -1,8 +1,3 @@
-// Plain data only — no [Expressive] members. Samples that demonstrate
-// computed members do so with their own inline [Expressive] extension methods
-// declared in the snippet's `setup` attribute, so the docs reader sees the
-// definition next to the query that uses it.
-
 namespace ExpressiveSharp.Docs.PlaygroundModel.Webshop;
 
 public class Customer

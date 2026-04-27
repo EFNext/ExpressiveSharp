@@ -7,13 +7,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 namespace ExpressiveSharp.EntityFrameworkCore.Infrastructure.Internal;
 
 /// <summary>
-/// Convention that marks properties as unmapped in the EF Core model when they have no backing
-/// database column:
-/// <list type="bullet">
-///   <item>decorated with <see cref="ExpressiveAttribute"/>,</item>
-///   <item>decorated with <see cref="ExpressiveForAttribute"/> (the property is a stub itself), or</item>
-///   <item>the target of an <see cref="ExpressiveForAttribute"/> stub elsewhere in the solution.</item>
-/// </list>
+/// Marks properties as unmapped when they have no backing column: decorated with
+/// <see cref="ExpressiveAttribute"/> or <see cref="ExpressiveForAttribute"/>, or the target
+/// of an <see cref="ExpressiveForAttribute"/> stub elsewhere in the solution.
 /// </summary>
 public class ExpressivePropertiesNotMappedConvention : IEntityTypeAddedConvention
 {

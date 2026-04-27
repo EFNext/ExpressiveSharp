@@ -10,15 +10,7 @@ public class IntegrationTestDbContext : DbContext
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Product> Products => Set<Product>();
 
-    /// <summary>
-    /// Delegate-based DbSet for tests that exercise the polyfill interceptor
-    /// (e.g. <c>?.</c>, indexed Select with WindowFunction.RowNumber).
-    /// </summary>
     public ExpressiveDbSet<Order> ExpressiveOrders => Set<Order>().AsExpressiveDbSet();
-
-    /// <summary>
-    /// Delegate-based DbSet for ExecuteUpdate tests with modern C# syntax.
-    /// </summary>
     public ExpressiveDbSet<Product> ExpressiveProducts => Set<Product>().AsExpressiveDbSet();
 
     public IntegrationTestDbContext(DbContextOptions<IntegrationTestDbContext> options) : base(options)

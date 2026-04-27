@@ -7,8 +7,8 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace ExpressiveSharp.EntityFrameworkCore.CodeFixers;
 
 /// <summary>
-/// Detects EntityFrameworkCore.Projectables API usage and reports diagnostics
-/// so that <see cref="MigrationCodeFixProvider"/> can offer automated fixes.
+/// Detects EntityFrameworkCore.Projectables API usage so <see cref="MigrationCodeFixProvider"/>
+/// can offer automated migrations.
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class MigrationAnalyzer : DiagnosticAnalyzer
@@ -63,7 +63,6 @@ public sealed class MigrationAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        // Verify it's actually the Projectables attribute via semantic model
         var symbolInfo = context.SemanticModel.GetSymbolInfo(attribute, context.CancellationToken);
         if (symbolInfo.Symbol is IMethodSymbol ctor &&
             ctor.ContainingType.ToDisplayString() == "EntityFrameworkCore.Projectables.ProjectableAttribute")

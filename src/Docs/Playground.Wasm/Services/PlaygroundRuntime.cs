@@ -1,7 +1,7 @@
-// PlaygroundRuntime — singleton DI service shared by every PlaygroundHost on
-// the page. Owns the reference set, the SnippetCompiler, the IntelliSense
-// workspace, the lazy-loaded provider assemblies, and a per-page compile cache.
-// Provider-neutral; dispatch goes through IPlaygroundScenario / IScenarioInstance.
+// Singleton DI service shared by every PlaygroundHost on the page; owns the
+// reference set, SnippetCompiler, IntelliSense workspace, lazy-loaded provider
+// assemblies, and per-page compile cache. Dispatch goes through
+// IPlaygroundScenario / IScenarioInstance.
 
 using ExpressiveSharp.Docs.Playground.Core.Services;
 using ExpressiveSharp.Docs.Playground.Core.Services.Scenarios;
@@ -11,11 +11,9 @@ namespace ExpressiveSharp.Docs.Playground.Wasm.Services;
 
 internal sealed class PlaygroundRuntime : IAsyncDisposable
 {
-    /// <summary>Sentinel target id for the universal "show generator output" target.</summary>
+    // Sentinel target id for the universal "show generator output" target.
     public const string GeneratorTargetId = "generator";
 
-    // Bounded so a runaway editor session can't grow the cache forever.
-    // Realistic page sessions hit ~10–20 distinct snippets at most.
     private const int CompileCacheMaxSize = 32;
 
     private readonly PlaygroundReferences _references;
@@ -43,20 +41,13 @@ internal sealed class PlaygroundRuntime : IAsyncDisposable
         _languageServices ?? throw new InvalidOperationException(
             "PlaygroundRuntime.LanguageServices accessed before InitializeAsync completed.");
 
-    /// <summary>
-    /// Most recent target id chosen by any PlaygroundHost on the page. Dynamic
-    /// instances mounting after a broadcast read this to pick up the active
-    /// target instead of the scenario default.
-    /// </summary>
+    // Most recent target id chosen by any PlaygroundHost on the page. Dynamic
+    // instances mounting after a broadcast read this to pick up the active
+    // target instead of the scenario default.
     public string? SharedTargetId => _sharedTargetId;
 
     public void SetSharedTargetId(string targetId) => _sharedTargetId = targetId;
 
-    /// <summary>
-    /// One-time async init: loads reference assemblies, instantiates the
-    /// SnippetCompiler, prewarms the IntelliSense workspace. Idempotent and
-    /// safe under concurrent callers via _initLock.
-    /// </summary>
     public async Task InitializeAsync()
     {
         if (_initialized) return;
@@ -68,9 +59,6 @@ internal sealed class PlaygroundRuntime : IAsyncDisposable
             await _references.LoadAsync();
             _compiler = new SnippetCompiler(_references);
             _languageServices = new PlaygroundLanguageServices(_references);
-            // Prewarm forces MEF composition (and the cctor moment that would
-            // otherwise PNSE in WASM without WorkspaceShim) up-front, so the
-            // first user keystroke hits a warm cache.
             await _languageServices.PrewarmAsync();
             _initialized = true;
         }
@@ -80,12 +68,9 @@ internal sealed class PlaygroundRuntime : IAsyncDisposable
         }
     }
 
-    /// <summary>
-    /// Compiles a snippet and renders it through the chosen target. Memoized
-    /// by (scenarioId, setup, snippet); the cache stores the snippet's Run
-    /// method as a callable Func so multi-provider scenarios can invoke it
-    /// against a different argument per render target without recompiling.
-    /// </summary>
+    // Memoized by (scenarioId, setup, snippet); the cache stores the snippet's
+    // Run method as a callable Func so multi-provider scenarios can invoke it
+    // against a different argument per render target without recompiling.
     public async Task<RenderResult> RunAsync(
         string snippet,
         string? setup,
@@ -95,9 +80,9 @@ internal sealed class PlaygroundRuntime : IAsyncDisposable
         if (!_initialized || _compiler is null)
             throw new InvalidOperationException("PlaygroundRuntime is not initialized.");
 
-        // Lazy-load before the cache check + Task.Run, because LazyAssemblyLoader
-        // yields to the JS event loop while fetching and the assembly must be
-        // resolved before any IL referencing it gets JIT-compiled.
+        // Must run before the cache check + Task.Run: LazyAssemblyLoader yields
+        // to the JS event loop, and the assembly must be resolved before any IL
+        // referencing it gets JIT-compiled.
         var renderTarget = scenario.RenderTargets.FirstOrDefault(t => t.Id == targetId);
         if (renderTarget?.LazyLoadAssemblies is { Count: > 0 } lazyAssemblies)
         {
@@ -165,15 +150,13 @@ internal sealed class PlaygroundRuntime : IAsyncDisposable
         });
     }
 
-    // Null bytes between fields prevent ambiguous concatenation collisions.
-    // targetId is intentionally NOT in the key — the cache serves any target
-    // from one compile.
+    // Null bytes prevent ambiguous concatenation collisions. targetId is
+    // intentionally NOT in the key — one compile serves any target.
     private static string MakeCompileCacheKey(string scenarioId, string? setup, string snippet) =>
         scenarioId + "\0" + (setup ?? "") + "\0" + snippet;
 
-    // Idempotent — re-loaded assemblies are skipped via _loadedLazyAssemblies.
     // The lock serializes concurrent loads from a dropdown broadcast hitting
-    // all 6 instances at once with the same target.
+    // multiple instances at once with the same target.
     private async Task EnsureLazyAssembliesLoadedAsync(IReadOnlyList<string> assemblyFileNames)
     {
         var needsLoad = false;
@@ -214,11 +197,6 @@ internal sealed class PlaygroundRuntime : IAsyncDisposable
         _compileCache[key] = entry;
     }
 
-    // Looks up the render target, gets its query argument from the scenario
-    // instance, invokes the cached Run method, runs the target's render
-    // delegate. The reflection invoke is ~1ms — fast enough for dropdown
-    // thrash where 6 instances re-render against the same cache entry with
-    // different per-target arguments.
     private RenderResult RenderFromCache(CachedCompile cached, string targetId, IPlaygroundScenario scenario)
     {
         try
@@ -280,10 +258,9 @@ internal sealed class PlaygroundRuntime : IAsyncDisposable
         return fresh;
     }
 
-    // Splits diagnostics into snippet markers (in-region; translated to user
-    // coordinates for Monaco squiggles) and setup messages (in-setup-region;
-    // shown in PlaygroundHost's error block since Monaco doesn't see setup).
-    // Anything anchored elsewhere in the wrapped source is dropped.
+    // Snippet markers go to Monaco squiggles (translated to user coordinates);
+    // setup messages go to PlaygroundHost's error block since Monaco doesn't
+    // see setup. Anything anchored elsewhere in the wrapped source is dropped.
     private static (List<SnippetMarker> snippet, List<string> setup) PartitionDiagnostics(CompileResult result)
     {
         var snippetMarkers = new List<SnippetMarker>();
@@ -305,8 +282,7 @@ internal sealed class PlaygroundRuntime : IAsyncDisposable
                     StartLine: startRel.Line + 1,
                     StartColumn: startRel.Character + 1,
                     EndLine: endRel.Line + 1,
-                    // Force at least one column of width so zero-width
-                    // diagnostics still get a visible squiggle.
+                    // At least one column wide so zero-width diagnostics still get a squiggle.
                     EndColumn: Math.Max(endRel.Character + 1, startRel.Character + 2)));
             }
             else if (result.Wrap.IsInSetup(span.Start))
@@ -318,9 +294,8 @@ internal sealed class PlaygroundRuntime : IAsyncDisposable
         return (snippetMarkers, setupMessages);
     }
 
-    // Walks reflection wrapper exceptions to surface the actual root cause —
-    // TargetInvocationException wraps anything thrown by a reflection-invoked
-    // method body, TypeInitializationException wraps cctor failures.
+    // Unwraps TargetInvocationException / TypeInitializationException to surface
+    // the actual root cause from reflection-invoked methods and cctor failures.
     private static Exception Unwrap(Exception ex)
     {
         while (true)
@@ -368,10 +343,8 @@ internal sealed class PlaygroundRuntime : IAsyncDisposable
     }
 }
 
-/// <summary>
-/// Diagnostic in the user's snippet region with positions already translated
-/// to snippet-relative 1-based coordinates for Monaco's setModelMarkers.
-/// </summary>
+// Diagnostic in the user's snippet region with positions translated to
+// snippet-relative 1-based coordinates for Monaco's setModelMarkers.
 internal sealed record SnippetMarker(
     Microsoft.CodeAnalysis.DiagnosticSeverity Severity,
     string Code,

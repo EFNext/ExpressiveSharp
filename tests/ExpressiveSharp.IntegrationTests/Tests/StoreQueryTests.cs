@@ -6,10 +6,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpressiveSharp.IntegrationTests.Tests;
 
-/// <summary>
-/// Store-domain queries that combine multiple ExpressiveSharp features in a
-/// single query, compiled to delegates and run in-memory.
-/// </summary>
 [TestClass]
 public class StoreQueryTests
 {

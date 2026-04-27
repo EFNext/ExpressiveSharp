@@ -4,16 +4,11 @@ using MongoDB.Driver;
 
 namespace ExpressiveSharp.MongoDB.Infrastructure;
 
-/// <summary>
-/// Internal wrapper that adapts an <see cref="IQueryable{T}"/> backed by MongoDB's LINQ provider
-/// to <see cref="IExpressiveMongoQueryable{T}"/>, enabling delegate-based LINQ overloads
-/// with modern C# syntax via source generator interception.
-/// </summary>
 /// <remarks>
-/// Also implements <see cref="IOrderedQueryable{T}"/> so that <c>ThenBy</c>/<c>ThenByDescending</c>
-/// interceptors can cast the wrapper without a runtime exception, and
-/// <see cref="IAsyncCursorSource{TDocument}"/> so that <c>MongoQueryable.ToListAsync</c> /
-/// <c>ToCursorAsync</c> (which cast the source directly, not the provider) accept the wrapper.
+/// Implements <see cref="IOrderedQueryable{T}"/> so <c>ThenBy</c>/<c>ThenByDescending</c>
+/// interceptors can cast the wrapper, and <see cref="IAsyncCursorSource{TDocument}"/> so
+/// <c>MongoQueryable.ToListAsync</c> / <c>ToCursorAsync</c> (which cast the source directly,
+/// not the provider) accept the wrapper.
 /// </remarks>
 internal sealed class ExpressiveMongoQueryable<T> : IExpressiveMongoQueryable<T>, IOrderedQueryable<T>, IAsyncCursorSource<T>
 {
@@ -36,8 +31,7 @@ internal sealed class ExpressiveMongoQueryable<T> : IExpressiveMongoQueryable<T>
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <summary>
-    /// Returns the MongoDB aggregation pipeline (MQL) for this query without
-    /// executing it. Delegates to the native MongoDB queryable's ToString().
+    /// Returns the MongoDB aggregation pipeline (MQL) for this query without executing it.
     /// </summary>
     public override string ToString()
         => ExpandedInnerQueryable().ToString() ?? base.ToString()!;
@@ -48,8 +42,8 @@ internal sealed class ExpressiveMongoQueryable<T> : IExpressiveMongoQueryable<T>
     public Task<IAsyncCursor<T>> ToCursorAsync(CancellationToken cancellationToken = default)
         => ((IAsyncCursorSource<T>)ExpandedInnerQueryable()).ToCursorAsync(cancellationToken);
 
-    // Expand [Expressive] members in the expression tree and rebuild a fresh inner queryable
-    // bound to MongoDB's native provider, which implements IAsyncCursorSource<T>.
+    // Expand [Expressive] members and rebuild a fresh inner queryable bound to MongoDB's
+    // native provider, which implements IAsyncCursorSource<T>.
     private IQueryable<T> ExpandedInnerQueryable()
         => _source.Provider.CreateQuery<T>(_provider.Expand(_source.Expression));
 }

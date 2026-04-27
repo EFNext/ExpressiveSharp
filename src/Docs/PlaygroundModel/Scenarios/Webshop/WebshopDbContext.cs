@@ -1,7 +1,3 @@
-// WebshopDbContext — the in-memory DbContext the playground's webshop scenario
-// uses to back EF Core's ToQueryString(). Constructed once per scenario instance
-// in WebshopScenarioInstance; no real database connection is ever opened.
-
 using ExpressiveSharp.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 

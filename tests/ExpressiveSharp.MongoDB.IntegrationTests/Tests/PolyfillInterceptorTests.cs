@@ -6,16 +6,9 @@ using MongoDB.Driver.Linq;
 
 namespace ExpressiveSharp.MongoDB.IntegrationTests.Tests;
 
-/// <summary>
-/// Verifies that delegate-based lambdas with modern C# syntax are rewritten to
-/// expression trees by the source generator and correctly forwarded through
-/// the MongoDB provider. These features would normally fail in raw expression trees.
-/// </summary>
 [TestClass]
 public class PolyfillInterceptorTests : MongoTestBase
 {
-    // ── Null-conditional (?.) ───────────────────────────────────────────
-
     [TestMethod]
     public async Task NullConditional_PropertyAccess()
     {
@@ -69,8 +62,6 @@ public class PolyfillInterceptorTests : MongoTestBase
         CollectionAssert.AreEquivalent(new[] { 1 }, results);
     }
 
-    // ── Null-coalescing (??) ────────────────────────────────────────────
-
     [TestMethod]
     public async Task NullCoalescing_WithFallback()
     {
@@ -92,8 +83,6 @@ public class PolyfillInterceptorTests : MongoTestBase
 
         CollectionAssert.AreEqual(new[] { "Alice", "Bob", "Unknown", "Unknown" }, results);
     }
-
-    // ── Switch expressions ──────────────────────────────────────────────
 
     [TestMethod]
     public async Task SwitchExpression_OnEnum()
@@ -129,8 +118,6 @@ public class PolyfillInterceptorTests : MongoTestBase
         CollectionAssert.AreEqual(new[] { "Premium", "Standard", "Budget", "Standard" }, results);
     }
 
-    // ── Pattern matching ────────────────────────────────────────────────
-
     [TestMethod]
     public async Task PatternMatching_IsNotNull()
     {
@@ -154,8 +141,6 @@ public class PolyfillInterceptorTests : MongoTestBase
         CollectionAssert.AreEquivalent(new[] { 3 }, results);
     }
 
-    // ── Conditional (ternary) ───────────────────────────────────────────
-
     [TestMethod]
     public async Task Ternary_InSelect()
     {
@@ -169,12 +154,9 @@ public class PolyfillInterceptorTests : MongoTestBase
             new[] { "Expensive", "Expensive", "Affordable", "Affordable" }, results);
     }
 
-    // ── Compound queries ────────────────────────────────────────────────
-
     [TestMethod]
     public async Task Compound_NullConditional_WithCoalescing_InWhere()
     {
-        // Filter orders where the customer's country is unknown (null) then default
         var results = await Query
             .Where(o => (o.Customer?.Address?.Country ?? "Unknown") == "Unknown")
             .OrderBy(o => o.Id)

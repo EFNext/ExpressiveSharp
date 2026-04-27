@@ -7,17 +7,12 @@ using MongoDB.Driver.Linq;
 
 namespace ExpressiveSharp.MongoDB.IntegrationTests.Tests;
 
-/// <summary>
-/// Verifies expressive features work with MongoDB's embedded document model.
-/// </summary>
 [TestClass]
 public class EmbeddedDocumentTests : MongoTestBase
 {
     [TestMethod]
     public async Task ExpressiveMember_OnEmbeddedDocument_Expands()
     {
-        // CustomerName is [Expressive] => Customer?.Name
-        // Customer is an embedded document in MongoDB
         Expression<Func<Order, string?>> expr = o => o.CustomerName;
         var expanded = (Expression<Func<Order, string?>>)expr.ExpandExpressives();
 
@@ -36,8 +31,6 @@ public class EmbeddedDocumentTests : MongoTestBase
     [TestMethod]
     public async Task NullConditional_ThroughEmbeddedDocument_Works()
     {
-        // CustomerCountry is [Expressive] => Customer?.Address?.Country
-        // Two levels of embedded document navigation
         Expression<Func<Order, string?>> expr = o => o.CustomerCountry;
         var expanded = (Expression<Func<Order, string?>>)expr.ExpandExpressives();
 

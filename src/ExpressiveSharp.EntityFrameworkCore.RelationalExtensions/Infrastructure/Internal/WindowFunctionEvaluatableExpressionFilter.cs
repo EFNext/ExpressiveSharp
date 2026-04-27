@@ -5,9 +5,8 @@ using Microsoft.EntityFrameworkCore.Query;
 namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructure.Internal;
 
 /// <summary>
-/// Prevents window function marker method calls and property accesses from being
-/// client-evaluated. These must remain as expression tree nodes for the
-/// method/member translators to handle.
+/// Prevents window function markers from being client-evaluated — they must remain as
+/// expression tree nodes for the method/member translators to handle.
 /// </summary>
 internal sealed class WindowFunctionEvaluatableExpressionFilter : IEvaluatableExpressionFilterPlugin
 {

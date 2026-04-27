@@ -8,8 +8,6 @@ namespace ExpressiveSharp.Generator.Tests.ExpressiveGenerator;
 [TestClass]
 public class DiagnosticTests : GeneratorTestBase
 {
-    // ── EXP0001: RequiresBodyDefinition ─────────────────────────────────────
-
     [TestMethod]
     public void AutoProperty_NoBody_ReportsEXP0001()
     {
@@ -46,8 +44,6 @@ public class DiagnosticTests : GeneratorTestBase
             "Expected EXP0001 for abstract method without body");
     }
 
-    // ── EXP0003: NoSourceAvailableForDelegatedConstructor ───────────────────
-
     [TestMethod]
     public void DelegatedConstructor_BaseInBCL_ReportsEXP0003()
     {
@@ -72,8 +68,6 @@ public class DiagnosticTests : GeneratorTestBase
         Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0003"),
             "Expected EXP0003 for delegated constructor with no source available");
     }
-
-    // ── EXP0007: UnsupportedInitializer ─────────────────────────────────────
 
     [TestMethod]
     public void NestedObjectInitializer_ReportsEXP0007()
@@ -102,8 +96,6 @@ public class DiagnosticTests : GeneratorTestBase
             "Expected EXP0007 for nested member initializer");
     }
 
-    // ── EXP0018: IgnoredOperation ─────────────────────────────────────────
-
     [TestMethod]
     public void StringInterpolation_AlignmentSpecifier_ReportsEXP0018()
     {
@@ -126,8 +118,6 @@ public class DiagnosticTests : GeneratorTestBase
             "Generator should still produce output (interpolation without alignment)");
     }
 
-    // ── EXP0009: UnsupportedOperator ────────────────────────────────────────
-
     [TestMethod]
     public void UnsignedRightShift_ReportsEXP0009()
     {
@@ -147,8 +137,6 @@ public class DiagnosticTests : GeneratorTestBase
         Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0009"),
             "Expected EXP0009 for unsigned right shift operator (>>>)");
     }
-
-    // ── EXP0011: UnresolvablePatternMember ──────────────────────────────────
 
     [TestMethod]
     public void PositionalPattern_NoMatchingProperty_ReportsEXP0011()
@@ -173,8 +161,6 @@ public class DiagnosticTests : GeneratorTestBase
         Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0011"),
             "Expected EXP0011 for positional pattern with unresolvable member names");
     }
-
-    // ── EXP0012: FactoryMethodShouldBeConstructor ───────────────────────────
 
     [TestMethod]
     public void FactoryMethod_ReturningNewContainingType_ReportsEXP0012()
@@ -202,8 +188,6 @@ public class DiagnosticTests : GeneratorTestBase
         Assert.IsTrue(result.GeneratedTrees.Length > 0,
             "Generator should still produce output alongside Info diagnostic");
     }
-
-    // ── EXP0014: ExpressiveForTargetTypeNotFound ────────────────────────────
 
     [TestMethod]
     public void ExpressiveFor_NonExistentTargetType_ReportsEXP0014()

@@ -5,10 +5,8 @@ using Microsoft.EntityFrameworkCore.Query;
 namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructure.Internal;
 
 /// <summary>
-/// Wraps the provider's <see cref="RelationalParameterBasedSqlProcessor"/> to temporarily
-/// hide <see cref="WindowFunctionSqlExpression"/> nodes during nullability processing.
-/// The provider's own processor (with all its provider-specific customizations) handles
-/// the actual work — we only intercept the public entry points to wrap/unwrap.
+/// Wraps the provider's processor to hide <see cref="WindowFunctionSqlExpression"/> nodes
+/// during nullability processing — the provider does the actual work, we only wrap/unwrap.
 /// </summary>
 [SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required for custom SQL expression nullability processing")]
 internal sealed class WindowFunctionParameterBasedSqlProcessor : RelationalParameterBasedSqlProcessor

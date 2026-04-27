@@ -3,10 +3,6 @@ using Microsoft.EntityFrameworkCore.Query;
 
 namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructure.Internal;
 
-/// <summary>
-/// Decorates the existing <see cref="IRelationalParameterBasedSqlProcessorFactory"/> to wrap
-/// the provider's processor with <see cref="WindowFunctionSqlExpression"/> handling.
-/// </summary>
 [SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required for custom SQL expression nullability processing")]
 internal sealed class WindowFunctionParameterBasedSqlProcessorFactory : IRelationalParameterBasedSqlProcessorFactory
 {

@@ -4,12 +4,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Infrastructure;
 
-/// <summary>
-/// Integration tests for Include/ThenInclude chain continuity via
-/// <see cref="IIncludableExpressiveQueryable{TEntity, TProperty}"/>. Verifies
-/// that navigation loading works end-to-end after <c>Include</c> on a
-/// expressive queryable.
-/// </summary>
 public abstract class IncludeTestBase : EFCoreRelationalTestBase
 {
     [TestInitialize]
@@ -72,8 +66,7 @@ public abstract class IncludeTestBase : EFCoreRelationalTestBase
     [TestMethod]
     public async Task IgnoreQueryFilters_Executes()
     {
-        // No query filters on IntegrationTestDbContext, but calling IgnoreQueryFilters
-        // should still return a valid executable chain.
+        // IntegrationTestDbContext has no filters, but IgnoreQueryFilters must still chain.
         var results = await Context.Orders
             .IgnoreQueryFilters()
             .ToListAsync();

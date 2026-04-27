@@ -4,14 +4,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Infrastructure;
 
-/// <summary>
-/// Integration tests for the <see cref="ExpressiveExpandQueryFiltersConvention"/>.
-/// Uses a dedicated <see cref="QueryFilterTestDbContext"/> with two global
-/// query filters — one expression-bodied (<c>o.Total &gt; 0</c>) and one
-/// block-bodied (<c>c.HasValidEmail()</c>) — to verify that both the
-/// standard convention and the <c>FlattenBlockExpressions</c> transformer
-/// run during filter expansion at model finalization.
-/// </summary>
+// Verifies ExpressiveExpandQueryFiltersConvention plus the FlattenBlockExpressions
+// transformer using two global filters: expression-bodied (Total > 0) and
+// block-bodied (Customer.HasValidEmail()).
 public abstract class QueryFilterTestBase : EFCoreRelationalTestBase<QueryFilterTestDbContext>
 {
     [TestInitialize]
@@ -34,8 +29,6 @@ public abstract class QueryFilterTestBase : EFCoreRelationalTestBase<QueryFilter
             new Order { Id = 4, Price = 0, Quantity = 0, CustomerId = 2 });   // Total = 0 ✗
         await Context.SaveChangesAsync();
     }
-
-    // ── Expression-bodied [Expressive] filter (Order.Total > 0) ────────
 
     [TestMethod]
     public async Task ExpressionBodyFilter_FiltersOutZeroTotals()
@@ -65,14 +58,11 @@ public abstract class QueryFilterTestBase : EFCoreRelationalTestBase<QueryFilter
         Assert.AreEqual(3, count);
     }
 
-    // ── Block-body [Expressive] filter (Customer.HasValidEmail()) ──────
-
     [TestMethod]
     public async Task BlockBodyFilter_FiltersOutNullEmails()
     {
-        // HasValidEmail() has an if/else that the FlattenBlockExpressions
-        // transformer must inline during filter expansion. Customers 1 and 2
-        // have emails, customer 3 has null.
+        // HasValidEmail() has an if/else that FlattenBlockExpressions must inline
+        // during filter expansion.
         var ids = await Context.Customers
             .OrderBy(c => c.Id)
             .Select(c => c.Id)

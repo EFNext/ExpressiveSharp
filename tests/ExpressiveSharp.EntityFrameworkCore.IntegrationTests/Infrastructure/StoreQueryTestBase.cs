@@ -5,12 +5,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Infrastructure;
 
-/// <summary>
-/// Store-domain queries that combine multiple ExpressiveSharp features in a
-/// single query (null-conditional + arithmetic, switch + arithmetic, enum +
-/// block body, compound sort, group-by). These are regression checks that
-/// feature interactions work end-to-end against any EF Core provider.
-/// </summary>
 public abstract class StoreQueryTestBase : EFCoreTestBase
 {
     [TestInitialize]
@@ -19,7 +13,6 @@ public abstract class StoreQueryTestBase : EFCoreTestBase
     [TestMethod]
     public async Task FilterByCustomerName_ProjectTotal()
     {
-        // Combines null-conditional (CustomerName) + arithmetic (Total)
         Expression<Func<Order, string?>> nameExpr = o => o.CustomerName;
         var expandedName = (Expression<Func<Order, string?>>)nameExpr.ExpandExpressives();
 
@@ -134,20 +127,11 @@ public abstract class StoreQueryTestBase : EFCoreTestBase
         Assert.AreEqual(1, dict[OrderStatus.Rejected]);
     }
 
-    // ── Cross-feature interactions ─────────────────────────────────────
-    //
-    // These tests combine multiple ExpressiveSharp features in a single
-    // query to catch seams where individual features work alone but break
-    // in combination.
-
     [TestMethod]
     public async Task NullConditional_WithExpressiveFor_ComposedInProjection()
     {
-        // Combines:
-        //   * PricingUtils.Clamp   — [ExpressiveFor] on a static method
-        //   * o.Customer?.Name     — null-conditional chain ([Expressive]
-        //                            member CustomerName)
-        // The expected result: for each order, return "clamped-price:customer-or-NONE".
+        // Combines [ExpressiveFor] on PricingUtils.Clamp with [Expressive]
+        // null-conditional CustomerName.
         Expression<Func<Order, string>> expr = o =>
             PricingUtils.Clamp(o.Price, 20.0, 100.0).ToString() + ":" + (o.CustomerName ?? "NONE");
 
@@ -172,10 +156,8 @@ public abstract class StoreQueryTestBase : EFCoreTestBase
     [TestMethod]
     public async Task CapturedVariable_PlusExpressive_Total_FiltersCorrectly()
     {
-        // Combines:
-        //   * Captured variable `minTotal` (polyfill interceptor path)
-        //   * o.Total            — [Expressive] member (query compiler path)
-        // Both rewrite mechanisms must cooperate in a single query.
+        // Both rewrite mechanisms (interceptor + query compiler) must cooperate
+        // in a single query.
         var minTotal = 200.0;
         Expression<Func<Order, bool>> baseExpr = o => o.Total > minTotal;
         var expanded = (Expression<Func<Order, bool>>)baseExpr.ExpandExpressives();
@@ -193,10 +175,8 @@ public abstract class StoreQueryTestBase : EFCoreTestBase
     [TestMethod]
     public async Task ExpressiveFor_Inside_ExpressiveMember_ComposesCorrectly()
     {
-        // Interaction: the [ExpressiveFor] mapping for PricingUtils.Clamp is
-        // itself used inside a projection alongside an [Expressive] member.
-        // This verifies the resolver handles ExpressiveFor targets and
-        // [Expressive] members in the same expression tree.
+        // Verifies the resolver handles [ExpressiveFor] targets and [Expressive]
+        // members in the same expression tree.
         Expression<Func<Order, double>> expr = o =>
             PricingUtils.Clamp(o.Total, 0.0, 200.0);
 

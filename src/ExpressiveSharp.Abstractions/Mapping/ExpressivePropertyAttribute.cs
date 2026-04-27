@@ -10,7 +10,7 @@ namespace ExpressiveSharp.Mapping;
 /// <remarks>
 /// <para>The stub must be an <b>instance property</b> with an <b>expression body</b>
 /// (<c>=&gt; expr</c>). Method stubs, accessor-list forms, and static stubs are rejected.</para>
-/// <para>The containing type must be declared <c>partial</c> (class, struct, or record).</para>
+/// <para>The containing type must be declared <c>partial</c>.</para>
 /// <para>To map a stub onto an <i>existing</i> member instead of synthesizing a new one,
 /// use <see cref="ExpressiveForAttribute"/>.</para>
 /// </remarks>
@@ -18,13 +18,13 @@ namespace ExpressiveSharp.Mapping;
 public sealed class ExpressivePropertyAttribute : Attribute
 {
     /// <summary>
-    /// Name of the property to synthesize on the stub's containing type. Must be supplied as a
-    /// string literal — <c>nameof(X)</c> cannot resolve because <c>X</c> doesn't exist yet.
+    /// Name of the property to synthesize. Must be a string literal — <c>nameof(X)</c> cannot
+    /// resolve because <c>X</c> doesn't exist yet.
     /// </summary>
     public string TargetName { get; }
 
     /// <summary>
-    /// Additional <see cref="IExpressionTreeTransformer"/> types to apply at runtime.
+    /// <see cref="IExpressionTreeTransformer"/> types to apply at runtime.
     /// Each type must have a parameterless constructor.
     /// </summary>
     public Type[]? Transformers { get; set; }

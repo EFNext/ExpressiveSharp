@@ -5,18 +5,11 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Infrastructure;
 
-/// <summary>
-/// Scenario tests exercising individual ExpressiveSharp features (arithmetic,
-/// switch expressions, pattern matching, null-conditional chains, loops,
-/// tuples, constructor projections, etc.) against a real EF Core provider.
-/// Runs against any provider (relational or Cosmos).
-/// </summary>
+// Runs against any provider (relational or Cosmos).
 public abstract class CommonScenarioTestBase : EFCoreTestBase
 {
     [TestInitialize]
     public virtual Task SeedStoreData() => Context.SeedStoreAsync();
-
-    // ── Arithmetic ──────────────────────────────────────────────────────────
 
     [TestMethod]
     public async Task Select_Total_ReturnsCorrectValues()
@@ -75,8 +68,6 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
         CollectionAssert.AreEqual(new[] { 2, 4, 1, 3 }, results);
     }
 
-    // ── Block Body ──────────────────────────────────────────────────────────
-
     [TestMethod]
     public async Task Select_GetCategory_ReturnsCorrectValues()
     {
@@ -102,8 +93,6 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
             new[] { "Regular", "Bulk", "Regular", "Regular" },
             results);
     }
-
-    // ── Checked Arithmetic ──────────────────────────────────────────────────
 
     [TestMethod]
     public async Task Select_CheckedTotal_ReturnsCorrectValues()
@@ -132,8 +121,6 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
         CollectionAssert.AreEqual(new[] { 1, 2, 4 }, ids);
     }
 
-    // ── Collection Expression ───────────────────────────────────────────────
-
     [TestMethod]
     public virtual async Task Select_PriceBreakpoints_ReturnsArrayLiteral()
     {
@@ -148,8 +135,6 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
             CollectionAssert.AreEqual(new[] { 10, 50, 100 }, breakpoints);
         }
     }
-
-    // ── Constructor Projection ──────────────────────────────────────────────
 
     [TestMethod]
     public async Task Select_OrderDto_ProjectsCorrectly()
@@ -169,8 +154,6 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
         Assert.AreEqual("N/A", order3.Description);
         Assert.AreEqual(30.0, order3.Total);
     }
-
-    // ── Enum Expansion ──────────────────────────────────────────────────────
 
     [TestMethod]
     public async Task Select_StatusDescription_ReturnsCorrectValues()
@@ -201,8 +184,6 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
         Assert.AreEqual(1, dict["Order approved"]);
         Assert.AreEqual(1, dict["Order rejected"]);
     }
-
-    // ── ExpressiveFor Mapping ───────────────────────────────────────────────
 
     [TestMethod]
     public async Task Select_ClampedPrice_ReturnsCorrectValues()
@@ -245,14 +226,9 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
             Assert.IsTrue(results.Any(r => Math.Abs(r - exp) < 0.001), $"Expected {exp} in results");
     }
 
-    // ── ExpressiveFor on instance method ────────────────────────────────────
-
     [TestMethod]
     public async Task Select_InstanceMethod_ViaExpressiveFor_ReturnsCorrectValues()
     {
-        // DisplayFormatter.Wrap is an instance method mapped via
-        // [ExpressiveFor]. The formatter is captured from outer scope
-        // (like a DI-injected service would be).
         var formatter = new DisplayFormatter("<", ">");
 
         Expression<Func<Order, string>> expr = o => formatter.Wrap(o.Tag ?? "none");
@@ -271,10 +247,6 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     [TestMethod]
     public async Task Select_InstanceProperty_ViaExpressiveFor_ReturnsConstant()
     {
-        // DisplayFormatter.Label is an instance property mapped via
-        // [ExpressiveFor]. The property value is captured from outer scope
-        // (Prefix/Suffix are captured) — the expanded expression becomes a
-        // constant string interpolation evaluated per-row.
         var formatter = new DisplayFormatter("A", "B");
 
         Expression<Func<Order, string>> expr = o => formatter.Label + ":" + o.Id;
@@ -289,8 +261,6 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
             new[] { "[A/B]:1", "[A/B]:2", "[A/B]:3", "[A/B]:4" },
             results);
     }
-
-    // ── Loop Tests ──────────────────────────────────────────────────────────
 
     [TestMethod]
     public virtual async Task Select_ItemCount_ReturnsCorrectCounts()
@@ -346,8 +316,6 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
 
         CollectionAssert.AreEquivalent(new[] { 150.0, 500.0, 0.0, 0.0 }, results);
     }
-
-    // ── Null Conditional ────────────────────────────────────────────────────
 
     [TestMethod]
     public virtual async Task Select_CustomerName_ReturnsCorrectNullableValues()
@@ -406,10 +374,8 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     [TestMethod]
     public virtual async Task OrderBy_TagLength_NullsAppearFirst()
     {
-        // NULL sort order is provider-specific: SQLite/SQL Server/MySQL
-        // put NULLs first on ASC, PostgreSQL puts them last. This test
-        // asserts the SQL Server / SQLite / MySQL convention; Postgres
-        // overrides with its own expectation.
+        // NULL sort order is provider-specific: SQLite/SQL Server/MySQL put NULLs first
+        // on ASC; Postgres overrides this test with its own expectation.
         Expression<Func<Order, int?>> tagLenExpr = o => o.TagLength;
         var expanded = (Expression<Func<Order, int?>>)tagLenExpr.ExpandExpressives();
 
@@ -420,8 +386,6 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
         Assert.AreEqual(4, results.Count);
         Assert.AreEqual(3, results[0]); // Order 3 has null Tag → sorts first
     }
-
-    // ── Nullable Chain ──────────────────────────────────────────────────────
 
     [TestMethod]
     public virtual async Task Select_CustomerCountry_TwoLevelChain()
@@ -460,8 +424,6 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
 
         CollectionAssert.AreEquivalent(new[] { "New York", "London", null }, results);
     }
-
-    // ── Pattern Matching ────────────────────────────────────────────────────
 
     [TestMethod]
     public async Task Where_IsPattern_NullCheck()
@@ -515,8 +477,6 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
             results);
     }
 
-    // ── Polyfill Pathway ────────────────────────────────────────────────────
-
     [TestMethod]
     public async Task Polyfill_SimpleCondition_FiltersCorrectly()
     {
@@ -557,8 +517,6 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
 
         CollectionAssert.AreEquivalent(new[] { "RUSH", "STD", "N/A", "SPECIAL" }, results);
     }
-
-    // ── String Operations ───────────────────────────────────────────────────
 
     [TestMethod]
     public async Task Select_Summary_ReturnsCorrectValues()
@@ -648,8 +606,6 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
         Assert.AreEqual(1, results[0].Id);
     }
 
-    // ── Switch Expression ───────────────────────────────────────────────────
-
     [TestMethod]
     public async Task Select_GetGrade_ReturnsCorrectValues()
     {
@@ -708,8 +664,6 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
         Assert.AreEqual(1, dict["Budget"]);
     }
 
-    // ── Tuple Binary ────────────────────────────────────────────────────────
-
     [TestMethod]
     public async Task Select_IsPriceQuantityMatch_ReturnsCorrectValues()
     {
@@ -743,8 +697,6 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
         Assert.AreEqual(1, results.Count);
         Assert.AreEqual(4, results[0].Id);
     }
-
-    // ── Tuple Projection ────────────────────────────────────────────────────
 
     [TestMethod]
     public async Task Select_InlineTuple_ProjectsCorrectly()

@@ -8,17 +8,12 @@ namespace ExpressiveSharp
 {
     /// <summary>
     /// Delegate-based LINQ overloads on <see cref="IExpressiveQueryable{T}"/> that shadow the
-    /// <see cref="Queryable"/> extension methods. These stubs are intercepted at compile time by
-    /// the ExpressiveSharp source generator, which rewrites the inline lambda body
-    /// into an expression tree and routes the call to the corresponding <see cref="IQueryable{T}"/>
-    /// operator. Do not call these methods directly.
+    /// <see cref="Queryable"/> methods. The source generator rewrites the inline lambda body to an
+    /// expression tree and routes the call to the corresponding <see cref="IQueryable{T}"/> operator.
+    /// These are picked over the <see cref="Queryable"/> overloads because
+    /// <see cref="IExpressiveQueryable{T}"/> is more specific than <see cref="IQueryable{T}"/>.
+    /// Do not call directly.
     /// </summary>
-    /// <remarks>
-    /// These methods are hidden from IntelliSense. The C# compiler resolves them in preference to the
-    /// <see cref="Queryable"/> equivalents because <see cref="IExpressiveQueryable{T}"/> is a more specific
-    /// type than <see cref="IQueryable{T}"/>, which causes the delegate-accepting overload to win,
-    /// allowing modern C# syntax (null-conditional operators, pattern matching, etc.) to compile.
-    /// </remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static class ExpressiveQueryableLinqExtensions
     {
@@ -87,8 +82,6 @@ namespace ExpressiveSharp
             Func<T, TKey> keySelector)
             => throw new UnreachableException(InterceptedMessage);
 
-        // ── Partitioning ─────────────────────────────────────────────────────
-
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IExpressiveQueryable<T> TakeWhile<T>(
             this IExpressiveQueryable<T> source,
@@ -101,8 +94,6 @@ namespace ExpressiveSharp
             Func<T, bool> predicate)
             => throw new UnreachableException(InterceptedMessage);
 
-        // ── Set operations with key selector ─────────────────────────────────
-
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IExpressiveQueryable<T> DistinctBy<T, TKey>(
             this IExpressiveQueryable<T> source,
@@ -110,16 +101,12 @@ namespace ExpressiveSharp
             => throw new UnreachableException(InterceptedMessage);
 
 #if NET9_0_OR_GREATER
-        // ── .NET 9+ methods ──────────────────────────────────────────────────
-
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IExpressiveQueryable<KeyValuePair<TKey, int>> CountBy<T, TKey>(
             this IExpressiveQueryable<T> source,
             Func<T, TKey> keySelector)
             => throw new UnreachableException(InterceptedMessage);
 #endif
-
-        // ── Predicate methods (scalar-returning) ─────────────────────────────
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static bool Any<T>(
@@ -144,8 +131,6 @@ namespace ExpressiveSharp
             this IExpressiveQueryable<T> source,
             Func<T, bool> predicate)
             => throw new UnreachableException(InterceptedMessage);
-
-        // ── Element methods (scalar-returning) ───────────────────────────────
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static T First<T>(
@@ -182,8 +167,6 @@ namespace ExpressiveSharp
             this IExpressiveQueryable<T> source,
             Func<T, bool> predicate)
             => throw new UnreachableException(InterceptedMessage);
-
-        // ── Aggregation: Sum ─────────────────────────────────────────────────
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static int Sum<T>(
@@ -245,8 +228,6 @@ namespace ExpressiveSharp
             Func<T, decimal?> selector)
             => throw new UnreachableException(InterceptedMessage);
 
-        // ── Aggregation: Average ─────────────────────────────────────────────
-
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static double Average<T>(
             this IExpressiveQueryable<T> source,
@@ -306,8 +287,6 @@ namespace ExpressiveSharp
             this IExpressiveQueryable<T> source,
             Func<T, decimal?> selector)
             => throw new UnreachableException(InterceptedMessage);
-
-        // ── Aggregation: Min / Max ───────────────────────────────────────────
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static TResult Min<T, TResult>(
@@ -399,8 +378,6 @@ namespace ExpressiveSharp
             => Queryable.Index(source).AsExpressive();
 #endif
 
-        // ── Non-lambda-first intercepted methods ─────────────────────────────
-
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IExpressiveQueryable<TResult> Zip<T, TSecond, TResult>(
             this IExpressiveQueryable<T> source,
@@ -434,8 +411,6 @@ namespace ExpressiveSharp
             IEnumerable<TKey> second,
             Func<T, TKey> keySelector)
             => throw new UnreachableException(InterceptedMessage);
-
-        // ── Multi-lambda methods ─────────────────────────────────────────────
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IExpressiveQueryable<IGrouping<TKey, TElement>> GroupBy<T, TKey, TElement>(
@@ -514,8 +489,6 @@ namespace ExpressiveSharp
             Func<TAccumulate, T, TAccumulate> func)
             => throw new UnreachableException(InterceptedMessage);
 #endif
-
-        // ── IEqualityComparer / IComparer overloads (intercepted) ────────────
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IExpressiveQueryable<T> OrderBy<T, TKey>(

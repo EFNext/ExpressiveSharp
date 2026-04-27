@@ -4,16 +4,10 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Infrastructure;
 
-/// <summary>
-/// Regression tests verifying that [Expressive] members are correctly expanded
-/// through the ExpressiveQueryCompiler pipeline in real EF Core queries.
-/// </summary>
 public abstract class ExpressiveExpansionTestBase : EFCoreRelationalTestBase
 {
     [TestInitialize]
     public Task SeedStoreData() => Context.SeedStoreAsync();
-
-    // ── Nested [Expressive] calls ───────────────────────────────────────────
 
     [TestMethod]
     public async Task NestedExpressive_TotalUsedInGetGrade_ExpandsRecursively()
@@ -44,8 +38,6 @@ public abstract class ExpressiveExpansionTestBase : EFCoreRelationalTestBase
         Assert.AreEqual("Budget", results[2].Grade);
         Assert.AreEqual(30.0, results[2].Total);
     }
-
-    // ── [Expressive] in Where ───────────────────────────────────────────────
 
     [TestMethod]
     public async Task ExpressiveInWhere_FilterByTotal()
@@ -79,8 +71,6 @@ public abstract class ExpressiveExpansionTestBase : EFCoreRelationalTestBase
 
         CollectionAssert.AreEquivalent(new[] { 2 }, results);
     }
-
-    // ── Null-conditional [Expressive] ───────────────────────────────────────
 
     [TestMethod]
     public async Task NullConditionalExpressive_CustomerName_InFilter()
@@ -118,8 +108,6 @@ public abstract class ExpressiveExpansionTestBase : EFCoreRelationalTestBase
         Assert.IsNull(results[3].CustomerCountry);
     }
 
-    // ── [Expressive] extension method (enum expansion) ──────────────────────
-
     [TestMethod]
     public async Task ExpressiveExtensionMethod_StatusDescription()
     {
@@ -143,8 +131,6 @@ public abstract class ExpressiveExpansionTestBase : EFCoreRelationalTestBase
 
         CollectionAssert.AreEquivalent(new[] { 2, 4 }, results);
     }
-
-    // ── Captured variable + [Expressive] combined ───────────────────────────
 
     [TestMethod]
     public async Task CapturedVariable_WithExpressive_InSameQuery()
@@ -174,8 +160,6 @@ public abstract class ExpressiveExpansionTestBase : EFCoreRelationalTestBase
         Assert.AreEqual(240.0, results.Single());
     }
 
-    // ── [Expressive] string interpolation ───────────────────────────────────
-
     [TestMethod]
     public async Task ExpressiveStringInterpolation_Summary()
     {
@@ -187,8 +171,6 @@ public abstract class ExpressiveExpansionTestBase : EFCoreRelationalTestBase
         Assert.IsTrue(results.Any(s => s.Contains("RUSH")));
         Assert.IsTrue(results.Any(s => s.Contains("N/A")));
     }
-
-    // ── [Expressive] constructor projection ─────────────────────────────────
 
     [TestMethod]
     public async Task ExpressiveConstructor_OrderDto_ProjectsCorrectly()
@@ -203,8 +185,6 @@ public abstract class ExpressiveExpansionTestBase : EFCoreRelationalTestBase
         Assert.AreEqual(240.0, results[0].Total);
         Assert.AreEqual("N/A", results[2].Description);
     }
-
-    // ── Multiple [Expressive] in single projection ──────────────────────────
 
     [TestMethod]
     public async Task MultipleExpressives_InSingleSelect()

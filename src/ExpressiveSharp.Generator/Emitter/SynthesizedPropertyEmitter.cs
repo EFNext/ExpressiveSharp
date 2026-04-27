@@ -6,10 +6,9 @@ using Microsoft.CodeAnalysis.Text;
 namespace ExpressiveSharp.Generator.Emitter;
 
 /// <summary>
-/// Emits the user-visible partial-class declaration with the synthesized property when
-/// <c>[ExpressiveProperty]</c> is applied. The property caches materialized values (set by
-/// projection middleware / EF Core / HotChocolate) and otherwise delegates to the stub for
-/// the formula.
+/// Emits the partial-class declaration for <c>[ExpressiveProperty]</c>. The property caches
+/// materialized values (set by projection middleware / EF Core / HotChocolate) and otherwise
+/// delegates to the stub for the formula.
 /// </summary>
 static internal class SynthesizedPropertyEmitter
 {
@@ -19,10 +18,7 @@ static internal class SynthesizedPropertyEmitter
         context.AddSource(generatedFileName, SourceText.From(source, Encoding.UTF8));
     }
 
-    /// <summary>
-    /// Produces the synthesized partial-class C# source as a string. Pure function of the spec —
-    /// safe to call from incremental pipeline transforms (no <see cref="SourceProductionContext"/> required).
-    /// </summary>
+    // Pure function of the spec — safe to call from incremental pipeline transforms.
     public static string BuildSource(SynthesizedPropertySpec spec)
     {
         var sb = new StringBuilder();
@@ -40,7 +36,6 @@ static internal class SynthesizedPropertyEmitter
         var baseIndent = hasNamespace ? "    " : "";
         var nestingDepth = spec.ContainingTypePath.Count;
 
-        // Emit partial wrappers for any enclosing (nested) types, from outermost in.
         // Each level uses its actual type keyword so a struct/record container doesn't get
         // emitted as `partial class`.
         for (var i = 0; i < nestingDepth; i++)

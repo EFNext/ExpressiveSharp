@@ -9,10 +9,6 @@ namespace ExpressiveSharp.Generator.Interpretation;
 
 static internal partial class ExpressiveInterpreter
 {
-    /// <summary>
-    /// Visits <paramref name="parameterList"/> through <paramref name="rewriter"/> and appends
-    /// all resulting parameters to <see cref="ExpressiveDescriptor.ParametersList"/>.
-    /// </summary>
     private static void ApplyParameterList(
         ParameterListSyntax parameterList,
         DeclarationSyntaxRewriter rewriter,
@@ -24,10 +20,6 @@ static internal partial class ExpressiveInterpreter
         }
     }
 
-    /// <summary>
-    /// Visits the type-parameter list and constraint clauses of <paramref name="methodDecl"/>
-    /// through <paramref name="rewriter"/> and stores them on <paramref name="descriptor"/>.
-    /// </summary>
     private static void ApplyTypeParameters(
         MethodDeclarationSyntax methodDecl,
         DeclarationSyntaxRewriter rewriter,
@@ -50,12 +42,8 @@ static internal partial class ExpressiveInterpreter
         }
     }
 
-    /// <summary>
-    /// Returns the readable getter expression from a property declaration, trying in order:
-    /// the property-level expression-body, the getter's expression-body, then the first
-    /// <see langword="return"/> expression in a block-bodied getter.
-    /// Returns <c>null</c> when none of these are present.
-    /// </summary>
+    // Tries in order: property-level expression body, getter's expression body, then the
+    // first `return` in a block-bodied getter.
     private static ExpressionSyntax? TryGetPropertyGetterExpression(PropertyDeclarationSyntax prop)
     {
         if (prop.ExpressionBody?.Expression is { } exprBody)
@@ -82,10 +70,6 @@ static internal partial class ExpressiveInterpreter
         return null;
     }
 
-    /// <summary>
-    /// Reports <see cref="Diagnostics.RequiresBodyDefinition"/> for <paramref name="node"/>
-    /// and returns <c>false</c> so callers can write <c>return ReportRequiresBodyAndFail(…)</c>.
-    /// </summary>
     private static bool ReportRequiresBodyAndFail(
         SourceProductionContext context,
         SyntaxNode node,

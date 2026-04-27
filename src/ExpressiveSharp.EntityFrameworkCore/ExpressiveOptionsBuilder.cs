@@ -10,10 +10,6 @@ public sealed class ExpressiveOptionsBuilder
 
     internal bool ShouldPreserveThrowExpressions { get; private set; }
 
-    /// <summary>
-    /// Registers an <see cref="IExpressivePlugin"/> that contributes services and/or
-    /// expression tree transformers to the EF Core pipeline.
-    /// </summary>
     public ExpressiveOptionsBuilder AddPlugin(IExpressivePlugin plugin)
     {
         Plugins.Add(plugin);
@@ -22,8 +18,7 @@ public sealed class ExpressiveOptionsBuilder
 
     /// <summary>
     /// Prevents the <see cref="ExpressiveSharp.Transformers.ReplaceThrowWithDefault"/> transformer from
-    /// being applied. When set, <c>Expression.Throw</c> nodes are preserved in the
-    /// expression tree, and the LINQ provider is responsible for translating them.
+    /// being applied — <c>Expression.Throw</c> nodes are preserved for the LINQ provider to translate.
     /// </summary>
     public ExpressiveOptionsBuilder PreserveThrowExpressions()
     {

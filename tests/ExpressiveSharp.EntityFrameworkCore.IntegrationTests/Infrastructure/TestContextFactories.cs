@@ -12,18 +12,10 @@ using MySqlConnector;
 
 namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Infrastructure;
 
-/// <summary>
-/// Per-provider context factories used by test bases that need direct
-/// <see cref="DbContext"/> access (tests that bypass <c>IIntegrationTestRunner</c>).
-///
-/// Each factory creates a fresh, uniquely-named database inside the shared
-/// container (or an in-memory SQLite connection) and returns a disposable
-/// handle that the caller disposes in test cleanup.
-/// </summary>
+// Each factory creates a uniquely-named database inside the shared container
+// (or an in-memory SQLite connection) and returns a handle disposed in cleanup.
 internal static class TestContextFactories
 {
-    // ── SQLite ──────────────────────────────────────────────────────────
-
     public static SqliteContextHandle<IntegrationTestDbContext> CreateSqlite()
         => CreateSqlite<IntegrationTestDbContext>(opt => new IntegrationTestDbContext(opt));
 
@@ -54,8 +46,6 @@ internal static class TestContextFactories
             await connection.DisposeAsync();
         }
     }
-
-    // ── SQL Server ──────────────────────────────────────────────────────
 
 #if TEST_SQLSERVER
     public static SqlServerContextHandle<IntegrationTestDbContext> CreateSqlServer()
@@ -93,8 +83,6 @@ internal static class TestContextFactories
         }
     }
 #endif
-
-    // ── PostgreSQL ──────────────────────────────────────────────────────
 
 #if TEST_POSTGRES
     public static PostgresContextHandle<IntegrationTestDbContext> CreatePostgres()
@@ -150,8 +138,6 @@ internal static class TestContextFactories
     }
 #endif
 
-    // ── MySQL (Pomelo) ──────────────────────────────────────────────────
-
 #if TEST_POMELO_MYSQL && !NET10_0_OR_GREATER
     public static PomeloMySqlContextHandle<IntegrationTestDbContext> CreatePomeloMySql()
         => CreatePomeloMySql<IntegrationTestDbContext>(opt => new IntegrationTestDbContext(opt));
@@ -197,8 +183,6 @@ internal static class TestContextFactories
         }
     }
 #endif
-
-    // ── Cosmos DB ───────────────────────────────────────────────────────
 
 #if TEST_COSMOS
     public static CosmosContextHandle CreateCosmos()

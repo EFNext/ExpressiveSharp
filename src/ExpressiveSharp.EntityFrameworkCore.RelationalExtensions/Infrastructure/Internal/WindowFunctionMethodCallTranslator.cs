@@ -10,14 +10,9 @@ namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructur
 
 /// <summary>
 /// Translates <see cref="WindowFunction"/> static methods into SQL window function expressions.
-/// <para>
-/// <b>Ranking functions</b> (ROW_NUMBER, RANK, DENSE_RANK, NTILE) never emit a frame clause —
-/// the SQL standard forbids it and SQL Server / PostgreSQL reject the syntax.
-/// </para>
-/// <para>
-/// <b>Aggregate functions</b> (SUM, AVG, COUNT, MIN, MAX) propagate the frame from the
-/// <see cref="WindowSpecSqlExpression"/> into <see cref="WindowFunctionSqlExpression"/>.
-/// </para>
+/// Ranking functions (ROW_NUMBER, RANK, DENSE_RANK, NTILE) never emit a frame clause — the SQL
+/// standard forbids it and SQL Server/PostgreSQL reject the syntax. Aggregate functions
+/// (SUM, AVG, COUNT, MIN, MAX) propagate the frame from <see cref="WindowSpecSqlExpression"/>.
 /// </summary>
 internal sealed class WindowFunctionMethodCallTranslator : IMethodCallTranslator
 {
@@ -45,8 +40,6 @@ internal sealed class WindowFunctionMethodCallTranslator : IMethodCallTranslator
 
         return method.Name switch
         {
-            // ── Ranking functions (no frame) ─────────────────────────────
-
             nameof(WindowFunction.RowNumber) when arguments.Count == 1 && arguments[0] is WindowSpecSqlExpression spec
                 => new RowNumberExpression(spec.Partitions, spec.Orderings, longTypeMapping),
 
@@ -77,8 +70,6 @@ internal sealed class WindowFunctionMethodCallTranslator : IMethodCallTranslator
                 => new WindowFunctionSqlExpression("CUME_DIST", [], spec.Partitions, spec.Orderings,
                     typeof(double), _typeMappingSource.FindMapping(typeof(double))),
 
-            // ── Aggregate functions (with frame) ─────────────────────────
-
             nameof(WindowFunction.Sum) when ExtractAggregateArgs(arguments, out var expr, out var spec)
                 => MakeAggregate("SUM", [expr], spec, method.ReturnType),
 
@@ -104,15 +95,11 @@ internal sealed class WindowFunctionMethodCallTranslator : IMethodCallTranslator
             nameof(WindowFunction.Max) when ExtractAggregateArgs(arguments, out var expr, out var spec)
                 => MakeAggregate("MAX", [expr], spec, method.ReturnType),
 
-            // ── Navigation functions (no frame) ──────────────────────────
-
             nameof(WindowFunction.Lag) when ExtractNavigationArgs(arguments, out var lagArgs, out var lagSpec)
                 => MakeNavigation("LAG", lagArgs, lagSpec, method.ReturnType),
 
             nameof(WindowFunction.Lead) when ExtractNavigationArgs(arguments, out var leadArgs, out var leadSpec)
                 => MakeNavigation("LEAD", leadArgs, leadSpec, method.ReturnType),
-
-            // ── Value functions (with frame) ─────────────────────────────
 
             nameof(WindowFunction.FirstValue) when ExtractAggregateArgs(arguments, out var fvExpr, out var fvSpec)
                 => MakeAggregate("FIRST_VALUE", [fvExpr], fvSpec, method.ReturnType),
@@ -129,10 +116,6 @@ internal sealed class WindowFunctionMethodCallTranslator : IMethodCallTranslator
         };
     }
 
-    /// <summary>
-    /// Extracts the expression argument (first) and window spec (last) from a 2-argument
-    /// aggregate call like <c>Sum(o.Price, window)</c>.
-    /// </summary>
     private static bool ExtractAggregateArgs(
         IReadOnlyList<SqlExpression> arguments,
         out SqlExpression expression,
@@ -151,9 +134,8 @@ internal sealed class WindowFunctionMethodCallTranslator : IMethodCallTranslator
     }
 
     /// <summary>
-    /// Extracts the function arguments (all but last) and window spec (last) from a
-    /// navigation call like <c>Lag(o.Price, 2, window)</c>. Applies default type mapping
-    /// to all function arguments.
+    /// Extracts function args (all but last) and window spec (last) from a navigation call.
+    /// Applies default type mapping to all function arguments.
     /// </summary>
     private bool ExtractNavigationArgs(
         IReadOnlyList<SqlExpression> arguments,
@@ -190,11 +172,8 @@ internal sealed class WindowFunctionMethodCallTranslator : IMethodCallTranslator
             typeMapping);
     }
 
-    /// <summary>
-    /// Returns true when the AVG expression argument's CLR type is an integer type
-    /// but the method's return type is floating-point — SQL Server performs integer
-    /// division for AVG(int), so we need to CAST the argument.
-    /// </summary>
+    // SQL Server performs integer division for AVG(int) — cast the argument when the
+    // CLR return type is floating-point but the expression is an integer type.
     private static bool NeedsFloatCast(SqlExpression expr, Type returnType) =>
         returnType == typeof(double)
         && expr.Type is var t

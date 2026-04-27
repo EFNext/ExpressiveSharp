@@ -12,8 +12,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ExpressiveSharp.CodeFixers;
 
 /// <summary>
-/// Provides a code fix for EXP0013 that adds [Expressive] to the referenced member's declaration.
-/// The diagnostic's additional location (index 0) points to the member declaration.
+/// Code fix for EXP0013: adds [Expressive] to the referenced member's declaration.
+/// The diagnostic's additional location (index 0) points to that declaration.
 /// </summary>
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddExpressiveCodeFixProvider))]
 [Shared]
@@ -70,8 +70,6 @@ public sealed class AddExpressiveCodeFixProvider : CodeFixProvider
             memberDecl.AttributeLists.Add(attributeList));
 
         var newRoot = root.ReplaceNode(memberDecl, newMemberDecl);
-
-        // Add using ExpressiveSharp if not already present
         newRoot = EnsureUsingDirective(newRoot);
 
         return declDocument.Project.Solution.WithDocumentSyntaxRoot(declDocument.Id, newRoot);

@@ -4,10 +4,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Infrastructure;
 
-/// <summary>
-/// Verifies that the polyfill interceptor correctly handles captured (outer-scope)
-/// variables when lambdas are rewritten from delegates to expression trees.
-/// </summary>
 public abstract class CapturedVariableTestBase : EFCoreRelationalTestBase
 {
     [TestInitialize]
@@ -199,10 +195,7 @@ public abstract class CapturedVariableTestBase : EFCoreRelationalTestBase
         Assert.AreEqual(2, results[1]);
     }
 
-    /// <summary>
-    /// Helper that captures <c>this._minPrice</c> (an instance field) in a lambda.
-    /// Must be internal (not private) because the generated interceptor references the type.
-    /// </summary>
+    // Must be internal (not private): the generated interceptor references the type.
     internal class InstanceFieldCaptureHelper
     {
         private readonly IntegrationTestDbContext _context;
