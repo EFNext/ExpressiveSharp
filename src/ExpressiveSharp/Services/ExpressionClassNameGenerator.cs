@@ -35,8 +35,7 @@ namespace ExpressiveSharp.Services
         }
 
         /// <summary>
-        /// Generates the class-level name (without member or parameter suffixes) for the
-        /// consolidated partial class that holds all expression methods for a given type.
+        /// Class-level name (no member/parameter suffix) for the consolidated partial class.
         /// </summary>
         public static string GenerateClassName(string? namespaceName, IEnumerable<string>? nestedInClassNames)
         {
@@ -45,8 +44,7 @@ namespace ExpressiveSharp.Services
         }
 
         /// <summary>
-        /// Generates the fully-qualified class name (with <see cref="Namespace"/> prefix)
-        /// for the consolidated partial class.
+        /// Same as <see cref="GenerateClassName"/> but prefixed with <see cref="Namespace"/>.
         /// </summary>
         public static string GenerateClassFullName(string? namespaceName, IEnumerable<string>? nestedInClassNames)
         {
@@ -56,9 +54,7 @@ namespace ExpressiveSharp.Services
         }
 
         /// <summary>
-        /// Generates the method suffix that encodes a member name and its parameter types.
-        /// The result is used as a method name prefix (e.g. "Add_P0_int") within the
-        /// consolidated partial class.
+        /// Method-name suffix encoding a member and its parameter types (e.g. "Add_P0_int").
         /// </summary>
         public static string GenerateMethodSuffix(string memberName, IEnumerable<string>? parameterTypeNames)
         {
@@ -142,7 +138,6 @@ namespace ExpressiveSharp.Services
 
         static string GenerateNameImpl(StringBuilder stringBuilder, string? namespaceName, IEnumerable<string>? nestedInClassNames, string memberName, IEnumerable<string>? parameterTypeNames)
         {
-            // Append namespace, replacing '.' separators with '_' in a single pass (no intermediate string).
             if (namespaceName is not null)
             {
                 foreach (var c in namespaceName)
@@ -179,7 +174,7 @@ namespace ExpressiveSharp.Services
 
             }
 
-            // Append member name; only allocate a replacement string for the rare explicit-interface case.
+            // Explicit interface members contain '.', which is invalid in identifiers.
             if (memberName.IndexOf('.') >= 0)
             {
                 stringBuilder.Append(memberName.Replace(".", "__"));
@@ -189,7 +184,7 @@ namespace ExpressiveSharp.Services
                 stringBuilder.Append(memberName);
             }
 
-            // Add parameter types to make method overloads unique
+            // Encode parameter types so overloaded methods produce distinct names.
             if (parameterTypeNames is not null)
             {
                 var parameterIndex = 0;
@@ -198,15 +193,12 @@ namespace ExpressiveSharp.Services
                     stringBuilder.Append("_P");
                     stringBuilder.Append(parameterIndex);
                     stringBuilder.Append('_');
-                    // Single-pass sanitization: replace invalid identifier characters with '_',
-                    // stripping the "global::" prefix on the fly — avoids 9 intermediate string allocations.
                     AppendSanitizedTypeName(stringBuilder, parameterTypeName);
                     parameterIndex++;
                 }
             }
 
-            // Add generic arity at the very end (after parameter types)
-            // This matches how the CLR names generic types
+            // Generic arity goes at the very end to match CLR generic naming.
             if (arity > 0)
             {
                 stringBuilder.Append('`');
@@ -217,9 +209,8 @@ namespace ExpressiveSharp.Services
         }
 
         /// <summary>
-        /// Appends <paramref name="typeName"/> to <paramref name="sb"/>, stripping the
-        /// <c>global::</c> prefix and replacing every character that is invalid in a C# identifier
-        /// with <c>'_'</c> — all in a single pass with no intermediate string allocations.
+        /// Strips the <c>global::</c> prefix and replaces every character invalid in a C#
+        /// identifier with <c>'_'</c>.
         /// </summary>
         private static void AppendSanitizedTypeName(StringBuilder sb, string typeName)
         {

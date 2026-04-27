@@ -7,10 +7,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
 namespace ExpressiveSharp.EntityFrameworkCore.Infrastructure.Internal;
 
 /// <summary>
-/// Convention that discovers <see cref="ExpressiveDbSet{TEntity}"/> properties on the DbContext
-/// and registers their entity types in the model with the property name as the table name.
-/// Mirrors EF Core's built-in <c>DbSetFindingConvention</c> + <c>TableNameFromDbSetConvention</c>
-/// for <see cref="DbSet{TEntity}"/> subclasses.
+/// Discovers <see cref="ExpressiveDbSet{TEntity}"/> properties on the DbContext and registers
+/// their entity types with the property name as the table name. Mirrors EF Core's built-in
+/// <c>DbSetFindingConvention</c> + <c>TableNameFromDbSetConvention</c> for <see cref="DbSet{TEntity}"/> subclasses.
 /// </summary>
 public class ExpressiveDbSetDiscoveryConvention : IModelInitializedConvention, IEntityTypeAddedConvention
 {
@@ -58,10 +57,9 @@ public class ExpressiveDbSetDiscoveryConvention : IModelInitializedConvention, I
         IConventionEntityTypeBuilder entityTypeBuilder,
         IConventionContext<IConventionEntityTypeBuilder> context)
     {
-        // Set the table name via the relational annotation (same key that ToTable() uses).
-        // This avoids a hard dependency on Microsoft.EntityFrameworkCore.Relational while
-        // still giving relational providers the correct table name.
-        // Only set if not already mapped by a regular DbSet<T> property.
+        // Set the table name via the relational annotation (same key ToTable() uses) to avoid
+        // a hard dependency on Microsoft.EntityFrameworkCore.Relational. Skip if already mapped
+        // by a regular DbSet<T> property.
         var clrType = entityTypeBuilder.Metadata.ClrType;
         if (_sets.TryGetValue(clrType, out var tableName)
             && entityTypeBuilder.Metadata.FindAnnotation("Relational:TableName") is null)

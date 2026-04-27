@@ -3,14 +3,9 @@ using System.Linq.Expressions;
 namespace ExpressiveSharp.Transformers;
 
 /// <summary>
-/// Removes null-conditional patterns from expression trees.
-/// Matches the pattern: <c>(x != null) ? x.Member : default(T)</c>
-/// and simplifies to: <c>x.Member</c>.
+/// Simplifies <c>(x != null) ? x.Member : default(T)</c> to <c>x.Member</c> — useful for
+/// providers like EF Core where the database engine already null-propagates.
 /// </summary>
-/// <remarks>
-/// This is useful for LINQ providers like EF Core where null propagation
-/// is handled by the database engine and the null-check ternary is unnecessary.
-/// </remarks>
 public sealed class RemoveNullConditionalPatterns : ExpressionVisitor, IExpressionTreeTransformer
 {
     public Expression Transform(Expression expression)
@@ -18,27 +13,19 @@ public sealed class RemoveNullConditionalPatterns : ExpressionVisitor, IExpressi
 
     protected override Expression VisitConditional(ConditionalExpression node)
     {
-        // Pattern: (x != null) ? whenTrue : default(T)
-        // where whenTrue is a pure member access chain on x.
-        //
-        // We deliberately refuse to strip when whenTrue contains a method call
-        // (e.g. `x?.ToUpper()`). Unlike pure member access, method-call null
-        // propagation is not guaranteed across LINQ providers — MongoDB's
-        // $toUpper on a null/missing field returns "" instead of null, so
-        // stripping the null check silently changes semantics. Property access
-        // chains (`Customer?.Address?.Country`) are safe because both SQL and
-        // MongoDB's aggregation framework propagate missing/null through them.
+        // We refuse to strip when whenTrue contains a method call (e.g. x?.ToUpper()).
+        // Method-call null propagation is not guaranteed across providers — MongoDB's
+        // $toUpper on null/missing returns "" instead of null, so dropping the null
+        // check silently changes semantics. Pure property access chains
+        // (Customer?.Address?.Country) are safe in both SQL and MongoDB aggregation.
         if (node.Test is BinaryExpression { NodeType: ExpressionType.NotEqual } notEqual
             && IsNullConstant(notEqual.Right)
             && IsDefaultOrNull(node.IfFalse))
         {
             var receiver = notEqual.Left;
 
-            // Check if the whenTrue branch is a pure member access on the same receiver.
             if (AccessesReceiver(node.IfTrue, receiver) && !ContainsMethodCall(node.IfTrue))
             {
-                // Strip the null check — return the whenTrue branch with
-                // any nested null-conditional patterns also removed.
                 // If types differ (e.g., int? vs int from Convert), unwrap the Convert.
                 var result = Visit(node.IfTrue);
                 if (result is UnaryExpression { NodeType: ExpressionType.Convert } convert
@@ -53,10 +40,8 @@ public sealed class RemoveNullConditionalPatterns : ExpressionVisitor, IExpressi
         return base.VisitConditional(node);
     }
 
-    /// <summary>
-    /// Returns true if <paramref name="expr"/> contains a method call anywhere in its
-    /// receiver/member chain (including nested null-conditional patterns).
-    /// </summary>
+    // True if there's a method call anywhere in the receiver/member chain,
+    // including inside nested null-conditional patterns.
     private static bool ContainsMethodCall(Expression expr)
     {
         var current = expr;
@@ -74,8 +59,7 @@ public sealed class RemoveNullConditionalPatterns : ExpressionVisitor, IExpressi
                     current = member.Expression;
                     break;
                 case ConditionalExpression conditional:
-                    // Nested ?. — inspect the true branch (the other branches are
-                    // null/default which contain no method calls by construction).
+                    // Other branches are null/default by construction.
                     return ContainsMethodCall(conditional.IfTrue);
                 default:
                     return false;
@@ -93,10 +77,7 @@ public sealed class RemoveNullConditionalPatterns : ExpressionVisitor, IExpressi
         => expr is DefaultExpression
         || (expr is ConstantExpression { Value: null });
 
-    /// <summary>
-    /// Returns true if <paramref name="expr"/> directly or transitively accesses
-    /// <paramref name="receiver"/> (e.g., receiver.Prop, receiver.Prop.SubProp).
-    /// </summary>
+    // True if expr directly or transitively accesses receiver (e.g. receiver.Prop.SubProp).
     private static bool AccessesReceiver(Expression expr, Expression receiver)
     {
         var current = expr;
@@ -116,7 +97,6 @@ public sealed class RemoveNullConditionalPatterns : ExpressionVisitor, IExpressi
             }
         }
 
-        // Walk up the member access chain
         while (current is MemberExpression member)
         {
             if (member.Expression is not null && ExpressionsEqual(member.Expression, receiver))
@@ -124,11 +104,9 @@ public sealed class RemoveNullConditionalPatterns : ExpressionVisitor, IExpressi
             current = member.Expression;
         }
 
-        // Direct reference
         if (current is not null && ExpressionsEqual(current, receiver))
             return true;
 
-        // Method call on receiver (e.g., receiver.Method())
         if (expr is MethodCallExpression methodCall)
         {
             if (methodCall.Object is not null && ExpressionsEqual(methodCall.Object, receiver))

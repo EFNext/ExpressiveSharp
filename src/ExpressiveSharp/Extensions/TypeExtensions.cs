@@ -6,7 +6,7 @@ internal static class TypeExtensions
 {
     public static Type[] GetNestedTypePath(this Type type)
     {
-        // First pass: count the nesting depth so we can size the array exactly.
+        // First pass: measure depth so we can allocate the array exactly.
         var depth = 0;
         var current = type;
         while (true)
@@ -20,7 +20,7 @@ internal static class TypeExtensions
             current = current.DeclaringType;
         }
 
-        // Second pass: fill the array outermost-first by walking back from the leaf.
+        // Second pass: fill outermost-first by walking back from the leaf.
         var path = new Type[depth];
         current = type;
         for (var i = depth - 1; i >= 0; i--)
@@ -34,7 +34,7 @@ internal static class TypeExtensions
 
     private static bool CanHaveOverridingMethod(this Type derivedType, MethodInfo methodInfo)
     {
-        // We only need to search for virtual instance methods who are not declared on the derivedType
+        // Only virtual instance methods not already declared on derivedType can be overridden.
         if (derivedType == methodInfo.DeclaringType || methodInfo.IsStatic || !methodInfo.IsVirtual)
         {
             return false;
@@ -68,7 +68,7 @@ internal static class TypeExtensions
                 => derivedMethodInfo.IsOverridingMethodOf(baseDefinition));
         }
 
-        return overridingMethod ?? methodInfo; // If no derived methods were found, return the original methodInfo
+        return overridingMethod ?? methodInfo;
     }
 
     private static PropertyInfo GetOverridingProperty(this Type derivedType, PropertyInfo propertyInfo)
@@ -91,13 +91,12 @@ internal static class TypeExtensions
                 => (isGetAccessor ? p.GetMethod : p.SetMethod)?.IsOverridingMethodOf(baseDefinition) == true);
         }
 
-        return overridingProperty ?? propertyInfo; // If no derived methods were found, return the original methodInfo
+        return overridingProperty ?? propertyInfo;
     }
 
     private static MethodInfo GetImplementingMethod(this Type derivedType, MethodInfo methodInfo)
     {
         var interfaceType = methodInfo.DeclaringType;
-        // We only need to search for interface methods
         if (interfaceType?.IsInterface != true || derivedType.IsInterface || methodInfo.IsStatic || !methodInfo.IsVirtual)
         {
             return methodInfo;

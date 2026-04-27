@@ -5,25 +5,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Infrastructure;
 
-/// <summary>
-/// Per-transformer behavior tests. Each test exercises exactly one
-/// transformer from <c>ExpressiveSharp.Transformers</c> (or from a plugin)
-/// in isolation, with a canonical minimal example whose test name makes
-/// the transformer obvious in failure output.
-///
-/// These overlap with scenario tests in coverage but serve a different
-/// purpose: if a transformer regresses, the failures here point directly
-/// at the transformer by name, rather than the user having to trace through
-/// a generic scenario test failure.
-///
-/// Transformers under test:
-/// <list type="bullet">
-///   <item><c>ConvertLoopsToLinq</c> — <c>foreach</c> → LINQ method</item>
-///   <item><c>FlattenBlockExpressions</c> — inline block-local variables</item>
-///   <item><c>FlattenTupleComparisons</c> — <c>(a, b) == (c, d)</c> → flat AND</item>
-///   <item><c>RemoveNullConditionalPatterns</c> — strip <c>?.</c> null checks</item>
-/// </list>
-/// </summary>
+// Each test isolates exactly one transformer so failures point directly at the
+// transformer by name. Covers ConvertLoopsToLinq, FlattenBlockExpressions,
+// FlattenTupleComparisons, RemoveNullConditionalPatterns.
 public abstract class TransformerBehaviorTestBase : EFCoreRelationalTestBase
 {
     [TestInitialize]

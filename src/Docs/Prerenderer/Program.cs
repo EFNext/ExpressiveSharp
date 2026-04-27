@@ -26,14 +26,12 @@ if (!Directory.Exists(docsRoot))
 
 Console.WriteLine($"Docs root: {docsRoot}");
 
-// Load references and create compiler
 var references = new LocalPlaygroundReferences();
 references.Load();
 
 var compiler = new SnippetCompiler(references);
 
-// Scan all markdown files for samples. Skip VitePress build artifacts and
-// node_modules so the scan doesn't pick up generated or vendored .md.
+// Skip VitePress build artifacts and node_modules.
 var mdFiles = Directory.GetFiles(docsRoot, "*.md", SearchOption.AllDirectories)
     .Where(f =>
     {
@@ -62,7 +60,6 @@ if (allSamples.Count == 0)
 
 Console.WriteLine($"Found {allSamples.Count} sample(s) across {allSamples.Select(s => s.relativePath).Distinct().Count()} file(s).");
 
-// Render all samples
 await using var renderer = new SampleRenderer(compiler);
 var failed = 0;
 var byFile = new Dictionary<string, List<RenderedSample>>(StringComparer.Ordinal);
@@ -87,7 +84,6 @@ foreach (var (relativePath, sample) in allSamples)
     }
 }
 
-// Write output JSON files
 var outputDir = Path.Combine(docsRoot, ".vitepress", "data", "samples");
 Directory.CreateDirectory(outputDir);
 
@@ -105,7 +101,7 @@ foreach (var (relativePath, samples) in byFile)
 
     var json = JsonSerializer.Serialize(samples, jsonOptions);
 
-    // Only overwrite if content changed (keeps git diffs clean)
+    // Only overwrite if content changed, to keep git diffs clean.
     if (File.Exists(jsonPath) && File.ReadAllText(jsonPath) == json)
     {
         Console.WriteLine($"  Unchanged: {Path.GetRelativePath(docsRoot, jsonPath)}");

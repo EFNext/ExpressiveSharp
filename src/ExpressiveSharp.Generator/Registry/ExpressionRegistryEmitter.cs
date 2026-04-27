@@ -6,23 +6,10 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace ExpressiveSharp.Generator.Registry;
 
-/// <summary>
-/// Emits the <c>ExpressionRegistry.g.cs</c> source file that aggregates all expressive
-/// members into a single static dictionary keyed by <see cref="System.RuntimeMethodHandle.Value"/>.
-///
-/// <para>
-/// Code is generated using <see cref="IndentedTextWriter"/> rather than Roslyn's
-/// <c>SyntaxFactory</c>: the output has a fixed template shape that never changes, so
-/// string-based generation is simpler, more readable, and easier to maintain.
-/// </para>
-/// </summary>
+// Aggregates all expressive members into a single static dictionary keyed by
+// System.RuntimeMethodHandle.Value (emitted as ExpressionRegistry.g.cs).
 static internal class ExpressionRegistryEmitter
 {
-    /// <summary>
-    /// Builds and adds <c>ExpressionRegistry.g.cs</c> to the compilation output.
-    /// The file is only emitted when at least one non-generic, non-extension expressive
-    /// member is present (i.e. when <paramref name="entries"/> yields at least one representable entry).
-    /// </summary>
     public static void Emit(ImmutableArray<ExpressionRegistryEntry?> entries, SourceProductionContext context)
     {
         var allEntries = entries
@@ -35,13 +22,11 @@ static internal class ExpressionRegistryEmitter
             return;
         }
 
-        // Report EXP0020 for duplicate [ExpressiveFor] mappings targeting the same member
         ReportDuplicateMappings(allEntries, context);
 
-        // Emit [EditorBrowsable] attribute-only partial files for each unique generated class.
         EmitEditorBrowsablePartialFiles(allEntries, context);
 
-        // Filter to registry-eligible entries (exclude metadata-only entries for generic/extension classes).
+        // Metadata-only entries (generic/extension classes) are not registry-eligible.
         var registryEntries = allEntries.Where(e => !e.IsMetadataOnly).ToList();
 
         if (registryEntries.Count == 0)
@@ -49,8 +34,6 @@ static internal class ExpressionRegistryEmitter
             return;
         }
 
-        // IndentedTextWriter wraps a TextWriter; keep a reference to the StringWriter
-        // so we can read the result back with .ToString() after all writes are done.
         var sw = new StringWriter();
         var writer = new IndentedTextWriter(sw, "    ");
 
@@ -88,11 +71,6 @@ static internal class ExpressionRegistryEmitter
             SourceText.From(sw.ToString(), Encoding.UTF8));
     }
 
-    /// <summary>
-    /// Emits the private <c>Build()</c> method that populates the runtime registry.
-    /// Each expressive member is registered via the shared <c>Register(...)</c> helper to keep
-    /// the method body compact — null-safety and the reflection lookup are handled once, centrally.
-    /// </summary>
     private static void EmitBuildMethod(IndentedTextWriter writer, List<ExpressionRegistryEntry> entries)
     {
         writer.WriteLine("private static Dictionary<nint, LambdaExpression> Build()");
@@ -114,24 +92,16 @@ static internal class ExpressionRegistryEmitter
         writer.WriteLine("}");
     }
 
-    /// <summary>
-    /// Emits a single <c>Register(map, typeof(T).GetXxx(...), "ClassName")</c> call
-    /// for one expressive entry inside <c>Build()</c>.
-    /// </summary>
     private static void WriteRegistryEntryStatement(IndentedTextWriter writer, ExpressionRegistryEntry entry)
     {
-        // Build the reflection-lookup expression for the member, switching on its kind.
         string? memberCallExpr = entry.MemberKind switch
         {
-            // typeof(T).GetProperty("Name", allFlags)?.GetMethod
             ExpressionRegistryMemberType.Property =>
                 $"typeof({entry.DeclaringTypeFullName}).GetProperty(\"{entry.MemberLookupName}\", allFlags)?.GetMethod",
 
-            // typeof(T).GetMethod("Name", allFlags, null, new Type[] { typeof(P1), … }, null)
             ExpressionRegistryMemberType.Method =>
                 $"typeof({entry.DeclaringTypeFullName}).GetMethod(\"{entry.MemberLookupName}\", allFlags, null, {BuildTypeArrayExpr(entry.ParameterTypeNames)}, null)",
 
-            // typeof(T).GetConstructor(allFlags, null, new Type[] { typeof(P1), … }, null)
             ExpressionRegistryMemberType.Constructor =>
                 $"typeof({entry.DeclaringTypeFullName}).GetConstructor(allFlags, null, {BuildTypeArrayExpr(entry.ParameterTypeNames)}, null)",
 
@@ -144,12 +114,8 @@ static internal class ExpressionRegistryEmitter
         }
     }
 
-    /// <summary>
-    /// Emits the <c>_map</c> field plus a <c>ResetMap</c> entry point used by the hot-reload
-    /// handler to rebuild the map after a metadata update has patched the factory-method IL.
-    /// <c>volatile</c> ensures the new <see cref="System.Collections.Generic.Dictionary{TKey, TValue}"/>
-    /// is safely published to concurrent readers on weak-memory architectures.
-    /// </summary>
+    // ResetMap is invoked by the hot-reload handler after a metadata update has patched
+    // factory-method IL. `volatile` publishes the new Dictionary safely to concurrent readers.
     private static void EmitMapField(IndentedTextWriter writer)
     {
         writer.WriteLine("private static volatile Dictionary<nint, LambdaExpression> _map = Build();");
@@ -157,12 +123,6 @@ static internal class ExpressionRegistryEmitter
         writer.WriteLine("internal static void ResetMap() => _map = Build();");
     }
 
-    /// <summary>
-    /// Emits the public <c>TryGet</c> method.
-    /// It resolves the runtime <see cref="System.RuntimeMethodHandle.Value"/> for any
-    /// <see cref="System.Reflection.MemberInfo"/> subtype via a switch expression,
-    /// then looks it up in <c>_map</c>.
-    /// </summary>
     private static void EmitTryGetMethod(IndentedTextWriter writer)
     {
         writer.WriteLine("public static LambdaExpression TryGet(MemberInfo member)");
@@ -185,11 +145,6 @@ static internal class ExpressionRegistryEmitter
         writer.WriteLine("}");
     }
 
-    /// <summary>
-    /// Emits the private <c>Register</c> static helper shared by all per-entry calls in <c>Build()</c>.
-    /// Centralises the null-check and the common reflection-to-expression lookup so that
-    /// each entry only needs one compact call site.
-    /// </summary>
     private static void EmitRegisterHelper(IndentedTextWriter writer)
     {
         writer.WriteLine("private static void Register(Dictionary<nint, LambdaExpression> map, MethodBase m, string exprClass, string exprMethodName)");
@@ -224,10 +179,6 @@ static internal class ExpressionRegistryEmitter
         writer.WriteLine("}");
     }
 
-    /// <summary>
-    /// Returns the C# expression for a <c>Type[]</c> used in reflection method/constructor lookups.
-    /// Returns <c>global::System.Type.EmptyTypes</c> when <paramref name="parameterTypeNames"/> is empty.
-    /// </summary>
     private static string BuildTypeArrayExpr(ImmutableArray<string> parameterTypeNames)
     {
         if (parameterTypeNames.IsEmpty)
@@ -239,15 +190,11 @@ static internal class ExpressionRegistryEmitter
         return $"new global::System.Type[] {{ {typeofExprs} }}";
     }
 
-    /// <summary>
-    /// Emits a single <c>[EditorBrowsable(Never)]</c> attribute-only partial class file
-    /// for each unique generated class. This ensures the attribute appears exactly once
-    /// per class, avoiding CS0579 (duplicate attribute) across per-member partial files.
-    /// </summary>
+    // Emits one [EditorBrowsable(Never)] attribute-only partial class file per unique generated
+    // class so the attribute appears exactly once, avoiding CS0579 across per-member partials.
     private static void EmitEditorBrowsablePartialFiles(List<ExpressionRegistryEntry> allEntries, SourceProductionContext context)
     {
-        // Group by class full name to emit one file per unique class.
-        // Use the first entry per class to get type parameter info.
+        // First entry per class supplies the type parameter info.
         var seenClasses = new Dictionary<string, ExpressionRegistryEntry>();
         foreach (var entry in allEntries)
         {
@@ -262,7 +209,6 @@ static internal class ExpressionRegistryEmitter
             var classFullName = kvp.Key;
             var entry = kvp.Value;
 
-            // Extract the simple class name from the full name (after the last '.')
             var className = classFullName;
             var lastDot = classFullName.LastIndexOf('.');
             if (lastDot >= 0)
@@ -286,10 +232,6 @@ static internal class ExpressionRegistryEmitter
         }
     }
 
-    /// <summary>
-    /// Reports EXP0020 on each stub when multiple [ExpressiveFor] stubs in the same project
-    /// target the same member (same <see cref="ExpressionRegistryEntry.GeneratedClassFullName"/>).
-    /// </summary>
     private static void ReportDuplicateMappings(List<ExpressionRegistryEntry> entries, SourceProductionContext context)
     {
         var duplicateGroups = entries

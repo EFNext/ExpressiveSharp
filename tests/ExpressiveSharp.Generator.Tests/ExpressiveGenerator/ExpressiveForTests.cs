@@ -165,14 +165,11 @@ public class ExpressiveForTests : GeneratorTestBase
         Assert.AreEqual(0, result.Diagnostics.Length);
         Assert.AreEqual(2, result.GeneratedTrees.Length);
 
-        // Verify the registry contains both entries
         Assert.IsNotNull(result.RegistryTree, "Registry should be generated");
         var registryText = result.RegistryTree!.GetText().ToString();
         Assert.IsTrue(registryText.Contains("Math"), "Registry should contain Math.Abs entry");
         Assert.IsTrue(registryText.Contains("MyType"), "Registry should contain MyType.Doubled entry");
     }
-
-    // ── Diagnostic Tests ────────────────────────────────────────────────────
 
     [TestMethod]
     public void MemberNotFound_EXP0015()
@@ -365,7 +362,6 @@ public class ExpressiveForTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        // Should have EXP0019 diagnostic
         var exp0019 = result.Diagnostics.Where(d => d.Id == "EXP0019").ToArray();
         Assert.AreEqual(1, exp0019.Length);
     }
@@ -391,13 +387,10 @@ public class ExpressiveForTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        // EXP0020 reported on each duplicate stub
         var exp0020 = result.Diagnostics.Where(d => d.Id == "EXP0020").ToArray();
         Assert.AreEqual(2, exp0020.Length);
     }
 
-    // ── Signature-matrix coverage ──────────────────────────────────────────
-    //
     // Each test below exercises one specific branch of
     // ExpressiveForSignatureMatcher (method/property, stub kind, static/instance).
     // Happy-path acceptance is covered by the snapshot tests above; this block

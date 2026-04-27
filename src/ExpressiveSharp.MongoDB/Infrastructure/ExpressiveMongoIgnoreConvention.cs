@@ -9,55 +9,32 @@ namespace ExpressiveSharp.MongoDB.Infrastructure;
 /// <summary>
 /// Mongo <see cref="IClassMapConvention"/> that unmaps every property marked with
 /// <see cref="ExpressiveAttribute"/> (and every property synthesized by
-/// <c>[ExpressiveProperty]</c>) from its containing class map. This is the Mongo
-/// counterpart of the EF Core <c>ExpressivePropertiesNotMappedConvention</c>: without it,
+/// <c>[ExpressiveProperty]</c>) from its containing class map. Without it,
 /// a synthesized property would be serialized to its BSON document as a real field
 /// (because the generated property has a writable accessor) and the backing field's
-/// default value would leak into storage.
+/// default value would leak into storage. Mongo counterpart of the EF Core
+/// <c>ExpressivePropertiesNotMappedConvention</c>.
 /// </summary>
-/// <remarks>
-/// <para>
-/// The convention fires when a class map is built — typically the first time a given
-/// document type participates in a Mongo query or serialization. It runs once per type
-/// (Mongo caches the resulting class map).
-/// </para>
-/// <para>
-/// Read-only computed <c>[Expressive]</c> properties are also unmapped defensively.
-/// Mongo would skip them anyway in most cases (there's no setter), but matching the EF
-/// convention's behavior keeps the two providers consistent.
-/// </para>
-/// </remarks>
 public sealed class ExpressiveMongoIgnoreConvention : ConventionBase, IClassMapConvention
 {
-    /// <summary>
-    /// The name under which this convention's pack is registered in the global
-    /// <see cref="ConventionRegistry"/>. Exposed so callers can inspect or unregister it.
-    /// </summary>
     public const string ConventionPackName = "ExpressiveSharp.MongoDB";
 
-    // The resolver's caches are static, so a single shared instance is sufficient. Used
-    // to detect properties synthesized via [ExpressiveProperty] / [ExpressiveFor] — these
+    // Detects properties synthesized via [ExpressiveProperty] / [ExpressiveFor] — these
     // carry no CLR marker attribute, so we identify them through the generated registry.
     private static readonly IExpressiveResolver _resolver = new ExpressiveResolver();
 
     public ExpressiveMongoIgnoreConvention() : base("ExpressiveSharpIgnore") { }
 
-    /// <summary>
-    /// Runs during class-map construction. Inspects the class's CLR properties directly
-    /// (instead of <see cref="BsonClassMap.DeclaredMemberMaps"/>, which may not be populated
-    /// yet at this stage) and unmaps any that carry <see cref="ExpressiveAttribute"/> or
-    /// <see cref="ExpressiveForAttribute"/>, or that are registered as synthesized by
-    /// <c>[ExpressiveProperty]</c> in the runtime expression registry.
-    /// </summary>
     public void Apply(BsonClassMap classMap)
     {
         ArgumentNullException.ThrowIfNull(classMap);
 
+        // Inspect CLR properties directly instead of BsonClassMap.DeclaredMemberMaps,
+        // which may not be populated yet at this stage.
         foreach (var property in classMap.ClassType.GetProperties(
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
         {
-            // Only unmap properties declared on this exact type; inherited ones are handled
-            // by the base class's own class-map convention pass.
+            // Inherited members are handled by the base class's own class-map convention pass.
             if (property.DeclaringType != classMap.ClassType)
             {
                 continue;
@@ -74,8 +51,6 @@ public sealed class ExpressiveMongoIgnoreConvention : ConventionBase, IClassMapC
         }
     }
 
-    // ── Registration ────────────────────────────────────────────────────────
-
     private static int _registered;
 
     /// <summary>
@@ -83,31 +58,21 @@ public sealed class ExpressiveMongoIgnoreConvention : ConventionBase, IClassMapC
     /// <see cref="ConventionRegistry"/>. Subsequent calls are no-ops.
     /// </summary>
     /// <remarks>
-    /// <para>
     /// <b>Ordering matters.</b> MongoDB builds and caches a <see cref="BsonClassMap"/> for a
     /// document type on the first call to <c>IMongoDatabase.GetCollection&lt;T&gt;()</c>. A
-    /// convention registered <i>after</i> that call does not apply to the cached map; the
-    /// <c>[Expressive]</c> properties will still be serialized to BSON.
-    /// </para>
-    /// <para>
-    /// Call this method once at application startup, before any <c>GetCollection&lt;T&gt;</c>
-    /// call for a type that has <c>[Expressive]</c> properties. Alternatively, wrap the
-    /// collection in <see cref="ExpressiveMongoCollection{TDocument}"/> or call
-    /// <c>collection.AsExpressive()</c> before any other collection handle is obtained; both
-    /// of those paths call this method.
-    /// </para>
-    /// <para>
-    /// The filter predicate returns <c>true</c> for every type — the convention's
-    /// <see cref="Apply(BsonClassMap)"/> is a no-op for classes without <c>[Expressive]</c>
-    /// properties, so applying it globally is harmless and avoids subtle ordering issues
-    /// where a type-level predicate is evaluated before attribute metadata is visible.
-    /// </para>
+    /// convention registered <i>after</i> that call does not apply to the cached map.
+    /// Wrap the collection in <see cref="ExpressiveMongoCollection{TDocument}"/> or call
+    /// <c>collection.AsExpressive()</c> before any other collection handle is obtained — both
+    /// paths call this method.
     /// </remarks>
     public static void EnsureRegistered()
     {
         if (Interlocked.Exchange(ref _registered, 1) == 1) return;
 
         var pack = new ConventionPack { new ExpressiveMongoIgnoreConvention() };
+        // Filter returns true for every type — Apply is a no-op for classes without
+        // [Expressive] properties, and a type-level filter risks evaluating before
+        // attribute metadata is visible.
         ConventionRegistry.Register(ConventionPackName, pack, _ => true);
     }
 }

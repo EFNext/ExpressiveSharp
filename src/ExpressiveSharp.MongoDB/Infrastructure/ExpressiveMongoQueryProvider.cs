@@ -7,16 +7,11 @@ using MongoDB.Driver.Linq;
 namespace ExpressiveSharp.MongoDB.Infrastructure;
 
 /// <summary>
-/// Decorates MongoDB's <see cref="IMongoQueryProvider"/> to automatically expand
+/// Decorates MongoDB's <see cref="IMongoQueryProvider"/> to expand
 /// <see cref="ExpressiveAttribute"/> member references before query execution.
+/// CreateQuery returns an <see cref="ExpressiveMongoQueryable{T}"/> wrapper so that
+/// chained operations continue to use this provider.
 /// </summary>
-/// <remarks>
-/// <see cref="CreateQuery{TElement}"/> returns an <see cref="ExpressiveMongoQueryable{T}"/>
-/// wrapper so that chained operations continue to use this provider.
-/// <see cref="Execute{TResult}"/> and <see cref="ExecuteAsync{TResult}"/> call
-/// <see cref="ExpressionExtensions.ExpandExpressives(Expression, ExpressiveOptions)"/>
-/// on the expression before delegating to the inner provider.
-/// </remarks>
 internal sealed class ExpressiveMongoQueryProvider : IMongoQueryProvider
 {
     private readonly IMongoQueryProvider _inner;
@@ -33,7 +28,6 @@ internal sealed class ExpressiveMongoQueryProvider : IMongoQueryProvider
     public IQueryable CreateQuery(Expression expression)
     {
         var inner = _inner.CreateQuery(expression);
-        // Wrap in our queryable to maintain provider chain
         var elementType = inner.ElementType;
         var wrapperType = typeof(ExpressiveMongoQueryable<>).MakeGenericType(elementType);
         return (IQueryable)Activator.CreateInstance(wrapperType, inner, this)!;

@@ -7,8 +7,6 @@ namespace ExpressiveSharp.Generator.Tests.PolyfillInterceptorGenerator;
 [TestClass]
 public class ScalarMethodTests : GeneratorTestBase
 {
-    // ── Predicate methods (bool-returning) ───────────────────────────────
-
     [TestMethod]
     public Task Any_GeneratesScalarInterceptor()
     {
@@ -61,8 +59,6 @@ public class ScalarMethodTests : GeneratorTestBase
         return Verifier.Verify(result.GeneratedTrees[0].GetText().ToString());
     }
 
-    // ── Counting methods ─────────────────────────────────────────────────
-
     [TestMethod]
     public Task Count_GeneratesScalarInterceptor()
     {
@@ -114,8 +110,6 @@ public class ScalarMethodTests : GeneratorTestBase
 
         return Verifier.Verify(result.GeneratedTrees[0].GetText().ToString());
     }
-
-    // ── Element methods ──────────────────────────────────────────────────
 
     [TestMethod]
     public Task First_GeneratesScalarInterceptor()
@@ -273,8 +267,6 @@ public class ScalarMethodTests : GeneratorTestBase
         return Verifier.Verify(result.GeneratedTrees[0].GetText().ToString());
     }
 
-    // ── Min / Max ────────────────────────────────────────────────────────
-
     [TestMethod]
     public Task Min_GenericSelector_GeneratesScalarInterceptor()
     {
@@ -378,8 +370,6 @@ public class ScalarMethodTests : GeneratorTestBase
 
         return Verifier.Verify(result.GeneratedTrees[0].GetText().ToString());
     }
-
-    // ── Sum ──────────────────────────────────────────────────────────────
 
     [TestMethod]
     public Task Sum_IntSelector_GeneratesScalarInterceptor()
@@ -640,8 +630,6 @@ public class ScalarMethodTests : GeneratorTestBase
 
         return Verifier.Verify(result.GeneratedTrees[0].GetText().ToString());
     }
-
-    // ── Average ──────────────────────────────────────────────────────────
 
     [TestMethod]
     public Task Average_IntSelector_GeneratesScalarInterceptor()

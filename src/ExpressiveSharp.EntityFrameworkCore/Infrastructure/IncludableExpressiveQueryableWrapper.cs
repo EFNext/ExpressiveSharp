@@ -4,10 +4,6 @@ using Microsoft.EntityFrameworkCore.Query;
 
 namespace ExpressiveSharp.EntityFrameworkCore.Infrastructure;
 
-/// <summary>
-/// Wraps an <see cref="IIncludableQueryable{TEntity,TProperty}"/> to also implement
-/// <see cref="IExpressiveQueryable{T}"/>, preserving chain continuity for delegate-based LINQ stubs.
-/// </summary>
 internal sealed class IncludableExpressiveQueryableWrapper<TEntity, TProperty>
     : IIncludableExpressiveQueryable<TEntity, TProperty>
     where TEntity : class

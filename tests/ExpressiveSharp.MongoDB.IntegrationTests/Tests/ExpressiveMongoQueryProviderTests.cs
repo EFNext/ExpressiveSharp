@@ -8,21 +8,15 @@ using MongoDB.Driver.Linq;
 
 namespace ExpressiveSharp.MongoDB.IntegrationTests.Tests;
 
-/// <summary>
-/// Verifies that <see cref="ExpressiveMongoQueryProvider"/> correctly
-/// expands <c>[Expressive]</c> members before MongoDB's LINQ provider processes the query.
-/// </summary>
 [TestClass]
 public class ExpressiveMongoQueryProviderTests : MongoTestBase
 {
     [TestMethod]
     public async Task Select_ExpressiveMember_ExpandsBeforeMongoTranslation()
     {
-        // Total is [Expressive] => Price * Quantity
-        // Provider should expand before MongoDB sees it.
-        // Use the collection-based AsExpressive so the ExpressiveMongoQueryProvider is
-        // in the chain — otherwise the core wrapper forwards to MongoDB's raw provider,
-        // which has no way to expand [Expressive] members on a lambda Select.
+        // Use collection-based AsExpressive so ExpressiveMongoQueryProvider is in the
+        // chain — otherwise the core wrapper forwards to MongoDB's raw provider, which
+        // can't expand [Expressive] members on a lambda Select.
         var results = await Orders.AsExpressive()
             .Select(o => o.Total)
             .ToListAsync();
@@ -83,7 +77,6 @@ public class ExpressiveMongoQueryProviderTests : MongoTestBase
     [TestMethod]
     public async Task NestedExpressive_ExpandsRecursively()
     {
-        // PricingUtils.Clamp is [ExpressiveFor], Total is [Expressive]
         Expression<Func<Order, double>> expr = o => PricingUtils.Clamp(o.Total, 0.0, 200.0);
         var expanded = (Expression<Func<Order, double>>)expr.ExpandExpressives();
 

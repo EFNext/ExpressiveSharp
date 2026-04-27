@@ -5,14 +5,9 @@ using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.WindowFunctions;
 namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Transformers;
 
 /// <summary>
-/// Rewrites <c>Queryable.Select(source, (elem, index) => body)</c> into
-/// <c>Queryable.Select(source, elem => body')</c> where references to the
-/// <c>int index</c> parameter are replaced with <c>WindowFunction.RowNumber() - 1</c>.
-/// <para>
-/// The resulting <c>WindowFunction.RowNumber()</c> call produces
-/// <c>ROW_NUMBER() OVER()</c> with no ordering — row numbering is non-deterministic
-/// unless the query includes an explicit <c>OrderBy</c>.
-/// </para>
+/// Rewrites <c>Queryable.Select(source, (elem, index) => body)</c> into a 1-arg Select where
+/// references to <c>index</c> become <c>WindowFunction.RowNumber() - 1</c>. The emitted
+/// <c>ROW_NUMBER() OVER()</c> has no ordering — non-deterministic unless the query has an explicit OrderBy.
 /// </summary>
 public sealed class RewriteIndexedSelectToRowNumber : IExpressionTreeTransformer
 {
@@ -26,13 +21,11 @@ public sealed class RewriteIndexedSelectToRowNumber : IExpressionTreeTransformer
     {
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
-            // Look for Queryable.Select(source, Expression<Func<T, int, TResult>>)
             if (node.Method.DeclaringType != typeof(Queryable)
                 || node.Method.Name != "Select"
                 || node.Arguments.Count != 2)
                 return base.VisitMethodCall(node);
 
-            // The second argument must be a quoted lambda: Expression<Func<T, int, TResult>>
             if (UnwrapQuote(node.Arguments[1]) is not LambdaExpression lambda
                 || lambda.Parameters.Count != 2
                 || lambda.Parameters[1].Type != typeof(int))
@@ -41,18 +34,14 @@ public sealed class RewriteIndexedSelectToRowNumber : IExpressionTreeTransformer
             var elemParam = lambda.Parameters[0];
             var indexParam = lambda.Parameters[1];
 
-            // Build: (long)WindowFunction.RowNumber() - 1L
+            // (int)((long)WindowFunction.RowNumber() - 1L)
             var rowNumberCall = Expression.Call(RowNumberMethod);
             var subtractOne = Expression.Subtract(rowNumberCall, Expression.Constant(1L));
             var castToInt = Expression.Convert(subtractOne, typeof(int));
 
-            // Replace index parameter references with the ROW_NUMBER expression
             var rewrittenBody = new ParameterReplacer(indexParam, castToInt).Visit(lambda.Body);
-
-            // Build new 1-parameter lambda
             var newLambda = Expression.Lambda(rewrittenBody, elemParam);
 
-            // Find the 1-param Queryable.Select<T, TResult> overload
             var sourceType = elemParam.Type;
             var resultType = lambda.ReturnType;
             var selectMethod = typeof(Queryable).GetMethods()
@@ -62,7 +51,6 @@ public sealed class RewriteIndexedSelectToRowNumber : IExpressionTreeTransformer
                         .GetGenericArguments().Length == 2) // Func<T, TResult> has 2 type args
                 .MakeGenericMethod(sourceType, resultType);
 
-            // Visit the source in case it also needs transformation
             var visitedSource = Visit(node.Arguments[0]);
 
             return Expression.Call(selectMethod, visitedSource, Expression.Quote(newLambda));

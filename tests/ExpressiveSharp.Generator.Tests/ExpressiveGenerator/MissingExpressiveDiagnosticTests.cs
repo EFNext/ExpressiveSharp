@@ -15,8 +15,6 @@ namespace ExpressiveSharp.Generator.Tests.ExpressiveGenerator;
 [TestClass]
 public class MissingExpressiveDiagnosticTests : GeneratorTestBase
 {
-    // ── Positive: EXP0013 fires ─────────────────────────────────────────────
-
     [TestMethod]
     public async Task MethodCall_ToSourceMethodWithExpressionBody_WarnsEXP0013()
     {
@@ -159,8 +157,6 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             "EXP0013 should include the declaration as an additional location");
     }
 
-    // ── Negative: no EXP0013 ────────────────────────────────────────────────
-
     [TestMethod]
     public async Task MethodCall_ToMethodWithExpressive_NoWarning()
     {
@@ -269,8 +265,6 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
         Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
             "Should not warn for enum extension method — generator expands these via TryEmitEnumMethodExpansion");
     }
-
-    // ── Prong 2: IExpressiveQueryable LINQ lambdas ────────────────────────
 
     [TestMethod]
     public async Task ExpressiveQueryable_Select_WithNonExpressiveExtensionMethod_WarnsEXP0013()
@@ -389,8 +383,6 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             "Expected EXP0013 for non-[Expressive] method group in IExpressiveQueryable Select");
     }
 
-    // ── Prong 2 Negative: no EXP0013 in LINQ lambdas ───────────────────────
-
     [TestMethod]
     public async Task ExpressiveQueryable_WithExpressiveMethod_NoWarning()
     {
@@ -506,8 +498,6 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             "Should not warn for enum extension method in IExpressiveQueryable LINQ lambda");
     }
 
-    // ── Sibling-mapping suppression ─────────────────────────────────────────
-    //
     // When a stub on the same type registers an expression for a member via
     // [ExpressiveProperty("X")] or [ExpressiveFor(nameof(X))], the referenced member
     // is effectively expressive — EXP0013 must not fire on it.
@@ -558,8 +548,6 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
         Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
             "Should not warn for a reference to an [ExpressiveFor]-mapped same-type target");
     }
-
-    // ── Helper ──────────────────────────────────────────────────────────────
 
     private async Task<ImmutableArray<Diagnostic>> RunAnalyzerAsync(string source)
     {

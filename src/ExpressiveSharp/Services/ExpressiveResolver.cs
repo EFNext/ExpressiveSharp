@@ -11,19 +11,15 @@ namespace ExpressiveSharp.Services
 {
     public sealed class ExpressiveResolver : IExpressiveResolver
     {
-        // We never store null in the dictionary; assemblies without a registry use a sentinel delegate.
+        // Sentinel delegate for assemblies without a registry; ConcurrentDictionary forbids null values.
         private readonly static Func<MemberInfo, LambdaExpression> _nullRegistry = static _ => null!;
         private readonly static ConcurrentDictionary<Assembly, Func<MemberInfo, LambdaExpression>> _assemblyRegistries = new();
 
-        /// <summary>
-        /// Caches the fully-resolved <see cref="LambdaExpression"/> per <see cref="MemberInfo"/> so that
-        /// EF Core never repeats reflection work for the same member across queries.
-        /// </summary>
         private readonly static ConcurrentDictionary<MemberInfo, LambdaExpression> _expressionCache = new();
 
         /// <summary>
-        /// Clears all process-level caches built up by the resolver. Intended for test harnesses
-        /// and the docs prerenderer, where many short-lived snippet assemblies are loaded in sequence.
+        /// Clears all process-level caches. For test harnesses and the docs prerenderer, where many
+        /// short-lived snippet assemblies are loaded in sequence.
         /// </summary>
         [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         internal static void ResetAllCaches()
@@ -36,10 +32,9 @@ namespace ExpressiveSharp.Services
         }
 
         /// <summary>
-        /// Invalidates cached expression trees so the next lookup rebuilds from the (possibly
-        /// hot-reloaded) generated factory method. Called from <see cref="ExpressiveHotReloadHandler"/>.
-        /// Preserves <c>_assemblyScanFilter</c> and <c>_typeNameCache</c> — neither goes stale on
-        /// non-rude edits, and wiping the filter would silently disable a user-configured restriction.
+        /// Invalidates cached expression trees on hot-reload. Preserves <c>_assemblyScanFilter</c>
+        /// (wiping it would silently disable a user-configured restriction) and <c>_typeNameCache</c>
+        /// (does not go stale on non-rude edits).
         /// </summary>
         internal static void ClearCachesForMetadataUpdate()
         {
@@ -66,17 +61,8 @@ namespace ExpressiveSharp.Services
             Volatile.Write(ref _lastScannedAssemblyCount, 0);
         }
 
-        /// <summary>
-        /// Caches <see cref="Type"/> → C#-formatted name strings, since the same parameter types
-        /// appear repeatedly across different expressive members.
-        /// </summary>
         private readonly static ConditionalWeakTable<Type, string> _typeNameCache = new();
 
-        /// <summary>
-        /// O(1) hash-table lookup replacing the original 16 sequential <c>if</c> checks.
-        /// Rearranging the entries has no effect on lookup cost (hash-based), but the most common
-        /// EF Core types (<c>int</c>, <c>string</c>, <c>bool</c>) are listed first for readability.
-        /// </summary>
         private readonly static Dictionary<Type, string> _csharpKeywords = new(16)
         {
             [typeof(int)]     = "int",
@@ -97,9 +83,8 @@ namespace ExpressiveSharp.Services
         };
 
         /// <summary>
-        /// Looks up the generated <c>ExpressionRegistry</c> class in an assembly (once, then caches it).
-        /// Returns a delegate that calls <c>TryGet(MemberInfo)</c> on the registry, or null if the registry
-        /// is not present in that assembly (e.g. if the source generator was not run against it).
+        /// Returns a delegate calling <c>TryGet(MemberInfo)</c> on the assembly's generated
+        /// <c>ExpressionRegistry</c>, or null if the source generator did not run for this assembly.
         /// </summary>
         private static Func<MemberInfo, LambdaExpression>? GetAssemblyRegistry(Assembly assembly)
         {
@@ -109,15 +94,11 @@ namespace ExpressiveSharp.Services
                 var tryGetMethod = registryType?.GetMethod("TryGet", BindingFlags.Static | BindingFlags.Public);
 
                 if (tryGetMethod is null)
-                {
-                    // Use sentinel to indicate "no registry for this assembly"
                     return _nullRegistry;
-                }
 
                 return (Func<MemberInfo, LambdaExpression>)Delegate.CreateDelegate(typeof(Func<MemberInfo, LambdaExpression>), tryGetMethod);
             });
 
-            // Translate sentinel back to null for callers, preserving existing behavior.
             return ReferenceEquals(registry, _nullRegistry) ? null : registry;
         }
 
@@ -129,8 +110,7 @@ namespace ExpressiveSharp.Services
         /// <inheritdoc/>
         public LambdaExpression? FindExternalExpression(MemberInfo memberInfo)
         {
-            // Ensure all loaded assemblies with registries have been discovered.
-            // This handles the edge case where only [ExpressiveFor] is used (no [Expressive] members)
+            // Handles the case where only [ExpressiveFor] is used (no [Expressive] members)
             // and no assembly registry has been lazily loaded yet.
             EnsureAllRegistriesLoaded();
 
@@ -173,8 +153,8 @@ namespace ExpressiveSharp.Services
         private static readonly object _scanLock = new();
 
         /// <summary>
-        /// Scans loaded assemblies for expression registries. Rescans when new assemblies
-        /// have been loaded since the previous scan (matters for runtime-compiled assemblies).
+        /// Rescans when new assemblies have been loaded since the previous scan
+        /// (matters for runtime-compiled assemblies).
         /// </summary>
         private static void EnsureAllRegistriesLoaded()
         {
@@ -203,9 +183,8 @@ namespace ExpressiveSharp.Services
         }
 
         /// <summary>
-        /// Ensures the registry for the given assembly is loaded into <see cref="_assemblyRegistries"/>.
-        /// Call this for assemblies that may contain [ExpressiveFor] stubs but no [Expressive] members
-        /// (which would otherwise trigger lazy loading).
+        /// Call this for assemblies that may contain [ExpressiveFor] stubs but no [Expressive]
+        /// members (which would otherwise trigger lazy loading).
         /// </summary>
         public static void EnsureRegistryLoaded(Assembly assembly)
         {
@@ -240,44 +219,23 @@ namespace ExpressiveSharp.Services
         {
             var declaringType = expressiveMemberInfo.DeclaringType ?? throw new InvalidOperationException("Expected a valid type here");
 
-            // Fast path: check the per-assembly static registry (generated by source generator).
-            // The first call per assembly does a reflection lookup to find the registry class and
-            // caches it as a delegate; subsequent calls use the cached delegate for an O(1) dictionary lookup.
+            // Fast path: per-assembly generated static registry.
             var registry = GetAssemblyRegistry(declaringType.Assembly);
             var registeredExpr = registry?.Invoke(expressiveMemberInfo);
 
-            return registeredExpr ??
-                   // Slow path: reflection fallback for open-generic class members and generic methods
-                   // that are not yet in the registry.
-                   FindGeneratedExpressionViaReflection(expressiveMemberInfo);
+            // Slow path: reflection fallback for open-generic class members and generic methods not yet in the registry.
+            return registeredExpr ?? FindGeneratedExpressionViaReflection(expressiveMemberInfo);
         }
 
-        /// <summary>
-        /// Sentinel stored in <see cref="_reflectionCache"/> to represent
-        /// "no generated type found for this member", distinguishing it from a not-yet-populated entry.
-        /// <see cref="ConcurrentDictionary{TKey,TValue}"/> does not allow null values, so a sentinel is required.
-        /// </summary>
+        // Sentinel for "no generated type found" — ConcurrentDictionary forbids null values.
         private readonly static LambdaExpression _reflectionNullSentinel =
             Expression.Lambda(Expression.Empty());
 
-        /// <summary>
-        /// Caches the fully-resolved <see cref="LambdaExpression"/> per <see cref="MemberInfo"/>
-        /// for the reflection-based slow path.
-        /// On the first call per member the reflection work (<c>Assembly.GetType</c>, <c>GetMethod</c>,
-        /// <c>MakeGenericType</c>, <c>MakeGenericMethod</c>) is performed once and the resulting
-        /// expression tree is stored here; subsequent calls return the cached reference directly,
-        /// eliminating expression-tree re-construction on every access.
-        /// This is especially important for constructors whose object-initializer trees are
-        /// significantly more expensive to build than simple method-body trees.
-        /// </summary>
         private readonly static ConcurrentDictionary<MemberInfo, LambdaExpression> _reflectionCache = new();
 
         /// <summary>
-        /// Resolves the <see cref="LambdaExpression"/> for an <c>[Expressive]</c> member using the
-        /// reflection-based slow path only, bypassing the static registry.
-        /// The result is cached after the first call, so subsequent calls return the cached expression
-        /// without any reflection or expression-tree construction overhead.
-        /// Useful for members not yet in the registry (e.g. open-generic types).
+        /// Reflection-based slow path, bypassing the static registry. Useful for members not yet
+        /// in the registry (e.g. open-generic types). Result is cached.
         /// </summary>
         public static LambdaExpression? FindGeneratedExpressionViaReflection(MemberInfo expressiveMemberInfo)
         {
@@ -287,16 +245,8 @@ namespace ExpressiveSharp.Services
         }
 
         /// <summary>
-        /// Performs the one-time reflection work for a member: locates the generated expression
-        /// accessor (inline or external-class path), invokes it, and returns the resulting
-        /// <see cref="LambdaExpression"/>. Returns <c>null</c> if no generated type is found.
-        /// <para>
-        /// Using <c>MethodInfo.Invoke</c> rather than a compiled delegate is appropriate here because
-        /// the result is cached in <see cref="_reflectionCache"/> — the invocation cost is paid only
-        /// on cache misses, and subsequent EF Core queries reuse the cached expression. Under
-        /// contention the value factory may be invoked more than once, but only a single expression
-        /// instance is ultimately stored per member.
-        /// </para>
+        /// One-time reflection work. <c>MethodInfo.Invoke</c> is fine here because the result is
+        /// cached — invocation cost is paid only on cache misses.
         /// </summary>
         private static LambdaExpression? BuildReflectionExpression(MemberInfo expressiveMemberInfo)
         {
@@ -305,20 +255,18 @@ namespace ExpressiveSharp.Services
 
             var originalDeclaringType = declaringType;
 
-            // For generic types, use the generic type definition to match the generated name.
+            // Use the generic type definition to match the generated name.
             if (declaringType.IsGenericType && !declaringType.IsGenericTypeDefinition)
             {
                 declaringType = declaringType.GetGenericTypeDefinition();
             }
 
-            // Build parameter type name array with a plain for-loop — avoids IEnumerator + delegate allocations.
             string[]? parameterTypeNames = null;
             var memberLookupName = expressiveMemberInfo.Name;
 
             if (expressiveMemberInfo is MethodInfo method)
             {
-                // For generic methods, use the generic definition so type parameters (TEntity, etc.)
-                // are used instead of the concrete closed-generic arguments.
+                // Use the generic definition so type parameters (TEntity, etc.) are used instead of closed-generic arguments.
                 var methodToInspect = method.IsGenericMethod ? method.GetGenericMethodDefinition() : method;
                 var parameters = methodToInspect.GetParameters();
 
@@ -333,7 +281,7 @@ namespace ExpressiveSharp.Services
             }
             else if (expressiveMemberInfo is ConstructorInfo ctor)
             {
-                // Constructors are stored under the synthetic name "_ctor".
+                // Constructors are registered under the synthetic name "_ctor".
                 memberLookupName = "_ctor";
                 var parameters = ctor.GetParameters();
 
@@ -347,7 +295,6 @@ namespace ExpressiveSharp.Services
                 }
             }
 
-            // Build the generated class name (without member) and method suffix separately.
             var nestedTypeNames = NestedTypePathToNames(declaringType.GetNestedTypePath());
             var generatedContainingTypeName = ExpressionClassNameGenerator.GenerateClassFullName(
                 declaringType.Namespace,
@@ -386,7 +333,6 @@ namespace ExpressiveSharp.Services
             if (expression is null)
                 return null;
 
-            // Apply declared transformers from the generated class (if any)
             var transformerMethodName = methodSuffix + "_Transformers";
             var transformersMethod = expressionFactoryType.GetMethod(transformerMethodName, BindingFlags.Static | BindingFlags.NonPublic);
             if (transformersMethod?.Invoke(null, null) is IExpressionTreeTransformer[] transformers)
@@ -402,11 +348,6 @@ namespace ExpressiveSharp.Services
             return expression;
         }
 
-        /// <summary>
-        /// Projects an array of <see cref="Type"/> objects — in practice always the
-        /// <c>Type[]</c> returned by <see cref="ExpressiveSharp.Extensions.TypeExtensions.GetNestedTypePath"/> — to a <c>string[]</c>
-        /// of simple type names without allocating a LINQ enumerator or intermediate delegate.
-        /// </summary>
         private static string[] NestedTypePathToNames(Type[] types)
         {
             var names = new string[types.Length];
@@ -418,36 +359,27 @@ namespace ExpressiveSharp.Services
             return names;
         }
 
-        /// <summary>
-        /// Returns the C#-formatted full name of <paramref name="type"/>.
-        /// Results are memoised in <see cref="_typeNameCache"/>; the same <see cref="Type"/> object
-        /// is encountered repeatedly across expressive members (e.g. <c>int</c>, <c>string</c>).
-        /// </summary>
         private static string GetFullTypeName(Type type)
             => _typeNameCache.GetValue(type, static t => ComputeFullTypeName(t));
 
         private static string ComputeFullTypeName(Type type)
         {
-            // Handle generic type parameters (e.g., T, TEntity)
             if (type.IsGenericParameter)
             {
                 return type.Name;
             }
 
-            // Handle nullable value types (e.g., int? -> int?)
             var underlyingType = Nullable.GetUnderlyingType(type);
             if (underlyingType != null)
             {
                 return $"{GetFullTypeName(underlyingType)}?";
             }
 
-            // Handle array types
             if (type.IsArray)
             {
                 var elementType = type.GetElementType();
                 if (elementType == null)
                 {
-                    // Fallback for edge cases where GetElementType() might return null
                     return type.Name;
                 }
 
@@ -465,21 +397,20 @@ namespace ExpressiveSharp.Services
                 }
             }
 
-            // Map primitive types to their C# keyword equivalents to match Roslyn's output
+            // Map primitives to C# keywords to match Roslyn's output.
             var typeKeyword = GetCSharpKeyword(type);
             if (typeKeyword != null)
             {
                 return typeKeyword;
             }
 
-            // For generic types, construct the full name matching Roslyn's format
             if (type.IsGenericType)
             {
                 var genericTypeDef = type.GetGenericTypeDefinition();
                 var genericArgs = type.GetGenericArguments();
                 var baseName = genericTypeDef.FullName ?? genericTypeDef.Name;
 
-                // Remove the `n suffix (e.g., `1, `2)
+                // Strip the `n arity suffix.
                 var backtickIndex = baseName.IndexOf('`');
                 if (backtickIndex > 0)
                 {
@@ -492,20 +423,13 @@ namespace ExpressiveSharp.Services
 
             if (type.FullName != null)
             {
-                // Replace + with . for nested types to match Roslyn's format
+                // + → . for nested types to match Roslyn's format.
                 return type.FullName.Replace('+', '.');
             }
 
             return type.Name;
         }
 
-        /// <summary>
-        /// O(1) dictionary lookup — replaces the original 16 sequential <c>if</c> checks.
-        /// Note: reordering the entries in <see cref="_csharpKeywords"/> has <em>no effect</em> on
-        /// performance because <see cref="Dictionary{TKey,TValue}"/> uses hashing, not linear scan.
-        /// (Reordering only mattered with the old <c>if</c>-chain, where placing <c>int</c> / <c>string</c>
-        /// / <c>bool</c> first would have reduced average comparisons from ~8 to ~1.)
-        /// </summary>
         private static string? GetCSharpKeyword(Type type) => _csharpKeywords.GetValueOrDefault(type);
     }
 }

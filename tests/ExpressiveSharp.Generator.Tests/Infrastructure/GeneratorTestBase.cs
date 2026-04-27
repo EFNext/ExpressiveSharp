@@ -28,23 +28,18 @@ public abstract partial class GeneratorTestBase
 
         public ImmutableArray<Diagnostic> Diagnostics => _inner.Diagnostics;
 
-        /// <summary>Generated trees excluding <c>ExpressionRegistry.g.cs</c> and <c>*.Attributes.g.cs</c>.</summary>
         public ImmutableArray<SyntaxTree> GeneratedTrees =>
             _inner.GeneratedTrees
                 .Where(t => !t.FilePath.EndsWith("ExpressionRegistry.g.cs", StringComparison.Ordinal)
                     && !t.FilePath.EndsWith(".Attributes.g.cs", StringComparison.Ordinal))
                 .ToImmutableArray();
 
-        /// <summary>All generated trees including <c>ExpressionRegistry.g.cs</c>.</summary>
         public ImmutableArray<SyntaxTree> AllGeneratedTrees => _inner.GeneratedTrees;
 
-        /// <summary>The registry tree, or <c>null</c> if none was generated.</summary>
         public SyntaxTree? RegistryTree =>
             _inner.GeneratedTrees
                 .FirstOrDefault(t => t.FilePath.EndsWith("ExpressionRegistry.g.cs", StringComparison.Ordinal));
     }
-
-    // ── Reference helpers ────────────────────────────────────────────────────
 
     protected IReadOnlyList<MetadataReference> GetDefaultReferences()
     {
@@ -77,8 +72,6 @@ public abstract partial class GeneratorTestBase
             .WithLanguageVersion(languageVersion)
             .WithFeatures([interceptorFeature]);
     }
-
-    // ── Compilation factory ──────────────────────────────────────────────────
 
     private const string GlobalUsings = """
         global using System;
@@ -120,8 +113,6 @@ public abstract partial class GeneratorTestBase
         LogSourceDiagnostics(compilation);
         return compilation;
     }
-
-    // ── Generator runners ────────────────────────────────────────────────────
 
     protected TestGeneratorRunResult RunExpressiveGenerator(
         Compilation compilation,
@@ -172,8 +163,6 @@ public abstract partial class GeneratorTestBase
         return result;
     }
 
-    // ── Logging helpers ──────────────────────────────────────────────────────
-
     private void LogSourceDiagnostics(Compilation compilation)
     {
         var diagnostics = compilation.GetDiagnostics();
@@ -183,8 +172,6 @@ public abstract partial class GeneratorTestBase
         TestContext.WriteLine("Source compilation diagnostics:");
         foreach (var d in diagnostics)
             TestContext.WriteLine("  > " + d);
-
-        // Note: source errors are expected in negative test cases; individual tests assert as needed.
     }
 
     private void LogGeneratorResult(TestGeneratorRunResult result, Compilation outputCompilation)
@@ -241,8 +228,6 @@ public abstract partial class GeneratorTestBase
                 TestContext.WriteLine("  > " + e);
         }
     }
-
-    // ── MSBuild global property injection ────────────────────────────────────
 
     private sealed class DictionaryAnalyzerConfigOptions : AnalyzerConfigOptions
     {

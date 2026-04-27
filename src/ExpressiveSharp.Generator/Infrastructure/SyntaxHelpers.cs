@@ -6,17 +6,9 @@ namespace ExpressiveSharp.Generator.Infrastructure;
 
 static internal class SyntaxHelpers
 {
-    /// <summary>
-    /// Returns <see langword="true"/> when <paramref name="method"/> matches the
-    /// factory-method pattern:
-    /// <list type="bullet">
-    ///   <item><description>Expression body of the form <c>=> new ContainingType { … }</c>
-    ///       (object initializer only, no constructor arguments in the <c>new</c>
-    ///       expression).</description></item>
-    ///   <item><description>Static method.</description></item>
-    ///   <item><description>Return type simple name equals the containing class name.</description></item>
-    /// </list>
-    /// </summary>
+    // Matches: static method with expression body `=> new ContainingType { ... }`
+    // (object initializer only, no constructor arguments) whose return type name
+    // equals the containing type name.
     static internal bool TryGetFactoryMethodPattern(
         MethodDeclarationSyntax method,
         out TypeDeclarationSyntax? containingType)

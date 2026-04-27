@@ -7,13 +7,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Tests.Cosmos;
 
-/// <summary>
-/// Cosmos DB runs a subset of <see cref="CommonScenarioTestBase"/>: tests that
-/// use <c>GROUP BY</c> on computed expressions, cross-entity queries, or array
-/// literal projections are not supported by Cosmos and are overridden as
-/// <see cref="Assert.Inconclusive"/>. Seeding is also customized because
-/// Customer and Address are owned types embedded in the Order document.
-/// </summary>
+// Cosmos runs a subset of CommonScenarioTestBase; unsupported tests below are
+// overridden as Inconclusive. Seeding is also customized because Customer and
+// Address are owned types embedded in the Order document.
 [TestClass]
 public class CommonScenarioTests : CommonScenarioTestBase
 {

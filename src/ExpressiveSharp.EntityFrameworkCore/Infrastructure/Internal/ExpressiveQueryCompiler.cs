@@ -13,8 +13,8 @@ using Microsoft.EntityFrameworkCore.Storage;
 namespace ExpressiveSharp.EntityFrameworkCore.Infrastructure.Internal;
 
 /// <summary>
-/// Decorates the EF Core <see cref="IQueryCompiler"/> to automatically expand
-/// <see cref="ExpressiveAttribute"/> member references before query compilation.
+/// Decorates the EF Core <see cref="IQueryCompiler"/> to expand <see cref="ExpressiveAttribute"/>
+/// member references before query compilation.
 /// </summary>
 [SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required to intercept query compilation")]
 public sealed class ExpressiveQueryCompiler : QueryCompiler

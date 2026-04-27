@@ -39,7 +39,6 @@ public sealed class AddExpressiveCodeFixProviderTests : GeneratorTestBase
         TestContext.WriteLine(fixedSource);
         TestContext.WriteLine("END OUTPUT");
 
-        // The code fix should add [Expressive] to the Helper method declaration
         var lines = fixedSource.Split('\n').Select(l => l.TrimEnd('\r')).ToArray();
         var helperLine = System.Array.FindIndex(lines, l => l.Contains("public static int Helper"));
         Assert.IsTrue(helperLine > 0, "Should find Helper method in output");
@@ -130,15 +129,12 @@ public sealed class AddExpressiveCodeFixProviderTests : GeneratorTestBase
             "Expected exactly one 'using ExpressiveSharp;' directive");
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
-
     private async Task<string> ApplyCodeFixAsync(
         string declSource,
         string? callerSource = null,
         string declFileName = "TestFile.cs",
         string callerFileName = "Caller.cs")
     {
-        // 1. Build workspace with documents
         var workspace = new Microsoft.CodeAnalysis.AdhocWorkspace();
         var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
 
@@ -155,7 +151,6 @@ public sealed class AddExpressiveCodeFixProviderTests : GeneratorTestBase
 
         var project = workspace.AddProject(projectInfo);
 
-        // Add global usings
         var globalUsingsDoc = workspace.AddDocument(project.Id, "GlobalUsings.cs",
             SourceText.From("""
                 global using System;
@@ -165,18 +160,15 @@ public sealed class AddExpressiveCodeFixProviderTests : GeneratorTestBase
                 """));
         project = globalUsingsDoc.Project;
 
-        // Add declaration source
         var declDoc = workspace.AddDocument(project.Id, declFileName, SourceText.From(declSource));
         project = declDoc.Project;
 
-        // Add caller source if provided (for cross-file tests)
         if (callerSource is not null)
         {
             var callerDoc = workspace.AddDocument(project.Id, callerFileName, SourceText.From(callerSource));
             project = callerDoc.Project;
         }
 
-        // 2. Get compilation and run analyzer
         var compilation = await project.GetCompilationAsync()
             ?? throw new System.Exception("Failed to get compilation");
 
@@ -190,14 +182,12 @@ public sealed class AddExpressiveCodeFixProviderTests : GeneratorTestBase
         Assert.IsTrue(diagnostic.AdditionalLocations.Count > 0,
             "Expected additional location (declaration) on EXP0013");
 
-        // 3. Find the document containing the diagnostic usage
         var usageTree = diagnostic.Location.SourceTree;
         Assert.IsNotNull(usageTree, "Diagnostic should have a source tree");
 
         var usageDoc = project.Solution.GetDocument(usageTree);
         Assert.IsNotNull(usageDoc, "Should find workspace document for diagnostic location");
 
-        // 4. Apply the code fix
         var codeFix = new AddExpressiveCodeFixProvider();
         var actions = new System.Collections.Generic.List<CodeAction>();
         var context = new CodeFixContext(
@@ -213,7 +203,6 @@ public sealed class AddExpressiveCodeFixProviderTests : GeneratorTestBase
         var applyOperation = operations.OfType<ApplyChangesOperation>().First();
         var fixedSolution = applyOperation.ChangedSolution;
 
-        // 5. Get the fixed declaration document
         var declTree = diagnostic.AdditionalLocations[0].SourceTree;
         Assert.IsNotNull(declTree, "Declaration should have a source tree");
 

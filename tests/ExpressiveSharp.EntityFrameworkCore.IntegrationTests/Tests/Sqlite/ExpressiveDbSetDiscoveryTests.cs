@@ -4,12 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Tests.Sqlite;
 
-/// <summary>
-/// Verifies the <see cref="ExpressiveDbSetDiscoveryConvention"/> and
-/// <see cref="ExpressiveDbSetTableNameConvention"/> against real schema
-/// creation and query execution. These are convention-plugin tests that
-/// don't depend on provider-specific SQL, so they run on SQLite only.
-/// </summary>
+// Convention-plugin tests; provider-agnostic so SQLite-only.
 [TestClass]
 public class ExpressiveDbSetDiscoveryTests
 {
@@ -76,7 +71,7 @@ public class ExpressiveDbSetDiscoveryTests
     [TestMethod]
     public void ExpressiveOnlyContext_UseExpressivesBeforeProvider_EntityStillDiscovered()
     {
-        // Verify the deferred decoration path: UseExpressives() called before UseSqlite()
+        // Deferred decoration path: UseExpressives() called before UseSqlite().
         using var ctx = new ExpressiveOnlyContext(CreateOptionsReversed<ExpressiveOnlyContext>());
         ctx.Database.EnsureCreated();
 
@@ -94,8 +89,6 @@ public class ExpressiveDbSetDiscoveryTests
         Assert.AreEqual("Items", tableName,
             "When both DbSet and ExpressiveDbSet exist, the DbSet table name should be used");
     }
-
-    // ── Test-local models ───────────────────────────────────────────────
 
     public class DiscoveryItem
     {

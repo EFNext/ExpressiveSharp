@@ -1,24 +1,21 @@
 // Adapted from DotNetLab/src/RoslynWorkspaceAccess/RoslynWorkspaceAccessors.cs (MIT).
-// https://github.com/jjonescz/DotNetLab
 //
-// Why this exists: Roslyn's DefaultPersistentStorageConfiguration..cctor() calls
-// Process.GetCurrentProcess(), which throws PlatformNotSupportedException on
-// Blazor WebAssembly. MEF discovers it on the first CompletionService.GetService()
-// call inside an AdhocWorkspace. By exporting our own IPersistentStorageConfiguration
-// with ServiceLayer.Test, MEF prefers ours over the default and never instantiates
-// the broken type — its cctor never runs, the PNSE is never thrown, and completions
-// work in WASM.
+// Roslyn's DefaultPersistentStorageConfiguration..cctor() calls
+// Process.GetCurrentProcess(), which PNSEs on Blazor WebAssembly; MEF
+// discovers it on the first CompletionService.GetService() inside an
+// AdhocWorkspace. Exporting our own IPersistentStorageConfiguration with
+// ServiceLayer.Test gives it MEF priority over the default so the broken
+// type's cctor never runs.
 //
-// This file lives in an assembly whose AssemblyName is impersonated to
-// "Microsoft.CodeAnalysis.Workspaces.UnitTests" (see csproj) so Roslyn's
-// [InternalsVisibleTo] attribute lets us reference IPersistentStorageConfiguration,
-// MefConstruction, ExportWorkspaceServiceAttribute, and ServiceLayer — all of
-// which are `internal` in Microsoft.CodeAnalysis.Workspaces.dll.
+// The csproj impersonates AssemblyName "Microsoft.CodeAnalysis.Workspaces.UnitTests"
+// so Roslyn's [InternalsVisibleTo] lets us reference the internal types
+// IPersistentStorageConfiguration, MefConstruction, ExportWorkspaceServiceAttribute,
+// and ServiceLayer.
 
 using System.Composition;
-using Microsoft.CodeAnalysis.Host;       // IPersistentStorageConfiguration
-using Microsoft.CodeAnalysis.Host.Mef;   // ExportWorkspaceService, ServiceLayer, MefConstruction
-using Microsoft.CodeAnalysis.Storage;    // SolutionKey
+using Microsoft.CodeAnalysis.Host;
+using Microsoft.CodeAnalysis.Host.Mef;
+using Microsoft.CodeAnalysis.Storage;
 
 namespace ExpressiveSharp.Docs.Playground.Wasm.WorkspaceShim;
 

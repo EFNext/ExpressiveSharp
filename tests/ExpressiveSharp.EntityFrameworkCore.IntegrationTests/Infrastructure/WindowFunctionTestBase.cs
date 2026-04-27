@@ -5,12 +5,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Infrastructure;
 
-/// <summary>
-/// Integration tests for window functions (ROW_NUMBER, RANK, DENSE_RANK, NTILE,
-/// indexed Select). These exercise the
-/// <see cref="RelationalExpressivePlugin"/> translators and the indexed-Select
-/// rewriter end-to-end against a real database.
-/// </summary>
 public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
 {
     [TestInitialize]
@@ -210,13 +204,9 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
         Assert.AreEqual(4, results[9].Quartile);
     }
 
-    // ── Interaction: window function over an [Expressive] projection ───
-    //
-    // RowNumber over o.Total (which is [Expressive] => Price * Quantity).
-    // The ExpressiveQueryCompiler must expand Total inside the OrderBy
-    // argument of the window spec BEFORE the window translator translates
-    // it to SQL.
-
+    // RowNumber over o.Total (which is [Expressive] => Price * Quantity). The
+    // ExpressiveQueryCompiler must expand Total inside the OrderBy argument of
+    // the window spec before the window translator runs.
     [TestMethod]
     public async Task RowNumber_OverExpressiveTotal_UsesExpandedExpression()
     {
@@ -256,17 +246,9 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
             Assert.IsTrue(results[i].Total >= results[i - 1].Total);
     }
 
-    // ── Aggregate window function tests ─────────────────────────────────
-    //
-    // Aggregate functions (SUM, AVG, COUNT, MIN, MAX) with OVER produce
-    // results that depend on the frame clause — unlike ranking functions.
-    // A running total (SUM with ROWS UNBOUNDED PRECEDING TO CURRENT ROW)
-    // gives a different value per row than a full-partition SUM.
-    //
-    // Seed data (ordered by Price ASC):
-    //   Price:  10, 15, 20, 20, 25, 30, 35, 40, 45, 50
-    //   Running total: 10, 25, 45, 65, 90, 120, 155, 195, 240, 290
-
+    // Aggregate window functions (SUM, AVG, COUNT, MIN, MAX) depend on the frame clause.
+    // Seed prices (ASC): 10, 15, 20, 20, 25, 30, 35, 40, 45, 50
+    // Running total:     10, 25, 45, 65, 90, 120, 155, 195, 240, 290
     [TestMethod]
     public async Task Sum_WithRowsFrame_ProducesRunningTotal()
     {
@@ -470,13 +452,7 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
         Assert.AreEqual(50.0, results[^1].RunningMax);
     }
 
-    // ── Navigation function tests (LAG / LEAD) ──────────────────────────
-    //
-    // LAG/LEAD access a row at a fixed offset from the current row.
-    // They do NOT support frame clauses (SQL standard forbids it).
-    //
-    // Ordered by Price ASC: 10, 15, 20, 20, 25, 30, 35, 40, 45, 50
-
+    // LAG/LEAD do NOT support frame clauses (SQL standard forbids it).
     [TestMethod]
     public async Task Lag_Default_ReturnsPreviousRowPrice()
     {
@@ -619,8 +595,6 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
         Assert.AreEqual(c2[0].Price, c2[1].PrevInGroup);
     }
 
-    // ── FIRST_VALUE / LAST_VALUE ─────────────────────────────────────────
-
     [TestMethod]
     public async Task FirstValue_ReturnsFirstPriceInPartition()
     {
@@ -693,8 +667,6 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
         Assert.IsTrue(c2.All(r => Math.Abs(r.FirstInGroup - 10.0) < 1e-9));
     }
 
-    // ── PERCENT_RANK ─────────────────────────────────────────────────────
-
     [TestMethod]
     public async Task PercentRank_ReturnsBetweenZeroAndOne()
     {
@@ -721,8 +693,6 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
         Assert.IsTrue(results.All(r => r.Pct >= 0.0 && r.Pct <= 1.0));
     }
 
-    // ── CUME_DIST ────────────────────────────────────────────────────────
-
     [TestMethod]
     public async Task CumeDist_ReturnsBetweenZeroAndOne()
     {
@@ -747,8 +717,6 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
         // Unlike PERCENT_RANK, first row's CUME_DIST > 0.0
         Assert.IsTrue(results[0].Cume > 0.0);
     }
-
-    // ── NTH_VALUE ────────────────────────────────────────────────────────
 
     [TestMethod]
     public async Task NthValue_ReturnsValueAtPosition()
@@ -780,8 +748,6 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
             Assert.Inconclusive("NTH_VALUE is not supported by this database provider.");
         }
     }
-
-    // ── Coverage gap tests ───────────────────────────────────────────────
 
     [TestMethod]
     public async Task Count_Expression_CountsNonNullOnly()

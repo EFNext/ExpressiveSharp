@@ -8,18 +8,14 @@ using MongoDB.Driver.Linq;
 
 namespace ExpressiveSharp.MongoDB.IntegrationTests.Tests;
 
-/// <summary>
-/// Verifies the default transformer pipeline produces expressions that
-/// MongoDB's LINQ provider can translate.
-/// </summary>
 [TestClass]
 public class TransformerPipelineTests : MongoTestBase
 {
     [TestMethod]
     public async Task NullConditionalPatterns_FlattenedForMongo()
     {
-        // CustomerName is [Expressive] => Customer?.Name
-        // RemoveNullConditionalPatterns should flatten the null-conditional pattern
+        // CustomerName is [Expressive] => Customer?.Name; RemoveNullConditionalPatterns
+        // must flatten the null-conditional pattern.
         Expression<Func<Order, string?>> expr = o => o.CustomerName;
         var expanded = (Expression<Func<Order, string?>>)expr.ExpandExpressives();
 
@@ -37,7 +33,6 @@ public class TransformerPipelineTests : MongoTestBase
     [TestMethod]
     public async Task BlockExpressions_Flattened()
     {
-        // GetCategory is [Expressive(AllowBlockBody = true)] with if/else
         Expression<Func<Order, string>> expr = o => o.GetCategory();
         var expanded = (Expression<Func<Order, string>>)expr.ExpandExpressives();
 
@@ -57,7 +52,7 @@ public class TransformerPipelineTests : MongoTestBase
     [TestMethod]
     public async Task ThrowExpressions_ReplacedWithDefault()
     {
-        // SafeTag => Tag ?? throw ... — ReplaceThrowWithDefault should replace throw with default
+        // SafeTag => Tag ?? throw ...; ReplaceThrowWithDefault swaps throw for default.
         Expression<Func<Order, string>> expr = o => o.SafeTag;
         var expanded = (Expression<Func<Order, string>>)expr.ExpandExpressives();
 
@@ -75,12 +70,10 @@ public class TransformerPipelineTests : MongoTestBase
     [TestMethod]
     public async Task CustomOptions_OverrideDefaults()
     {
-        // Use custom options with no transformers — raw expansion only
         var customOptions = new ExpressiveOptions();
         var customQuery = MongoDB.Extensions.MongoExpressiveExtensions.AsExpressive(
             Orders, customOptions);
 
-        // Simple query should still work (no transformers needed for basic arithmetic)
         var results = await customQuery
             .Select(o => o.Price * 2)
             .ToListAsync();

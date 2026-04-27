@@ -1,10 +1,8 @@
 namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.WindowFunctions;
 
 /// <summary>
-/// Represents a boundary of a SQL window frame (e.g. <c>UNBOUNDED PRECEDING</c>,
-/// <c>3 PRECEDING</c>, <c>CURRENT ROW</c>, <c>5 FOLLOWING</c>, <c>UNBOUNDED FOLLOWING</c>).
-/// These factory members are translated to SQL by ExpressiveSharp's translators —
-/// they throw at runtime if accessed directly.
+/// SQL window frame boundary (<c>UNBOUNDED PRECEDING</c>, <c>n PRECEDING</c>, <c>CURRENT ROW</c>,
+/// <c>n FOLLOWING</c>, <c>UNBOUNDED FOLLOWING</c>). Markers — translated to SQL; throw at runtime if accessed directly.
 /// </summary>
 public sealed class WindowFrameBound
 {

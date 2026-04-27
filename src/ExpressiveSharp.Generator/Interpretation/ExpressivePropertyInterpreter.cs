@@ -8,19 +8,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ExpressiveSharp.Generator.Interpretation;
 
-/// <summary>
-/// Interprets <c>[ExpressiveProperty]</c> stubs: validates placement rules, builds an
-/// <see cref="ExpressiveDescriptor"/> keyed on the synthesized target property, and attaches a
-/// <see cref="SynthesizedPropertySpec"/> so the generator emits the partial-class declaration.
-/// </summary>
-/// <remarks>
-/// Rules (v1):
-/// <list type="number">
-///   <item>Stub must be a property with a top-level expression body (<c>=&gt; expr</c>).</item>
-///   <item>Stub must be an instance member (static stubs rejected).</item>
-///   <item>Target property name must be supplied explicitly as a string literal.</item>
-/// </list>
-/// </remarks>
+// Rules (v1):
+//   1. Stub must be a property with a top-level expression body (=> expr).
+//   2. Stub must be an instance member (static stubs rejected).
+//   3. Target property name must be supplied explicitly as a string literal.
 static internal class ExpressivePropertyInterpreter
 {
     private static readonly SymbolDisplayFormat FullyQualifiedNullableFormat =
@@ -53,7 +44,6 @@ static internal class ExpressivePropertyInterpreter
             return null;
         }
 
-        // Rule 2: instance only.
         if (stubSymbol.IsStatic)
         {
             context.ReportDiagnostic(Diagnostic.Create(
@@ -63,8 +53,8 @@ static internal class ExpressivePropertyInterpreter
             return null;
         }
 
-        // Rule 1: expression body required (top-level `=> expr` form). Reject any accessor list —
-        // even a `{ get => expr; }` that's semantically equivalent — to keep the surface minimal.
+        // Reject any accessor list — even a `{ get => expr; }` that's semantically equivalent —
+        // to keep the supported surface minimal.
         if (stubProperty.ExpressionBody is null)
         {
             context.ReportDiagnostic(Diagnostic.Create(
@@ -74,7 +64,6 @@ static internal class ExpressivePropertyInterpreter
             return null;
         }
 
-        // Containing type must be partial (class / struct / record / record struct).
         if (!IsPartialType(containingType))
         {
             context.ReportDiagnostic(Diagnostic.Create(
@@ -84,7 +73,6 @@ static internal class ExpressivePropertyInterpreter
             return null;
         }
 
-        // Target name must not collide with an existing declared or inherited member on the type.
         // Declared members first (EXP0031) because that's the more common mistake and deserves the
         // dedicated "use [ExpressiveFor] instead" steering.
         if (containingType.GetMembers(targetName!).Any(m =>
@@ -109,13 +97,11 @@ static internal class ExpressivePropertyInterpreter
             return null;
         }
 
-        // Build the descriptor from the stub's expression body.
         var descriptor = BuildDescriptor(
             bodyBindingSemanticModel ?? semanticModel, context, stubProperty, stubSymbol,
             attributeData, containingType, targetName!);
         if (descriptor is null) return null;
 
-        // Synthesis spec for the partial-class emitter.
         var returnType = stubSymbol.Type;
         var useTernary = IsNullablePropertyType(returnType);
         var propertyTypeFqn = returnType.ToDisplayString(FullyQualifiedNullableFormat);
@@ -145,13 +131,9 @@ static internal class ExpressivePropertyInterpreter
         return (descriptor, spec);
     }
 
-    /// <summary>
-    /// Builds the <see cref="SynthesizedPropertySpec"/> for a stub if it passes the same validation
-    /// rules as <see cref="GetDescriptor"/>, but reports no diagnostics. Used by
-    /// <c>PolyfillInterceptorGenerator</c> to compute the synthesized partial-class source for
-    /// in-memory compilation augmentation; diagnostic ownership stays with <see cref="GetDescriptor"/>
-    /// inside <c>ExpressiveGenerator</c>.
-    /// </summary>
+    // Same validation rules as GetDescriptor but reports no diagnostics — used by
+    // PolyfillInterceptorGenerator for in-memory compilation augmentation. Diagnostic
+    // ownership stays with GetDescriptor inside ExpressiveGenerator.
     public static SynthesizedPropertySpec? TryBuildSpec(
         PropertyDeclarationSyntax stubProperty,
         IPropertySymbol stubSymbol,
@@ -206,7 +188,6 @@ static internal class ExpressivePropertyInterpreter
         INamedTypeSymbol containingType,
         string targetName)
     {
-        // Rule 1 guaranteed us an expression body.
         var bodySyntax = stubProperty.ExpressionBody!.Expression;
 
         var rewriter = new DeclarationSyntaxRewriter(semanticModel);
@@ -250,8 +231,6 @@ static internal class ExpressivePropertyInterpreter
 
         return descriptor;
     }
-
-    // ── Helpers ──────────────────────────────────────────────────────────────
 
     private static bool IsNullablePropertyType(ITypeSymbol type)
     {
@@ -354,8 +333,6 @@ static internal class ExpressivePropertyInterpreter
 
     private static INamedTypeSymbol? FindInheritedMember(INamedTypeSymbol type, string memberName)
     {
-        // Walk the base chain — System.Object itself is not interesting for user-defined collisions
-        // but we include it for completeness (e.g. `ToString` as a target name).
         var current = type.BaseType;
         while (current is not null)
         {

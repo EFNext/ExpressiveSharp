@@ -6,16 +6,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpressiveSharp.IntegrationTests.Tests;
 
-/// <summary>
-/// Scenario tests that compile expanded expression trees to delegates and run
-/// them against seeded in-memory collections. Validates every feature
-/// (arithmetic, switch expressions, pattern matching, null-conditional chains,
-/// loops, tuples, constructor projections, etc.) at runtime without touching
-/// any ORM.
-///
-/// The parallel EF Core integration tests live in
-/// <c>ExpressiveSharp.EntityFrameworkCore.IntegrationTests</c>.
-/// </summary>
 [TestClass]
 public class CommonScenarioTests
 {
@@ -26,8 +16,6 @@ public class CommonScenarioTests
     {
         _runner.Seed(SeedData.Addresses, SeedData.Customers, SeedData.Orders, SeedData.LineItems);
     }
-
-    // ── Arithmetic ──────────────────────────────────────────────────────────
 
     [TestMethod]
     public void Select_Total_ReturnsCorrectValues()
@@ -85,8 +73,6 @@ public class CommonScenarioTests
         CollectionAssert.AreEqual(new[] { 2, 4, 1, 3 }, results);
     }
 
-    // ── Block Body ──────────────────────────────────────────────────────────
-
     [TestMethod]
     public void Select_GetCategory_ReturnsCorrectValues()
     {
@@ -112,8 +98,6 @@ public class CommonScenarioTests
             new[] { "Regular", "Bulk", "Regular", "Regular" },
             results);
     }
-
-    // ── Checked Arithmetic ──────────────────────────────────────────────────
 
     [TestMethod]
     public void Select_CheckedTotal_ReturnsCorrectValues()
@@ -142,8 +126,6 @@ public class CommonScenarioTests
         CollectionAssert.AreEqual(new[] { 1, 2, 4 }, ids);
     }
 
-    // ── Collection Expression ───────────────────────────────────────────────
-
     [TestMethod]
     public void Select_PriceBreakpoints_ReturnsArrayLiteral()
     {
@@ -158,8 +140,6 @@ public class CommonScenarioTests
             CollectionAssert.AreEqual(new[] { 10, 50, 100 }, breakpoints);
         }
     }
-
-    // ── Constructor Projection ──────────────────────────────────────────────
 
     [TestMethod]
     public void Select_OrderDto_ProjectsCorrectly()
@@ -219,8 +199,6 @@ public class CommonScenarioTests
         Assert.AreEqual(1500.0, results.Single(r => r.Id == 2).Total);
     }
 
-    // ── Enum Expansion ──────────────────────────────────────────────────────
-
     [TestMethod]
     public void Select_StatusDescription_ReturnsCorrectValues()
     {
@@ -247,8 +225,6 @@ public class CommonScenarioTests
         Assert.AreEqual(1, dict["Order approved"]);
         Assert.AreEqual(1, dict["Order rejected"]);
     }
-
-    // ── ExpressiveFor Mapping ───────────────────────────────────────────────
 
     [TestMethod]
     public void Select_ClampedPrice_ReturnsCorrectValues()
@@ -291,8 +267,6 @@ public class CommonScenarioTests
             Assert.IsTrue(results.Any(r => Math.Abs(r - exp) < 0.001), $"Expected {exp} in results");
     }
 
-    // ── ExpressiveFor on instance method ────────────────────────────────────
-
     [TestMethod]
     public void Select_InstanceMethod_ViaExpressiveFor_ReturnsCorrectValues()
     {
@@ -322,8 +296,6 @@ public class CommonScenarioTests
             new[] { "[A/B]:1", "[A/B]:2", "[A/B]:3", "[A/B]:4" },
             results);
     }
-
-    // ── Loop Tests ──────────────────────────────────────────────────────────
 
     [TestMethod]
     public void Select_ItemCount_ReturnsCorrectCounts()
@@ -379,8 +351,6 @@ public class CommonScenarioTests
 
         CollectionAssert.AreEquivalent(new[] { 150.0, 500.0, 0.0, 0.0 }, results);
     }
-
-    // ── Null Conditional ────────────────────────────────────────────────────
 
     [TestMethod]
     public void Select_CustomerName_ReturnsCorrectNullableValues()
@@ -449,8 +419,6 @@ public class CommonScenarioTests
         Assert.AreEqual(3, results[0]); // Order 3 has null Tag
     }
 
-    // ── Nullable Chain ──────────────────────────────────────────────────────
-
     [TestMethod]
     public void Select_CustomerCountry_TwoLevelChain()
     {
@@ -487,8 +455,6 @@ public class CommonScenarioTests
 
         CollectionAssert.AreEquivalent(new[] { "New York", "London", null }, results);
     }
-
-    // ── Pattern Matching ────────────────────────────────────────────────────
 
     [TestMethod]
     public void Where_IsPattern_NullCheck()
@@ -542,8 +508,6 @@ public class CommonScenarioTests
             results);
     }
 
-    // ── Polyfill Pathway ────────────────────────────────────────────────────
-
     [TestMethod]
     public void Polyfill_SimpleCondition_FiltersCorrectly()
     {
@@ -585,8 +549,6 @@ public class CommonScenarioTests
         CollectionAssert.AreEquivalent(new[] { "RUSH", "STD", "N/A", "SPECIAL" }, results);
     }
 
-    // ── String Operations ───────────────────────────────────────────────────
-
     [TestMethod]
     public void Select_Summary_ReturnsCorrectValues()
     {
@@ -624,8 +586,6 @@ public class CommonScenarioTests
             },
             results);
     }
-
-    // ── Switch Expression ───────────────────────────────────────────────────
 
     [TestMethod]
     public void Select_GetGrade_ReturnsCorrectValues()
@@ -681,8 +641,6 @@ public class CommonScenarioTests
         Assert.AreEqual(1, dict["Budget"]);
     }
 
-    // ── Tuple Binary ────────────────────────────────────────────────────────
-
     [TestMethod]
     public void Select_IsPriceQuantityMatch_ReturnsCorrectValues()
     {
@@ -716,8 +674,6 @@ public class CommonScenarioTests
         Assert.AreEqual(1, results.Count);
         Assert.AreEqual(4, results[0].Id);
     }
-
-    // ── Tuple Projection ────────────────────────────────────────────────────
 
     [TestMethod]
     public void Select_InlineTuple_ProjectsCorrectly()
@@ -755,13 +711,8 @@ public class CommonScenarioTests
         Assert.IsTrue(results.Contains((3, "none")));
     }
 
-    // ── C# Language Feature Coverage ────────────────────────────────────
-    //
-    // These features are documented as supported by the generator but have
-    // no integration coverage elsewhere. Tests live in the ExpressionCompile
-    // path because most of them (with expressions, dictionary initializers)
-    // don't SQL-translate.
-
+    // C# language features below live in the ExpressionCompile path because
+    // most (with expressions, dictionary initializers) don't SQL-translate.
     [TestMethod]
     public void WithExpression_OnRecord_ReturnsModifiedInstance()
     {

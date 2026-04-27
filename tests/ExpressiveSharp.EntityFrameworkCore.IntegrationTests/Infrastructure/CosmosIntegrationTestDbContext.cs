@@ -4,11 +4,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Infrastructure;
 
-/// <summary>
-/// Cosmos DB version of the integration test context.
-/// Models Customer and Address as owned types embedded within Order documents,
-/// since Cosmos DB does not support cross-document JOINs or foreign keys.
-/// </summary>
+// Customer/Address are owned types embedded within Order documents; Cosmos
+// does not support cross-document JOINs or foreign keys.
 public class CosmosIntegrationTestDbContext : DbContext
 {
     public DbSet<Order> Orders => Set<Order>();

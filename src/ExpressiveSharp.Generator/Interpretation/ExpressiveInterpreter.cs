@@ -18,7 +18,6 @@ static internal partial class ExpressiveInterpreter
         SourceProductionContext context,
         Compilation? compilation = null)
     {
-        // Detect C# 14 extension member context
         var isExtensionMember = memberSymbol.ContainingType is { IsExtension: true };
         IParameterSymbol? extensionParameter = null;
         ITypeSymbol? extensionReceiverType = null;
@@ -31,20 +30,17 @@ static internal partial class ExpressiveInterpreter
 
         var declarationSyntaxRewriter = new DeclarationSyntaxRewriter(semanticModel);
 
-        // Build base descriptor (class names, namespaces, @this parameter, target class)
         var methodSymbol = memberSymbol as IMethodSymbol;
         var descriptor = BuildBaseDescriptor(
             member, memberSymbol, methodSymbol,
             isExtensionMember, extensionParameter, extensionReceiverType);
 
-        // Populate declared transformers from attribute
         foreach (var typeName in expressiveAttribute.TransformerTypeNames)
             descriptor.DeclaredTransformerTypeNames.Add(typeName);
 
-        // Resolve AllowBlockBody: attribute value takes precedence, then MSBuild default
+        // Attribute value takes precedence over the MSBuild default.
         var allowBlockBody = expressiveAttribute.AllowBlockBody ?? globalOptions.AllowBlockBody;
 
-        // Fill descriptor from the body
         var success = member switch
         {
             MethodDeclarationSyntax methodDecl =>
@@ -65,12 +61,7 @@ static internal partial class ExpressiveInterpreter
         return success ? descriptor : null;
     }
 
-    /// <summary>
-    /// Builds a <see cref="ExpressiveDescriptor"/> with all fields populated except
-    /// <see cref="ExpressiveDescriptor.ReturnTypeName"/> and
-    /// <see cref="ExpressiveDescriptor.ExpressionTreeEmission"/>
-    /// (those are filled by the body processors).
-    /// </summary>
+    // ReturnTypeName and ExpressionTreeEmission are filled in by the body processors.
     private static ExpressiveDescriptor BuildBaseDescriptor(
         MemberDeclarationSyntax member,
         ISymbol memberSymbol,
@@ -79,12 +70,12 @@ static internal partial class ExpressiveInterpreter
         IParameterSymbol? extensionParameter,
         ITypeSymbol? extensionReceiverType)
     {
-        // For extension members, use the outer class for naming
+        // Extension members use the outer class for naming.
         var classForNaming = isExtensionMember && memberSymbol.ContainingType.ContainingType is not null
             ? memberSymbol.ContainingType.ContainingType
             : memberSymbol.ContainingType;
 
-        // Sanitize constructor name (.ctor / .cctor are not valid C# identifiers, use _ctor)
+        // .ctor / .cctor are not valid C# identifiers; substitute _ctor.
         var memberName = methodSymbol?.MethodKind is MethodKind.Constructor or MethodKind.StaticConstructor
             ? "_ctor"
             : memberSymbol.Name;
@@ -103,15 +94,14 @@ static internal partial class ExpressiveInterpreter
             ParametersList = SyntaxFactory.ParameterList()
         };
 
-        // Collect parameter type names for method overload disambiguation
         if (methodSymbol is not null)
         {
             var parameterTypeNames = methodSymbol.Parameters
                 .Select(p => p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
                 .ToList();
 
-            // For extension members, prepend the extension receiver type to match how the
-            // runtime sees the method (receiver is the first implicit parameter).
+            // Prepend the extension receiver type to match how the runtime sees the method
+            // (receiver is the first implicit parameter).
             if (isExtensionMember && extensionReceiverType is not null)
             {
                 parameterTypeNames.Insert(0,
@@ -121,13 +111,11 @@ static internal partial class ExpressiveInterpreter
             descriptor.ParameterTypeNames = parameterTypeNames;
         }
 
-        // Set up generic type parameters and constraints for the containing class
         if (classForNaming is { IsGenericType: true })
         {
             SetupGenericTypeParameters(descriptor, classForNaming);
         }
 
-        // Add the implicit @this parameter
         if (isExtensionMember && extensionReceiverType is not null)
         {
             descriptor.ParametersList = descriptor.ParametersList.AddParameters(
@@ -143,7 +131,7 @@ static internal partial class ExpressiveInterpreter
                         memberSymbol.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))));
         }
 
-        // Resolve target class info (used by the registry to associate the projection)
+        // Target class info is used by the registry to associate the projection.
         if (isExtensionMember && extensionReceiverType is not null)
         {
             descriptor.TargetClassNamespace = extensionReceiverType.ContainingNamespace.IsGlobalNamespace

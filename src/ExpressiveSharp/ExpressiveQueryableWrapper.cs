@@ -7,13 +7,9 @@ using System.Linq.Expressions;
 namespace ExpressiveSharp
 {
     /// <summary>
-    /// Internal wrapper that adapts an <see cref="IQueryable{T}"/> to <see cref="IExpressiveQueryable{T}"/>.
-    /// Created by <see cref="ExpressiveQueryableExtensions.AsExpressive{T}"/> and by source-generated interceptors.
-    /// </summary>
-    /// <summary>
-    /// Also implements <see cref="IOrderedQueryable{T}"/> (which adds no members over <see cref="IQueryable{T}"/>)
-    /// so that the source-generated <c>ThenBy</c>/<c>ThenByDescending</c> interceptors can cast the wrapper
-    /// to <see cref="IOrderedQueryable{T}"/> without a runtime exception.
+    /// Adapts an <see cref="IQueryable{T}"/> to <see cref="IExpressiveQueryable{T}"/>.
+    /// Also implements <see cref="IOrderedQueryable{T}"/> so that source-generated
+    /// <c>ThenBy</c>/<c>ThenByDescending</c> interceptors can cast without throwing.
     /// </summary>
     internal sealed class ExpressiveQueryableWrapper<T> : IExpressiveQueryable<T>, IOrderedQueryable<T>, IAsyncEnumerable<T>
     {

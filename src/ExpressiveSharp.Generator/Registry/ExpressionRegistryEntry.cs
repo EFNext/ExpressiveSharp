@@ -4,11 +4,7 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace ExpressiveSharp.Generator.Registry;
 
-/// <summary>
-/// Incremental-pipeline-safe representation of a single expressive member.
-/// Contains only primitive types and an equatable wrapper around <see cref="ImmutableArray{T}"/>
-/// so that structural value equality works correctly across incremental generation steps.
-/// </summary>
+// Primitive-only fields plus EquatableImmutableArray — safe for incremental generator caching.
 sealed internal record ExpressionRegistryEntry(
     string DeclaringTypeFullName,
     ExpressionRegistryMemberType MemberKind,
@@ -18,25 +14,19 @@ sealed internal record ExpressionRegistryEntry(
     EquatableImmutableArray ParameterTypeNames,
     bool IsMetadataOnly = false,
     string? ClassTypeParameters = null,
-    /// <summary>Source location of the [ExpressiveFor] stub, or null for [Expressive] entries.</summary>
+    // Source location of the [ExpressiveFor] stub, or null for [Expressive] entries.
     SourceLocation? StubLocation = null
 );
 
-/// <summary>
-/// Serialized source location using only value types — safe for incremental generator caching.
-/// </summary>
+// Value-typed source location — safe for incremental generator caching.
 readonly internal record struct SourceLocation(string FilePath, TextSpan TextSpan, LinePositionSpan LineSpan)
 {
     public Location ToLocation() => Location.Create(FilePath, TextSpan, LineSpan);
 }
 
-/// <summary>
-/// A structural-equality wrapper around <see cref="ImmutableArray{T}"/> of strings.
-/// <see cref="ImmutableArray{T}"/> uses reference equality by default, which breaks
-/// Roslyn's incremental-source-generator caching when the same logical array is
-/// produced by two different steps. This wrapper provides element-wise equality so
-/// that incremental steps are correctly cached and skipped.
-/// </summary>
+// ImmutableArray<T> uses reference equality by default, which breaks Roslyn's incremental
+// caching when the same logical array is produced by two different steps. Element-wise
+// equality lets incremental steps be correctly cached and skipped.
 readonly internal struct EquatableImmutableArray(ImmutableArray<string> array) : IEquatable<EquatableImmutableArray>
 {
     private readonly ImmutableArray<string> _array = array;

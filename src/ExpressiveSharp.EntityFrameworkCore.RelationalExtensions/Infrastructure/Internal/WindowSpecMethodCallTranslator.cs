@@ -7,12 +7,6 @@ using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 
 namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructure.Internal;
 
-/// <summary>
-/// Translates <see cref="Window"/> static methods, <see cref="PartitionedWindowDefinition"/>/
-/// <see cref="OrderedWindowDefinition"/> instance methods, and <see cref="WindowFrameBound"/>
-/// factory methods into intermediate SQL expression nodes
-/// (<see cref="WindowSpecSqlExpression"/>, <see cref="WindowFrameBoundSqlExpression"/>).
-/// </summary>
 internal sealed class WindowSpecMethodCallTranslator : IMethodCallTranslator
 {
     public SqlExpression? Translate(
@@ -23,7 +17,6 @@ internal sealed class WindowSpecMethodCallTranslator : IMethodCallTranslator
     {
         var declaringType = method.DeclaringType;
 
-        // Static methods on Window class
         if (declaringType == typeof(Window))
         {
             return method.Name switch
@@ -38,9 +31,8 @@ internal sealed class WindowSpecMethodCallTranslator : IMethodCallTranslator
             };
         }
 
-        // Static factory methods on WindowFrameBound (the no-arg variants
-        // UnboundedPreceding/CurrentRow/UnboundedFollowing are properties and are
-        // handled by WindowFrameBoundMemberTranslator instead).
+        // No-arg variants (UnboundedPreceding/CurrentRow/UnboundedFollowing) are properties
+        // and handled by WindowFrameBoundMemberTranslator instead.
         if (declaringType == typeof(WindowFrameBound))
         {
             return method.Name switch
@@ -53,7 +45,6 @@ internal sealed class WindowSpecMethodCallTranslator : IMethodCallTranslator
             };
         }
 
-        // Instance methods on PartitionedWindowDefinition and OrderedWindowDefinition
         if ((declaringType == typeof(PartitionedWindowDefinition) || declaringType == typeof(OrderedWindowDefinition))
             && instance is WindowSpecSqlExpression spec)
         {
