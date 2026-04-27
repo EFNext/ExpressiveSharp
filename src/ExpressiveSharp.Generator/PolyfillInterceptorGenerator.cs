@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Text;
+using ExpressiveSharp.Generator.Comparers;
 using ExpressiveSharp.Generator.Emitter;
 using ExpressiveSharp.Generator.Infrastructure;
 using ExpressiveSharp.Generator.Interpretation;
@@ -1048,49 +1049,6 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
         public int GetHashCode((CompilationUnitSyntax Left, Compilation Right) obj)
             => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.Left);
-    }
-
-    // ── SynthesizedSourceArrayComparer ─────────────────────────────────────────
-
-    /// <summary>
-    /// Sequence-equality on the collected (HintName, Source) pairs from the synthesized-property
-    /// pipeline. ImmutableArray's default equality is reference, so without this comparer Roslyn
-    /// would treat every regenerated array as distinct and invalidate every downstream consumer
-    /// on every input edit.
-    /// </summary>
-    private sealed class SynthesizedSourceArrayComparer
-        : IEqualityComparer<ImmutableArray<(string HintName, string Source)>>
-    {
-        public readonly static SynthesizedSourceArrayComparer Instance = new();
-
-        private SynthesizedSourceArrayComparer() { }
-
-        public bool Equals(
-            ImmutableArray<(string HintName, string Source)> x,
-            ImmutableArray<(string HintName, string Source)> y)
-        {
-            if (x.Length != y.Length) return false;
-            for (var i = 0; i < x.Length; i++)
-            {
-                if (x[i].HintName != y[i].HintName) return false;
-                if (x[i].Source != y[i].Source) return false;
-            }
-            return true;
-        }
-
-        public int GetHashCode(ImmutableArray<(string HintName, string Source)> obj)
-        {
-            unchecked
-            {
-                var hash = 17;
-                for (var i = 0; i < obj.Length; i++)
-                {
-                    hash = hash * 31 + (obj[i].HintName?.GetHashCode() ?? 0);
-                    hash = hash * 31 + (obj[i].Source?.GetHashCode() ?? 0);
-                }
-                return hash;
-            }
-        }
     }
 
     // ── FileAndSynthesizedSourcesComparer ──────────────────────────────────────

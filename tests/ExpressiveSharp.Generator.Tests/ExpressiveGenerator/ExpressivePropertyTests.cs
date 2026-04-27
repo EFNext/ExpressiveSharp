@@ -333,6 +333,75 @@ public class ExpressivePropertyTests : GeneratorTestBase
     }
 
     [TestMethod]
+    public void SynthesizedPropertyReferencingAnotherSynthesizedProperty_EmitsCorrectly()
+    {
+        // Issue #44: when one [ExpressiveProperty] body references another's synthesized target,
+        // ExpressiveGenerator must augment its in-memory compilation with the sibling's
+        // synthesized partial so the SemanticModel can bind the cross-reference.
+        var compilation = CreateCompilation(
+            """
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                public partial class Person {
+                    [ExpressiveProperty("FirstName")]
+                    private string FirstNameExpr => "Jane";
+
+                    [ExpressiveProperty("FullName")]
+                    private string FullNameExpr => FirstName + " Doe";
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        // No EXP0008 (unsupported operation) and no compilation errors in the generated code.
+        Assert.AreEqual(0, result.Diagnostics.Length,
+            "Unexpected diagnostics: " + string.Join(", ", result.Diagnostics.Select(d => d.Id + ": " + d.GetMessage())));
+
+        // Two stubs → 2 expression-tree files + 2 synthesized partial files = 4 generated trees.
+        Assert.AreEqual(4, result.GeneratedTrees.Length);
+
+        // The FullName expression tree must reference FirstName as a property access (not a
+        // Default fallback that would indicate the binder couldn't resolve the symbol).
+        var fullNameTree = result.GeneratedTrees.Single(t => t.FilePath.Contains("FullName") && !t.FilePath.Contains("Synthesized"));
+        var fullNameSource = fullNameTree.ToString();
+        StringAssert.Contains(fullNameSource, "FirstName");
+        Assert.IsFalse(fullNameSource.Contains("Expression.Default"),
+            "FullName body fell back to Default — synthesized property binding failed:\n" + fullNameSource);
+    }
+
+    [TestMethod]
+    public void ExpressiveBodyReferencingSynthesizedProperty_EmitsCorrectly()
+    {
+        // Same fix benefits [Expressive] members that reference a sibling synthesized property.
+        var compilation = CreateCompilation(
+            """
+            using ExpressiveSharp;
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                public partial class Person {
+                    [ExpressiveProperty("FirstName")]
+                    private string FirstNameExpr => "Jane";
+
+                    [Expressive]
+                    public string Greeting() => "Hello, " + FirstName;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length,
+            "Unexpected diagnostics: " + string.Join(", ", result.Diagnostics.Select(d => d.Id + ": " + d.GetMessage())));
+
+        var greetingTree = result.GeneratedTrees.Single(t => t.FilePath.Contains("Greeting"));
+        var greetingSource = greetingTree.ToString();
+        StringAssert.Contains(greetingSource, "FirstName");
+        Assert.IsFalse(greetingSource.Contains("Expression.Default"),
+            "Greeting body fell back to Default — synthesized property binding failed:\n" + greetingSource);
+    }
+
+    [TestMethod]
     public void ShadowsInheritedMember_ReportsEXP0035()
     {
         // Target name already exists on the base type — silently hiding it would be a footgun.
