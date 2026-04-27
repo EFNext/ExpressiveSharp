@@ -111,6 +111,35 @@ public class SynthesizedExpressiveTests
     }
 
     [TestMethod]
+    public void CrossReferencedSynthesized_FormulaResolvesAtRuntime()
+    {
+        // Issue #44: one [ExpressiveProperty] body referencing another's synthesized target.
+        // FullName's body references FirstName (also synthesized). The generator-side fix lets
+        // SemanticModel bind the cross-reference; the runtime path should evaluate correctly.
+        var person = new CrossReferencedPerson();
+
+        Assert.AreEqual("Jane", person.FirstName,
+            "FirstName should fall through to the FirstNameExpr formula");
+        Assert.AreEqual("Jane Doe", person.FullName,
+            "FullName should resolve FirstName via the synthesized property's getter");
+    }
+
+    [TestMethod]
+    public void CrossReferencedSynthesized_ExpandExpressives_RewritesNestedReference()
+    {
+        // Verify the runtime expression-tree path: ExpandExpressives must recursively expand
+        // FullName → "FirstName + \" Doe\"" → "\"Jane\" + \" Doe\"".
+        var source = new List<CrossReferencedPerson> { new() }.AsQueryable();
+
+        Expression<Func<CrossReferencedPerson, string>> fullNameExpr = p => p.FullName;
+        var expanded = (Expression<Func<CrossReferencedPerson, string>>)fullNameExpr.ExpandExpressives();
+        var result = source.Select(expanded.Compile()).ToList();
+
+        Assert.AreEqual(1, result.Count);
+        Assert.AreEqual("Jane Doe", result[0]);
+    }
+
+    [TestMethod]
     public void ExpandExpressives_MemberInit_RewritesRhsOfProjection()
     {
         // Projection middleware pattern: `new T { DisplayLabel = src.DisplayLabel }`.
@@ -145,6 +174,20 @@ public partial class SynthesizedEntity
     [ExpressiveProperty("DisplayLabel")]
     private string DisplayLabelExpression =>
         (Name ?? "(unnamed)") + " <" + (Email ?? "no-email") + ">";
+}
+
+/// <summary>
+/// Issue #44 reproduction: one [ExpressiveProperty] stub body references another's synthesized
+/// target. The generator must augment its in-memory compilation with the synthesized partials so
+/// SemanticModel can bind the cross-reference.
+/// </summary>
+public partial class CrossReferencedPerson
+{
+    [ExpressiveProperty("FirstName")]
+    private string FirstNameExpr => "Jane";
+
+    [ExpressiveProperty("FullName")]
+    private string FullNameExpr => FirstName + " Doe";
 }
 
 /// <summary>

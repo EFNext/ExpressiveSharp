@@ -19,12 +19,18 @@ static internal class ExpressivePropertyInterpreter
             SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
             | SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
 
+    // semanticModel must be from the *original* (non-augmented) compilation so that the EXP0031
+    // conflict check and ChooseBackingNames don't observe siblings synthesized by this pipeline.
+    // bodyBindingSemanticModel may come from a compilation augmented with synthesized partials so
+    // that one [ExpressiveProperty] body can reference another's synthesized target. Pass null to
+    // bind the body against the original compilation.
     public static (ExpressiveDescriptor Descriptor, SynthesizedPropertySpec Spec)? GetDescriptor(
         SemanticModel semanticModel,
         PropertyDeclarationSyntax stubProperty,
         IPropertySymbol stubSymbol,
         ExpressivePropertyAttributeData attributeData,
-        SourceProductionContext context)
+        SourceProductionContext context,
+        SemanticModel? bodyBindingSemanticModel = null)
     {
         var stubLocation = stubProperty.Identifier.GetLocation();
         var containingType = stubSymbol.ContainingType;
@@ -92,7 +98,7 @@ static internal class ExpressivePropertyInterpreter
         }
 
         var descriptor = BuildDescriptor(
-            semanticModel, context, stubProperty, stubSymbol,
+            bodyBindingSemanticModel ?? semanticModel, context, stubProperty, stubSymbol,
             attributeData, containingType, targetName!);
         if (descriptor is null) return null;
 
