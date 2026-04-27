@@ -64,7 +64,13 @@ public static class OrderExt
 **Generated SQL:**
 
 ```sql
-SELECT "o"."Id", 'Regular' AS "Category"
+SELECT "o"."Id", CASE
+    WHEN (
+        SELECT COALESCE(SUM("l"."Quantity"), 0)
+        FROM "LineItems" AS "l"
+        WHERE "o"."Id" = "l"."OrderId") * 10 > 100 THEN 'Bulk'
+    ELSE 'Regular'
+END AS "Category"
 FROM "Orders" AS "o"
 ```
 
@@ -114,7 +120,17 @@ public static class OrderExt
 **Generated SQL:**
 
 ```sql
-SELECT "o"."Id", 'Budget' AS "Tier"
+SELECT "o"."Id", CASE
+    WHEN ef_compare((
+        SELECT COALESCE(ef_sum(ef_multiply("l"."UnitPrice", CAST("l"."Quantity" AS TEXT))), '0.0')
+        FROM "LineItems" AS "l"
+        WHERE "o"."Id" = "l"."OrderId"), '1000.0') >= 0 THEN 'Premium'
+    WHEN ef_compare((
+        SELECT COALESCE(ef_sum(ef_multiply("l0"."UnitPrice", CAST("l0"."Quantity" AS TEXT))), '0.0')
+        FROM "LineItems" AS "l0"
+        WHERE "o"."Id" = "l0"."OrderId"), '100.0') >= 0 THEN 'Standard'
+    ELSE 'Budget'
+END AS "Tier"
 FROM "Orders" AS "o"
 ```
 
@@ -266,7 +282,13 @@ public static class OrderExt
 **Generated SQL:**
 
 ```sql
-Specified method is not supported.
+.param set @Paid 1
+
+SELECT "o"."Id", CASE
+    WHEN "o"."Status" = @Paid THEN 'Active'
+    ELSE 'Inactive'
+END AS "Status"
+FROM "Orders" AS "o"
 ```
 
 Multiple independent early-return statements are converted to a nested ternary chain:
@@ -309,7 +331,13 @@ public static class ProductExt
 **Generated SQL:**
 
 ```sql
-Specified method is not supported.
+SELECT "p"."Name", CASE
+    WHEN ef_compare("p"."ListPrice", '1000.0') > 0 THEN 'Very High'
+    WHEN ef_compare("p"."ListPrice", '100.0') > 0 THEN 'High'
+    WHEN ef_compare("p"."ListPrice", '10.0') > 0 THEN 'Medium'
+    ELSE 'Low'
+END AS "Range"
+FROM "Products" AS "p"
 ```
 
 ***
@@ -614,7 +642,13 @@ public static class OrderExt
 **Generated SQL:**
 
 ```sql
-SELECT "o"."Id", 'Regular' AS "Category"
+SELECT "o"."Id", CASE
+    WHEN (
+        SELECT COALESCE(SUM("l"."Quantity"), 0)
+        FROM "LineItems" AS "l"
+        WHERE "o"."Id" = "l"."OrderId") * 10 > 100 THEN 'Bulk'
+    ELSE 'Regular'
+END AS "Category"
 FROM "Orders" AS "o"
 ```
 

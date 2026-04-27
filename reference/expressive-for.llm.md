@@ -170,6 +170,10 @@ public static class MyDtoBuilder
 }
 ```
 
+## Synthesizing a new property
+
+`[ExpressiveFor]` maps onto an **existing** member. If the target property does not yet exist and you want the generator to declare it for you (for example, so HotChocolate or EF Core projection middleware can bind to a settable member), use [`[ExpressiveProperty]`](./expressive-property) instead — it's the focused attribute for that case.
+
 ## Properties
 
 Both `[ExpressiveFor]` and `[ExpressiveForConstructor]` support the same optional properties as `[Expressive]`:
@@ -200,7 +204,22 @@ public static class MathBlockMappings
 **Generated SQL (SQLite):**
 
 ```sql
-Specified method is not supported.
+SELECT "o"."Id", "o"."CustomerId", "o"."PlacedAt", "o"."Status"
+FROM "Orders" AS "o"
+WHERE CASE
+    WHEN (
+        SELECT COUNT(*)
+        FROM "LineItems" AS "l"
+        WHERE "o"."Id" = "l"."OrderId") < 0 THEN 0
+    WHEN (
+        SELECT COUNT(*)
+        FROM "LineItems" AS "l0"
+        WHERE "o"."Id" = "l0"."OrderId") > 100 THEN 100
+    ELSE (
+        SELECT COUNT(*)
+        FROM "LineItems" AS "l1"
+        WHERE "o"."Id" = "l1"."OrderId")
+END > 5
 ```
 
 

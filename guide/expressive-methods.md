@@ -279,7 +279,13 @@ public static class OrderExt
 **Generated SQL:**
 
 ```sql
-SELECT "o"."Id", 'Regular' AS "Category"
+SELECT "o"."Id", CASE
+    WHEN (
+        SELECT COALESCE(SUM("l"."Quantity"), 0)
+        FROM "LineItems" AS "l"
+        WHERE "o"."Id" = "l"."OrderId") > 10 THEN 'Bulk'
+    ELSE 'Regular'
+END AS "Category"
 FROM "Orders" AS "o"
 ```
 
