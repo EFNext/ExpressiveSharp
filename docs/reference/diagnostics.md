@@ -38,6 +38,7 @@ See [Troubleshooting](./troubleshooting) for symptom-oriented guidance -- find t
 | [EXP0033](#exp0033) | Error | `[ExpressiveProperty]` requires an expression-bodied property stub | -- |
 | [EXP0034](#exp0034) | Error | `[ExpressiveProperty]` requires an instance stub | -- |
 | [EXP0035](#exp0035) | Error | `[ExpressiveProperty]` target shadows inherited member | -- |
+| [EXP0036](#exp0036) | Info | `IExpressiveQueryable<T>` chain dropped to plain `IQueryable<T>` | -- |
 | [EXP1001](#exp1001) | Warning | Replace `[Projectable]` with `[Expressive]` | [Replace attribute](#exp1001-fix) |
 | [EXP1002](#exp1002) | Warning | Replace `UseProjectables()` with `UseExpressives()` | [Replace method call](#exp1002-fix) |
 | [EXP1003](#exp1003) | Warning | Replace Projectables namespace | [Replace namespace](#exp1003-fix) |
@@ -642,6 +643,57 @@ on an override
 **Cause:** The target name matches a member inherited from a base class. Synthesizing a hidden member would silently shadow the base declaration, which is surprising and error-prone.
 
 **Fix:** Either pick a different target name, or drop `[ExpressiveProperty]` and make the computed value an `override` decorated with plain `[Expressive]`.
+
+---
+
+### EXP0036 -- `IExpressiveQueryable<T>` chain dropped to plain `IQueryable<T>` {#exp0036}
+
+**Severity:** Info
+**Category:** Usage
+
+**Message:**
+```
+'{0}' returns IQueryable<T> from an IExpressiveQueryable<T> receiver, dropping the expressive
+chain. Downstream LINQ skips ExpressiveSharp rewriting and [Expressive] members may evaluate
+on the client. Add an IExpressiveQueryable<T>-typed overload of '{0}', wrap the result with
+.AsExpressive(), or mark the method [NotExpressive] if the dropout is intentional.
+```
+
+**Cause:** A method invocation is being made on a receiver that implements `IExpressiveQueryable<T>`, but the method's return type is plain `IQueryable<T>` (or some derivative that is not also expressive). The chain loses its expressive type at this call site, and every downstream LINQ operation on the result skips ExpressiveSharp's rewrite step — `[Expressive]` members in subsequent `Where` / `Select` / `Include` / etc. fall back to runtime delegate invocation, which most providers cannot translate and will evaluate on the client.
+
+The diagnostic fires once, at the dropout point itself, regardless of how many further calls follow.
+
+**Common dropout shapes:**
+
+```csharp
+// User-defined helper typed on plain IQueryable<T> — drops the chain.
+public static IQueryable<T> Filter<T>(this IQueryable<T> source) => source.Where(...);
+
+db.Orders.AsExpressiveDbSet().Filter()  // ⚠ EXP0036 fires on .Filter()
+    .Include(o => o.Customer)           // chain is plain from here on
+    .ToList();
+```
+
+**Fix (preferred):** Add a sibling overload typed on `IExpressiveQueryable<T>` that returns `IExpressiveQueryable<T>`:
+
+```csharp
+public static IExpressiveQueryable<T> Filter<T>(this IExpressiveQueryable<T> source)
+    => source.Where(...);
+```
+
+**Fix (when the helper can't be modified):** wrap the result with `.AsExpressive()` to restore the chain:
+
+```csharp
+db.Orders.AsExpressiveDbSet()
+    .ThirdPartyHelper()      // returns plain IQueryable<Order>
+    .AsExpressive()          // re-wrap
+    .Include(o => o.Customer);
+```
+
+**Exemptions:**
+
+- `.AsQueryable()` — the standard explicit downcast — is sanctioned and never reported.
+- Marking the offending method with `[NotExpressive]` suppresses the diagnostic at every call site, for cases where the dropout is intentional (the helper performs work that genuinely needs to run on the client).
 
 ---
 
