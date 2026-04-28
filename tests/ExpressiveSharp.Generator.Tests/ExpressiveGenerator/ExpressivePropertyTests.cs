@@ -453,4 +453,35 @@ public class ExpressivePropertyTests : GeneratorTestBase
             result.GeneratedTrees.Select(t => t.ToString())));
     }
 
+    [TestMethod]
+    public Task BodyUsingQueryableWhereOrderBy_EmitsValidExpressionTree()
+    {
+        // Queryable.Where's predicate-shaped parameter must not leak the open type parameter (TSource → CS0246).
+        var compilation = CreateCompilation(
+            """
+            #nullable enable
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                public partial class BugB {
+                    public IQueryable<int> Source { get; init; } = null!;
+
+                    [ExpressiveProperty("Sorted")]
+                    private IEnumerable<int> SortedExpr => Source.Where(x => x > 0).OrderBy(x => x);
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length,
+            "Unexpected diagnostics: " + string.Join(", ", result.Diagnostics.Select(d => d.Id + ": " + d.GetMessage())));
+        Assert.AreEqual(2, result.GeneratedTrees.Length);
+
+        var generated = string.Join("\n", result.GeneratedTrees.Select(t => t.ToString()));
+        Assert.IsFalse(generated.Contains("TSource"),
+            "Generated code must not reference the open type parameter TSource.");
+
+        return Verifier.Verify(string.Join("\n\n// ===\n\n",
+            result.GeneratedTrees.Select(t => t.ToString())));
+    }
 }

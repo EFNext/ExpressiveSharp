@@ -62,8 +62,23 @@ internal sealed class ReflectionFieldCache
                     paramChecksBuilder.Append($" && m.GetParameters()[{i}].ParameterType.IsGenericType && !m.GetParameters()[{i}].ParameterType.IsGenericParameter");
                     for (int t = 0; t < genericParam.TypeArguments.Length; t++)
                     {
-                        if (genericParam.TypeArguments[t] is not ITypeParameterSymbol)
-                            paramChecksBuilder.Append($" && m.GetParameters()[{i}].ParameterType.GetGenericArguments()[{t}] == typeof({ResolveTypeFqn(genericParam.TypeArguments[t])})");
+                        var innerArg = genericParam.TypeArguments[t];
+                        if (innerArg is ITypeParameterSymbol)
+                            continue;
+
+                        if (ContainsTypeParameter(innerArg))
+                        {
+                            // Pin the open-generic shape; closed FQN would leak the method type parameter.
+                            if (innerArg is INamedTypeSymbol { IsGenericType: true } innerGeneric)
+                            {
+                                var openFqn = innerGeneric.ConstructUnboundGenericType().ToDisplayString(_fullyQualifiedFormat);
+                                paramChecksBuilder.Append($" && m.GetParameters()[{i}].ParameterType.GetGenericArguments()[{t}].IsGenericType && m.GetParameters()[{i}].ParameterType.GetGenericArguments()[{t}].GetGenericTypeDefinition() == typeof({openFqn})");
+                            }
+                        }
+                        else
+                        {
+                            paramChecksBuilder.Append($" && m.GetParameters()[{i}].ParameterType.GetGenericArguments()[{t}] == typeof({ResolveTypeFqn(innerArg)})");
+                        }
                     }
                 }
             }
@@ -85,5 +100,22 @@ internal sealed class ReflectionFieldCache
         var paramTypes = string.Join(", ", constructor.Parameters.Select(p =>
             $"typeof({ResolveTypeFqn(p.Type)})"));
         return $"typeof({typeFqn}).GetConstructor(new global::System.Type[] {{ {paramTypes} }})";
+    }
+
+    private static bool ContainsTypeParameter(ITypeSymbol type)
+    {
+        if (type is ITypeParameterSymbol)
+            return true;
+        if (type is INamedTypeSymbol named)
+        {
+            foreach (var arg in named.TypeArguments)
+            {
+                if (ContainsTypeParameter(arg))
+                    return true;
+            }
+        }
+        if (type is IArrayTypeSymbol arr)
+            return ContainsTypeParameter(arr.ElementType);
+        return false;
     }
 }
