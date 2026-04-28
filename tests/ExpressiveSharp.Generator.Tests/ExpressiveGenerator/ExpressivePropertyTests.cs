@@ -421,4 +421,36 @@ public class ExpressivePropertyTests : GeneratorTestBase
 
         Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0035"));
     }
+
+    [TestMethod]
+    public Task GenericReturnTypeWithInnerNullableReference_EmitsCorrectBackingFieldAnnotation()
+    {
+        // Outer non-nullable, inner ref-nullable — backing field must keep the inner ? to match the property.
+        var compilation = CreateCompilation(
+            """
+            #nullable enable
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                public partial class BugA {
+                    [ExpressiveProperty("Items")]
+                    private IEnumerable<Item?> ItemsExpr => new Item?[] { null };
+                }
+                public class Item;
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length,
+            "Unexpected diagnostics: " + string.Join(", ", result.Diagnostics.Select(d => d.Id + ": " + d.GetMessage())));
+        Assert.AreEqual(2, result.GeneratedTrees.Length);
+
+        var generated = string.Join("\n", result.GeneratedTrees.Select(t => t.ToString()));
+        StringAssert.Contains(generated, "IEnumerable<global::Foo.Item?>? _items",
+            "Backing field must preserve the inner ? on Item, otherwise the synthesized ?? trips CS8619.");
+
+        return Verifier.Verify(string.Join("\n\n// ===\n\n",
+            result.GeneratedTrees.Select(t => t.ToString())));
+    }
+
 }

@@ -245,7 +245,8 @@ static internal class ExpressivePropertyInterpreter
 
     private static string MakeNullableTypeFqn(ITypeSymbol type)
     {
-        var fqn = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        // Nullable format preserves inner ? (IEnumerable<Item?>) so the backing field matches the property.
+        var fqn = type.ToDisplayString(FullyQualifiedNullableFormat);
         if (type.IsValueType)
             return $"global::System.Nullable<{fqn}>";
         return fqn.EndsWith("?") ? fqn : fqn + "?";
