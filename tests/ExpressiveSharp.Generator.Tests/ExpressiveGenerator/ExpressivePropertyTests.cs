@@ -421,4 +421,129 @@ public class ExpressivePropertyTests : GeneratorTestBase
 
         Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0035"));
     }
+
+    [TestMethod]
+    public Task GenericReturnTypeWithInnerNullableReference_EmitsCorrectBackingFieldAnnotation()
+    {
+        // Outer non-nullable, inner ref-nullable — backing field must keep the inner ? to match the property.
+        var compilation = CreateCompilation(
+            """
+            #nullable enable
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                public partial class BugA {
+                    [ExpressiveProperty("Items")]
+                    private IEnumerable<Item?> ItemsExpr => new Item?[] { null };
+                }
+                public class Item;
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length,
+            "Unexpected diagnostics: " + string.Join(", ", result.Diagnostics.Select(d => d.Id + ": " + d.GetMessage())));
+        Assert.AreEqual(2, result.GeneratedTrees.Length);
+
+        var generated = string.Join("\n", result.GeneratedTrees.Select(t => t.ToString()));
+        StringAssert.Contains(generated, "IEnumerable<global::Foo.Item?>? _items",
+            "Backing field must preserve the inner ? on Item, otherwise the synthesized ?? trips CS8619.");
+
+        return Verifier.Verify(string.Join("\n\n// ===\n\n",
+            result.GeneratedTrees.Select(t => t.ToString())));
+    }
+
+    [TestMethod]
+    public void GenericMethodWithClosedInnerTypeArg_PinsByExactEquality()
+    {
+        // Inner type arg is concrete (List<int>), exercising the else branch in EnsureMethodInfo.
+        var compilation = CreateCompilation(
+            """
+            #nullable enable
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                public static class ListExt {
+                    public static T Pick<T>(this IEnumerable<T> src, List<int> filter) => default!;
+                }
+                public partial class ClosedInnerArg {
+                    public List<int> Filter { get; init; } = null!;
+
+                    [ExpressiveProperty("Head")]
+                    private string HeadExpr => new[] { "x" }.Pick(Filter);
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length,
+            "Unexpected diagnostics: " + string.Join(", ", result.Diagnostics.Select(d => d.Id + ": " + d.GetMessage())));
+
+        var generated = string.Join("\n", result.GeneratedTrees.Select(t => t.ToString()));
+        StringAssert.Contains(generated, "GetGenericArguments()[0] == typeof(int)",
+            "Closed inner type arg must be pinned by exact equality.");
+    }
+
+    [TestMethod]
+    public void GenericMethodWithArrayOfTypeParam_GeneratesValidCode()
+    {
+        // Inner type arg is T[] (IArrayTypeSymbol), exercising the array recursion in ContainsTypeParameter.
+        var compilation = CreateCompilation(
+            """
+            #nullable enable
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                public static class ArrExt {
+                    public static int Total<T>(this IEnumerable<T[]> source) => 0;
+                }
+                public partial class ArrayOfTypeParam {
+                    public IEnumerable<int[]> Source { get; init; } = null!;
+
+                    [ExpressiveProperty("Sum")]
+                    private int SumExpr => Source.Total();
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length,
+            "Unexpected diagnostics: " + string.Join(", ", result.Diagnostics.Select(d => d.Id + ": " + d.GetMessage())));
+
+        var generated = string.Join("\n", result.GeneratedTrees.Select(t => t.ToString()));
+        Assert.IsFalse(generated.Contains("typeof(T)") || generated.Contains("typeof(T["),
+            "Array-of-type-parameter slot must not leak the open type parameter into typeof().");
+    }
+
+    [TestMethod]
+    public Task BodyUsingQueryableWhereOrderBy_EmitsValidExpressionTree()
+    {
+        // Queryable.Where's predicate-shaped parameter must not leak the open type parameter (TSource → CS0246).
+        var compilation = CreateCompilation(
+            """
+            #nullable enable
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                public partial class BugB {
+                    public IQueryable<int> Source { get; init; } = null!;
+
+                    [ExpressiveProperty("Sorted")]
+                    private IEnumerable<int> SortedExpr => Source.Where(x => x > 0).OrderBy(x => x);
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length,
+            "Unexpected diagnostics: " + string.Join(", ", result.Diagnostics.Select(d => d.Id + ": " + d.GetMessage())));
+        Assert.AreEqual(2, result.GeneratedTrees.Length);
+
+        var generated = string.Join("\n", result.GeneratedTrees.Select(t => t.ToString()));
+        Assert.IsFalse(generated.Contains("TSource"),
+            "Generated code must not reference the open type parameter TSource.");
+
+        return Verifier.Verify(string.Join("\n\n// ===\n\n",
+            result.GeneratedTrees.Select(t => t.ToString())));
+    }
 }
