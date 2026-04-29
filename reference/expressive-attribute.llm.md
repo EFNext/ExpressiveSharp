@@ -165,6 +165,27 @@ ExpressiveOptions.Default.AddTransformers(new RemoveNullConditionalPatterns());
 expr.ExpandExpressives(); // RemoveNullConditionalPatterns applied automatically
 ```
 
+## Opting Out: `[NotExpressive]`
+
+Use `[NotExpressive]` to mark a member that *looks* expressive-eligible (it has an expression body that the source generator could lift) but should intentionally remain runtime-evaluated. The attribute suppresses the analyzer suggestions:
+
+- [EXP0013](./diagnostics#exp0013) — "Member could benefit from `[Expressive]`"
+- [EXP0027](./diagnostics#exp0027) — "Plain `IQueryable` chain references an `[Expressive]` member without `.AsExpressive()`"
+
+```csharp
+public class Order
+{
+    public Guid Id { get; set; }
+
+    // Always evaluated in-memory — captures process-local state that would not
+    // survive translation. Suppress the "could be [Expressive]" suggestion.
+    [NotExpressive]
+    public string DebugLabel => $"{Id} (pid {System.Environment.ProcessId})";
+}
+```
+
+`[NotExpressive]` cannot be combined with `[Expressive]` on the same member.
+
 ## Complete Example
 
 ```csharp
