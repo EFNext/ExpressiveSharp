@@ -140,6 +140,27 @@ public class SynthesizedExpressiveTests
     }
 
     [TestMethod]
+    public void IQueryableLambdaChain_FactoryEmitsQuote_RegistryInitSucceeds()
+    {
+        // Issue #50: registry static-ctor previously threw on lambda → Expression<TDelegate>.
+        var rows = new List<GroupedRow>
+        {
+            new() { Id = 1, GroupId = 1 },
+            new() { Id = 2, GroupId = 1 },
+            new() { Id = 3, GroupId = 2 },
+        };
+
+        var entity = new GroupedRow { Id = 4, GroupId = 1, Source = rows.AsQueryable() };
+        var source = new List<GroupedRow> { entity }.AsQueryable();
+
+        Expression<Func<GroupedRow, int>> previousIdExpr = r => r.PreviousId;
+        var expanded = (Expression<Func<GroupedRow, int>>)previousIdExpr.ExpandExpressives();
+        var result = source.Select(expanded.Compile()).Single();
+
+        Assert.AreEqual(2, result, "Should pick the highest-Id row in the same group below this one");
+    }
+
+    [TestMethod]
     public void ExpandExpressives_MemberInit_RewritesRhsOfProjection()
     {
         // Projection middleware pattern: `new T { DisplayLabel = src.DisplayLabel }`.
@@ -188,6 +209,20 @@ public partial class CrossReferencedPerson
 
     [ExpressiveProperty("FullName")]
     private string FullNameExpr => FirstName + " Doe";
+}
+
+// Issue #50: IQueryable<T> chain with lambda arguments inside an [ExpressiveProperty] body.
+public partial class GroupedRow
+{
+    public int Id { get; set; }
+    public int GroupId { get; set; }
+    public IQueryable<GroupedRow> Source { get; set; } = Array.Empty<GroupedRow>().AsQueryable();
+
+    [ExpressiveProperty("PreviousId")]
+    private int PreviousIdExpr => Source.Where(e => e.GroupId == GroupId && e.Id < Id)
+        .OrderByDescending(e => e.Id)
+        .Select(e => e.Id)
+        .FirstOrDefault();
 }
 
 /// <summary>

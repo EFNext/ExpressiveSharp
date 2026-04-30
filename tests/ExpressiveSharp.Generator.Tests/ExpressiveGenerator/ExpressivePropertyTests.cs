@@ -546,4 +546,46 @@ public class ExpressivePropertyTests : GeneratorTestBase
         return Verifier.Verify(string.Join("\n\n// ===\n\n",
             result.GeneratedTrees.Select(t => t.ToString())));
     }
+
+    [TestMethod]
+    public Task BodyUsingQueryableLambdaChain_EmitsExpressionQuoteNotConvert()
+    {
+        // Issue #50: lambda → Expression<TDelegate> must emit Expression.Quote.
+        var compilation = CreateCompilation(
+            """
+            #nullable enable
+            using ExpressiveSharp.Mapping;
+
+            namespace Foo {
+                public partial class Row {
+                    public int Id { get; init; }
+                    public int GroupId { get; init; }
+                    public DateTime CreatedAt { get; init; }
+
+                    [ExpressiveProperty("Previous")]
+                    private Row? PreviousExpr =>
+                        QueryContext.Query<Row>()
+                            .Where(f => f.GroupId == GroupId && f.CreatedAt < CreatedAt)
+                            .OrderByDescending(f => f.CreatedAt)
+                            .FirstOrDefault();
+                }
+
+                internal static class QueryContext {
+                    public static IQueryable<T> Query<T>() => Array.Empty<T>().AsQueryable();
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length,
+            "Unexpected diagnostics: " + string.Join(", ", result.Diagnostics.Select(d => d.Id + ": " + d.GetMessage())));
+
+        var generated = string.Join("\n", result.GeneratedTrees.Select(t => t.ToString()));
+        Assert.IsFalse(
+            generated.Contains("Expression.Convert(") && generated.Contains("typeof(global::System.Linq.Expressions.Expression<"),
+            "Lambda → Expression<TDelegate> must emit Expression.Quote, not Expression.Convert.");
+
+        return Verifier.Verify(string.Join("\n\n// ===\n\n",
+            result.GeneratedTrees.Select(t => t.ToString())));
+    }
 }

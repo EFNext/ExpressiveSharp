@@ -996,6 +996,15 @@ internal sealed class ExpressionTreeEmitter
         if (conversion.Operand is IThrowOperation throwOp && throwOp.Exception is not null)
             return EmitThrowWithType(throwOp, conversion.Type);
 
+        // Quoted-lambda conversion (Queryable.Where etc.) has no runtime coercion operator.
+        if (IsExpressionOfTDelegate(conversion.Type))
+        {
+            var quoteResult = NextVar();
+            var quoteOperand = EmitOperation(conversion.Operand);
+            AppendLine($"var {quoteResult} = {Expr}.Quote({quoteOperand});");
+            return quoteResult;
+        }
+
         var resultVar = NextVar();
         var operandVar = EmitOperation(conversion.Operand);
         var targetTypeFqn = conversion.Type?.ToDisplayString(_fqnFormat) ?? "object";
@@ -3207,6 +3216,12 @@ internal sealed class ExpressionTreeEmitter
     }
 
     private string NextVar() => $"{_varPrefix}expr_{_varCounter++}";
+
+    private static bool IsExpressionOfTDelegate(ITypeSymbol? type)
+        => type is INamedTypeSymbol { IsGenericType: true } named
+            && named.OriginalDefinition.ContainingNamespace?.ToDisplayString() == "System.Linq.Expressions"
+            && named.OriginalDefinition.Name == "Expression"
+            && named.TypeArguments.Length == 1;
 
     private void AppendLine(string line)
     {
