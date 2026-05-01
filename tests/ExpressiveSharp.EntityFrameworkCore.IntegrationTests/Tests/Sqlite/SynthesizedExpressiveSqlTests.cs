@@ -72,6 +72,30 @@ public class SynthesizedExpressiveSqlTests
     }
 
     [TestMethod]
+    public async Task SynthesizedProperty_BodyUsesStaticHelperIQueryable_TranslatesToCorrelatedSubquery()
+    {
+        // Issue #50 follow-up: [ExpressiveProperty] body uses IQueryable<T> from a static helper.
+        GroupedRowQueryContext.Db = Context;
+        Context.Rows.AddRange(
+            new GroupedRow { Id = 1, GroupId = 1, CreatedAt = new DateTime(2026, 1, 1) },
+            new GroupedRow { Id = 2, GroupId = 1, CreatedAt = new DateTime(2026, 1, 2) },
+            new GroupedRow { Id = 3, GroupId = 1, CreatedAt = new DateTime(2026, 1, 3) },
+            new GroupedRow { Id = 4, GroupId = 2, CreatedAt = new DateTime(2026, 1, 1) });
+        await Context.SaveChangesAsync();
+
+        var pairs = await Context.Rows
+            .OrderBy(r => r.Id)
+            .Select(r => new { r.Id, r.PreviousId })
+            .ToListAsync();
+
+        Assert.AreEqual(4, pairs.Count);
+        Assert.AreEqual(0, pairs[0].PreviousId);
+        Assert.AreEqual(1, pairs[1].PreviousId);
+        Assert.AreEqual(2, pairs[2].PreviousId);
+        Assert.AreEqual(0, pairs[3].PreviousId);
+    }
+
+    [TestMethod]
     public async Task SynthesizedProperty_WhereClauseFiltersOnFormula()
     {
         var filtered = await Context.People
@@ -96,6 +120,7 @@ public partial class SynthesizedPerson
 public class SynthesizedDbContext(DbContextOptions<SynthesizedDbContext> options) : DbContext(options)
 {
     public DbSet<SynthesizedPerson> People => Set<SynthesizedPerson>();
+    public DbSet<GroupedRow> Rows => Set<GroupedRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -104,5 +129,31 @@ public class SynthesizedDbContext(DbContextOptions<SynthesizedDbContext> options
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).ValueGeneratedNever();
         });
+        modelBuilder.Entity<GroupedRow>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedNever();
+        });
     }
+}
+
+internal static class GroupedRowQueryContext
+{
+    public static SynthesizedDbContext Db { get; set; } = null!;
+    public static IQueryable<T> Query<T>() where T : class => Db.Set<T>();
+}
+
+public partial class GroupedRow
+{
+    public int Id { get; init; }
+    public int GroupId { get; init; }
+    public DateTime CreatedAt { get; init; }
+
+    [ExpressiveProperty("PreviousId")]
+    private int PreviousIdExpr =>
+        GroupedRowQueryContext.Query<GroupedRow>()
+            .Where(r => r.GroupId == GroupId && r.CreatedAt < CreatedAt)
+            .OrderByDescending(r => r.CreatedAt)
+            .Select(r => r.Id)
+            .FirstOrDefault();
 }
