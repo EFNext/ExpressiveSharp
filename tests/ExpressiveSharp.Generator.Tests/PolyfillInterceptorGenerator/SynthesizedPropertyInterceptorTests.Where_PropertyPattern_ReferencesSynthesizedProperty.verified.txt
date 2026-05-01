@@ -16,7 +16,7 @@ namespace ExpressiveSharp.Generated.Interceptors
             var i361d21c18_expr_0 = global::System.Linq.Expressions.Expression.NotEqual(i361d21c18_p_s, i361d21c18_expr_1);
             var i361d21c18_expr_2 = global::System.Linq.Expressions.Expression.TypeIs(i361d21c18_p_s, typeof(global::TestNs.Rectangle));
             var i361d21c18_expr_3 = global::System.Linq.Expressions.Expression.Convert(i361d21c18_p_s, typeof(global::TestNs.Rectangle));
-            var i361d21c18_expr_4 = global::System.Linq.Expressions.Expression.Property(i361d21c18_expr_3, typeof(global::TestNs.Rectangle).GetProperty("IsSquareProp"));
+            var i361d21c18_expr_4 = global::System.Linq.Expressions.Expression.Property(i361d21c18_expr_3, typeof(global::TestNs.Rectangle).GetProperty("IsSquareProp", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance));
             var i361d21c18_expr_6 = global::System.Linq.Expressions.Expression.Constant(true, typeof(bool)); // true
             var i361d21c18_expr_5 = global::System.Linq.Expressions.Expression.Equal(i361d21c18_expr_4, i361d21c18_expr_6);
             var i361d21c18_expr_7 = global::System.Linq.Expressions.Expression.AndAlso(i361d21c18_expr_0, i361d21c18_expr_2);

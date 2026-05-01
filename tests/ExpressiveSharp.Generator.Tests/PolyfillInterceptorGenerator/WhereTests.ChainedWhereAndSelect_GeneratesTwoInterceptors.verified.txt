@@ -12,7 +12,7 @@ namespace ExpressiveSharp.Generated.Interceptors
         {
             // Source: o => o.Name
             var i361d11c18_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var i361d11c18_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d11c18_p_o, typeof(global::TestNs.Order).GetProperty("Name")); // o.Name
+            var i361d11c18_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d11c18_p_o, typeof(global::TestNs.Order).GetProperty("Name", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Name
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, string>>(i361d11c18_expr_0, i361d11c18_p_o);
             return global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                 global::System.Linq.Queryable.Select(
@@ -26,7 +26,7 @@ namespace ExpressiveSharp.Generated.Interceptors
         {
             // Source: o => o.Tag == "urgent"
             var i361d10c18_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var i361d10c18_expr_1 = global::System.Linq.Expressions.Expression.Property(i361d10c18_p_o, typeof(global::TestNs.Order).GetProperty("Tag")); // o.Tag
+            var i361d10c18_expr_1 = global::System.Linq.Expressions.Expression.Property(i361d10c18_p_o, typeof(global::TestNs.Order).GetProperty("Tag", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Tag
             var i361d10c18_expr_2 = global::System.Linq.Expressions.Expression.Constant("urgent", typeof(string)); // "urgent"
             var i361d10c18_expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Equal, i361d10c18_expr_1, i361d10c18_expr_2);
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, bool>>(i361d10c18_expr_0, i361d10c18_p_o);

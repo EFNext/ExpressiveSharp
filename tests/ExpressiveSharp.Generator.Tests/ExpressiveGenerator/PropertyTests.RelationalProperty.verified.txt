@@ -12,8 +12,8 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foos.Bar, int>> FooId_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foos.Bar), "@this");
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foos.Bar).GetProperty("Foo")); // Foo
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(expr_1, typeof(global::Foos.Foo).GetProperty("Id"));
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foos.Bar).GetProperty("Foo", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Foo
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(expr_1, typeof(global::Foos.Foo).GetProperty("Id", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance));
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foos.Bar, int>>(expr_0, p__this);
         }
     }

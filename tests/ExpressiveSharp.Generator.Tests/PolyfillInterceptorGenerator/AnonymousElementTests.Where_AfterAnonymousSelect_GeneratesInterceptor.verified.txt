@@ -12,7 +12,7 @@ namespace ExpressiveSharp.Generated.Interceptors
         {
             // Source: x => x.Total > 100m
             var i361d11c18_p_x = global::System.Linq.Expressions.Expression.Parameter(typeof(T0), "x");
-            var i361d11c18_expr_1 = global::System.Linq.Expressions.Expression.Property(i361d11c18_p_x, typeof(T0).GetProperty("Total")); // x.Total
+            var i361d11c18_expr_1 = global::System.Linq.Expressions.Expression.Property(i361d11c18_p_x, typeof(T0).GetProperty("Total", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // x.Total
             var i361d11c18_expr_2 = global::System.Linq.Expressions.Expression.Constant(100m, typeof(decimal)); // 100m
             var i361d11c18_expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.GreaterThan, i361d11c18_expr_1, i361d11c18_expr_2);
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<T0, bool>>(i361d11c18_expr_0, i361d11c18_p_x);
@@ -29,8 +29,8 @@ namespace ExpressiveSharp.Generated.Interceptors
         {
             // Source: o => new { o.Id, o.Total }
             var i361d10c18_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(T0), "o");
-            var i361d10c18_expr_1 = global::System.Linq.Expressions.Expression.Property(i361d10c18_p_o, typeof(T0).GetProperty("Id")); // o.Id
-            var i361d10c18_expr_2 = global::System.Linq.Expressions.Expression.Property(i361d10c18_p_o, typeof(T0).GetProperty("Total")); // o.Total
+            var i361d10c18_expr_1 = global::System.Linq.Expressions.Expression.Property(i361d10c18_p_o, typeof(T0).GetProperty("Id", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Id
+            var i361d10c18_expr_2 = global::System.Linq.Expressions.Expression.Property(i361d10c18_p_o, typeof(T0).GetProperty("Total", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Total
             var i361d10c18_expr_3 = typeof(T1).GetConstructors()[0];
             var i361d10c18_expr_0 = global::System.Linq.Expressions.Expression.New(i361d10c18_expr_3, new global::System.Linq.Expressions.Expression[] { i361d10c18_expr_1, i361d10c18_expr_2 }, new global::System.Reflection.MemberInfo[] { typeof(T1).GetProperty("Id"), typeof(T1).GetProperty("Total") });
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<T0, T1>>(i361d10c18_expr_0, i361d10c18_p_o);

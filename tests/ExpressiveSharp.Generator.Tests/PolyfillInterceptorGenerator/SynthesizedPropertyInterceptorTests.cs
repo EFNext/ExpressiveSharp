@@ -52,7 +52,7 @@ public class SynthesizedPropertyInterceptorTests : GeneratorTestBase
         Assert.AreEqual(1, result.GeneratedTrees.Length);
 
         var generated = result.GeneratedTrees[0].GetText().ToString();
-        StringAssert.Contains(generated, "typeof(global::TestNs.Rectangle).GetProperty(\"IsSquareProp\")");
+        StringAssert.Contains(generated, "typeof(global::TestNs.Rectangle).GetProperty(\"IsSquareProp\",");
 
         return Verifier.Verify(generated);
     }
@@ -92,7 +92,7 @@ public class SynthesizedPropertyInterceptorTests : GeneratorTestBase
         Assert.AreEqual(1, result.GeneratedTrees.Length);
 
         var generated = result.GeneratedTrees[0].GetText().ToString();
-        StringAssert.Contains(generated, "typeof(global::TestNs.Account).GetProperty(\"FullName\")");
+        StringAssert.Contains(generated, "typeof(global::TestNs.Account).GetProperty(\"FullName\",");
 
         return Verifier.Verify(generated);
     }

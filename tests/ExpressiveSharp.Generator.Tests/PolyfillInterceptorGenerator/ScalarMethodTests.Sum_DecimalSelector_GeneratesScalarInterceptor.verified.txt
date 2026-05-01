@@ -12,7 +12,7 @@ namespace ExpressiveSharp.Generated.Interceptors
         {
             // Source: o => o.Amount
             var i361d9c46_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var i361d9c46_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d9c46_p_o, typeof(global::TestNs.Order).GetProperty("Amount")); // o.Amount
+            var i361d9c46_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d9c46_p_o, typeof(global::TestNs.Order).GetProperty("Amount", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Amount
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, decimal>>(i361d9c46_expr_0, i361d9c46_p_o);
             return global::System.Linq.Queryable.Sum(
                     (global::System.Linq.IQueryable<global::TestNs.Order>)source,

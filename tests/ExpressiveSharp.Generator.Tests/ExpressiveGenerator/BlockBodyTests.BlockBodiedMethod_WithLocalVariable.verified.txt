@@ -17,7 +17,7 @@ namespace ExpressiveSharp.Generated
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
             var expr_0 = global::System.Linq.Expressions.Expression.Variable(typeof(int), "temp"); // {             var temp = Bar * 2;             return temp...
-            var expr_2 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Bar")); // Bar
+            var expr_2 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Bar", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Bar
             var expr_3 = global::System.Linq.Expressions.Expression.Constant(2, typeof(int)); // 2
             var expr_1 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Multiply, expr_2, expr_3);
             var expr_4 = global::System.Linq.Expressions.Expression.Assign(expr_0, expr_1);

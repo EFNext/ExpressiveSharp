@@ -22,7 +22,7 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, global::System.Collections.Generic.Dictionary<string, int>>> Map_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
-            var expr_1 = global::System.Linq.Expressions.Expression.New(typeof(global::System.Collections.Generic.Dictionary<string, int>).GetConstructor(new global::System.Type[] {  })); // new Dictionary<string, int> { { "a", 1 }, { "b", 2 } }
+            var expr_1 = global::System.Linq.Expressions.Expression.New(typeof(global::System.Collections.Generic.Dictionary<string, int>).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null)); // new Dictionary<string, int> { { "a", 1 }, { "b", 2 } }
             var expr_2 = global::System.Linq.Expressions.Expression.Constant("a", typeof(string)); // "a"
             var expr_3 = global::System.Linq.Expressions.Expression.Constant(1, typeof(int)); // 1
             var expr_4 = global::System.Linq.Expressions.Expression.ElementInit(typeof(global::System.Collections.Generic.Dictionary<string, int>).GetMethod("Add", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] { typeof(string), typeof(int) }, null), expr_2, expr_3);

@@ -18,7 +18,7 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Entity, string>> GetGrade_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Entity), "@this");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Entity).GetProperty("Score")); // Score
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Entity).GetProperty("Score", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Score
             var expr_1 = global::System.Linq.Expressions.Expression.Constant("F", typeof(string)); // "F"
             var expr_3 = global::System.Linq.Expressions.Expression.Constant(70, typeof(int)); // 70
             var expr_2 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.GreaterThanOrEqual, expr_0, expr_3);

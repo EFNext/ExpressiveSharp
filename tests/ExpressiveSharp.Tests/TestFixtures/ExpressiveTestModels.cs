@@ -48,3 +48,12 @@ public class Product
     [Expressive]
     public string Label() => $"Product {Id}";
 }
+
+// Issue #50 follow-up: non-public [Expressive] member.
+public class NonPublicExpressive
+{
+    internal int Width { get; init; }
+
+    [Expressive]
+    internal int DoubledWidth => Width * 2;
+}

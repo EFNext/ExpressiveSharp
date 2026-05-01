@@ -30,7 +30,7 @@ namespace ExpressiveSharp.Generated
             var expr_6 = global::System.Linq.Expressions.Expression.Call(p_items, typeof(global::System.Collections.Generic.IEnumerable<int>).GetMethod("GetEnumerator", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null));
             var expr_7 = global::System.Linq.Expressions.Expression.Assign(expr_5, expr_6);
             var expr_8 = global::System.Linq.Expressions.Expression.Label("break");
-            var expr_9 = global::System.Linq.Expressions.Expression.Property(expr_5, typeof(global::System.Collections.Generic.IEnumerator<int>).GetProperty("Current"));
+            var expr_9 = global::System.Linq.Expressions.Expression.Property(expr_5, typeof(global::System.Collections.Generic.IEnumerator<int>).GetProperty("Current", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance));
             var expr_10 = global::System.Linq.Expressions.Expression.Assign(expr_4, expr_9);
             var expr_12 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Multiply, expr_0, expr_4); // product * x
             var expr_11 = global::System.Linq.Expressions.Expression.Assign(expr_0, expr_12);

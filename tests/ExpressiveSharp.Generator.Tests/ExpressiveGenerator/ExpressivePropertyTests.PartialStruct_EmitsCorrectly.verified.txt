@@ -13,11 +13,11 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Point, double>> Magnitude_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Point), "@this");
-            var expr_3 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Point).GetProperty("X")); // X
-            var expr_4 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Point).GetProperty("X")); // X
+            var expr_3 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Point).GetProperty("X", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // X
+            var expr_4 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Point).GetProperty("X", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // X
             var expr_2 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Multiply, expr_3, expr_4);
-            var expr_6 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Point).GetProperty("Y")); // Y
-            var expr_7 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Point).GetProperty("Y")); // Y
+            var expr_6 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Point).GetProperty("Y", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Y
+            var expr_7 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Point).GetProperty("Y", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Y
             var expr_5 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Multiply, expr_6, expr_7);
             var expr_1 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_2, expr_5);
             var expr_0 = global::System.Linq.Expressions.Expression.Call(typeof(global::System.Math).GetMethod("Sqrt", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(double) }, null), new global::System.Linq.Expressions.Expression[] { expr_1 });

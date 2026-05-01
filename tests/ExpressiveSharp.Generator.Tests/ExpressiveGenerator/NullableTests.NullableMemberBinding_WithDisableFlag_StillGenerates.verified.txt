@@ -12,7 +12,7 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<string, int?>> GetLength_P0_string_Expression() 
         {
             var p_input = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "input");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_input, typeof(string).GetProperty("Length")); // .Length
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_input, typeof(string).GetProperty("Length", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // .Length
             var expr_1 = global::System.Linq.Expressions.Expression.Convert(expr_0, typeof(int?));
             var expr_3 = global::System.Linq.Expressions.Expression.Constant(null, typeof(string));
             var expr_4 = global::System.Linq.Expressions.Expression.NotEqual(p_input, expr_3);

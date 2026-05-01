@@ -12,7 +12,7 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Projectables.Repro.Derived, string>> Bar_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Projectables.Repro.Derived), "@this");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Projectables.Repro.Base).GetProperty("Foo")); // base.Foo
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Projectables.Repro.Base).GetProperty("Foo", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // base.Foo
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Projectables.Repro.Derived, string>>(expr_0, p__this);
         }
     }

@@ -38,7 +38,7 @@ namespace ExpressiveSharp.Generated
             var p_isLoggedIn = global::System.Linq.Expressions.Expression.Parameter(typeof(bool), "isLoggedIn");
             var p_isVerified = global::System.Linq.Expressions.Expression.Parameter(typeof(bool), "isVerified");
             var p_isAdmin = global::System.Linq.Expressions.Expression.Parameter(typeof(bool), "isAdmin");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.AccessDto).GetConstructor(new global::System.Type[] {  }));
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.AccessDto).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null));
             var expr_1 = global::System.Linq.Expressions.Expression.Constant("Full", typeof(string)); // "Full"
             var expr_2 = global::System.Linq.Expressions.Expression.Constant("Verified", typeof(string)); // "Verified"
             var expr_3 = global::System.Linq.Expressions.Expression.Condition(p_isAdmin, expr_1, expr_2, typeof(string));
@@ -46,7 +46,7 @@ namespace ExpressiveSharp.Generated
             var expr_5 = global::System.Linq.Expressions.Expression.Condition(p_isVerified, expr_3, expr_4, typeof(string));
             var expr_6 = global::System.Linq.Expressions.Expression.Constant("Guest", typeof(string)); // "Guest"
             var expr_7 = global::System.Linq.Expressions.Expression.Condition(p_isLoggedIn, expr_5, expr_6, typeof(string));
-            var expr_8 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.AccessDto).GetProperty("Access"), expr_7);
+            var expr_8 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.AccessDto).GetProperty("Access", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), expr_7);
             var expr_9 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_8);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<bool, bool, bool, global::Foo.AccessDto>>(expr_9, p_isLoggedIn, p_isVerified, p_isAdmin);
         }

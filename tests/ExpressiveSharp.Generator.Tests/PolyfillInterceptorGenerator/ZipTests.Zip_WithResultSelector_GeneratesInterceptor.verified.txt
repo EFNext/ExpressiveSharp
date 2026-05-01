@@ -14,7 +14,7 @@ namespace ExpressiveSharp.Generated.Interceptors
             // Source: (o, p) => o.Name
             var i361d11c19_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
             var i361d11c19_p_p = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Price), "p");
-            var i361d11c19_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d11c19_p_o, typeof(global::TestNs.Order).GetProperty("Name")); // o.Name
+            var i361d11c19_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d11c19_p_o, typeof(global::TestNs.Order).GetProperty("Name", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Name
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, global::TestNs.Price, string>>(i361d11c19_expr_0, i361d11c19_p_o, i361d11c19_p_p);
             return global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                 global::System.Linq.Queryable.Zip(

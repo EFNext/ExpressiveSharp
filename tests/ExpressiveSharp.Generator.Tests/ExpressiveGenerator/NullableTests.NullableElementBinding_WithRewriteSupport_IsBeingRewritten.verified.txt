@@ -12,7 +12,7 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<string, string>> GetFirst_P0_string_Expression() 
         {
             var p_input = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "input");
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p_input, typeof(string).GetProperty("this[]")); // [0]
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p_input, typeof(string).GetProperty("this[]", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // [0]
             var expr_0 = global::System.Linq.Expressions.Expression.Call(expr_1, typeof(char).GetMethod("ToString", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null), global::System.Array.Empty<global::System.Linq.Expressions.Expression>());
             var expr_3 = global::System.Linq.Expressions.Expression.Constant(null, typeof(string));
             var expr_4 = global::System.Linq.Expressions.Expression.NotEqual(p_input, expr_3);

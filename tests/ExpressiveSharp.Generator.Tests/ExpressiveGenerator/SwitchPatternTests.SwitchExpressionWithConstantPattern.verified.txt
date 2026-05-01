@@ -21,7 +21,7 @@ namespace ExpressiveSharp.Generated
             var expr_0 = global::System.Linq.Expressions.Expression.Constant(1000, typeof(int)); // 1000
             var expr_2 = global::System.Linq.Expressions.Expression.Constant(4, typeof(int)); // 4
             var expr_1 = global::System.Linq.Expressions.Expression.Equal(p_input, expr_2);
-            var expr_4 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo).GetProperty("FancyNumber")); // FancyNumber
+            var expr_4 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo).GetProperty("FancyNumber", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // FancyNumber
             var expr_6 = global::System.Linq.Expressions.Expression.Constant(12, typeof(int)); // 12
             var expr_5 = global::System.Linq.Expressions.Expression.Convert(expr_6, typeof(int?));
             var expr_3 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Equal, expr_4, expr_5);

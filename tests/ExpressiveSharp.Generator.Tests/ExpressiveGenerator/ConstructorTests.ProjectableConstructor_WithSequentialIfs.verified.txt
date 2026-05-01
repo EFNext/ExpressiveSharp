@@ -25,7 +25,7 @@ namespace ExpressiveSharp.Generated
         {
             var p_role = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "role");
             var p_verified = global::System.Linq.Expressions.Expression.Parameter(typeof(bool), "verified");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.FlagDto).GetConstructor(new global::System.Type[] {  }));
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.FlagDto).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null));
             var expr_1 = global::System.Linq.Expressions.Expression.Constant(true, typeof(bool)); // true
             var expr_2 = global::System.Linq.Expressions.Expression.Default(typeof(bool));
             var expr_3 = global::System.Linq.Expressions.Expression.Condition(p_verified, expr_1, expr_2, typeof(bool));
@@ -34,9 +34,9 @@ namespace ExpressiveSharp.Generated
             var expr_5 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Equal, p_role, expr_6);
             var expr_7 = global::System.Linq.Expressions.Expression.Default(typeof(bool));
             var expr_8 = global::System.Linq.Expressions.Expression.Condition(expr_5, expr_4, expr_7, typeof(bool));
-            var expr_9 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.FlagDto).GetProperty("Tag"), p_role);
-            var expr_10 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.FlagDto).GetProperty("IsVerified"), expr_3);
-            var expr_11 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.FlagDto).GetProperty("IsAdmin"), expr_8);
+            var expr_9 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.FlagDto).GetProperty("Tag", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), p_role);
+            var expr_10 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.FlagDto).GetProperty("IsVerified", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), expr_3);
+            var expr_11 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.FlagDto).GetProperty("IsAdmin", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), expr_8);
             var expr_12 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_9, expr_10, expr_11);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<string, bool, global::Foo.FlagDto>>(expr_12, p_role, p_verified);
         }

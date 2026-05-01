@@ -20,7 +20,7 @@ namespace ExpressiveSharp.Generated
             var expr_0 = global::System.Linq.Expressions.Expression.Constant("other", typeof(string)); // "other"
             var expr_2 = global::System.Linq.Expressions.Expression.Constant(null, typeof(global::Point));
             var expr_1 = global::System.Linq.Expressions.Expression.NotEqual(p_point, expr_2);
-            var expr_3 = global::System.Linq.Expressions.Expression.Property(p_point, typeof(global::Point).GetProperty("X"));
+            var expr_3 = global::System.Linq.Expressions.Expression.Property(p_point, typeof(global::Point).GetProperty("X", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance));
             var expr_5 = global::System.Linq.Expressions.Expression.Constant(0, typeof(int)); // 0
             var expr_4 = global::System.Linq.Expressions.Expression.Equal(expr_3, expr_5);
             var expr_6 = global::System.Linq.Expressions.Expression.AndAlso(expr_1, expr_4);
@@ -28,7 +28,7 @@ namespace ExpressiveSharp.Generated
             var expr_8 = global::System.Linq.Expressions.Expression.Condition(expr_6, expr_7, expr_0, typeof(string));
             var expr_10 = global::System.Linq.Expressions.Expression.Constant(null, typeof(global::Point));
             var expr_9 = global::System.Linq.Expressions.Expression.NotEqual(p_point, expr_10);
-            var expr_11 = global::System.Linq.Expressions.Expression.Property(p_point, typeof(global::Point).GetProperty("Y"));
+            var expr_11 = global::System.Linq.Expressions.Expression.Property(p_point, typeof(global::Point).GetProperty("Y", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance));
             var expr_13 = global::System.Linq.Expressions.Expression.Constant(0, typeof(int)); // 0
             var expr_12 = global::System.Linq.Expressions.Expression.Equal(expr_11, expr_13);
             var expr_14 = global::System.Linq.Expressions.Expression.AndAlso(expr_9, expr_12);
@@ -36,10 +36,10 @@ namespace ExpressiveSharp.Generated
             var expr_16 = global::System.Linq.Expressions.Expression.Condition(expr_14, expr_15, expr_8, typeof(string));
             var expr_18 = global::System.Linq.Expressions.Expression.Constant(null, typeof(global::Point));
             var expr_17 = global::System.Linq.Expressions.Expression.NotEqual(p_point, expr_18);
-            var expr_19 = global::System.Linq.Expressions.Expression.Property(p_point, typeof(global::Point).GetProperty("X"));
+            var expr_19 = global::System.Linq.Expressions.Expression.Property(p_point, typeof(global::Point).GetProperty("X", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance));
             var expr_21 = global::System.Linq.Expressions.Expression.Constant(0, typeof(int)); // 0
             var expr_20 = global::System.Linq.Expressions.Expression.Equal(expr_19, expr_21);
-            var expr_22 = global::System.Linq.Expressions.Expression.Property(p_point, typeof(global::Point).GetProperty("Y"));
+            var expr_22 = global::System.Linq.Expressions.Expression.Property(p_point, typeof(global::Point).GetProperty("Y", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance));
             var expr_24 = global::System.Linq.Expressions.Expression.Constant(0, typeof(int)); // 0
             var expr_23 = global::System.Linq.Expressions.Expression.Equal(expr_22, expr_24);
             var expr_25 = global::System.Linq.Expressions.Expression.AndAlso(expr_17, expr_20);

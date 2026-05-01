@@ -14,7 +14,7 @@ namespace ExpressiveSharp.Generated
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
             var expr_1 = global::System.Linq.Expressions.Expression.Constant(1, typeof(int)); // 1
             var expr_2 = global::System.Linq.Expressions.Expression.NewArrayInit(typeof(int), expr_1);
-            var expr_3 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Items")); // Items
+            var expr_3 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Items", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Items
             var expr_4 = global::System.Linq.Expressions.Expression.Constant(2, typeof(int)); // 2
             var expr_5 = global::System.Linq.Expressions.Expression.NewArrayInit(typeof(int), expr_4);
             var expr_6 = global::System.Linq.Expressions.Expression.Call(global::System.Linq.Enumerable.First(global::System.Linq.Enumerable.Where(typeof(global::System.Linq.Enumerable).GetMethods(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static), m => m.Name == "Concat" && m.IsGenericMethodDefinition && m.GetGenericArguments().Length == 1 && m.GetParameters().Length == 2 && m.GetParameters()[0].ParameterType.IsGenericType && !m.GetParameters()[0].ParameterType.IsGenericParameter && m.GetParameters()[1].ParameterType.IsGenericType && !m.GetParameters()[1].ParameterType.IsGenericParameter)).MakeGenericMethod(typeof(int)), expr_2, expr_3);

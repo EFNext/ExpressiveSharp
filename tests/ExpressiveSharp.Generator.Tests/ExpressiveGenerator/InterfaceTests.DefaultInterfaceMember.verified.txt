@@ -11,7 +11,7 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::IDefaultBase, int>> Default_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::IDefaultBase), "@this");
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::IBase).GetProperty("ComputedProperty")); // ComputedProperty
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::IBase).GetProperty("ComputedProperty", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // ComputedProperty
             var expr_2 = global::System.Linq.Expressions.Expression.Constant(2, typeof(int)); // 2
             var expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Multiply, expr_1, expr_2);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::IDefaultBase, int>>(expr_0, p__this);

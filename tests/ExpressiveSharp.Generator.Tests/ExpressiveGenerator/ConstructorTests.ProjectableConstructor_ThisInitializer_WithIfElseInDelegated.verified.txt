@@ -16,11 +16,11 @@ namespace ExpressiveSharp.Generated
         {
             var p_score = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "score");
             var p_prefix = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "prefix");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PersonDto).GetConstructor(new global::System.Type[] { typeof(int) }), p_score);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PersonDto).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] { typeof(int) }, null), p_score);
             var p___this = global::System.Linq.Expressions.Expression.Parameter(typeof(object), "@this"); // Label
-            var expr_2 = global::System.Linq.Expressions.Expression.Property(p___this, typeof(global::Foo.PersonDto).GetProperty("Label"));
+            var expr_2 = global::System.Linq.Expressions.Expression.Property(p___this, typeof(global::Foo.PersonDto).GetProperty("Label", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance));
             var expr_1 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), p_prefix, expr_2);
-            var expr_3 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("Label"), expr_1);
+            var expr_3 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("Label", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), expr_1);
             var expr_4 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_3);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<int, string, global::Foo.PersonDto>>(expr_4, p_score, p_prefix);
         }

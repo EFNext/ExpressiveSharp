@@ -13,7 +13,7 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Entity, string>> MyEnumName_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Entity), "@this");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Entity).GetProperty("MyValue")); // MyValue
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Entity).GetProperty("MyValue", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // MyValue
             var expr_1 = global::System.Linq.Expressions.Expression.Constant(null, typeof(string));
             var expr_2 = global::System.Linq.Expressions.Expression.Constant(global::Foo.CustomEnum.Value2, typeof(global::Foo.CustomEnum));
             var expr_3 = global::System.Linq.Expressions.Expression.Call(typeof(global::Foo.EnumExtensions).GetMethod("GetDisplayName", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(global::Foo.CustomEnum) }, null), new global::System.Linq.Expressions.Expression[] { expr_2 });

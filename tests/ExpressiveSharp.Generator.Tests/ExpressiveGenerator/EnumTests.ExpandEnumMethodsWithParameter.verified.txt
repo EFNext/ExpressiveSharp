@@ -12,7 +12,7 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Entity, string>> StatusWithPrefix_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Entity), "@this");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Entity).GetProperty("Status")); // Status
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Entity).GetProperty("Status", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Status
             var expr_1 = global::System.Linq.Expressions.Expression.Constant(null, typeof(string));
             var expr_2 = global::System.Linq.Expressions.Expression.Constant(global::Foo.Status.Rejected, typeof(global::Foo.Status));
             var expr_3 = global::System.Linq.Expressions.Expression.Constant("Status: ", typeof(string)); // "Status: "

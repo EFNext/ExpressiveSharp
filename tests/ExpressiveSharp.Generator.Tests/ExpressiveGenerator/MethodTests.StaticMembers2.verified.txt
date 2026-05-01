@@ -12,7 +12,7 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Foo, int>> IdWithBar_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Foo), "@this");
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Foo).GetProperty("Id")); // Id
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Foo).GetProperty("Id", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Id
             var expr_2 = global::System.Linq.Expressions.Expression.Field(null, typeof(global::Foo.Constants).GetField("Bar", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static)); // Constants.Bar
             var expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, expr_1, expr_2);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.Foo, int>>(expr_0, p__this);

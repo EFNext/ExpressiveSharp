@@ -12,8 +12,8 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int?>> Foo_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Bar")); // Bar
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(expr_0, typeof(string).GetProperty("Length")); // .Length
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Bar", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Bar
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(expr_0, typeof(string).GetProperty("Length", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // .Length
             var expr_2 = global::System.Linq.Expressions.Expression.Convert(expr_1, typeof(int?));
             var expr_4 = global::System.Linq.Expressions.Expression.Constant(null, typeof(string));
             var expr_5 = global::System.Linq.Expressions.Expression.NotEqual(expr_0, expr_4);

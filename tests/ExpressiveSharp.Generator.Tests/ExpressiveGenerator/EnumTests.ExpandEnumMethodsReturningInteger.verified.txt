@@ -12,7 +12,7 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Entity, int>> PrioritySortOrder_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Entity), "@this");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Entity).GetProperty("Priority")); // Priority
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Entity).GetProperty("Priority", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Priority
             var expr_1 = global::System.Linq.Expressions.Expression.Default(typeof(int));
             var expr_2 = global::System.Linq.Expressions.Expression.Constant(global::Foo.Priority.High, typeof(global::Foo.Priority));
             var expr_3 = global::System.Linq.Expressions.Expression.Call(typeof(global::Foo.EnumExtensions).GetMethod("GetSortOrder", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(global::Foo.Priority) }, null), new global::System.Linq.Expressions.Expression[] { expr_2 });

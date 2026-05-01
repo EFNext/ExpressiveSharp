@@ -13,10 +13,10 @@ namespace ExpressiveSharp.Generated
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
             var expr_0 = global::System.Linq.Expressions.Expression.Constant("#", typeof(string)); // $"#{Id}: {Tag ?? "N/A"}"
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Id")); // Id
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Id", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Id
             var expr_2 = global::System.Linq.Expressions.Expression.Call(expr_1, typeof(int).GetMethod("ToString", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null));
             var expr_3 = global::System.Linq.Expressions.Expression.Constant(": ", typeof(string));
-            var expr_5 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Tag")); // Tag
+            var expr_5 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Tag", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Tag
             var expr_6 = global::System.Linq.Expressions.Expression.Constant("N/A", typeof(string)); // "N/A"
             var expr_4 = global::System.Linq.Expressions.Expression.Coalesce(expr_5, expr_6);
             var expr_7 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string), typeof(string), typeof(string) }, null), expr_0, expr_2, expr_3, expr_4);

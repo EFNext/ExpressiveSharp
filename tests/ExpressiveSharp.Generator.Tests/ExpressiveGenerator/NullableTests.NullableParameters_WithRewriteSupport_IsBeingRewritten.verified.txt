@@ -12,8 +12,8 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.EntityExtensions.Entity, string>> GetFirstName_P0_Foo_EntityExtensions_Entity_Expression() 
         {
             var p_entity = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.EntityExtensions.Entity), "entity");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_entity, typeof(global::Foo.EntityExtensions.Entity).GetProperty("FullName")); // entity.FullName
-            var expr_3 = global::System.Linq.Expressions.Expression.Property(p_entity, typeof(global::Foo.EntityExtensions.Entity).GetProperty("FullName")); // entity.FullName
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_entity, typeof(global::Foo.EntityExtensions.Entity).GetProperty("FullName", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // entity.FullName
+            var expr_3 = global::System.Linq.Expressions.Expression.Property(p_entity, typeof(global::Foo.EntityExtensions.Entity).GetProperty("FullName", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // entity.FullName
             var expr_5 = global::System.Linq.Expressions.Expression.Constant(' ', typeof(char)); // ' '
             var expr_4 = global::System.Linq.Expressions.Expression.Call(expr_3, typeof(string).GetMethod("IndexOf", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] { typeof(char) }, null), new global::System.Linq.Expressions.Expression[] { expr_5 });
             var expr_6 = global::System.Linq.Expressions.Expression.Convert(expr_4, typeof(int?));

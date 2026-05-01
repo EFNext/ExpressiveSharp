@@ -15,16 +15,16 @@ namespace ExpressiveSharp.Generated.Interceptors
         {
             // Source: o => o.CustomerId
             var i361d11c19a_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var i361d11c19a_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d11c19a_p_o, typeof(global::TestNs.Order).GetProperty("CustomerId")); // o.CustomerId
+            var i361d11c19a_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d11c19a_p_o, typeof(global::TestNs.Order).GetProperty("CustomerId", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.CustomerId
             var __lambda1 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, int>>(i361d11c19a_expr_0, i361d11c19a_p_o);
             // Source: c => c.Id
             var i361d11c19b_p_c = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Customer), "c");
-            var i361d11c19b_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d11c19b_p_c, typeof(global::TestNs.Customer).GetProperty("Id")); // c.Id
+            var i361d11c19b_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d11c19b_p_c, typeof(global::TestNs.Customer).GetProperty("Id", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // c.Id
             var __lambda2 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Customer, int>>(i361d11c19b_expr_0, i361d11c19b_p_c);
             // Source: (o, cs) => o.CustomerId
             var i361d11c19c_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
             var i361d11c19c_p_cs = global::System.Linq.Expressions.Expression.Parameter(typeof(global::System.Collections.Generic.IEnumerable<global::TestNs.Customer>), "cs");
-            var i361d11c19c_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d11c19c_p_o, typeof(global::TestNs.Order).GetProperty("CustomerId")); // o.CustomerId
+            var i361d11c19c_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d11c19c_p_o, typeof(global::TestNs.Order).GetProperty("CustomerId", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.CustomerId
             var __lambda3 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, global::System.Collections.Generic.IEnumerable<global::TestNs.Customer>, int>>(i361d11c19c_expr_0, i361d11c19c_p_o, i361d11c19c_p_cs);
             return global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                 global::System.Linq.Queryable.GroupJoin(

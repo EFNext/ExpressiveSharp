@@ -16,8 +16,8 @@ namespace ExpressiveSharp.Generated
         {
             var p_id = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "id");
             var p_name = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "name");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.Child).GetConstructor(new global::System.Type[] {  }));
-            var expr_1 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.Child).GetProperty("Name"), p_name);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.Child).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null));
+            var expr_1 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.Child).GetProperty("Name", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), p_name);
             var expr_2 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_1);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<int, string, global::Foo.Child>>(expr_2, p_id, p_name);
         }

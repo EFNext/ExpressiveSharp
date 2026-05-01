@@ -21,7 +21,7 @@ namespace ExpressiveSharp.Generated
             var p_street = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "street");
             var p_city = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "city");
             var p_country = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "country");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.AddressDto).GetConstructor(new global::System.Type[] {  }));
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.AddressDto).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null));
             var expr_1 = global::System.Linq.Expressions.Expression.Variable(typeof(string), "trimmedStreet");
             var expr_2 = global::System.Linq.Expressions.Expression.Call(p_street, typeof(string).GetMethod("Trim", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null), global::System.Array.Empty<global::System.Linq.Expressions.Expression>()); // street.Trim()
             var expr_3 = global::System.Linq.Expressions.Expression.Assign(expr_1, expr_2);
@@ -34,9 +34,9 @@ namespace ExpressiveSharp.Generated
             var expr_12 = global::System.Linq.Expressions.Expression.Constant(", ", typeof(string)); // ", "
             var expr_8 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_9, expr_12);
             var expr_7 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_8, p_country);
-            var expr_13 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.AddressDto).GetProperty("Street"), expr_1);
-            var expr_14 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.AddressDto).GetProperty("City"), expr_4);
-            var expr_15 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.AddressDto).GetProperty("Full"), expr_7);
+            var expr_13 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.AddressDto).GetProperty("Street", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), expr_1);
+            var expr_14 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.AddressDto).GetProperty("City", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), expr_4);
+            var expr_15 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.AddressDto).GetProperty("Full", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), expr_7);
             var expr_16 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_13, expr_14, expr_15);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<string, string, string, global::Foo.AddressDto>>(expr_16, p_street, p_city, p_country);
         }
