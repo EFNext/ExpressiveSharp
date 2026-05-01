@@ -13,7 +13,7 @@ namespace ExpressiveSharp.Generated
         {
             var p_e = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Projectables.Repro.SomeEntity), "e");
             var expr_1 = global::System.Linq.Expressions.Expression.Convert(p_e, typeof(global::Projectables.Repro.SuperEntity)); // (SuperEntity)e
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(expr_1, typeof(global::Projectables.Repro.SuperEntity).GetProperty("Superpower"));
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(expr_1, typeof(global::Projectables.Repro.SuperEntity).GetProperty("Superpower", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance));
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Projectables.Repro.SomeEntity, string>>(expr_0, p_e);
         }
     }

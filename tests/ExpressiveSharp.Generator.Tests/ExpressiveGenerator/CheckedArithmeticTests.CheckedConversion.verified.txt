@@ -12,7 +12,7 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int>> Truncated_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Value")); // Value
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Value", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Value
             var expr_0 = global::System.Linq.Expressions.Expression.ConvertChecked(expr_1, typeof(int));
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, int>>(expr_0, p__this);
         }

@@ -35,7 +35,7 @@ namespace ExpressiveSharp.Generated
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
             var p_s = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "s");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_s, typeof(string).GetProperty("Length")); // s.Length
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_s, typeof(string).GetProperty("Length", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // s.Length
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, string, int>>(expr_0, p__this, p_s);
         }
     }

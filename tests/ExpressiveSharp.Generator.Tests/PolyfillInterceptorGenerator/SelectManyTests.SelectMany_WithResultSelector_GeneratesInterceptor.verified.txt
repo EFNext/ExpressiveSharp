@@ -13,13 +13,13 @@ namespace ExpressiveSharp.Generated.Interceptors
         {
             // Source: o => o.Tags
             var i361d10c18a_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var i361d10c18a_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d10c18a_p_o, typeof(global::TestNs.Order).GetProperty("Tags")); // o.Tags
+            var i361d10c18a_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d10c18a_p_o, typeof(global::TestNs.Order).GetProperty("Tags", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Tags
             var i361d10c18a_expr_1 = global::System.Linq.Expressions.Expression.Convert(i361d10c18a_expr_0, typeof(global::System.Collections.Generic.IEnumerable<string>));
             var __lambda1 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, global::System.Collections.Generic.IEnumerable<string>>>(i361d10c18a_expr_1, i361d10c18a_p_o);
             // Source: (o, t) => o.Name + ": " + t
             var i361d10c18b_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
             var i361d10c18b_p_t = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "t");
-            var i361d10c18b_expr_2 = global::System.Linq.Expressions.Expression.Property(i361d10c18b_p_o, typeof(global::TestNs.Order).GetProperty("Name")); // o.Name
+            var i361d10c18b_expr_2 = global::System.Linq.Expressions.Expression.Property(i361d10c18b_p_o, typeof(global::TestNs.Order).GetProperty("Name", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Name
             var i361d10c18b_expr_3 = global::System.Linq.Expressions.Expression.Constant(": ", typeof(string)); // ": "
             var i361d10c18b_expr_1 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), i361d10c18b_expr_2, i361d10c18b_expr_3);
             var i361d10c18b_expr_0 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), i361d10c18b_expr_1, i361d10c18b_p_t);

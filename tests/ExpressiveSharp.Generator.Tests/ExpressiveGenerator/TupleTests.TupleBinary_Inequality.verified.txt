@@ -12,8 +12,8 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, bool>> Different_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("A")); // A
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("B")); // B
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("A", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // A
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("B", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // B
             var expr_2 = global::System.Linq.Expressions.Expression.Field(expr_0, typeof((int, int)).GetField("Item1", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance));
             var expr_3 = global::System.Linq.Expressions.Expression.Field(expr_1, typeof((int, int)).GetField("Item1", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance));
             var expr_4 = global::System.Linq.Expressions.Expression.Equal(expr_2, expr_3);

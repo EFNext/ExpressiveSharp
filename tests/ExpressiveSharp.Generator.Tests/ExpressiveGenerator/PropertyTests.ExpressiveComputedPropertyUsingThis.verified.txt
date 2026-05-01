@@ -12,7 +12,7 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, int>> Foo_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Bar")); // this.Bar
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Bar", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // this.Bar
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, int>>(expr_0, p__this);
         }
     }

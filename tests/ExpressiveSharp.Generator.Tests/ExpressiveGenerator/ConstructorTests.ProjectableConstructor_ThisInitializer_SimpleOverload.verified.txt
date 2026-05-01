@@ -16,7 +16,7 @@ namespace ExpressiveSharp.Generated
             var p_fullName = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "fullName");
             var expr_1 = global::System.Linq.Expressions.Expression.Call(p_fullName, typeof(string).GetMethod("ToUpper", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null), global::System.Array.Empty<global::System.Linq.Expressions.Expression>()); // fullName.ToUpper()
             var expr_2 = global::System.Linq.Expressions.Expression.Call(p_fullName, typeof(string).GetMethod("ToLower", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null), global::System.Array.Empty<global::System.Linq.Expressions.Expression>()); // fullName.ToLower()
-            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PersonDto).GetConstructor(new global::System.Type[] { typeof(string), typeof(string) }), expr_1, expr_2);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PersonDto).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_1, expr_2);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<string, global::Foo.PersonDto>>(expr_0, p_fullName);
         }
     }

@@ -25,8 +25,8 @@ namespace ExpressiveSharp.Generated
             var p_species = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "species");
             var p_name = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "name");
             var p_useShortName = global::System.Linq.Expressions.Expression.Parameter(typeof(bool), "useShortName");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.Pet).GetConstructor(new global::System.Type[] {  }));
-            var expr_3 = global::System.Linq.Expressions.Expression.Property(p_name, typeof(string).GetProperty("Length")); // name.Length
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.Pet).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null));
+            var expr_3 = global::System.Linq.Expressions.Expression.Property(p_name, typeof(string).GetProperty("Length", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // name.Length
             var expr_4 = global::System.Linq.Expressions.Expression.Constant(3, typeof(int)); // 3
             var expr_2 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.GreaterThan, expr_3, expr_4);
             var expr_6 = global::System.Linq.Expressions.Expression.Constant(0, typeof(int)); // 0
@@ -34,8 +34,8 @@ namespace ExpressiveSharp.Generated
             var expr_5 = global::System.Linq.Expressions.Expression.Call(p_name, typeof(string).GetMethod("Substring", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] { typeof(int), typeof(int) }, null), new global::System.Linq.Expressions.Expression[] { expr_6, expr_7 });
             var expr_1 = global::System.Linq.Expressions.Expression.Condition(expr_2, expr_5, p_name, typeof(string));
             var expr_8 = global::System.Linq.Expressions.Expression.Condition(p_useShortName, expr_1, p_name, typeof(string));
-            var expr_9 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.Pet).GetProperty("Name"), p_name);
-            var expr_10 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.Pet).GetProperty("Nickname"), expr_8);
+            var expr_9 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.Pet).GetProperty("Name", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), p_name);
+            var expr_10 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.Pet).GetProperty("Nickname", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), expr_8);
             var expr_11 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_9, expr_10);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<string, string, bool, global::Foo.Pet>>(expr_11, p_species, p_name, p_useShortName);
         }

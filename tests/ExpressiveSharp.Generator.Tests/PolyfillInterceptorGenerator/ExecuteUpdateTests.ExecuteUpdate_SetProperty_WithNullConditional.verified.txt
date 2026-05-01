@@ -13,11 +13,11 @@ namespace ExpressiveSharp.Generated.Interceptors
             // Source: s => s.SetProperty(o => o.Tag, o => o.Customer?.Name ?? "none")
             var i361d63c18_p_s = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.SetPropertyCalls<global::TestNs.Order>), "s");
             var p_o_1 = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o"); // o => o.Tag
-            var i361d63c18_expr_2 = global::System.Linq.Expressions.Expression.Property(p_o_1, typeof(global::TestNs.Order).GetProperty("Tag")); // o.Tag
+            var i361d63c18_expr_2 = global::System.Linq.Expressions.Expression.Property(p_o_1, typeof(global::TestNs.Order).GetProperty("Tag", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Tag
             var i361d63c18_expr_3 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, string>>(i361d63c18_expr_2, p_o_1);
             var p_o_4 = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o"); // o => o.Customer?.Name ?? "none"
-            var i361d63c18_expr_6 = global::System.Linq.Expressions.Expression.Property(p_o_4, typeof(global::TestNs.Order).GetProperty("Customer")); // o.Customer
-            var i361d63c18_expr_7 = global::System.Linq.Expressions.Expression.Property(i361d63c18_expr_6, typeof(global::TestNs.Customer).GetProperty("Name")); // .Name
+            var i361d63c18_expr_6 = global::System.Linq.Expressions.Expression.Property(p_o_4, typeof(global::TestNs.Order).GetProperty("Customer", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Customer
+            var i361d63c18_expr_7 = global::System.Linq.Expressions.Expression.Property(i361d63c18_expr_6, typeof(global::TestNs.Customer).GetProperty("Name", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // .Name
             var i361d63c18_expr_9 = global::System.Linq.Expressions.Expression.Constant(null, typeof(global::TestNs.Customer));
             var i361d63c18_expr_10 = global::System.Linq.Expressions.Expression.NotEqual(i361d63c18_expr_6, i361d63c18_expr_9);
             var i361d63c18_expr_11 = global::System.Linq.Expressions.Expression.Default(typeof(string));

@@ -17,13 +17,13 @@ namespace ExpressiveSharp.Generated
         {
             var p_value = global::System.Linq.Expressions.Expression.Parameter(typeof(double?), "value");
             var p_unit = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "unit");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.MeasurementDto).GetConstructor(new global::System.Type[] {  }));
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.MeasurementDto).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null));
             var expr_2 = global::System.Linq.Expressions.Expression.Constant(0d, typeof(double)); // 0.0
             var expr_1 = global::System.Linq.Expressions.Expression.Coalesce(p_value, expr_2);
             var expr_4 = global::System.Linq.Expressions.Expression.Constant("m", typeof(string)); // "m"
             var expr_3 = global::System.Linq.Expressions.Expression.Coalesce(p_unit, expr_4);
-            var expr_5 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.MeasurementDto).GetProperty("Value"), expr_1);
-            var expr_6 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.MeasurementDto).GetProperty("Unit"), expr_3);
+            var expr_5 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.MeasurementDto).GetProperty("Value", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), expr_1);
+            var expr_6 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.MeasurementDto).GetProperty("Unit", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), expr_3);
             var expr_7 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_5, expr_6);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<double?, string, global::Foo.MeasurementDto>>(expr_7, p_value, p_unit);
         }

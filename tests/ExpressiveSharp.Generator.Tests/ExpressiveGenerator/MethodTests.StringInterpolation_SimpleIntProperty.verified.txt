@@ -13,7 +13,7 @@ namespace ExpressiveSharp.Generated
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
             var expr_0 = global::System.Linq.Expressions.Expression.Constant("Id: ", typeof(string)); // $"Id: {Id}"
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Id")); // Id
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Id", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Id
             var expr_2 = global::System.Linq.Expressions.Expression.Call(expr_1, typeof(int).GetMethod("ToString", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null));
             var expr_3 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_0, expr_2);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.C, string>>(expr_3, p__this);

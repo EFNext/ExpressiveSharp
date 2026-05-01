@@ -18,16 +18,16 @@ namespace ExpressiveSharp.Generated
         {
             var p_firstName = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "firstName");
             var p_lastName = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "lastName");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PersonDto).GetConstructor(new global::System.Type[] {  }));
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PersonDto).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null));
             var p___this = global::System.Linq.Expressions.Expression.Parameter(typeof(object), "@this"); // FirstName
-            var expr_3 = global::System.Linq.Expressions.Expression.Property(p___this, typeof(global::Foo.PersonDto).GetProperty("FirstName"));
+            var expr_3 = global::System.Linq.Expressions.Expression.Property(p___this, typeof(global::Foo.PersonDto).GetProperty("FirstName", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance));
             var expr_4 = global::System.Linq.Expressions.Expression.Constant(" ", typeof(string)); // " "
             var expr_2 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_3, expr_4);
-            var expr_5 = global::System.Linq.Expressions.Expression.Property(p___this, typeof(global::Foo.PersonDto).GetProperty("LastName")); // LastName
+            var expr_5 = global::System.Linq.Expressions.Expression.Property(p___this, typeof(global::Foo.PersonDto).GetProperty("LastName", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // LastName
             var expr_1 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_2, expr_5);
-            var expr_6 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("FirstName"), p_firstName);
-            var expr_7 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("LastName"), p_lastName);
-            var expr_8 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("FullName"), expr_1);
+            var expr_6 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("FirstName", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), p_firstName);
+            var expr_7 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("LastName", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), p_lastName);
+            var expr_8 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("FullName", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), expr_1);
             var expr_9 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_6, expr_7, expr_8);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<string, string, global::Foo.PersonDto>>(expr_9, p_firstName, p_lastName);
         }

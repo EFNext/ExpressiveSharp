@@ -18,7 +18,7 @@ namespace ExpressiveSharp.Generated
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
             var expr_1 = global::System.Linq.Expressions.Expression.Constant(true, typeof(bool)); // true
-            var expr_3 = global::System.Linq.Expressions.Expression.New(typeof(global::System.Exception).GetConstructor(new global::System.Type[] {  })); // new System.Exception()
+            var expr_3 = global::System.Linq.Expressions.Expression.New(typeof(global::System.Exception).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null)); // new System.Exception()
             var expr_2 = global::System.Linq.Expressions.Expression.Throw(expr_3);
             var expr_0 = global::System.Linq.Expressions.Expression.IfThen(expr_1, expr_2);
             var expr_4 = global::System.Linq.Expressions.Expression.Constant(1, typeof(int)); // 1

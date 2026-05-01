@@ -1005,6 +1005,10 @@ internal sealed class ExpressionTreeEmitter
             return quoteResult;
         }
 
+        // Implicit reference upcasts in argument position break EF Core's queryable-chain matching.
+        if (conversion.IsImplicit && conversion.Conversion.IsReference && conversion.Parent is IArgumentOperation)
+            return EmitOperation(conversion.Operand);
+
         var resultVar = NextVar();
         var operandVar = EmitOperation(conversion.Operand);
         var targetTypeFqn = conversion.Type?.ToDisplayString(_fqnFormat) ?? "object";

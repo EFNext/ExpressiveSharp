@@ -18,9 +18,9 @@ namespace ExpressiveSharp.Generated
         {
             var p_firstName = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "firstName");
             var p_lastName = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "lastName");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PersonDto).GetConstructor(new global::System.Type[] {  }));
-            var expr_1 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("FirstName"), p_firstName);
-            var expr_2 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("LastName"), p_lastName);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PersonDto).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null));
+            var expr_1 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("FirstName", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), p_firstName);
+            var expr_2 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("LastName", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), p_lastName);
             var expr_3 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_1, expr_2);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<string, string, global::Foo.PersonDto>>(expr_3, p_firstName, p_lastName);
         }
@@ -46,10 +46,10 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<string, global::Foo.PersonDto>> _ctor_P0_string_Expression() 
         {
             var p_fullName = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "fullName");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PersonDto).GetConstructor(new global::System.Type[] {  }));
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PersonDto).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null));
             var expr_1 = global::System.Linq.Expressions.Expression.Field(null, typeof(string).GetField("Empty", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static)); // string.Empty
-            var expr_2 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("FirstName"), p_fullName);
-            var expr_3 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("LastName"), expr_1);
+            var expr_2 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("FirstName", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), p_fullName);
+            var expr_3 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("LastName", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), expr_1);
             var expr_4 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_2, expr_3);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<string, global::Foo.PersonDto>>(expr_4, p_fullName);
         }

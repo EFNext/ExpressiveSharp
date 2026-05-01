@@ -17,9 +17,9 @@ namespace ExpressiveSharp.Generated
         {
             var p_x = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "x");
             var p_y = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "y");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PointDto).GetConstructor(new global::System.Type[] {  }));
-            var expr_1 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PointDto).GetProperty("X"), p_x);
-            var expr_2 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PointDto).GetProperty("Y"), p_y);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PointDto).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null));
+            var expr_1 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PointDto).GetProperty("X", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), p_x);
+            var expr_2 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PointDto).GetProperty("Y", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), p_y);
             var expr_3 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_1, expr_2);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<int, int, global::Foo.PointDto>>(expr_3, p_x, p_y);
         }

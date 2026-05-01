@@ -14,7 +14,7 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.BugB, global::System.Collections.Generic.IEnumerable<int>>> Sorted_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.BugB), "@this");
-            var expr_2 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.BugB).GetProperty("Source")); // Source
+            var expr_2 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.BugB).GetProperty("Source", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Source
             var p_x_4 = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "x"); // x => x > 0
             var expr_6 = global::System.Linq.Expressions.Expression.Constant(0, typeof(int)); // 0
             var expr_5 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.GreaterThan, p_x_4, expr_6);

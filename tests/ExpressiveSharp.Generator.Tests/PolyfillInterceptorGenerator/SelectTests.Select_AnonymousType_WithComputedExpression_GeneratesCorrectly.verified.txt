@@ -12,9 +12,9 @@ namespace ExpressiveSharp.Generated.Interceptors
         {
             // Source: o => new { o.Id, Total = o.Price * o.Qty }
             var i361d9c33_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(T0), "o");
-            var i361d9c33_expr_1 = global::System.Linq.Expressions.Expression.Property(i361d9c33_p_o, typeof(T0).GetProperty("Id")); // o.Id
-            var i361d9c33_expr_3 = global::System.Linq.Expressions.Expression.Property(i361d9c33_p_o, typeof(T0).GetProperty("Price")); // o.Price
-            var i361d9c33_expr_5 = global::System.Linq.Expressions.Expression.Property(i361d9c33_p_o, typeof(T0).GetProperty("Qty")); // o.Qty
+            var i361d9c33_expr_1 = global::System.Linq.Expressions.Expression.Property(i361d9c33_p_o, typeof(T0).GetProperty("Id", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Id
+            var i361d9c33_expr_3 = global::System.Linq.Expressions.Expression.Property(i361d9c33_p_o, typeof(T0).GetProperty("Price", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Price
+            var i361d9c33_expr_5 = global::System.Linq.Expressions.Expression.Property(i361d9c33_p_o, typeof(T0).GetProperty("Qty", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Qty
             var i361d9c33_expr_4 = global::System.Linq.Expressions.Expression.Convert(i361d9c33_expr_5, typeof(decimal));
             var i361d9c33_expr_2 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Multiply, i361d9c33_expr_3, i361d9c33_expr_4);
             var i361d9c33_expr_6 = typeof(T1).GetConstructors()[0];

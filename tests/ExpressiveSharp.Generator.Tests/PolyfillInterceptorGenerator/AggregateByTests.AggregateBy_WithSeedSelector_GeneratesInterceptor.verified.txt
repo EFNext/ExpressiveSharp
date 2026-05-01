@@ -14,7 +14,7 @@ namespace ExpressiveSharp.Generated.Interceptors
         {
             // Source: o => o.Tag
             var i361d10c18a_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var i361d10c18a_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d10c18a_p_o, typeof(global::TestNs.Order).GetProperty("Tag")); // o.Tag
+            var i361d10c18a_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d10c18a_p_o, typeof(global::TestNs.Order).GetProperty("Tag", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Tag
             var __lambda1 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, string>>(i361d10c18a_expr_0, i361d10c18a_p_o);
             // Source: k => 0m
             var i361d10c18b_p_k = global::System.Linq.Expressions.Expression.Parameter(typeof(string), "k");
@@ -23,7 +23,7 @@ namespace ExpressiveSharp.Generated.Interceptors
             // Source: (acc, o) => acc + o.Price
             var i361d10c18c_p_acc = global::System.Linq.Expressions.Expression.Parameter(typeof(decimal), "acc");
             var i361d10c18c_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var i361d10c18c_expr_1 = global::System.Linq.Expressions.Expression.Property(i361d10c18c_p_o, typeof(global::TestNs.Order).GetProperty("Price")); // o.Price
+            var i361d10c18c_expr_1 = global::System.Linq.Expressions.Expression.Property(i361d10c18c_p_o, typeof(global::TestNs.Order).GetProperty("Price", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Price
             var i361d10c18c_expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Add, i361d10c18c_p_acc, i361d10c18c_expr_1);
             var __lambda3 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<decimal, global::TestNs.Order, decimal>>(i361d10c18c_expr_0, i361d10c18c_p_acc, i361d10c18c_p_o);
             return global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(

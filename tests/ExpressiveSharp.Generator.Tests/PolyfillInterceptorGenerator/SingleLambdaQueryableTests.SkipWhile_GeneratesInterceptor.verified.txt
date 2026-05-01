@@ -12,7 +12,7 @@ namespace ExpressiveSharp.Generated.Interceptors
         {
             // Source: o => o.Amount < 50
             var i361d9c33_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var i361d9c33_expr_1 = global::System.Linq.Expressions.Expression.Property(i361d9c33_p_o, typeof(global::TestNs.Order).GetProperty("Amount")); // o.Amount
+            var i361d9c33_expr_1 = global::System.Linq.Expressions.Expression.Property(i361d9c33_p_o, typeof(global::TestNs.Order).GetProperty("Amount", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Amount
             var i361d9c33_expr_2 = global::System.Linq.Expressions.Expression.Constant(50, typeof(int)); // 50
             var i361d9c33_expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.LessThan, i361d9c33_expr_1, i361d9c33_expr_2);
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, bool>>(i361d9c33_expr_0, i361d9c33_p_o);

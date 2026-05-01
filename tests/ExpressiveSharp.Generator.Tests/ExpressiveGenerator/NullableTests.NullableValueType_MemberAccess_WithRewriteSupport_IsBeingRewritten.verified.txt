@@ -13,7 +13,7 @@ namespace ExpressiveSharp.Generated
         {
             var p_point = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Point?), "point");
             var expr_0 = global::System.Linq.Expressions.Expression.Property(p_point, typeof(global::Foo.Point?).GetProperty("Value")); // point?.X
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(expr_0, typeof(global::Foo.Point).GetProperty("X")); // .X
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(expr_0, typeof(global::Foo.Point).GetProperty("X", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // .X
             var expr_2 = global::System.Linq.Expressions.Expression.Convert(expr_1, typeof(double?));
             var expr_4 = global::System.Linq.Expressions.Expression.Constant(null, typeof(global::Foo.Point?));
             var expr_5 = global::System.Linq.Expressions.Expression.NotEqual(p_point, expr_4);

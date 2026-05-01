@@ -12,7 +12,7 @@ namespace ExpressiveSharp.Generated.Interceptors
         {
             // Source: o => o.Price > minPrice
             var i361d9c33_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var i361d9c33_expr_1 = global::System.Linq.Expressions.Expression.Property(i361d9c33_p_o, typeof(global::TestNs.Order).GetProperty("Price")); // o.Price
+            var i361d9c33_expr_1 = global::System.Linq.Expressions.Expression.Property(i361d9c33_p_o, typeof(global::TestNs.Order).GetProperty("Price", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Price
             var i361d9c33_expr_2 = global::System.Linq.Expressions.Expression.MakeMemberAccess(global::System.Linq.Expressions.Expression.Constant(__func.Target), __func.Target.GetType().GetField("minPrice", global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic)); // minPrice
             var i361d9c33_expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.GreaterThan, i361d9c33_expr_1, i361d9c33_expr_2);
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, bool>>(i361d9c33_expr_0, i361d9c33_p_o);

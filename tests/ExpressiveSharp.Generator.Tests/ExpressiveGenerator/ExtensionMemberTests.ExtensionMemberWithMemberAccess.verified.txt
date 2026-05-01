@@ -13,11 +13,11 @@ namespace ExpressiveSharp.Generated
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Entity), "@this");
             var expr_4 = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Entity), "e"); // e
-            var expr_3 = global::System.Linq.Expressions.Expression.Property(expr_4, typeof(global::Foo.Entity).GetProperty("Id"));
+            var expr_3 = global::System.Linq.Expressions.Expression.Property(expr_4, typeof(global::Foo.Entity).GetProperty("Id", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance));
             var expr_2 = global::System.Linq.Expressions.Expression.Convert(expr_3, typeof(object));
             var expr_5 = global::System.Linq.Expressions.Expression.Constant(": ", typeof(string)); // ": "
             var expr_1 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(object), typeof(object) }, null), expr_2, expr_5);
-            var expr_6 = global::System.Linq.Expressions.Expression.Property(expr_4, typeof(global::Foo.Entity).GetProperty("Name")); // e.Name
+            var expr_6 = global::System.Linq.Expressions.Expression.Property(expr_4, typeof(global::Foo.Entity).GetProperty("Name", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // e.Name
             var expr_0 = global::System.Linq.Expressions.Expression.Call(typeof(string).GetMethod("Concat", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(string), typeof(string) }, null), expr_1, expr_6);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.Entity, string>>(expr_0, p__this);
         }

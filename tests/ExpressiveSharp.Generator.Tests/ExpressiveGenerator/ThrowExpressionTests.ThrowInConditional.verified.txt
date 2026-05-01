@@ -12,9 +12,9 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<int?, int>> SafeValue_P0_int__Expression() 
         {
             var p_x = global::System.Linq.Expressions.Expression.Parameter(typeof(int?), "x");
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p_x, typeof(int?).GetProperty("HasValue")); // x.HasValue
-            var expr_2 = global::System.Linq.Expressions.Expression.Property(p_x, typeof(int?).GetProperty("Value")); // x.Value
-            var expr_5 = global::System.Linq.Expressions.Expression.New(typeof(global::System.ArgumentNullException).GetConstructor(new global::System.Type[] {  })); // new System.ArgumentNullException()
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p_x, typeof(int?).GetProperty("HasValue", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // x.HasValue
+            var expr_2 = global::System.Linq.Expressions.Expression.Property(p_x, typeof(int?).GetProperty("Value", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // x.Value
+            var expr_5 = global::System.Linq.Expressions.Expression.New(typeof(global::System.ArgumentNullException).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null)); // new System.ArgumentNullException()
             var expr_4 = global::System.Linq.Expressions.Expression.Convert(expr_5, typeof(global::System.Exception));
             var expr_3 = global::System.Linq.Expressions.Expression.Throw(expr_4, typeof(int));
             var expr_0 = global::System.Linq.Expressions.Expression.Condition(expr_1, expr_2, expr_3, typeof(int));

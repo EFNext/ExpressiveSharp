@@ -12,7 +12,7 @@ namespace ExpressiveSharp.Generated.Interceptors
         {
             // Source: o => o.Name
             var i361d11c18_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var i361d11c18_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d11c18_p_o, typeof(global::TestNs.Order).GetProperty("Name")); // o.Name
+            var i361d11c18_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d11c18_p_o, typeof(global::TestNs.Order).GetProperty("Name", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Name
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, string>>(i361d11c18_expr_0, i361d11c18_p_o);
             return global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                 global::System.Linq.Queryable.ThenBy(
@@ -26,7 +26,7 @@ namespace ExpressiveSharp.Generated.Interceptors
         {
             // Source: o => o.Priority
             var i361d10c18_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var i361d10c18_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d10c18_p_o, typeof(global::TestNs.Order).GetProperty("Priority")); // o.Priority
+            var i361d10c18_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d10c18_p_o, typeof(global::TestNs.Order).GetProperty("Priority", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Priority
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, int>>(i361d10c18_expr_0, i361d10c18_p_o);
             return global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                 global::System.Linq.Queryable.OrderBy(

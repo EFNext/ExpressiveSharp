@@ -11,8 +11,8 @@ namespace ExpressiveSharp.Generated.Interceptors
         {
             // Source: o => o.Tag?.Length
             var i361d9c68_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::TestNs.Order), "o");
-            var i361d9c68_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d9c68_p_o, typeof(global::TestNs.Order).GetProperty("Tag")); // o.Tag
-            var i361d9c68_expr_1 = global::System.Linq.Expressions.Expression.Property(i361d9c68_expr_0, typeof(string).GetProperty("Length")); // .Length
+            var i361d9c68_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d9c68_p_o, typeof(global::TestNs.Order).GetProperty("Tag", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Tag
+            var i361d9c68_expr_1 = global::System.Linq.Expressions.Expression.Property(i361d9c68_expr_0, typeof(string).GetProperty("Length", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // .Length
             var i361d9c68_expr_2 = global::System.Linq.Expressions.Expression.Convert(i361d9c68_expr_1, typeof(int?));
             var i361d9c68_expr_4 = global::System.Linq.Expressions.Expression.Constant(null, typeof(string));
             var i361d9c68_expr_5 = global::System.Linq.Expressions.Expression.NotEqual(i361d9c68_expr_0, i361d9c68_expr_4);

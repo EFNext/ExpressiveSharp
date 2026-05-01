@@ -17,7 +17,7 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, global::System.Collections.Generic.List<int>>> Numbers_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
-            var expr_1 = global::System.Linq.Expressions.Expression.New(typeof(global::System.Collections.Generic.List<int>).GetConstructor(new global::System.Type[] {  })); // new List<int> { 1, 2, 3 }
+            var expr_1 = global::System.Linq.Expressions.Expression.New(typeof(global::System.Collections.Generic.List<int>).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null)); // new List<int> { 1, 2, 3 }
             var expr_2 = global::System.Linq.Expressions.Expression.Constant(1, typeof(int)); // 1
             var expr_3 = global::System.Linq.Expressions.Expression.ElementInit(typeof(global::System.Collections.Generic.List<int>).GetMethod("Add", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] { typeof(int) }, null), expr_2);
             var expr_4 = global::System.Linq.Expressions.Expression.Constant(2, typeof(int)); // 2

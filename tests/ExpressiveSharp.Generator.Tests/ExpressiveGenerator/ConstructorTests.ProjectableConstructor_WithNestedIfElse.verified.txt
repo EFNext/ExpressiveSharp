@@ -30,13 +30,13 @@ namespace ExpressiveSharp.Generated
         {
             var p_isActive = global::System.Linq.Expressions.Expression.Parameter(typeof(bool), "isActive");
             var p_isPremium = global::System.Linq.Expressions.Expression.Parameter(typeof(bool), "isPremium");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.StatusDto).GetConstructor(new global::System.Type[] {  }));
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.StatusDto).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null));
             var expr_1 = global::System.Linq.Expressions.Expression.Constant("Active Premium", typeof(string)); // "Active Premium"
             var expr_2 = global::System.Linq.Expressions.Expression.Constant("Active Free", typeof(string)); // "Active Free"
             var expr_3 = global::System.Linq.Expressions.Expression.Condition(p_isPremium, expr_1, expr_2, typeof(string));
             var expr_4 = global::System.Linq.Expressions.Expression.Constant("Inactive", typeof(string)); // "Inactive"
             var expr_5 = global::System.Linq.Expressions.Expression.Condition(p_isActive, expr_3, expr_4, typeof(string));
-            var expr_6 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.StatusDto).GetProperty("Status"), expr_5);
+            var expr_6 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.StatusDto).GetProperty("Status", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), expr_5);
             var expr_7 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_6);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<bool, bool, global::Foo.StatusDto>>(expr_7, p_isActive, p_isPremium);
         }

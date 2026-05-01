@@ -74,6 +74,21 @@ public class ExpressiveResolverTests
     }
 
     [TestMethod]
+    public void FindGeneratedExpression_NonPublicExpressiveProperty_ResolvesAndCompiles()
+    {
+        // Issue #50 follow-up: factory used GetProperty without BindingFlags.
+        var memberInfo = typeof(NonPublicExpressive).GetProperty(
+            nameof(NonPublicExpressive.DoubledWidth),
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)!;
+
+        var result = _resolver.FindGeneratedExpression(memberInfo);
+
+        Assert.IsNotNull(result);
+        var compiled = (Func<NonPublicExpressive, int>)result.Compile();
+        Assert.AreEqual(14, compiled(new NonPublicExpressive { Width = 7 }));
+    }
+
+    [TestMethod]
     public void FindGeneratedExpression_PropertyBody_ContainsMultiply()
     {
         var memberInfo = typeof(Product).GetProperty(nameof(Product.Total))!;

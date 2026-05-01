@@ -21,15 +21,15 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, string>> Foo_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
-            var expr_2 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Bar")); // Bar
+            var expr_2 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Bar", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Bar
             var expr_3 = global::System.Linq.Expressions.Expression.Constant(100, typeof(int)); // 100
             var expr_1 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.GreaterThan, expr_2, expr_3);
             var expr_4 = global::System.Linq.Expressions.Expression.Constant("Huge", typeof(string)); // "Huge"
-            var expr_7 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Bar")); // Bar
+            var expr_7 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Bar", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Bar
             var expr_8 = global::System.Linq.Expressions.Expression.Constant(10, typeof(int)); // 10
             var expr_6 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.GreaterThan, expr_7, expr_8);
             var expr_9 = global::System.Linq.Expressions.Expression.Constant("Big", typeof(string)); // "Big"
-            var expr_12 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Bar")); // Bar
+            var expr_12 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Bar", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Bar
             var expr_13 = global::System.Linq.Expressions.Expression.Constant(0, typeof(int)); // 0
             var expr_11 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.GreaterThan, expr_12, expr_13);
             var expr_14 = global::System.Linq.Expressions.Expression.Constant("Small", typeof(string)); // "Small"

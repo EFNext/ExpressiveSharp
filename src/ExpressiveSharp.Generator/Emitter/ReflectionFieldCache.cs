@@ -20,7 +20,10 @@ internal sealed class ReflectionFieldCache
     public string EnsurePropertyInfo(IPropertySymbol property)
     {
         var typeFqn = ResolveTypeFqn(property.ContainingType);
-        return $"typeof({typeFqn}).GetProperty(\"{property.Name}\")";
+        var flags = property.IsStatic
+            ? "global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static"
+            : "global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance";
+        return $"typeof({typeFqn}).GetProperty(\"{property.Name}\", {flags})";
     }
 
     public string EnsureFieldInfo(IFieldSymbol field)
@@ -99,7 +102,8 @@ internal sealed class ReflectionFieldCache
         var typeFqn = ResolveTypeFqn(constructor.ContainingType);
         var paramTypes = string.Join(", ", constructor.Parameters.Select(p =>
             $"typeof({ResolveTypeFqn(p.Type)})"));
-        return $"typeof({typeFqn}).GetConstructor(new global::System.Type[] {{ {paramTypes} }})";
+        const string flags = "global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance";
+        return $"typeof({typeFqn}).GetConstructor({flags}, null, new global::System.Type[] {{ {paramTypes} }}, null)";
     }
 
     private static bool ContainsTypeParameter(ITypeSymbol type)

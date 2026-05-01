@@ -13,8 +13,8 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Account, decimal>> Amount_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Account), "@this");
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Account).GetProperty("TotalAmount")); // TotalAmount
-            var expr_2 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Account).GetProperty("Discount")); // Discount
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Account).GetProperty("TotalAmount", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // TotalAmount
+            var expr_2 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Account).GetProperty("Discount", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Discount
             var expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Subtract, expr_1, expr_2);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.Account, decimal>>(expr_0, p__this);
         }

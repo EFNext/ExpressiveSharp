@@ -16,11 +16,11 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.SourceEntity, global::Foo.PersonDto>> _ctor_P0_Foo_SourceEntity_Expression() 
         {
             var p_source = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.SourceEntity), "source");
-            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PersonDto).GetConstructor(new global::System.Type[] {  }));
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p_source, typeof(global::Foo.SourceEntity).GetProperty("Id")); // source.Id
-            var expr_2 = global::System.Linq.Expressions.Expression.Property(p_source, typeof(global::Foo.SourceEntity).GetProperty("Name")); // source.Name
-            var expr_3 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("Id"), expr_1);
-            var expr_4 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("Name"), expr_2);
+            var expr_0 = global::System.Linq.Expressions.Expression.New(typeof(global::Foo.PersonDto).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] {  }, null));
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p_source, typeof(global::Foo.SourceEntity).GetProperty("Id", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // source.Id
+            var expr_2 = global::System.Linq.Expressions.Expression.Property(p_source, typeof(global::Foo.SourceEntity).GetProperty("Name", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // source.Name
+            var expr_3 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("Id", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), expr_1);
+            var expr_4 = global::System.Linq.Expressions.Expression.Bind(typeof(global::Foo.PersonDto).GetProperty("Name", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), expr_2);
             var expr_5 = global::System.Linq.Expressions.Expression.MemberInit(expr_0, expr_3, expr_4);
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.SourceEntity, global::Foo.PersonDto>>(expr_5, p_source);
         }

@@ -11,7 +11,7 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo, int>> SomeNumber_P0_Foo_Expression() 
         {
             var p_fancyClass = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo), "fancyClass");
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(p_fancyClass, typeof(global::Foo).GetProperty("FancyNumber")); // .FancyNumber
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(p_fancyClass, typeof(global::Foo).GetProperty("FancyNumber", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // .FancyNumber
             var expr_3 = global::System.Linq.Expressions.Expression.Constant(null, typeof(global::Foo));
             var expr_4 = global::System.Linq.Expressions.Expression.NotEqual(p_fancyClass, expr_3);
             var expr_5 = global::System.Linq.Expressions.Expression.Default(typeof(int?));

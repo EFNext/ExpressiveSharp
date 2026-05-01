@@ -12,12 +12,12 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.C, bool>> StartsWithOne_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Items")); // Items
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(expr_0, typeof(global::System.Collections.Generic.List<int>).GetProperty("Count"));
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.C).GetProperty("Items", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Items
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(expr_0, typeof(global::System.Collections.Generic.List<int>).GetProperty("Count", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance));
             var expr_2 = global::System.Linq.Expressions.Expression.Constant(1);
             var expr_3 = global::System.Linq.Expressions.Expression.GreaterThanOrEqual(expr_1, expr_2);
             var expr_4 = global::System.Linq.Expressions.Expression.Constant(0);
-            var expr_5 = global::System.Linq.Expressions.Expression.Property(expr_0, typeof(global::System.Collections.Generic.List<int>).GetProperty("this[]"), expr_4);
+            var expr_5 = global::System.Linq.Expressions.Expression.Property(expr_0, typeof(global::System.Collections.Generic.List<int>).GetProperty("this[]", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance), expr_4);
             var expr_7 = global::System.Linq.Expressions.Expression.Constant(1, typeof(int)); // 1
             var expr_6 = global::System.Linq.Expressions.Expression.Equal(expr_5, expr_7);
             var expr_8 = global::System.Linq.Expressions.Expression.AndAlso(expr_3, expr_6);

@@ -23,7 +23,7 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.Order, string>> GetLabel_P0_Foo_Order_Expression() 
         {
             var p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Order), "o");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_o, typeof(global::Foo.Order).GetProperty("Status")); // o.Status
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_o, typeof(global::Foo.Order).GetProperty("Status", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Status
             var expr_1 = global::System.Linq.Expressions.Expression.Constant("New", typeof(string)); // "New"
             var expr_2 = global::System.Linq.Expressions.Expression.Field(null, typeof(global::Foo.OrderStatus).GetField("Pending", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static)); // OrderStatus.Pending
             var expr_3 = global::System.Linq.Expressions.Expression.Equal(expr_0, expr_2);

@@ -12,8 +12,8 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<global::Foo.EntityExtensions.Entity, global::Foo.EntityExtensions.Entity>> GetFirstRelatedIgnoreNulls_P0_Foo_EntityExtensions_Entity_Expression() 
         {
             var p_entity = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.EntityExtensions.Entity), "entity");
-            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_entity, typeof(global::Foo.EntityExtensions.Entity).GetProperty("RelatedEntities")); // .RelatedEntities
-            var expr_1 = global::System.Linq.Expressions.Expression.Property(expr_0, typeof(global::System.Collections.Generic.List<global::Foo.EntityExtensions.Entity>).GetProperty("this[]")); // [0]
+            var expr_0 = global::System.Linq.Expressions.Expression.Property(p_entity, typeof(global::Foo.EntityExtensions.Entity).GetProperty("RelatedEntities", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // .RelatedEntities
+            var expr_1 = global::System.Linq.Expressions.Expression.Property(expr_0, typeof(global::System.Collections.Generic.List<global::Foo.EntityExtensions.Entity>).GetProperty("this[]", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // [0]
             var expr_3 = global::System.Linq.Expressions.Expression.Constant(null, typeof(global::System.Collections.Generic.List<global::Foo.EntityExtensions.Entity>));
             var expr_4 = global::System.Linq.Expressions.Expression.NotEqual(expr_0, expr_3);
             var expr_5 = global::System.Linq.Expressions.Expression.Default(typeof(global::Foo.EntityExtensions.Entity));
