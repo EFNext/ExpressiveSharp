@@ -912,7 +912,6 @@ internal sealed class ExpressionTreeEmitter
     private static bool TryGetEnumComparisonUnderlyingFqn(ITypeSymbol? type, out string underlyingFqn)
     {
         underlyingFqn = "";
-        if (type is null) return false;
 
         if (type is INamedTypeSymbol { IsGenericType: true } nullable
             && nullable.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T

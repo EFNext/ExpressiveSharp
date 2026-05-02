@@ -308,4 +308,29 @@ public class EnumTests : GeneratorTestBase
 
         return Verifier.Verify(result.GeneratedTrees[0].ToString());
     }
+
+    [TestMethod]
+    public Task EnumRelationalPattern()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                public enum Bucket { Low, Mid, High }
+
+                public record Entity
+                {
+                    public Bucket Value { get; set; }
+
+                    [Expressive]
+                    public bool IsLowOrMid => Value is <= Bucket.Mid;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
 }
