@@ -881,6 +881,15 @@ internal sealed class ExpressionTreeEmitter
         var leftVar = EmitOperation(binary.LeftOperand);
         var rightVar = EmitOperation(binary.RightOperand);
 
+        // MakeBinary rejects raw enum operands for relational operators.
+        if (binary.OperatorMethod is null
+            && IsRelationalOperator(binary.OperatorKind)
+            && TryGetEnumComparisonUnderlyingFqn(binary.LeftOperand.Type, out var underlyingFqn))
+        {
+            leftVar = EmitConvert(leftVar, underlyingFqn);
+            rightVar = EmitConvert(rightVar, underlyingFqn);
+        }
+
         if (binary.OperatorMethod is not null)
         {
             var methodField = _fieldCache.EnsureMethodInfo(binary.OperatorMethod);
@@ -892,6 +901,42 @@ internal sealed class ExpressionTreeEmitter
         }
 
         return resultVar;
+    }
+
+    private static bool IsRelationalOperator(BinaryOperatorKind kind) =>
+        kind is BinaryOperatorKind.LessThan
+            or BinaryOperatorKind.LessThanOrEqual
+            or BinaryOperatorKind.GreaterThan
+            or BinaryOperatorKind.GreaterThanOrEqual;
+
+    private static bool TryGetEnumComparisonUnderlyingFqn(ITypeSymbol? type, out string underlyingFqn)
+    {
+        underlyingFqn = "";
+
+        if (type is INamedTypeSymbol { IsGenericType: true } nullable
+            && nullable.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T
+            && nullable.TypeArguments[0] is INamedTypeSymbol { TypeKind: TypeKind.Enum } innerEnum
+            && innerEnum.EnumUnderlyingType is { } innerUnderlying)
+        {
+            underlyingFqn = $"global::System.Nullable<{innerUnderlying.ToDisplayString(_fqnFormat)}>";
+            return true;
+        }
+
+        if (type is INamedTypeSymbol { TypeKind: TypeKind.Enum } enumType
+            && enumType.EnumUnderlyingType is { } underlying)
+        {
+            underlyingFqn = underlying.ToDisplayString(_fqnFormat);
+            return true;
+        }
+
+        return false;
+    }
+
+    private string EmitConvert(string operandVar, string typeFqn)
+    {
+        var convertVar = NextVar();
+        AppendLine($"var {convertVar} = {Expr}.Convert({operandVar}, typeof({typeFqn}));");
+        return convertVar;
     }
 
     private string EmitStringConcatenation(IBinaryOperation binary)
@@ -1532,7 +1577,7 @@ internal sealed class ExpressionTreeEmitter
             IConstantPatternOperation constant => EmitConstantPattern(constant, operandVar),
             ITypePatternOperation typePattern => EmitTypePattern(typePattern, operandVar),
             IDeclarationPatternOperation declaration => EmitDeclarationPattern(declaration, operandVar),
-            IRelationalPatternOperation relational => EmitRelationalPattern(relational, operandVar),
+            IRelationalPatternOperation relational => EmitRelationalPattern(relational, operandVar, operandType),
             INegatedPatternOperation negated => EmitNegatedPattern(negated, operandVar, operandType),
             IBinaryPatternOperation binaryPattern => EmitBinaryPattern(binaryPattern, operandVar, operandType),
             IDiscardPatternOperation => EmitDiscardPattern(),
@@ -1567,7 +1612,7 @@ internal sealed class ExpressionTreeEmitter
         return resultVar;
     }
 
-    private string EmitRelationalPattern(IRelationalPatternOperation relational, string operandVar)
+    private string EmitRelationalPattern(IRelationalPatternOperation relational, string operandVar, ITypeSymbol? operandType)
     {
         var resultVar = NextVar();
         var valueVar = EmitOperation(relational.Value);
@@ -1588,6 +1633,12 @@ internal sealed class ExpressionTreeEmitter
             // Fall back to constant false — never-matches is safer than always-matches when the operator is unknown.
             AppendLine($"var {resultVar} = {Expr}.Constant(false);");
             return resultVar;
+        }
+
+        if (TryGetEnumComparisonUnderlyingFqn(operandType, out var underlyingFqn))
+        {
+            operandVar = EmitConvert(operandVar, underlyingFqn);
+            valueVar = EmitConvert(valueVar, underlyingFqn);
         }
 
         AppendLine($"var {resultVar} = {Expr}.MakeBinary(global::System.Linq.Expressions.ExpressionType.{exprType}, {operandVar}, {valueVar});");
