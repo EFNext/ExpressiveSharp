@@ -255,4 +255,57 @@ public class EnumTests : GeneratorTestBase
 
         return Verifier.Verify(result.GeneratedTrees[0].ToString());
     }
+
+    [TestMethod]
+    public Task EnumRelationalComparison()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                public enum Bucket { Low, Mid, High }
+
+                public record Entity
+                {
+                    public Bucket Value { get; set; }
+
+                    [Expressive]
+                    public string Tier =>
+                        Value <= Bucket.Low ? "low" :
+                        Value <= Bucket.Mid ? "mid" :
+                        "high";
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task EnumRelationalComparisonWithNullableEnum()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                public enum Bucket { Low, Mid, High }
+
+                public record Entity
+                {
+                    public Bucket? Value { get; set; }
+
+                    [Expressive]
+                    public bool IsLowOrMid => Value <= Bucket.Mid;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
 }
