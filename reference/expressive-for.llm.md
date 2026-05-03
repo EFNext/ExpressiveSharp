@@ -102,7 +102,7 @@ static class EntityMappings
 {
     [ExpressiveFor(typeof(MyType), nameof(MyType.FullName))]
     static string FullName(MyType obj)
-        => obj.FirstName + " " + obj.LastName;
+        => $"{obj.FirstName} {obj.LastName}";
 }
 ```
 
@@ -124,7 +124,7 @@ public class Person
     // When FullName appears in a LINQ expression tree, it is rewritten to this body,
     // so EF Core projects it from FirstName/LastName instead of mapping it to its own column.
     [ExpressiveFor(nameof(FullName))]
-    private string FullNameExpression => FirstName + " " + LastName;
+    private string FullNameExpression => $"{FirstName} {LastName}";
 }
 ```
 
@@ -132,13 +132,13 @@ A **method stub** is equivalent in behaviour and appropriate when the target is 
 
 ```csharp
 [ExpressiveFor(nameof(FullName))]
-private string FullNameExpression() => FirstName + " " + LastName;
+private string FullNameExpression() => $"{FirstName} {LastName}";
 ```
 
-Both forms are equivalent to the verbose `[ExpressiveFor(typeof(Person), nameof(Person.FullName))] static string FullName(Person obj) => obj.FirstName + " " + obj.LastName;` but reuse `this` instead of threading a receiver parameter. When the EF Core integration is enabled, both the target property **and** the stub property itself are automatically excluded from the model (no `[NotMapped]` needed -- see [Automatic NotMapped for `[ExpressiveFor]` targets](#automatic-notmapped-for-expressivefor-targets)).
+Both forms are equivalent to the verbose `[ExpressiveFor(typeof(Person), nameof(Person.FullName))] static string FullName(Person obj) => $"{obj.FirstName} {obj.LastName}";` but reuse `this` instead of threading a receiver parameter. When the EF Core integration is enabled, both the target property **and** the stub property itself are automatically excluded from the model (no `[NotMapped]` needed -- see [Automatic NotMapped for `[ExpressiveFor]` targets](#automatic-notmapped-for-expressivefor-targets)).
 
 ::: warning When to prefer `[Expressive]` instead
-If the property has no backing storage and the same body works at both runtime and query time, put `[Expressive]` directly on it (`[Expressive] public string FullName => FirstName + " " + LastName;`) and skip the stub. `[ExpressiveFor]` is for the dual-body case; `[Expressive]` is for the single-body case.
+If the property has no backing storage and the same body works at both runtime and query time, put `[Expressive]` directly on it (`[Expressive] public string FullName => $"{FirstName} {LastName}";`) and skip the stub. `[ExpressiveFor]` is for the dual-body case; `[Expressive]` is for the single-body case.
 :::
 
 ::: tip

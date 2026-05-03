@@ -1317,7 +1317,7 @@ static class EntityMappings
 {
     [ExpressiveFor(typeof(MyType), nameof(MyType.FullName))]
     static string FullName(MyType obj)
-        => obj.FirstName + " " + obj.LastName;
+        => $"{obj.FirstName} {obj.LastName}";
 }
 ```
 
@@ -1339,7 +1339,7 @@ public class Person
     // When FullName appears in a LINQ expression tree, it is rewritten to this body,
     // so EF Core projects it from FirstName/LastName instead of mapping it to its own column.
     [ExpressiveFor(nameof(FullName))]
-    private string FullNameExpression => FirstName + " " + LastName;
+    private string FullNameExpression => $"{FirstName} {LastName}";
 }
 ```
 
@@ -1347,13 +1347,13 @@ A **method stub** is equivalent in behaviour and appropriate when the target is 
 
 ```csharp
 [ExpressiveFor(nameof(FullName))]
-private string FullNameExpression() => FirstName + " " + LastName;
+private string FullNameExpression() => $"{FirstName} {LastName}";
 ```
 
-Both forms are equivalent to the verbose `[ExpressiveFor(typeof(Person), nameof(Person.FullName))] static string FullName(Person obj) => obj.FirstName + " " + obj.LastName;` but reuse `this` instead of threading a receiver parameter. When the EF Core integration is enabled, both the target property **and** the stub property itself are automatically excluded from the model (no `[NotMapped]` needed -- see [Automatic NotMapped for `[ExpressiveFor]` targets](#automatic-notmapped-for-expressivefor-targets)).
+Both forms are equivalent to the verbose `[ExpressiveFor(typeof(Person), nameof(Person.FullName))] static string FullName(Person obj) => $"{obj.FirstName} {obj.LastName}";` but reuse `this` instead of threading a receiver parameter. When the EF Core integration is enabled, both the target property **and** the stub property itself are automatically excluded from the model (no `[NotMapped]` needed -- see [Automatic NotMapped for `[ExpressiveFor]` targets](#automatic-notmapped-for-expressivefor-targets)).
 
 ::: warning When to prefer `[Expressive]` instead
-If the property has no backing storage and the same body works at both runtime and query time, put `[Expressive]` directly on it (`[Expressive] public string FullName => FirstName + " " + LastName;`) and skip the stub. `[ExpressiveFor]` is for the dual-body case; `[Expressive]` is for the single-body case.
+If the property has no backing storage and the same body works at both runtime and query time, put `[Expressive]` directly on it (`[Expressive] public string FullName => $"{FirstName} {LastName}";`) and skip the stub. `[ExpressiveFor]` is for the dual-body case; `[Expressive]` is for the single-body case.
 :::
 
 ::: tip
@@ -2719,7 +2719,7 @@ public static class CustomerProfile
 {
 \[Expressive]
 public static string DisplayName(this Customer c)
-\=> c.Name + (c.Country != null ? " (" + c.Country + ")" : "");
+\=> c.Country != null ? $"{c.Name} ({c.Country})" : c.Name;
 
 ```
 [Expressive]
@@ -2742,7 +2742,7 @@ public static class CustomerProfile
 {
     [Expressive]
     public static string DisplayName(this Customer c)
-        => c.Name + (c.Country != null ? " (" + c.Country + ")" : "");
+        => c.Country != null ? $"{c.Name} ({c.Country})" : c.Name;
 
     [Expressive]
     public static bool IsActive(this Customer c)
@@ -2753,15 +2753,15 @@ public static class CustomerProfile
 **Generated SQL:**
 
 ```sql
-SELECT "c"."Id", "c"."Name" || CASE
-    WHEN "c"."Country" IS NOT NULL THEN ' (' || "c"."Country" || ')'
-    ELSE ''
+SELECT "c"."Id", CASE
+    WHEN "c"."Country" IS NOT NULL THEN "c"."Name" || ' (' || "c"."Country" || ')'
+    ELSE "c"."Name"
 END AS "Display"
 FROM "Customers" AS "c"
 WHERE "c"."JoinedAt" >= '2023-01-01 00:00:00'
-ORDER BY "c"."Name" || CASE
-    WHEN "c"."Country" IS NOT NULL THEN ' (' || "c"."Country" || ')'
-    ELSE ''
+ORDER BY CASE
+    WHEN "c"."Country" IS NOT NULL THEN "c"."Name" || ' (' || "c"."Country" || ')'
+    ELSE "c"."Name"
 END
 ```
 
@@ -2958,7 +2958,7 @@ public class User
     public string LastName  { get; set; } = "";
 
     [Expressive]
-    public string FullName => LastName + ", " + FirstName;
+    public string FullName => $"{LastName}, {FirstName}";
 }
 ```
 
@@ -2976,7 +2976,7 @@ public partial class User
     // The generator emits a settable FullName property whose getter falls through
     // to this stub when no value has been materialized yet.
     [ExpressiveProperty("FullName")]
-    private string FullNameExpression => LastName + ", " + FirstName;
+    private string FullNameExpression => $"{LastName}, {FirstName}";
 }
 ```
 
@@ -3001,10 +3001,10 @@ public partial class User
     public string Email     { get; set; } = "";
 
     [ExpressiveProperty("FullName")]
-    private string FullNameExpression => LastName + ", " + FirstName;
+    private string FullNameExpression => $"{LastName}, {FirstName}";
 
     [ExpressiveProperty("DisplayLabel")]
-    private string DisplayLabelExpression => FullName + " <" + Email + ">";
+    private string DisplayLabelExpression => $"{FullName} <{Email}>";
 }
 
 // DbContext
@@ -3072,7 +3072,7 @@ public class User
     public string FullName  { get; set; } = "";   // existing auto-property
 
     [ExpressiveFor(nameof(FullName))]
-    private string FullNameExpression => LastName + ", " + FirstName;
+    private string FullNameExpression => $"{LastName}, {FirstName}";
 }
 ```
 
@@ -3102,7 +3102,7 @@ db.Orders
 .Select(o => new OrderSummaryDto
 {
 Id = o.Id,
-Description = "Order #" + o.Id,
+Description = $"Order #{o.Id}",
 Total = o.Items.Sum(i => i.UnitPrice \* i.Quantity),
 })
 \---setup---
@@ -3120,7 +3120,7 @@ db
     .Select(o => new OrderSummaryDto
     {
         Id = o.Id,
-        Description = "Order #" + o.Id,
+        Description = $"Order #{o.Id}",
         Total = o.Items.Sum(i => i.UnitPrice * i.Quantity),
     })
 
@@ -3136,17 +3136,17 @@ public class OrderSummaryDto
 **Generated SQL:**
 
 ```sql
-SELECT "o"."Id", (
+SELECT "o"."Id", 'Order #' || CAST("o"."Id" AS TEXT) AS "Description", (
     SELECT COALESCE(ef_sum(ef_multiply("l"."UnitPrice", CAST("l"."Quantity" AS TEXT))), '0.0')
     FROM "LineItems" AS "l"
-    WHERE "o"."Id" = "l"."OrderId")
+    WHERE "o"."Id" = "l"."OrderId") AS "Total"
 FROM "Orders" AS "o"
 ```
 
 With an `[Expressive]` constructor, you define the projection once and use it everywhere:
 
 ::: expressive-sample
-db.Orders.Select(o => new OrderSummaryDto(o.Id, "Order #" + o.Id, o.Total()))
+db.Orders.Select(o => new OrderSummaryDto(o.Id, $"Order #{o.Id}", o.Total()))
 \---setup---
 public class OrderSummaryDto
 {
@@ -3179,7 +3179,7 @@ public static decimal Total(this Order o)
 ```csharp
 db
     .Orders
-    .Select(o => new OrderSummaryDto(o.Id, "Order #" + o.Id, o.Total()))
+    .Select(o => new OrderSummaryDto(o.Id, $"Order #{o.Id}", o.Total()))
 
 // Setup
 public class OrderSummaryDto
@@ -3210,10 +3210,10 @@ public static class OrderExt
 **Generated SQL:**
 
 ```sql
-SELECT "o"."Id", (
+SELECT "o"."Id", 'Order #' || CAST("o"."Id" AS TEXT) AS "Description", (
     SELECT COALESCE(ef_sum(ef_multiply("l"."UnitPrice", CAST("l"."Quantity" AS TEXT))), '0.0')
     FROM "LineItems" AS "l"
-    WHERE "o"."Id" = "l"."OrderId")
+    WHERE "o"."Id" = "l"."OrderId") AS "Total"
 FROM "Orders" AS "o"
 ```
 
@@ -3514,7 +3514,7 @@ url: 'https://efnext.github.io/ExpressiveSharp/advanced/custom-transformers.md'
 ---
 # Custom Transformers
 
-Expression transformers adapt expression trees for specific consumers at runtime. ExpressiveSharp includes four built-in transformers for EF Core compatibility, and you can create your own for custom LINQ providers or specialized rewriting needs.
+Expression transformers adapt expression trees for specific consumers at runtime. ExpressiveSharp includes six built-in transformers for EF Core compatibility, and you can create your own for custom LINQ providers or specialized rewriting needs.
 
 ## The `IExpressionTreeTransformer` Interface
 
@@ -3657,9 +3657,11 @@ When `UseExpressives()` is configured for EF Core, the transformer pipeline runs
 
 1. **Per-member transformers** (from `[Expressive(Transformers = ...)]`) -- applied during expression resolution, before the tree is substituted into the query.
 2. **Built-in EF Core transformers** -- applied as part of `ExpandExpressives()`:
+   * `ReplaceThrowWithDefault` (skip with `o => o.PreserveThrowExpressions()`)
    * `ConvertLoopsToLinq`
    * `RemoveNullConditionalPatterns`
    * `FlattenTupleComparisons`
+   * `FlattenConcatArrayCalls`
    * `FlattenBlockExpressions`
 3. **Plugin-contributed transformers** (from `IExpressivePlugin.GetTransformers()`) -- applied after the built-in transformers.
 
@@ -3701,12 +3703,14 @@ The `RelationalExtensions` package uses this exact pattern to register the `Rewr
 
 | Transformer | Purpose | When to use manually |
 |---|---|---|
+| `ReplaceThrowWithDefault` | Replaces `throw` expressions with `default(T)` of the same type | Providers that cannot translate `Throw` (skipped via `PreserveThrowExpressions()`) |
 | `RemoveNullConditionalPatterns` | Strips `x != null ? x.Prop : default` ternaries | Databases that handle null propagation natively |
 | `FlattenBlockExpressions` | Inlines block-local variables, removes `Expression.Block` | LINQ providers that do not support block expressions |
 | `FlattenTupleComparisons` | Replaces `ValueTuple` field access with underlying arguments | Providers that cannot translate `ValueTuple` construction |
+| `FlattenConcatArrayCalls` | Rewrites `string.Concat(string[])` into 2/3/4-arg overloads | Providers that cannot translate `NewArrayInit` of non-constants |
 | `ConvertLoopsToLinq` | Rewrites `LoopExpression` to LINQ method calls | Providers that cannot translate loop expressions |
 
-All four are applied automatically by `UseExpressives()`. You only need to use them manually if you are working with a non-EF-Core LINQ provider or calling `ExpandExpressives()` directly.
+All six are applied automatically by `UseExpressives()`. You only need to use them manually if you are working with a non-EF-Core LINQ provider or calling `ExpandExpressives()` directly.
 
 ## Testing Transformers
 
@@ -3790,7 +3794,7 @@ See [Troubleshooting](./troubleshooting) for symptom-oriented guidance -- find t
 | [EXP0010](#exp0010) | Warning | Interceptor emission failed | -- |
 | [EXP0011](#exp0011) | Warning | Unresolvable member in pattern | -- |
 | [EXP0012](#exp0012) | Info | Factory method can be converted to constructor | -- |
-| [EXP0013](#exp0013) | Warning | Member could benefit from `[Expressive]` | [Add `[Expressive]`](#exp0013-fix) |
+| [EXP0013](#exp0013) | Warning | Referenced member could benefit from `[Expressive]` | [Add `[Expressive]`](#exp0013-fix) |
 | [EXP0014](#exp0014) | Error | `[ExpressiveFor]` target type not found | -- |
 | [EXP0015](#exp0015) | Error | `[ExpressiveFor]` target member not found | -- |
 | [EXP0017](#exp0017) | Error | `[ExpressiveFor]` return type mismatch | -- |
@@ -3834,7 +3838,7 @@ public string FullName { get; set; }
 
 // Fixed: expression-bodied property
 [Expressive]
-public string FullName => FirstName + " " + LastName;
+public string FullName => $"{FirstName} {LastName}";
 ```
 
 ***
@@ -3865,7 +3869,7 @@ public class CustomerDto
     public CustomerDto(Customer c)
     {
         Id = c.Id;
-        Name = c.FirstName + " " + c.LastName;
+        Name = $"{c.FirstName} {c.LastName}";
     }
 }
 ```
@@ -4097,7 +4101,7 @@ initializer. Consider converting it to an [Expressive] constructor.
 public static CustomerDto FromCustomer(Customer c) => new CustomerDto
 {
     Id = c.Id,
-    Name = c.FirstName + " " + c.LastName
+    Name = $"{c.FirstName} {c.LastName}"
 };
 
 // After: expressive constructor
@@ -4105,7 +4109,7 @@ public static CustomerDto FromCustomer(Customer c) => new CustomerDto
 public CustomerDto(Customer c)
 {
     Id = c.Id;
-    Name = c.FirstName + " " + c.LastName;
+    Name = $"{c.FirstName} {c.LastName}";
 }
 ```
 
@@ -4113,7 +4117,7 @@ public CustomerDto(Customer c)
 
 ## Analyzer Diagnostic (EXP0013)
 
-### EXP0013 -- Member could benefit from `[Expressive]` {#exp0013}
+### EXP0013 -- Referenced member could benefit from `[Expressive]` {#exp0013}
 
 **Severity:** Warning
 **Category:** Design
@@ -4608,7 +4612,7 @@ var customers = dbContext.Customers
     .Select(c => new CustomerDto
     {
         Id = c.Id,
-        FullName = c.FirstName + " " + c.LastName,
+        FullName = $"{c.FirstName} {c.LastName}",
         IsActive = c.IsActive,
         OrderCount = c.Orders.Count()
     })
@@ -5183,6 +5187,7 @@ services.AddDbContext<MyDbContext>(options =>
 1. **Expands `[Expressive]` member references** — walks query expression trees and replaces opaque property/method accesses with the generated expression trees
 2. **Marks `[Expressive]` properties as unmapped** — adds a model convention that tells EF Core to ignore these properties in the database model (no corresponding column)
 3. **Applies database-friendly transformers** (in this order):
+   * `ReplaceThrowWithDefault` — replaces `throw` expressions with `default(T)` so `Coalesce`/`Condition` shapes survive (skip with `o => o.PreserveThrowExpressions()`)
    * `ConvertLoopsToLinq` — converts loop expressions to LINQ method calls
    * `RemoveNullConditionalPatterns` — strips null-check ternaries for SQL providers
    * `FlattenTupleComparisons` — rewrites tuple field access to direct comparisons
@@ -5378,7 +5383,7 @@ The built-in `RelationalExtensions` package (for window functions) uses this plu
 |---------|-------------|
 | [`ExpressiveSharp`](https://www.nuget.org/packages/ExpressiveSharp/) | Core runtime — `[Expressive]` attribute, source generator, expression expansion, transformers |
 | [`ExpressiveSharp.EntityFrameworkCore`](https://www.nuget.org/packages/ExpressiveSharp.EntityFrameworkCore/) | EF Core integration — `UseExpressives()`, `ExpressiveDbSet<T>`, Include/ThenInclude, async methods, analyzers and code fixes |
-| [`ExpressiveSharp.EntityFrameworkCore.RelationalExtensions`](https://www.nuget.org/packages/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions/) | Relational extensions — `ExecuteUpdate`/`ExecuteUpdateAsync` with modern syntax, SQL window functions (ROW\_NUMBER, RANK, DENSE\_RANK, NTILE) |
+| [`ExpressiveSharp.EntityFrameworkCore.RelationalExtensions`](https://www.nuget.org/packages/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions/) | Relational extensions — `ExecuteUpdate`/`ExecuteUpdateAsync` with modern syntax, SQL window functions (ranking, aggregate, navigation) |
 
 ::: info
 The `ExpressiveSharp.EntityFrameworkCore` package bundles Roslyn analyzers and code fixes from `ExpressiveSharp.EntityFrameworkCore.CodeFixers`. These provide compile-time diagnostics and IDE quick-fix actions for common issues like missing `[Expressive]` attributes.
@@ -5416,7 +5421,7 @@ Implementations are pure functions that take an expression tree and return a tra
 
 ## Built-in Transformers
 
-ExpressiveSharp ships with four built-in transformers in the `ExpressiveSharp.Transformers` namespace, plus one additional transformer in the `RelationalExtensions` package.
+ExpressiveSharp ships with six built-in transformers in the `ExpressiveSharp.Transformers` namespace, plus one additional transformer in the `RelationalExtensions` package.
 
 ***
 
@@ -5517,7 +5522,25 @@ Loops that do not match any recognized pattern will throw `InvalidOperationExcep
 
 ***
 
-### 5. `RewriteIndexedSelectToRowNumber`
+### 5. `FlattenConcatArrayCalls`
+
+**Namespace:** `ExpressiveSharp.Transformers`
+
+Rewrites `string.Concat(new string[] { a, b, c, ... })` into a chain of 2/3/4-arg `string.Concat` calls. The emitter falls back to the array overload for interpolations with 5+ parts (e.g. `$"{a} {b} {c} {d} {e}"`); EF Core can't translate `NewArrayInit` with non-constant elements, so without this rewrite those interpolations would fail to translate to SQL.
+
+***
+
+### 6. `ReplaceThrowWithDefault`
+
+**Namespace:** `ExpressiveSharp.Transformers`
+
+Replaces `throw` expressions with `Expression.Default(T)` of the same type, so providers like EF Core (which can't translate `Throw` to SQL) still see a node of the surrounding `Coalesce`/`Condition` shape. Common when block-bodied members contain a `throw` for an "impossible" branch the database never reaches.
+
+Opt out via `o.PreserveThrowExpressions()` if you need the original throw semantics — useful for non-EF query providers, or when `ExpandExpressives()` is invoked on a tree that won't be translated to SQL.
+
+***
+
+### 7. `RewriteIndexedSelectToRowNumber`
 
 **Namespace:** `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Transformers`
 **Package:** `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions`
@@ -5563,7 +5586,7 @@ Each transformer type must have a parameterless constructor. The transformers ar
 
 ### Global via `UseExpressives()` (EF Core)
 
-When you call `UseExpressives()` on your `DbContextOptionsBuilder`, all four core transformers are applied automatically to every query:
+When you call `UseExpressives()` on your `DbContextOptionsBuilder`, all core transformers are applied automatically to every query:
 
 ```csharp
 var options = new DbContextOptionsBuilder<MyDbContext>()
@@ -5574,10 +5597,12 @@ var options = new DbContextOptionsBuilder<MyDbContext>()
 
 This applies (in this order):
 
-1. `ConvertLoopsToLinq`
-2. `RemoveNullConditionalPatterns`
-3. `FlattenTupleComparisons`
-4. `FlattenBlockExpressions`
+1. `ReplaceThrowWithDefault` (skip with `o => o.PreserveThrowExpressions()`)
+2. `ConvertLoopsToLinq`
+3. `RemoveNullConditionalPatterns`
+4. `FlattenTupleComparisons`
+5. `FlattenConcatArrayCalls`
+6. `FlattenBlockExpressions`
 
 No per-member configuration is needed when using `UseExpressives()`.
 
@@ -5615,9 +5640,11 @@ var expanded = expr.ExpandExpressives(
 
 ## Plugin-Contributed Transformers
 
-Plugins implementing `IExpressivePlugin` can contribute additional transformers to the EF Core pipeline:
+Plugins implementing `IExpressivePlugin` (from `ExpressiveSharp.EntityFrameworkCore`) can contribute additional transformers to the EF Core pipeline. Plugins are EF-Core-only and depend on `Microsoft.Extensions.DependencyInjection.IServiceCollection`:
 
 ```csharp
+namespace ExpressiveSharp.EntityFrameworkCore;
+
 public interface IExpressivePlugin
 {
     void ApplyServices(IServiceCollection services);
@@ -6297,7 +6324,7 @@ static class PersonMappings
     // Provide a SQL-friendly alternative
     [ExpressiveFor(typeof(Person), nameof(Person.FullName))]
     static string FullName(Person p)
-        => p.FirstName + " " + p.LastName;
+        => $"{p.FirstName} {p.LastName}";
 }
 ```
 
@@ -6466,7 +6493,7 @@ public class Person
     // so EF Core projects it from the underlying columns instead of trying to
     // map it to a column of its own. `this` is the receiver automatically.
     [ExpressiveFor(nameof(FullName))]
-    private string FullNameExpression => FirstName + " " + LastName;
+    private string FullNameExpression => $"{FirstName} {LastName}";
 }
 ```
 
@@ -6550,9 +6577,11 @@ Understanding the internals of ExpressiveSharp helps you use it effectively and 
 |           v                                               |
 |  +-----------------------------------------------------+ |
 |  | Transformer Pipeline                                 | |
+|  | - ReplaceThrowWithDefault                            | |
 |  | - ConvertLoopsToLinq                                 | |
 |  | - RemoveNullConditionalPatterns                      | |
 |  | - FlattenTupleComparisons                            | |
+|  | - FlattenConcatArrayCalls                            | |
 |  | - FlattenBlockExpressions                            | |
 |  | - (Plugin-contributed transformers)                  | |
 |  +-----------------------------------------------------+ |
@@ -6660,13 +6689,15 @@ This means `[Expressive]` members can reference other `[Expressive]` members fre
 
 ### Transformer Pipeline
 
-After expansion, transformers adapt the expression tree for the target LINQ provider. When `UseExpressives()` is active, four built-in transformers run automatically:
+After expansion, transformers adapt the expression tree for the target LINQ provider. When `UseExpressives()` is active, six built-in transformers run automatically:
 
 | Transformer | Purpose |
 |---|---|
+| `ReplaceThrowWithDefault` | Replaces `throw` expressions with `default(T)` so providers that can't translate `Throw` still see a node of the same type (skip with `o => o.PreserveThrowExpressions()`) |
 | `ConvertLoopsToLinq` | Rewrites `LoopExpression` (from `foreach`/`for`) into LINQ method calls (`Sum`, `Count`, `Any`, `All`) |
 | `RemoveNullConditionalPatterns` | Strips null-check ternaries (`x != null ? x.Prop : default` becomes `x.Prop`) for SQL null propagation |
 | `FlattenTupleComparisons` | Replaces `ValueTuple` field access with underlying arguments for direct comparison |
+| `FlattenConcatArrayCalls` | Rewrites `string.Concat(string[])` (used by 5+-part interpolations) into 2/3/4-arg `string.Concat` calls EF Core can translate |
 | `FlattenBlockExpressions` | Inlines block-local variables and removes `Expression.Block` nodes |
 
 Plugins can contribute additional transformers via `IExpressivePlugin.GetTransformers()`.
@@ -6827,15 +6858,11 @@ Most common `Queryable` methods are supported:
 
 **Comparer overloads** (`IEqualityComparer<T>`, `IComparer<T>`) are also supported.
 
-### .NET 10+ Additional Methods
+### .NET 9 / .NET 10 Additional Methods
 
-On .NET 10 and later, these additional methods are available:
+On .NET 9 and later: `CountBy`, `AggregateBy`, `Index`.
 
-* `LeftJoin`
-* `RightJoin`
-* `CountBy`
-* `AggregateBy`
-* `Index`
+On .NET 10 and later (in addition to the above): `LeftJoin`, `RightJoin`.
 
 ## Pattern Matching and Switch Expressions
 
@@ -7046,7 +7073,7 @@ Expression trees (`Expression<Func<...>>`) only support a restricted subset of C
 
 ### 2. Computed properties are opaque to LINQ providers
 
-You define `public string FullName => FirstName + " " + LastName` and use it in a query, but the provider cannot see inside the property getter. It either throws a runtime translation error, or worse, silently fetches the entire entity to evaluate `FullName` on the client (overfetching). The only workaround is to duplicate the logic as an inline expression in every query that needs it.
+You define `public string FullName => $"{FirstName} {LastName}"` and use it in a query, but the provider cannot see inside the property getter. It either throws a runtime translation error, or worse, silently fetches the entire entity to evaluate `FullName` on the client (overfetching). The only workaround is to duplicate the logic as an inline expression in every query that needs it.
 
 ## How ExpressiveSharp Works
 
@@ -7119,13 +7146,13 @@ Mark computed properties and methods with `[Expressive]` to generate companion e
 
 ## Requirements
 
-| | .NET 8.0 | .NET 10.0 |
-|---|---|---|
-| **ExpressiveSharp** | C# 12 | C# 14 |
-| **ExpressiveSharp.Abstractions** | C# 12 | C# 14 |
-| **ExpressiveSharp.EntityFrameworkCore** | EF Core 8.x | EF Core 10.x |
-| **ExpressiveSharp.MongoDB** | MongoDB.Driver 3.x | MongoDB.Driver 3.x |
-| **ExpressiveSharp.EntityFrameworkCore.RelationalExtensions** | EF Core 8.x | EF Core 10.x |
+| | .NET 8.0 | .NET 9.0 | .NET 10.0 |
+|---|---|---|---|
+| **ExpressiveSharp** | C# 12 | C# 13 | C# 14 |
+| **ExpressiveSharp.Abstractions** | C# 12 | C# 13 | C# 14 |
+| **ExpressiveSharp.EntityFrameworkCore** | EF Core 8.x | EF Core 9.x | EF Core 10.x |
+| **ExpressiveSharp.MongoDB** | MongoDB.Driver 3.x | MongoDB.Driver 3.x | MongoDB.Driver 3.x |
+| **ExpressiveSharp.EntityFrameworkCore.RelationalExtensions** | EF Core 8.x | EF Core 9.x | EF Core 10.x |
 
 ## Next Steps
 
@@ -7389,7 +7416,7 @@ public string FullName { get; set; }
 
 // Expression-bodied property -- works
 [Expressive]
-public string FullName => FirstName + " " + LastName;
+public string FullName => $"{FirstName} {LastName}";
 ```
 
 ## Block Body Restrictions
@@ -7468,9 +7495,9 @@ When targeting EF Core, the body of an `[Expressive]` member can only use operat
 [Expressive]
 public string FilePath => Path.Combine(Directory, FileName);
 
-// Works -- string concatenation is translated by EF Core
+// Works -- string interpolation is translated by EF Core
 [Expressive]
-public string FilePath => Directory + "/" + FileName;
+public string FilePath => $"{Directory}/{FileName}";
 ```
 
 ::: info Using ExpressiveFor for Unsupported Methods
@@ -7648,7 +7675,7 @@ options.UseSqlServer(connectionString)
        .UseExpressives(opts => opts.AddPlugin(new MyPlugin()));
 ```
 
-`UseExpressives()` automatically registers four transformers as global defaults (`ConvertLoopsToLinq`, `RemoveNullConditionalPatterns`, `FlattenTupleComparisons`, `FlattenBlockExpressions`), sets up the query compiler decorator, and configures model conventions.
+`UseExpressives()` automatically registers six transformers as global defaults (`ReplaceThrowWithDefault`, `ConvertLoopsToLinq`, `RemoveNullConditionalPatterns`, `FlattenTupleComparisons`, `FlattenConcatArrayCalls`, `FlattenBlockExpressions`), sets up the query compiler decorator, and configures model conventions. `ReplaceThrowWithDefault` can be opted out via `o => o.PreserveThrowExpressions()`.
 
 ### Null-Conditional Handling
 
@@ -7702,13 +7729,13 @@ Pick based on whether you want the generator to declare the target property for 
 // Before (Projectables)
 [Projectable(UseMemberBody = nameof(FullNameProjection))]
 public string FullName { get; init; }
-private string FullNameProjection => LastName + ", " + FirstName;
+private string FullNameProjection => $"{LastName}, {FirstName}";
 
 // After (ExpressiveSharp) -- partial class, stub only; FullName is generated
 public partial class Customer
 {
     [ExpressiveProperty("FullName")]
-    private string FullNameExpression => LastName + ", " + FirstName;
+    private string FullNameExpression => $"{LastName}, {FirstName}";
 }
 ```
 
@@ -7730,7 +7757,7 @@ public string FullName => $"{FirstName} {LastName}".Trim().ToUpper();
 
 [Projectable(UseMemberBody = nameof(FullNameProjection))]
 public string FullName => ...;
-private string FullNameProjection => FirstName + " " + LastName;
+private string FullNameProjection => $"{FirstName} {LastName}";
 
 // After (ExpressiveSharp)
 using ExpressiveSharp.Mapping;
@@ -7738,7 +7765,7 @@ using ExpressiveSharp.Mapping;
 public string FullName => $"{FirstName} {LastName}".Trim().ToUpper();
 
 [ExpressiveFor(nameof(FullName))]
-private string FullNameExpression => FirstName + " " + LastName;
+private string FullNameExpression => $"{FirstName} {LastName}";
 ```
 
 **Scenario 2: External/third-party type methods**
@@ -7838,7 +7865,7 @@ The `InterceptorsNamespaces` MSBuild property needed for method interceptors is 
 
 9. **Package consolidation** -- Remove all old packages and install `ExpressiveSharp.EntityFrameworkCore`.
 
-10. **Target framework** -- ExpressiveSharp targets .NET 8.0 and .NET 10.0. If you are on .NET 6 or 7, you will need to upgrade.
+10. **Target framework** -- ExpressiveSharp targets .NET 8.0, .NET 9.0, and .NET 10.0. If you are on .NET 6 or 7, you will need to upgrade.
 
 ## Feature Comparison
 
@@ -7862,7 +7889,7 @@ The `InterceptorsNamespaces` MSBuild property needed for method interceptors is 
 | EF Core specific | Yes | No -- works standalone |
 | Compatibility modes | Full / Limited | Full only (simpler) |
 | Code generation approach | Syntax tree rewriting | Semantic (IOperation) analysis |
-| Target frameworks | .NET 6+ | .NET 8 / .NET 10 |
+| Target frameworks | .NET 6+ | .NET 8 / .NET 9 / .NET 10 |
 
 ## New Features Available After Migration
 
@@ -8655,7 +8682,7 @@ Use `[Expressive]` for shared business logic (computed properties, filters, clas
 
 **EF Core (ExpressiveDbSet only):** `Include`, `ThenInclude`, `AsNoTracking`, `IgnoreQueryFilters`, `TagWith`, `AnyAsync`, `FirstAsync`, `SumAsync`, and all other async lambda methods
 
-On .NET 10+, additional methods are available: `LeftJoin`, `RightJoin`, `CountBy`, `AggregateBy`, and `Index`.
+On .NET 9+, `CountBy`, `AggregateBy`, and `Index` are available. On .NET 10+, `LeftJoin` and `RightJoin` are also available.
 
 ## Tips
 
@@ -8747,7 +8774,7 @@ No custom MQL is emitted — MongoDB's own translator does all the heavy lifting
 
 ## `[Expressive]` Properties Are Unmapped from BSON
 
-ExpressiveSharp provides a MongoDB `IClassMapConvention` that unmaps every `[Expressive]`-decorated property from the BSON class map, so the property's backing field is not persisted to documents. This matters most for [synthesized properties](../../reference/expressive-for#synthesizing-a-property-with-synthesize-true), which have a writable `init` accessor and would otherwise be serialized as a real BSON field.
+ExpressiveSharp provides a MongoDB `IClassMapConvention` that unmaps every `[Expressive]`-decorated property from the BSON class map, so the property's backing field is not persisted to documents. This matters most for [synthesized properties](../../reference/expressive-property), which have a writable `init` accessor and would otherwise be serialized as a real BSON field.
 
 ::: warning Ordering constraint
 MongoDB builds and caches a class map the first time you call `IMongoDatabase.GetCollection<T>()` for a given `T`. A convention registered *after* that call does not apply to the cached map. If any of your document types use `[Expressive]`, register the convention before the first `GetCollection<T>` call:
@@ -9690,8 +9717,8 @@ Type patterns in switch arms produce type checks and casts:
 [Expressive]
 public static string Describe(this Shape shape) => shape switch
 {
-    Circle c    => "Circle with radius " + c.Radius,
-    Rectangle r => "Rectangle " + r.Width + "x" + r.Height,
+    Circle c    => $"Circle with radius {c.Radius}",
+    Rectangle r => $"Rectangle {r.Width}x{r.Height}",
     _           => "Unknown shape",
 };
 ```
@@ -9821,7 +9848,7 @@ dotnet add package ExpressiveSharp.MongoDB
 | `ExpressiveSharp.Abstractions` | Lightweight — `[Expressive]` attribute, `[ExpressiveFor]`, `IExpressionTreeTransformer`, source generator only (no runtime services) |
 | `ExpressiveSharp.EntityFrameworkCore` | EF Core integration — `UseExpressives()`, `ExpressiveDbSet<T>`, Include/ThenInclude, async methods, analyzers and code fixes |
 | `ExpressiveSharp.MongoDB` | MongoDB integration — `.AsExpressive()` on `IMongoCollection<T>`, MQL aggregation translation |
-| `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` | SQL window functions — ROW\_NUMBER, RANK, DENSE\_RANK, NTILE (experimental) |
+| `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` | SQL window functions — ranking (ROW\_NUMBER, RANK, DENSE\_RANK, NTILE, PERCENT\_RANK, CUME\_DIST), aggregate (SUM, AVG, COUNT, MIN, MAX), and navigation (LAG, LEAD, FIRST\_VALUE, LAST\_VALUE, NTH\_VALUE). Experimental. |
 
 ## Step 2 — Define Your Entities
 
@@ -9876,7 +9903,7 @@ using Microsoft.EntityFrameworkCore;
 
 public class AppDbContext : DbContext
 {
-    // ExpressiveSet<T> lets modern C# syntax flow through DbSet chains
+    // ExpressiveDbSet<T> lets modern C# syntax flow through DbSet chains
     public ExpressiveDbSet<Customer> Customers => this.ExpressiveSet<Customer>();
     public ExpressiveDbSet<Order> Orders => this.ExpressiveSet<Order>();
 
@@ -11210,8 +11237,8 @@ Switch arms can match on type and bind the result to a variable:
 [Expressive]
 public static string Describe(this Animal animal) => animal switch
 {
-    Dog d   => "Dog named " + d.Name,
-    Cat c   => "Cat: " + c.Breed,
+    Dog d   => $"Dog named {d.Name}",
+    Cat c   => $"Cat: {c.Breed}",
     _       => "Unknown animal",
 };
 ```
@@ -11219,8 +11246,8 @@ public static string Describe(this Animal animal) => animal switch
 The generator produces type-check and cast expressions:
 
 ```csharp
-animal is Dog ? "Dog named " + ((Dog)animal).Name
-: animal is Cat ? "Cat: " + ((Cat)animal).Breed
+animal is Dog ? $"Dog named {((Dog)animal).Name}"
+: animal is Cat ? $"Cat: {((Cat)animal).Breed}"
 : "Unknown animal"
 ```
 
@@ -11774,7 +11801,7 @@ This page helps you diagnose and fix common issues with ExpressiveSharp. Entries
 public string Greeting(string name)
 {
     var prefix = IsVip ? "Dear" : "Hi";
-    return prefix + " " + name;
+    return $"{prefix} {name}";
 }
 ```
 
@@ -11809,7 +11836,7 @@ public string FullName { get; set; }
 
 // Fixed: expression-bodied property
 [Expressive]
-public string FullName => FirstName + " " + LastName;
+public string FullName => $"{FirstName} {LastName}";
 
 // Also valid: remove the attribute if projection is not needed
 public string FullName { get; set; }
@@ -11902,9 +11929,9 @@ The `[Expressive]` member calls a method with no SQL equivalent:
 [Expressive]
 public string FilePath => Path.Combine(Directory, FileName);
 
-// Works: string concatenation is translated by EF Core
+// Works: string interpolation is translated by EF Core
 [Expressive]
-public string FilePath => Directory + "/" + FileName;
+public string FilePath => $"{Directory}/{FileName}";
 ```
 
 For third-party methods you cannot change, provide a translatable equivalent via [`[ExpressiveFor]`](./expressive-for):
@@ -12085,11 +12112,11 @@ No. The core `ExpressiveSharp` package works with any LINQ provider or standalon
 
 ### What .NET versions are supported?
 
-| | .NET 8.0 | .NET 10.0 |
-|---|---|---|
-| **ExpressiveSharp** | C# 12 | C# 14 |
-| **ExpressiveSharp.EntityFrameworkCore** | EF Core 8.x | EF Core 10.x |
-| **RelationalExtensions** | EF Core 8.x | EF Core 10.x |
+| | .NET 8.0 | .NET 9.0 | .NET 10.0 |
+|---|---|---|---|
+| **ExpressiveSharp** | C# 12 | C# 13 | C# 14 |
+| **ExpressiveSharp.EntityFrameworkCore** | EF Core 8.x | EF Core 9.x | EF Core 10.x |
+| **RelationalExtensions** | EF Core 8.x | EF Core 9.x | EF Core 10.x |
 
 ### How do I suppress a specific diagnostic?
 
@@ -12116,7 +12143,7 @@ url: 'https://efnext.github.io/ExpressiveSharp/guide/window-functions.md'
 ---
 # Window Functions (SQL)
 
-ExpressiveSharp provides SQL window function support through the `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` package. This enables ROW\_NUMBER, RANK, DENSE\_RANK, and NTILE directly in LINQ queries with a fluent window specification API.
+ExpressiveSharp provides SQL window function support through the `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` package. This enables ranking (ROW\_NUMBER, RANK, DENSE\_RANK, NTILE, PERCENT\_RANK, CUME\_DIST), aggregate (SUM, AVG, COUNT, MIN, MAX), and navigation (LAG, LEAD, FIRST\_VALUE, LAST\_VALUE, NTH\_VALUE) functions directly in LINQ queries with a fluent window specification API.
 
 ::: warning Experimental
 This package is experimental. EF Core has an [open issue (#12747)](https://github.com/dotnet/efcore/issues/12747) for native window function support. This package may be superseded when that ships.
@@ -12184,8 +12211,8 @@ Aggregate window functions compute values over a set of rows defined by the wind
 |----------|-----|-------------|
 | `WindowFunction.Sum(expr, window)` | `SUM(expr) OVER(...)` | Sum of values. Returns same type as input. |
 | `WindowFunction.Average(expr, window)` | `AVG(expr) OVER(...)` | Average of values. Returns `T?` (or `double` for `int`/`long` input). |
-| `WindowFunction.Count(window)` | `COUNT(*) OVER(...)` | Count of all rows. Returns `long`. |
-| `WindowFunction.Count(expr, window)` | `COUNT(expr) OVER(...)` | Count of non-null values. Returns `long`. |
+| `WindowFunction.Count(window)` | `COUNT(*) OVER(...)` | Count of all rows. Returns `int`. |
+| `WindowFunction.Count(expr, window)` | `COUNT(expr) OVER(...)` | Count of non-null values. Returns `int`. |
 | `WindowFunction.Min(expr, window)` | `MIN(expr) OVER(...)` | Minimum value. Returns same type as input. |
 | `WindowFunction.Max(expr, window)` | `MAX(expr) OVER(...)` | Maximum value. Returns same type as input. |
 
@@ -12203,7 +12230,7 @@ Navigation functions access specific rows relative to the current row. LAG/LEAD 
 | `WindowFunction.Lead(expr, n, default, window)` | `LEAD(expr, n, default) OVER(...)` | No | Value `n` rows ahead, with default. |
 | `WindowFunction.FirstValue(expr, window)` | `FIRST_VALUE(expr) OVER(...)` | Yes | First value in the frame. |
 | `WindowFunction.LastValue(expr, window)` | `LAST_VALUE(expr) OVER(...)` | Yes | Last value in the frame. |
-| `WindowFunction.NthValue(expr, n, window)` | `NTH_VALUE(expr, n) OVER(...)` | Yes | Value at the Nth row (1-based) in the frame. |
+| `WindowFunction.NthValue(expr, n, window)` | `NTH_VALUE(expr, n) OVER(...)` | Yes | Value at the Nth row (1-based) in the frame. **Not supported on SQL Server.** |
 
 ::: tip Nullable results from LAG/LEAD
 When no row exists at the requested offset (e.g. LAG on the first row), SQL returns NULL. For value-type columns, cast to a nullable type in the projection to detect this: `(double?)WindowFunction.Lag(o.Price, window)`. When a default value is provided (3-arg overload), NULL is never returned.
@@ -12357,13 +12384,13 @@ var result = db.Orders
 
 Window functions are supported across all major relational database providers:
 
-| Provider | Supported |
-|----------|-----------|
-| SQLite | Yes |
-| SQL Server | Yes |
-| PostgreSQL | Yes |
-| MySQL | Yes |
-| Oracle | Yes |
+| Provider | Supported | Notes |
+|----------|-----------|-------|
+| SQLite | Yes | |
+| SQL Server | Yes | `NTH_VALUE` is not supported |
+| PostgreSQL | Yes | |
+| MySQL | Yes | |
+| Oracle | Yes | |
 
 The generated SQL uses standard ANSI window function syntax. Each provider translates the expressions using its native SQL dialect.
 
@@ -12417,7 +12444,7 @@ url: 'https://efnext.github.io/ExpressiveSharp/recipes/window-functions-ranking.
 ---
 # Window Functions & Ranking
 
-This recipe shows how to use SQL window functions -- ROW\_NUMBER, RANK, DENSE\_RANK, and NTILE -- in EF Core LINQ queries via the `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` package.
+This recipe shows how to use SQL window functions in EF Core LINQ queries via the `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` package. Coverage includes ranking (ROW\_NUMBER, RANK, DENSE\_RANK, NTILE, PERCENT\_RANK, CUME\_DIST), aggregate (SUM, AVG, COUNT, MIN, MAX), and navigation (LAG, LEAD, FIRST\_VALUE, LAST\_VALUE, NTH\_VALUE) functions.
 
 ::: warning Experimental
 This package is experimental. EF Core has an [open issue](https://github.com/dotnet/efcore/issues/12747) for native window function support -- this package may be superseded when that ships.
@@ -12744,13 +12771,13 @@ The type system ensures correct usage:
 
 Window functions are supported across all major relational providers:
 
-| Provider | Supported |
-|----------|-----------|
-| SQLite | Yes |
-| SQL Server | Yes |
-| PostgreSQL | Yes |
-| MySQL | Yes |
-| Oracle | Yes |
+| Provider | Supported | Notes |
+|----------|-----------|-------|
+| SQLite | Yes | |
+| SQL Server | Yes | `NTH_VALUE` is not supported |
+| PostgreSQL | Yes | |
+| MySQL | Yes | |
+| Oracle | Yes | |
 
 The generated SQL uses standard window function syntax, which all these providers support.
 

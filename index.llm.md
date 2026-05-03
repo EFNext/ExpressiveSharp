@@ -47,7 +47,7 @@ features:
 
   - icon: "\U0001F4CA"
     title: SQL Window Functions
-    details: "ROW_NUMBER, RANK, DENSE_RANK, NTILE with a fluent PARTITION BY / ORDER BY API. Experimental — via the RelationalExtensions package."
+    details: "Ranking (ROW_NUMBER, RANK, DENSE_RANK, NTILE, PERCENT_RANK, CUME_DIST), aggregate (SUM, AVG, COUNT, MIN, MAX), and navigation (LAG, LEAD, FIRST_VALUE, LAST_VALUE, NTH_VALUE) functions with a fluent PARTITION BY / ORDER BY / frame API. Experimental — via the RelationalExtensions package."
 
   - icon: "\U0001F527"
     title: Customizable Transformer Pipeline
@@ -55,7 +55,7 @@ features:
 
   - icon: "\U0001FA7A"
     title: Roslyn Analyzers & Code Fixes
-    details: EXP0001–EXP0020 diagnostics catch projection errors at compile time. Quick-fix actions and migration fixers from Projectables included.
+    details: EXP0001–EXP0036 diagnostics catch projection errors at compile time. Quick-fix actions and migration fixers from Projectables included.
 ---
 
 ## At a Glance

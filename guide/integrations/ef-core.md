@@ -39,6 +39,7 @@ services.AddDbContext<MyDbContext>(options =>
 1. **Expands `[Expressive]` member references** — walks query expression trees and replaces opaque property/method accesses with the generated expression trees
 2. **Marks `[Expressive]` properties as unmapped** — adds a model convention that tells EF Core to ignore these properties in the database model (no corresponding column)
 3. **Applies database-friendly transformers** (in this order):
+   * `ReplaceThrowWithDefault` — replaces `throw` expressions with `default(T)` so `Coalesce`/`Condition` shapes survive (skip with `o => o.PreserveThrowExpressions()`)
    * `ConvertLoopsToLinq` — converts loop expressions to LINQ method calls
    * `RemoveNullConditionalPatterns` — strips null-check ternaries for SQL providers
    * `FlattenTupleComparisons` — rewrites tuple field access to direct comparisons
@@ -234,7 +235,7 @@ The built-in `RelationalExtensions` package (for window functions) uses this plu
 |---------|-------------|
 | [`ExpressiveSharp`](https://www.nuget.org/packages/ExpressiveSharp/) | Core runtime — `[Expressive]` attribute, source generator, expression expansion, transformers |
 | [`ExpressiveSharp.EntityFrameworkCore`](https://www.nuget.org/packages/ExpressiveSharp.EntityFrameworkCore/) | EF Core integration — `UseExpressives()`, `ExpressiveDbSet<T>`, Include/ThenInclude, async methods, analyzers and code fixes |
-| [`ExpressiveSharp.EntityFrameworkCore.RelationalExtensions`](https://www.nuget.org/packages/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions/) | Relational extensions — `ExecuteUpdate`/`ExecuteUpdateAsync` with modern syntax, SQL window functions (ROW\_NUMBER, RANK, DENSE\_RANK, NTILE) |
+| [`ExpressiveSharp.EntityFrameworkCore.RelationalExtensions`](https://www.nuget.org/packages/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions/) | Relational extensions — `ExecuteUpdate`/`ExecuteUpdateAsync` with modern syntax, SQL window functions (ranking, aggregate, navigation) |
 
 ::: info
 The `ExpressiveSharp.EntityFrameworkCore` package bundles Roslyn analyzers and code fixes from `ExpressiveSharp.EntityFrameworkCore.CodeFixers`. These provide compile-time diagnostics and IDE quick-fix actions for common issues like missing `[Expressive]` attributes.

@@ -190,8 +190,8 @@ Switch arms can match on type and bind the result to a variable:
 [Expressive]
 public static string Describe(this Animal animal) => animal switch
 {
-    Dog d   => "Dog named " + d.Name,
-    Cat c   => "Cat: " + c.Breed,
+    Dog d   => $"Dog named {d.Name}",
+    Cat c   => $"Cat: {c.Breed}",
     _       => "Unknown animal",
 };
 ```
@@ -199,8 +199,8 @@ public static string Describe(this Animal animal) => animal switch
 The generator produces type-check and cast expressions:
 
 ```csharp
-animal is Dog ? "Dog named " + ((Dog)animal).Name
-: animal is Cat ? "Cat: " + ((Cat)animal).Breed
+animal is Dog ? $"Dog named {((Dog)animal).Name}"
+: animal is Cat ? $"Cat: {((Cat)animal).Breed}"
 : "Unknown animal"
 ```
 

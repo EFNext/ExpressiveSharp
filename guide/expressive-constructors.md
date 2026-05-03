@@ -14,7 +14,7 @@ db.Orders
 .Select(o => new OrderSummaryDto
 {
 Id = o.Id,
-Description = "Order #" + o.Id,
+Description = $"Order #{o.Id}",
 Total = o.Items.Sum(i => i.UnitPrice \* i.Quantity),
 })
 \---setup---
@@ -32,7 +32,7 @@ db
     .Select(o => new OrderSummaryDto
     {
         Id = o.Id,
-        Description = "Order #" + o.Id,
+        Description = $"Order #{o.Id}",
         Total = o.Items.Sum(i => i.UnitPrice * i.Quantity),
     })
 
@@ -48,17 +48,17 @@ public class OrderSummaryDto
 **Generated SQL:**
 
 ```sql
-SELECT "o"."Id", (
+SELECT "o"."Id", 'Order #' || CAST("o"."Id" AS TEXT) AS "Description", (
     SELECT COALESCE(ef_sum(ef_multiply("l"."UnitPrice", CAST("l"."Quantity" AS TEXT))), '0.0')
     FROM "LineItems" AS "l"
-    WHERE "o"."Id" = "l"."OrderId")
+    WHERE "o"."Id" = "l"."OrderId") AS "Total"
 FROM "Orders" AS "o"
 ```
 
 With an `[Expressive]` constructor, you define the projection once and use it everywhere:
 
 ::: expressive-sample
-db.Orders.Select(o => new OrderSummaryDto(o.Id, "Order #" + o.Id, o.Total()))
+db.Orders.Select(o => new OrderSummaryDto(o.Id, $"Order #{o.Id}", o.Total()))
 \---setup---
 public class OrderSummaryDto
 {
@@ -91,7 +91,7 @@ public static decimal Total(this Order o)
 ```csharp
 db
     .Orders
-    .Select(o => new OrderSummaryDto(o.Id, "Order #" + o.Id, o.Total()))
+    .Select(o => new OrderSummaryDto(o.Id, $"Order #{o.Id}", o.Total()))
 
 // Setup
 public class OrderSummaryDto
@@ -122,10 +122,10 @@ public static class OrderExt
 **Generated SQL:**
 
 ```sql
-SELECT "o"."Id", (
+SELECT "o"."Id", 'Order #' || CAST("o"."Id" AS TEXT) AS "Description", (
     SELECT COALESCE(ef_sum(ef_multiply("l"."UnitPrice", CAST("l"."Quantity" AS TEXT))), '0.0')
     FROM "LineItems" AS "l"
-    WHERE "o"."Id" = "l"."OrderId")
+    WHERE "o"."Id" = "l"."OrderId") AS "Total"
 FROM "Orders" AS "o"
 ```
 

@@ -1,6 +1,6 @@
 # Custom Transformers
 
-Expression transformers adapt expression trees for specific consumers at runtime. ExpressiveSharp includes four built-in transformers for EF Core compatibility, and you can create your own for custom LINQ providers or specialized rewriting needs.
+Expression transformers adapt expression trees for specific consumers at runtime. ExpressiveSharp includes six built-in transformers for EF Core compatibility, and you can create your own for custom LINQ providers or specialized rewriting needs.
 
 ## The `IExpressionTreeTransformer` Interface
 
@@ -134,9 +134,11 @@ When `UseExpressives()` is configured for EF Core, the transformer pipeline runs
 
 1. **Per-member transformers** (from `[Expressive(Transformers = ...)]`) -- applied during expression resolution, before the tree is substituted into the query.
 2. **Built-in EF Core transformers** -- applied as part of `ExpandExpressives()`:
+   - `ReplaceThrowWithDefault` (skip with `o => o.PreserveThrowExpressions()`)
    - `ConvertLoopsToLinq`
    - `RemoveNullConditionalPatterns`
    - `FlattenTupleComparisons`
+   - `FlattenConcatArrayCalls`
    - `FlattenBlockExpressions`
 3. **Plugin-contributed transformers** (from `IExpressivePlugin.GetTransformers()`) -- applied after the built-in transformers.
 
@@ -178,12 +180,14 @@ The `RelationalExtensions` package uses this exact pattern to register the `Rewr
 
 | Transformer | Purpose | When to use manually |
 |---|---|---|
+| `ReplaceThrowWithDefault` | Replaces `throw` expressions with `default(T)` of the same type | Providers that cannot translate `Throw` (skipped via `PreserveThrowExpressions()`) |
 | `RemoveNullConditionalPatterns` | Strips `x != null ? x.Prop : default` ternaries | Databases that handle null propagation natively |
 | `FlattenBlockExpressions` | Inlines block-local variables, removes `Expression.Block` | LINQ providers that do not support block expressions |
 | `FlattenTupleComparisons` | Replaces `ValueTuple` field access with underlying arguments | Providers that cannot translate `ValueTuple` construction |
+| `FlattenConcatArrayCalls` | Rewrites `string.Concat(string[])` into 2/3/4-arg overloads | Providers that cannot translate `NewArrayInit` of non-constants |
 | `ConvertLoopsToLinq` | Rewrites `LoopExpression` to LINQ method calls | Providers that cannot translate loop expressions |
 
-All four are applied automatically by `UseExpressives()`. You only need to use them manually if you are working with a non-EF-Core LINQ provider or calling `ExpandExpressives()` directly.
+All six are applied automatically by `UseExpressives()`. You only need to use them manually if you are working with a non-EF-Core LINQ provider or calling `ExpandExpressives()` directly.
 
 ## Testing Transformers
 

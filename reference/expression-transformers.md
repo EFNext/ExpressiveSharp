@@ -22,7 +22,7 @@ Implementations are pure functions that take an expression tree and return a tra
 
 ## Built-in Transformers
 
-ExpressiveSharp ships with four built-in transformers in the `ExpressiveSharp.Transformers` namespace, plus one additional transformer in the `RelationalExtensions` package.
+ExpressiveSharp ships with six built-in transformers in the `ExpressiveSharp.Transformers` namespace, plus one additional transformer in the `RelationalExtensions` package.
 
 ***
 
@@ -123,7 +123,25 @@ Loops that do not match any recognized pattern will throw `InvalidOperationExcep
 
 ***
 
-### 5. `RewriteIndexedSelectToRowNumber`
+### 5. `FlattenConcatArrayCalls`
+
+**Namespace:** `ExpressiveSharp.Transformers`
+
+Rewrites `string.Concat(new string[] { a, b, c, ... })` into a chain of 2/3/4-arg `string.Concat` calls. The emitter falls back to the array overload for interpolations with 5+ parts (e.g. `$"{a} {b} {c} {d} {e}"`); EF Core can't translate `NewArrayInit` with non-constant elements, so without this rewrite those interpolations would fail to translate to SQL.
+
+***
+
+### 6. `ReplaceThrowWithDefault`
+
+**Namespace:** `ExpressiveSharp.Transformers`
+
+Replaces `throw` expressions with `Expression.Default(T)` of the same type, so providers like EF Core (which can't translate `Throw` to SQL) still see a node of the surrounding `Coalesce`/`Condition` shape. Common when block-bodied members contain a `throw` for an "impossible" branch the database never reaches.
+
+Opt out via `o.PreserveThrowExpressions()` if you need the original throw semantics — useful for non-EF query providers, or when `ExpandExpressives()` is invoked on a tree that won't be translated to SQL.
+
+***
+
+### 7. `RewriteIndexedSelectToRowNumber`
 
 **Namespace:** `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Transformers`
 **Package:** `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions`
@@ -169,7 +187,7 @@ Each transformer type must have a parameterless constructor. The transformers ar
 
 ### Global via `UseExpressives()` (EF Core)
 
-When you call `UseExpressives()` on your `DbContextOptionsBuilder`, all four core transformers are applied automatically to every query:
+When you call `UseExpressives()` on your `DbContextOptionsBuilder`, all core transformers are applied automatically to every query:
 
 ```csharp
 var options = new DbContextOptionsBuilder<MyDbContext>()
@@ -180,10 +198,12 @@ var options = new DbContextOptionsBuilder<MyDbContext>()
 
 This applies (in this order):
 
-1. `ConvertLoopsToLinq`
-2. `RemoveNullConditionalPatterns`
-3. `FlattenTupleComparisons`
-4. `FlattenBlockExpressions`
+1. `ReplaceThrowWithDefault` (skip with `o => o.PreserveThrowExpressions()`)
+2. `ConvertLoopsToLinq`
+3. `RemoveNullConditionalPatterns`
+4. `FlattenTupleComparisons`
+5. `FlattenConcatArrayCalls`
+6. `FlattenBlockExpressions`
 
 No per-member configuration is needed when using `UseExpressives()`.
 
@@ -221,9 +241,11 @@ var expanded = expr.ExpandExpressives(
 
 ## Plugin-Contributed Transformers
 
-Plugins implementing `IExpressivePlugin` can contribute additional transformers to the EF Core pipeline:
+Plugins implementing `IExpressivePlugin` (from `ExpressiveSharp.EntityFrameworkCore`) can contribute additional transformers to the EF Core pipeline. Plugins are EF-Core-only and depend on `Microsoft.Extensions.DependencyInjection.IServiceCollection`:
 
 ```csharp
+namespace ExpressiveSharp.EntityFrameworkCore;
+
 public interface IExpressivePlugin
 {
     void ApplyServices(IServiceCollection services);

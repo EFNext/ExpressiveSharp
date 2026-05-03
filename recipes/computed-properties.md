@@ -301,7 +301,7 @@ public static class CustomerProfile
 {
 \[Expressive]
 public static string DisplayName(this Customer c)
-\=> c.Name + (c.Country != null ? " (" + c.Country + ")" : "");
+\=> c.Country != null ? $"{c.Name} ({c.Country})" : c.Name;
 
 ```
 [Expressive]
@@ -324,7 +324,7 @@ public static class CustomerProfile
 {
     [Expressive]
     public static string DisplayName(this Customer c)
-        => c.Name + (c.Country != null ? " (" + c.Country + ")" : "");
+        => c.Country != null ? $"{c.Name} ({c.Country})" : c.Name;
 
     [Expressive]
     public static bool IsActive(this Customer c)
@@ -335,15 +335,15 @@ public static class CustomerProfile
 **Generated SQL:**
 
 ```sql
-SELECT "c"."Id", "c"."Name" || CASE
-    WHEN "c"."Country" IS NOT NULL THEN ' (' || "c"."Country" || ')'
-    ELSE ''
+SELECT "c"."Id", CASE
+    WHEN "c"."Country" IS NOT NULL THEN "c"."Name" || ' (' || "c"."Country" || ')'
+    ELSE "c"."Name"
 END AS "Display"
 FROM "Customers" AS "c"
 WHERE "c"."JoinedAt" >= '2023-01-01 00:00:00'
-ORDER BY "c"."Name" || CASE
-    WHEN "c"."Country" IS NOT NULL THEN ' (' || "c"."Country" || ')'
-    ELSE ''
+ORDER BY CASE
+    WHEN "c"."Country" IS NOT NULL THEN "c"."Name" || ' (' || "c"."Country" || ')'
+    ELSE "c"."Name"
 END
 ```
 

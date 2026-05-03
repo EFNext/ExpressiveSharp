@@ -35,7 +35,7 @@ public class User
     public string LastName  { get; set; } = "";
 
     [Expressive]
-    public string FullName => LastName + ", " + FirstName;
+    public string FullName => $"{LastName}, {FirstName}";
 }
 ```
 
@@ -53,7 +53,7 @@ public partial class User
     // The generator emits a settable FullName property whose getter falls through
     // to this stub when no value has been materialized yet.
     [ExpressiveProperty("FullName")]
-    private string FullNameExpression => LastName + ", " + FirstName;
+    private string FullNameExpression => $"{LastName}, {FirstName}";
 }
 ```
 
@@ -78,10 +78,10 @@ public partial class User
     public string Email     { get; set; } = "";
 
     [ExpressiveProperty("FullName")]
-    private string FullNameExpression => LastName + ", " + FirstName;
+    private string FullNameExpression => $"{LastName}, {FirstName}";
 
     [ExpressiveProperty("DisplayLabel")]
-    private string DisplayLabelExpression => FullName + " <" + Email + ">";
+    private string DisplayLabelExpression => $"{FullName} <{Email}>";
 }
 
 // DbContext
@@ -149,7 +149,7 @@ public class User
     public string FullName  { get; set; } = "";   // existing auto-property
 
     [ExpressiveFor(nameof(FullName))]
-    private string FullNameExpression => LastName + ", " + FirstName;
+    private string FullNameExpression => $"{LastName}, {FirstName}";
 }
 ```
 

@@ -3,7 +3,7 @@ url: 'https://efnext.github.io/ExpressiveSharp/guide/window-functions.md'
 ---
 # Window Functions (SQL)
 
-ExpressiveSharp provides SQL window function support through the `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` package. This enables ROW\_NUMBER, RANK, DENSE\_RANK, and NTILE directly in LINQ queries with a fluent window specification API.
+ExpressiveSharp provides SQL window function support through the `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` package. This enables ranking (ROW\_NUMBER, RANK, DENSE\_RANK, NTILE, PERCENT\_RANK, CUME\_DIST), aggregate (SUM, AVG, COUNT, MIN, MAX), and navigation (LAG, LEAD, FIRST\_VALUE, LAST\_VALUE, NTH\_VALUE) functions directly in LINQ queries with a fluent window specification API.
 
 ::: warning Experimental
 This package is experimental. EF Core has an [open issue (#12747)](https://github.com/dotnet/efcore/issues/12747) for native window function support. This package may be superseded when that ships.
@@ -71,8 +71,8 @@ Aggregate window functions compute values over a set of rows defined by the wind
 |----------|-----|-------------|
 | `WindowFunction.Sum(expr, window)` | `SUM(expr) OVER(...)` | Sum of values. Returns same type as input. |
 | `WindowFunction.Average(expr, window)` | `AVG(expr) OVER(...)` | Average of values. Returns `T?` (or `double` for `int`/`long` input). |
-| `WindowFunction.Count(window)` | `COUNT(*) OVER(...)` | Count of all rows. Returns `long`. |
-| `WindowFunction.Count(expr, window)` | `COUNT(expr) OVER(...)` | Count of non-null values. Returns `long`. |
+| `WindowFunction.Count(window)` | `COUNT(*) OVER(...)` | Count of all rows. Returns `int`. |
+| `WindowFunction.Count(expr, window)` | `COUNT(expr) OVER(...)` | Count of non-null values. Returns `int`. |
 | `WindowFunction.Min(expr, window)` | `MIN(expr) OVER(...)` | Minimum value. Returns same type as input. |
 | `WindowFunction.Max(expr, window)` | `MAX(expr) OVER(...)` | Maximum value. Returns same type as input. |
 
@@ -90,7 +90,7 @@ Navigation functions access specific rows relative to the current row. LAG/LEAD 
 | `WindowFunction.Lead(expr, n, default, window)` | `LEAD(expr, n, default) OVER(...)` | No | Value `n` rows ahead, with default. |
 | `WindowFunction.FirstValue(expr, window)` | `FIRST_VALUE(expr) OVER(...)` | Yes | First value in the frame. |
 | `WindowFunction.LastValue(expr, window)` | `LAST_VALUE(expr) OVER(...)` | Yes | Last value in the frame. |
-| `WindowFunction.NthValue(expr, n, window)` | `NTH_VALUE(expr, n) OVER(...)` | Yes | Value at the Nth row (1-based) in the frame. |
+| `WindowFunction.NthValue(expr, n, window)` | `NTH_VALUE(expr, n) OVER(...)` | Yes | Value at the Nth row (1-based) in the frame. **Not supported on SQL Server.** |
 
 ::: tip Nullable results from LAG/LEAD
 When no row exists at the requested offset (e.g. LAG on the first row), SQL returns NULL. For value-type columns, cast to a nullable type in the projection to detect this: `(double?)WindowFunction.Lag(o.Price, window)`. When a default value is provided (3-arg overload), NULL is never returned.
@@ -244,13 +244,13 @@ var result = db.Orders
 
 Window functions are supported across all major relational database providers:
 
-| Provider | Supported |
-|----------|-----------|
-| SQLite | Yes |
-| SQL Server | Yes |
-| PostgreSQL | Yes |
-| MySQL | Yes |
-| Oracle | Yes |
+| Provider | Supported | Notes |
+|----------|-----------|-------|
+| SQLite | Yes | |
+| SQL Server | Yes | `NTH_VALUE` is not supported |
+| PostgreSQL | Yes | |
+| MySQL | Yes | |
+| Oracle | Yes | |
 
 The generated SQL uses standard ANSI window function syntax. Each provider translates the expressions using its native SQL dialect.
 
