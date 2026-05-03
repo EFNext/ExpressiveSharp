@@ -24,11 +24,11 @@ public sealed class WindowFunctionLiteralArgsAnalyzer : DiagnosticAnalyzer
     public static readonly DiagnosticDescriptor NavigationOffsetMustBeNonNegative = new(
         id: "EXP0037",
         title: "WindowFunction.Lag/Lead offset must be non-negative",
-        messageFormat: "WindowFunction.{0} offset must be non-negative; literal value {1} produces invalid SQL",
+        messageFormat: "WindowFunction.{0} offset must be non-negative; literal value {1} is rejected during EF translation",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "LAG and LEAD offsets count rows backward or forward from the current row. SQL requires the offset to be >= 0; negative literals raise a database error at execution time.");
+        description: "LAG and LEAD offsets count rows backward or forward from the current row. SQL requires the offset to be >= 0; negative literals are rejected during EF translation.");
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
         ImmutableArray.Create(NtileRequiresPositiveBuckets, NavigationOffsetMustBeNonNegative);
