@@ -47,7 +47,7 @@ features:
 
   - icon: "\U0001F4CA"
     title: SQL Window Functions
-    details: "Ranking (ROW_NUMBER, RANK, DENSE_RANK, NTILE, PERCENT_RANK, CUME_DIST), aggregate (SUM, AVG, COUNT, MIN, MAX), and navigation (LAG, LEAD, FIRST_VALUE, LAST_VALUE, NTH_VALUE) functions with a fluent PARTITION BY / ORDER BY / frame API. Experimental — via the RelationalExtensions package."
+    details: "Ranking (ROW_NUMBER, RANK, DENSE_RANK, NTILE, PERCENT_RANK, CUME_DIST), aggregate (SUM, AVG, COUNT, MIN, MAX), and navigation (LAG, LEAD, FIRST_VALUE, LAST_VALUE, NTH_VALUE) functions with a fluent PARTITION BY / ORDER BY / frame API — via the RelationalExtensions package."
 
   - icon: "\U0001F527"
     title: Customizable Transformer Pipeline
@@ -144,4 +144,4 @@ Computed properties are **inlined into the provider's native query language** �
 | [`ExpressiveSharp.Abstractions`](https://www.nuget.org/packages/ExpressiveSharp.Abstractions/) | Lightweight — attributes (`[Expressive]`, `[ExpressiveFor]`), `IExpressionTreeTransformer`, source generator only |
 | [`ExpressiveSharp.EntityFrameworkCore`](https://www.nuget.org/packages/ExpressiveSharp.EntityFrameworkCore/) | EF Core integration — `UseExpressives()`, `ExpressiveDbSet<T>`, Include/ThenInclude, async methods |
 | [`ExpressiveSharp.MongoDB`](https://www.nuget.org/packages/ExpressiveSharp.MongoDB/) | MongoDB integration — `.AsExpressive()` on `IMongoCollection<T>`, MQL translation |
-| [`ExpressiveSharp.EntityFrameworkCore.RelationalExtensions`](https://www.nuget.org/packages/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions/) | SQL window functions — ROW_NUMBER, RANK, DENSE_RANK, NTILE (experimental) |
+| [`ExpressiveSharp.EntityFrameworkCore.RelationalExtensions`](https://www.nuget.org/packages/ExpressiveSharp.EntityFrameworkCore.RelationalExtensions/) | SQL window functions — ranking, aggregate, navigation with ROWS/RANGE frames |

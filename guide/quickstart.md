@@ -42,7 +42,7 @@ dotnet add package ExpressiveSharp.MongoDB
 | `ExpressiveSharp.Abstractions` | Lightweight — `[Expressive]` attribute, `[ExpressiveFor]`, `IExpressionTreeTransformer`, source generator only (no runtime services) |
 | `ExpressiveSharp.EntityFrameworkCore` | EF Core integration — `UseExpressives()`, `ExpressiveDbSet<T>`, Include/ThenInclude, async methods, analyzers and code fixes |
 | `ExpressiveSharp.MongoDB` | MongoDB integration — `.AsExpressive()` on `IMongoCollection<T>`, MQL aggregation translation |
-| `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` | SQL window functions — ranking (ROW\_NUMBER, RANK, DENSE\_RANK, NTILE, PERCENT\_RANK, CUME\_DIST), aggregate (SUM, AVG, COUNT, MIN, MAX), and navigation (LAG, LEAD, FIRST\_VALUE, LAST\_VALUE, NTH\_VALUE). Experimental. |
+| `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` | SQL window functions — ranking (ROW\_NUMBER, RANK, DENSE\_RANK, NTILE, PERCENT\_RANK, CUME\_DIST), aggregate (SUM, AVG, COUNT, MIN, MAX), and navigation (LAG, LEAD, FIRST\_VALUE, LAST\_VALUE, NTH\_VALUE) with PARTITION BY / ORDER BY / ROWS|RANGE frame support, plus indexed Select. |
 
 ## Step 2 — Define Your Entities
 

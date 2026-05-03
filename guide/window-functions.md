@@ -5,10 +5,6 @@ url: 'https://efnext.github.io/ExpressiveSharp/guide/window-functions.md'
 
 ExpressiveSharp provides SQL window function support through the `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` package. This enables ranking (ROW\_NUMBER, RANK, DENSE\_RANK, NTILE, PERCENT\_RANK, CUME\_DIST), aggregate (SUM, AVG, COUNT, MIN, MAX), and navigation (LAG, LEAD, FIRST\_VALUE, LAST\_VALUE, NTH\_VALUE) functions directly in LINQ queries with a fluent window specification API.
 
-::: warning Experimental
-This package is experimental. EF Core has an [open issue (#12747)](https://github.com/dotnet/efcore/issues/12747) for native window function support. This package may be superseded when that ships.
-:::
-
 ## Installation
 
 ```bash
@@ -246,13 +242,18 @@ Window functions are supported across all major relational database providers:
 
 | Provider | Supported | Notes |
 |----------|-----------|-------|
-| SQLite | Yes | |
-| SQL Server | Yes | `NTH_VALUE` is not supported |
-| PostgreSQL | Yes | |
-| MySQL | Yes | |
+| SQLite | Yes | Full support (3.25+) |
+| PostgreSQL | Yes | Full support |
+| SQL Server | Yes | See note on `NTH_VALUE` below |
+| MySQL (Pomelo) | Yes | Pomelo provider unavailable on .NET 10 until upstream support returns |
 | Oracle | Yes | |
+| Cosmos | No | Cosmos has no SQL window functions |
 
 The generated SQL uses standard ANSI window function syntax. Each provider translates the expressions using its native SQL dialect.
+
+::: warning `NTH_VALUE` on SQL Server
+SQL Server does not implement the `NTH_VALUE` window function. Queries using `WindowFunction.NthValue(...)` will fail at execution with a "not a recognized built-in function" error. Workaround: use `FIRST_VALUE`/`LAST_VALUE` with a constrained frame, or switch to PostgreSQL/SQLite/MySQL.
+:::
 
 ## Full Configuration Example
 
@@ -290,6 +291,29 @@ var rankings = ctx.Orders
 ::: info
 Window functions are implemented as a plugin using the `IExpressivePlugin` architecture. The `UseRelationalExtensions()` call registers custom EF Core services and expression translators that handle the `WindowFunction.*` method calls during SQL generation.
 :::
+
+## Argument validation
+
+The translator rejects clearly-invalid arguments at translation time (before the query reaches the database) and throws `InvalidOperationException`:
+
+* `WindowFunction.Ntile(n, ...)` with literal `n <= 0`
+* `WindowFunction.Lag(expr, n, ...)` / `WindowFunction.Lead(expr, n, ...)` with literal `n < 0`
+* `WindowFunction.NthValue(expr, n, ...)` with literal `n < 1`
+* `WindowFunction.PercentRank(...)` / `WindowFunction.CumeDist(...)` constructed without an `OrderBy` (only reachable via manually-built expression trees, since the fluent builder requires an ordered window)
+
+Non-literal (parameter) values are forwarded to the database, which performs its own validation.
+
+## Forward compatibility
+
+EF Core tracks native window function support in [dotnet/efcore#12747](https://github.com/dotnet/efcore/issues/12747). When that ships, the fluent builder API in this package is expected to remain stable; the underlying translator may delegate to EF's primitives in a future release.
+
+## Upgrading from earlier versions
+
+The package was previously labeled experimental. Upgrading is API-compatible; three observable behaviors changed:
+
+* Direct invocation of a `WindowFunction.*` stub (i.e. outside an EF Core query) now throws an exception that names the method and points at this guide.
+* `Ntile(0)` / `Ntile(-1)`, negative literal `Lag`/`Lead` offsets, and `NthValue(0)` now throw `InvalidOperationException` at translation time. Previously these reached the database and produced a provider-specific error.
+* New analyzer warnings **EXP0036** (`Ntile` non-positive literal buckets) and **EXP0037** (`Lag`/`Lead` negative literal offsets) may surface on existing code.
 
 ## Next Steps
 
