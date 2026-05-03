@@ -158,22 +158,18 @@ String interpolation with format specifiers like `$"{Price:F2}"` introduces a `T
 | `while`/`do-while`, `try`/`catch`, `async`/`await` | Not supported |
 | Assignments, `++`, `--` | Not supported |
 
-## Window Functions: Experimental Status
+## Window Functions: Provider Support
 
-The `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` package providing window functions (ROW_NUMBER, RANK, DENSE_RANK, NTILE) is **experimental**.
-
-::: warning
-EF Core has an [open issue](https://github.com/dotnet/efcore/issues/12747) for native window function support. This package may be superseded when that ships. The API surface may change in future releases.
-:::
-
-Window functions are limited to relational providers compatible with SQL:2003 window function syntax:
+The `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` package implements SQL window functions for relational providers compatible with SQL:2003 window function syntax:
 
 | Provider | Status |
 |---|---|
-| SQL Server | Supported |
+| SQL Server | Supported (`NTH_VALUE` not implemented by SQL Server itself) |
 | PostgreSQL | Supported |
 | SQLite | Supported |
 | MySQL | Supported |
 | Oracle | Supported |
 
 Non-relational providers (Cosmos DB, in-memory) are not supported for window functions.
+
+EF Core also tracks native window function support in [dotnet/efcore#12747](https://github.com/dotnet/efcore/issues/12747); see the [window functions guide](../guide/window-functions#forward-compatibility) for forward-compatibility notes.

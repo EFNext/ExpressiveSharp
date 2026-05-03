@@ -101,7 +101,7 @@ ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions (net8.0;ne
           LAST_VALUE, NTH_VALUE), Window, OrderedWindowDefinition,
           PartitionedWindowDefinition, FramedWindowDefinition, WindowFrameBound
 
-ExpressiveSharp.EntityFrameworkCore.RelationalExtensions (net8.0;net10.0, experimental)
+ExpressiveSharp.EntityFrameworkCore.RelationalExtensions (net8.0;net10.0)
   ├── ExpressiveSharp.EntityFrameworkCore
   ├── ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions
   ├── EF Core Relational 8.0.25 / 10.0.0
@@ -119,7 +119,7 @@ ExpressiveSharp.EntityFrameworkCore.CodeFixers (Roslyn analyzer, netstandard2.0)
 
 ### Diagnostics
 
-20 diagnostic codes (EXP0001–EXP0012, EXP0018 in `src/ExpressiveSharp.Generator/Infrastructure/Diagnostics.cs`, EXP0013 in CodeFixers, EXP0014–EXP0020 for `[ExpressiveFor]` validation). Key ones: EXP0001 (requires body), EXP0004 (block body requires opt-in), EXP0008 (unsupported operation, default value used), EXP0018 (unsupported operation ignored, e.g. alignment specifiers), EXP0019 (`[ExpressiveFor]` conflicts with `[Expressive]`).
+22 diagnostic codes (EXP0001–EXP0012, EXP0018 in `src/ExpressiveSharp.Generator/Infrastructure/Diagnostics.cs`, EXP0013 in CodeFixers, EXP0014–EXP0020 for `[ExpressiveFor]` validation, EXP0036/EXP0037 in `WindowFunctionLiteralArgsAnalyzer`). Key ones: EXP0001 (requires body), EXP0004 (block body requires opt-in), EXP0008 (unsupported operation, default value used), EXP0018 (unsupported operation ignored, e.g. alignment specifiers), EXP0019 (`[ExpressiveFor]` conflicts with `[Expressive]`), EXP0036 (`Ntile` non-positive literal), EXP0037 (`Lag`/`Lead` negative literal offset).
 
 ## Testing
 

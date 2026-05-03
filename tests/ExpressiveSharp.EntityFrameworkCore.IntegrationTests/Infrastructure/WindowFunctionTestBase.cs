@@ -880,4 +880,131 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
         Assert.AreEqual(c1[1].Price, c1[0].NextInGroup);
         Assert.AreEqual(c2[1].Price, c2[0].NextInGroup);
     }
+
+    [TestMethod]
+    public async Task Rank_TiebreakerThenBy_BreaksTies()
+    {
+        var results = await Context.Orders
+            .Select(o => new
+            {
+                o.Id,
+                o.Price,
+                PriceRank = WindowFunction.Rank(Window.OrderBy(o.Price).ThenBy(o.Id)),
+            })
+            .OrderBy(x => x.PriceRank)
+            .ToListAsync();
+
+        Assert.AreEqual(10, results.Count);
+        var ranks = results.Select(r => r.PriceRank).ToList();
+        for (var i = 0; i < ranks.Count; i++)
+            Assert.AreEqual(i + 1L, ranks[i], $"Expected rank {i + 1} at position {i}, got {ranks[i]}");
+    }
+
+    [TestMethod]
+    public async Task Ntile_PartitionSmallerThanBuckets()
+    {
+        var results = await Context.Orders
+            .Select(o => new
+            {
+                o.Id,
+                Bucket = WindowFunction.Ntile(20, Window.OrderBy(o.Id)),
+            })
+            .OrderBy(x => x.Id)
+            .ToListAsync();
+
+        Assert.AreEqual(10, results.Count);
+        var buckets = results.Select(r => r.Bucket).ToList();
+        Assert.IsTrue(buckets.All(b => b >= 1 && b <= 20),
+            "All buckets must be in the requested range [1, 20]");
+        Assert.AreEqual(10, buckets.Distinct().Count(),
+            "With fewer rows than buckets, every row should land in a distinct bucket");
+    }
+
+    [TestMethod]
+    public async Task LastValue_DefaultFrame_ReturnsCurrentRow()
+    {
+        var results = await Context.Orders
+            .Select(o => new
+            {
+                o.Id,
+                o.Price,
+                Last = WindowFunction.LastValue(o.Price, Window.OrderBy(o.Id)),
+            })
+            .OrderBy(x => x.Id)
+            .ToListAsync();
+
+        Assert.AreEqual(10, results.Count);
+        foreach (var r in results)
+            Assert.AreEqual(r.Price, r.Last,
+                $"With the default frame, LAST_VALUE should return the current row's price (got {r.Last} vs {r.Price})");
+    }
+
+    [TestMethod]
+    public void Ntile_ZeroBuckets_ThrowsAtTranslation()
+    {
+        var query = Context.Orders.Select(o => new
+        {
+            o.Id,
+            Bucket = WindowFunction.Ntile(0, Window.OrderBy(o.Price)),
+        });
+
+        var ex = Assert.ThrowsExactly<InvalidOperationException>(() => query.ToQueryString());
+        StringAssert.Contains(ex.Message, "Ntile");
+        StringAssert.Contains(ex.Message, "positive");
+    }
+
+    [TestMethod]
+    public void Ntile_NegativeBuckets_ThrowsAtTranslation()
+    {
+        var query = Context.Orders.Select(o => new
+        {
+            o.Id,
+            Bucket = WindowFunction.Ntile(-1, Window.OrderBy(o.Price)),
+        });
+
+        var ex = Assert.ThrowsExactly<InvalidOperationException>(() => query.ToQueryString());
+        StringAssert.Contains(ex.Message, "Ntile");
+    }
+
+    [TestMethod]
+    public void Lag_NegativeLiteralOffset_ThrowsAtTranslation()
+    {
+        var query = Context.Orders.Select(o => new
+        {
+            o.Id,
+            Prev = WindowFunction.Lag(o.Price, -1, Window.OrderBy(o.Price)),
+        });
+
+        var ex = Assert.ThrowsExactly<InvalidOperationException>(() => query.ToQueryString());
+        StringAssert.Contains(ex.Message, "Lag");
+        StringAssert.Contains(ex.Message, "non-negative");
+    }
+
+    [TestMethod]
+    public void Lead_NegativeLiteralOffset_ThrowsAtTranslation()
+    {
+        var query = Context.Orders.Select(o => new
+        {
+            o.Id,
+            Next = WindowFunction.Lead(o.Price, -2, Window.OrderBy(o.Price)),
+        });
+
+        var ex = Assert.ThrowsExactly<InvalidOperationException>(() => query.ToQueryString());
+        StringAssert.Contains(ex.Message, "Lead");
+        StringAssert.Contains(ex.Message, "non-negative");
+    }
+
+    [TestMethod]
+    public void NthValue_ZeroPosition_ThrowsAtTranslation()
+    {
+        var query = Context.Orders.Select(o => new
+        {
+            o.Id,
+            Nth = WindowFunction.NthValue(o.Price, 0, Window.OrderBy(o.Price)),
+        });
+
+        var ex = Assert.ThrowsExactly<InvalidOperationException>(() => query.ToQueryString());
+        StringAssert.Contains(ex.Message, "NthValue");
+        StringAssert.Contains(ex.Message, "1-based");
+    }
 }
