@@ -1574,7 +1574,7 @@ internal sealed class ExpressionTreeEmitter
     {
         return pattern switch
         {
-            IConstantPatternOperation constant => EmitConstantPattern(constant, operandVar),
+            IConstantPatternOperation constant => EmitConstantPattern(constant, operandVar, operandType),
             ITypePatternOperation typePattern => EmitTypePattern(typePattern, operandVar),
             IDeclarationPatternOperation declaration => EmitDeclarationPattern(declaration, operandVar),
             IRelationalPatternOperation relational => EmitRelationalPattern(relational, operandVar, operandType),
@@ -1587,10 +1587,11 @@ internal sealed class ExpressionTreeEmitter
         };
     }
 
-    private string EmitConstantPattern(IConstantPatternOperation constant, string operandVar)
+    private string EmitConstantPattern(IConstantPatternOperation constant, string operandVar, ITypeSymbol? operandType)
     {
         var resultVar = NextVar();
         var valueVar = EmitOperation(constant.Value);
+        AlignNullability(ref operandVar, operandType, ref valueVar, constant.Value.Type);
         AppendLine($"var {resultVar} = {Expr}.Equal({operandVar}, {valueVar});");
         return resultVar;
     }
@@ -1640,9 +1641,45 @@ internal sealed class ExpressionTreeEmitter
             operandVar = EmitConvert(operandVar, underlyingFqn);
             valueVar = EmitConvert(valueVar, underlyingFqn);
         }
+        else
+        {
+            AlignNullability(ref operandVar, operandType, ref valueVar, relational.Value.Type);
+        }
 
         AppendLine($"var {resultVar} = {Expr}.MakeBinary(global::System.Linq.Expressions.ExpressionType.{exprType}, {operandVar}, {valueVar});");
         return resultVar;
+    }
+
+    // Pattern-matching keeps the constant typed as T even when the input is Nullable<T>, so
+    // Expression.MakeBinary(GreaterThan, int?, int) throws BinaryOperatorNotDefined at runtime.
+    // Lift the non-nullable side to Nullable<T> so MakeBinary builds a lifted comparison whose
+    // bool result matches pattern semantics (null operand → false).
+    private void AlignNullability(ref string leftVar, ITypeSymbol? leftType, ref string rightVar, ITypeSymbol? rightType)
+    {
+        if (leftType is null || rightType is null)
+            return;
+
+        var leftUnderlying = GetNullableUnderlying(leftType);
+        var rightUnderlying = GetNullableUnderlying(rightType);
+
+        if (leftUnderlying is not null && rightUnderlying is null && SymbolEqualityComparer.Default.Equals(leftUnderlying, rightType))
+        {
+            rightVar = EmitConvert(rightVar, leftType.ToDisplayString(_fqnFormat));
+        }
+        else if (rightUnderlying is not null && leftUnderlying is null && SymbolEqualityComparer.Default.Equals(rightUnderlying, leftType))
+        {
+            leftVar = EmitConvert(leftVar, rightType.ToDisplayString(_fqnFormat));
+        }
+    }
+
+    private static ITypeSymbol? GetNullableUnderlying(ITypeSymbol type)
+    {
+        if (type is INamedTypeSymbol { IsGenericType: true } named
+            && named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
+        {
+            return named.TypeArguments[0];
+        }
+        return null;
     }
 
     private string EmitNegatedPattern(INegatedPatternOperation negated, string operandVar, ITypeSymbol? operandType)

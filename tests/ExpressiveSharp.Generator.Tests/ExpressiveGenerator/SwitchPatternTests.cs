@@ -195,6 +195,58 @@ public class SwitchPatternTests : GeneratorTestBase
     }
 
     [TestMethod]
+    public Task SwitchExpression_RelationalPattern_OnNullableOperand()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class Customer {
+                    public string? Email { get; set; }
+
+                    [Expressive]
+                    public bool HasLongEmail() => Email?.Length switch
+                    {
+                        > 5 => true,
+                        _ => false,
+                    };
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task SwitchExpression_ConstantPattern_OnNullableOperand()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class Customer {
+                    public string? Email { get; set; }
+
+                    [Expressive]
+                    public string Classify() => Email?.Length switch
+                    {
+                        5 => "five",
+                        _ => "other",
+                    };
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
     public Task ExpressionBodied_IsPattern_WithAndPattern()
     {
         var compilation = CreateCompilation(
