@@ -144,13 +144,13 @@ Pick based on whether you want the generator to declare the target property for 
 // Before (Projectables)
 [Projectable(UseMemberBody = nameof(FullNameProjection))]
 public string FullName { get; init; }
-private string FullNameProjection => LastName + ", " + FirstName;
+private string FullNameProjection => $"{LastName}, {FirstName}";
 
 // After (ExpressiveSharp) -- partial class, stub only; FullName is generated
 public partial class Customer
 {
     [ExpressiveProperty("FullName")]
-    private string FullNameExpression => LastName + ", " + FirstName;
+    private string FullNameExpression => $"{LastName}, {FirstName}";
 }
 ```
 
@@ -172,7 +172,7 @@ public string FullName => $"{FirstName} {LastName}".Trim().ToUpper();
 
 [Projectable(UseMemberBody = nameof(FullNameProjection))]
 public string FullName => ...;
-private string FullNameProjection => FirstName + " " + LastName;
+private string FullNameProjection => $"{FirstName} {LastName}";
 
 // After (ExpressiveSharp)
 using ExpressiveSharp.Mapping;
@@ -180,7 +180,7 @@ using ExpressiveSharp.Mapping;
 public string FullName => $"{FirstName} {LastName}".Trim().ToUpper();
 
 [ExpressiveFor(nameof(FullName))]
-private string FullNameExpression => FirstName + " " + LastName;
+private string FullNameExpression => $"{FirstName} {LastName}";
 ```
 
 **Scenario 2: External/third-party type methods**

@@ -28,7 +28,7 @@ Expression trees (`Expression<Func<...>>`) only support a restricted subset of C
 
 ### 2. Computed properties are opaque to LINQ providers
 
-You define `public string FullName => FirstName + " " + LastName` and use it in a query, but the provider cannot see inside the property getter. It either throws a runtime translation error, or worse, silently fetches the entire entity to evaluate `FullName` on the client (overfetching). The only workaround is to duplicate the logic as an inline expression in every query that needs it.
+You define `public string FullName => $"{FirstName} {LastName}"` and use it in a query, but the provider cannot see inside the property getter. It either throws a runtime translation error, or worse, silently fetches the entire entity to evaluate `FullName` on the client (overfetching). The only workaround is to duplicate the logic as an inline expression in every query that needs it.
 
 ## How ExpressiveSharp Works
 

@@ -69,7 +69,7 @@ public string FullName { get; set; }
 
 // Fixed: expression-bodied property
 [Expressive]
-public string FullName => FirstName + " " + LastName;
+public string FullName => $"{FirstName} {LastName}";
 ```
 
 ---
@@ -99,7 +99,7 @@ public class CustomerDto
     public CustomerDto(Customer c)
     {
         Id = c.Id;
-        Name = c.FirstName + " " + c.LastName;
+        Name = $"{c.FirstName} {c.LastName}";
     }
 }
 ```
@@ -322,7 +322,7 @@ initializer. Consider converting it to an [Expressive] constructor.
 public static CustomerDto FromCustomer(Customer c) => new CustomerDto
 {
     Id = c.Id,
-    Name = c.FirstName + " " + c.LastName
+    Name = $"{c.FirstName} {c.LastName}"
 };
 
 // After: expressive constructor
@@ -330,7 +330,7 @@ public static CustomerDto FromCustomer(Customer c) => new CustomerDto
 public CustomerDto(Customer c)
 {
     Id = c.Id;
-    Name = c.FirstName + " " + c.LastName;
+    Name = $"{c.FirstName} {c.LastName}";
 }
 ```
 

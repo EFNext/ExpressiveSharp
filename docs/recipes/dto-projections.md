@@ -12,7 +12,7 @@ var customers = dbContext.Customers
     .Select(c => new CustomerDto
     {
         Id = c.Id,
-        FullName = c.FirstName + " " + c.LastName,
+        FullName = $"{c.FirstName} {c.LastName}",
         IsActive = c.IsActive,
         OrderCount = c.Orders.Count()
     })

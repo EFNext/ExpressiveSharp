@@ -17,7 +17,7 @@ This page helps you diagnose and fix common issues with ExpressiveSharp. Entries
 public string Greeting(string name)
 {
     var prefix = IsVip ? "Dear" : "Hi";
-    return prefix + " " + name;
+    return $"{prefix} {name}";
 }
 ```
 
@@ -52,7 +52,7 @@ public string FullName { get; set; }
 
 // Fixed: expression-bodied property
 [Expressive]
-public string FullName => FirstName + " " + LastName;
+public string FullName => $"{FirstName} {LastName}";
 
 // Also valid: remove the attribute if projection is not needed
 public string FullName { get; set; }
@@ -145,9 +145,9 @@ The `[Expressive]` member calls a method with no SQL equivalent:
 [Expressive]
 public string FilePath => Path.Combine(Directory, FileName);
 
-// Works: string concatenation is translated by EF Core
+// Works: string interpolation is translated by EF Core
 [Expressive]
-public string FilePath => Directory + "/" + FileName;
+public string FilePath => $"{Directory}/{FileName}";
 ```
 
 For third-party methods you cannot change, provide a translatable equivalent via [`[ExpressiveFor]`](./expressive-for):
