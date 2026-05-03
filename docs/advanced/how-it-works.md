@@ -54,9 +54,11 @@ Understanding the internals of ExpressiveSharp helps you use it effectively and 
 |           v                                               |
 |  +-----------------------------------------------------+ |
 |  | Transformer Pipeline                                 | |
+|  | - ReplaceThrowWithDefault                            | |
 |  | - ConvertLoopsToLinq                                 | |
 |  | - RemoveNullConditionalPatterns                      | |
 |  | - FlattenTupleComparisons                            | |
+|  | - FlattenConcatArrayCalls                            | |
 |  | - FlattenBlockExpressions                            | |
 |  | - (Plugin-contributed transformers)                  | |
 |  +-----------------------------------------------------+ |
@@ -164,13 +166,15 @@ This means `[Expressive]` members can reference other `[Expressive]` members fre
 
 ### Transformer Pipeline
 
-After expansion, transformers adapt the expression tree for the target LINQ provider. When `UseExpressives()` is active, four built-in transformers run automatically:
+After expansion, transformers adapt the expression tree for the target LINQ provider. When `UseExpressives()` is active, six built-in transformers run automatically:
 
 | Transformer | Purpose |
 |---|---|
+| `ReplaceThrowWithDefault` | Replaces `throw` expressions with `default(T)` so providers that can't translate `Throw` still see a node of the same type (skip with `o => o.PreserveThrowExpressions()`) |
 | `ConvertLoopsToLinq` | Rewrites `LoopExpression` (from `foreach`/`for`) into LINQ method calls (`Sum`, `Count`, `Any`, `All`) |
 | `RemoveNullConditionalPatterns` | Strips null-check ternaries (`x != null ? x.Prop : default` becomes `x.Prop`) for SQL null propagation |
 | `FlattenTupleComparisons` | Replaces `ValueTuple` field access with underlying arguments for direct comparison |
+| `FlattenConcatArrayCalls` | Rewrites `string.Concat(string[])` (used by 5+-part interpolations) into 2/3/4-arg `string.Concat` calls EF Core can translate |
 | `FlattenBlockExpressions` | Inlines block-local variables and removes `Expression.Block` nodes |
 
 Plugins can contribute additional transformers via `IExpressivePlugin.GetTransformers()`.

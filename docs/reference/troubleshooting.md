@@ -328,11 +328,11 @@ No. The core `ExpressiveSharp` package works with any LINQ provider or standalon
 
 ### What .NET versions are supported?
 
-| | .NET 8.0 | .NET 10.0 |
-|---|---|---|
-| **ExpressiveSharp** | C# 12 | C# 14 |
-| **ExpressiveSharp.EntityFrameworkCore** | EF Core 8.x | EF Core 10.x |
-| **RelationalExtensions** | EF Core 8.x | EF Core 10.x |
+| | .NET 8.0 | .NET 9.0 | .NET 10.0 |
+|---|---|---|---|
+| **ExpressiveSharp** | C# 12 | C# 13 | C# 14 |
+| **ExpressiveSharp.EntityFrameworkCore** | EF Core 8.x | EF Core 9.x | EF Core 10.x |
+| **RelationalExtensions** | EF Core 8.x | EF Core 9.x | EF Core 10.x |
 
 ### How do I suppress a specific diagnostic?
 

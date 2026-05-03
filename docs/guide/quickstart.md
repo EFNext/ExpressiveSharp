@@ -39,7 +39,7 @@ dotnet add package ExpressiveSharp.MongoDB
 | `ExpressiveSharp.Abstractions` | Lightweight — `[Expressive]` attribute, `[ExpressiveFor]`, `IExpressionTreeTransformer`, source generator only (no runtime services) |
 | `ExpressiveSharp.EntityFrameworkCore` | EF Core integration — `UseExpressives()`, `ExpressiveDbSet<T>`, Include/ThenInclude, async methods, analyzers and code fixes |
 | `ExpressiveSharp.MongoDB` | MongoDB integration — `.AsExpressive()` on `IMongoCollection<T>`, MQL aggregation translation |
-| `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` | SQL window functions — ROW_NUMBER, RANK, DENSE_RANK, NTILE (experimental) |
+| `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` | SQL window functions — ranking (ROW_NUMBER, RANK, DENSE_RANK, NTILE, PERCENT_RANK, CUME_DIST), aggregate (SUM, AVG, COUNT, MIN, MAX), and navigation (LAG, LEAD, FIRST_VALUE, LAST_VALUE, NTH_VALUE). Experimental. |
 
 ## Step 2 — Define Your Entities
 
@@ -94,7 +94,7 @@ using Microsoft.EntityFrameworkCore;
 
 public class AppDbContext : DbContext
 {
-    // ExpressiveSet<T> lets modern C# syntax flow through DbSet chains
+    // ExpressiveDbSet<T> lets modern C# syntax flow through DbSet chains
     public ExpressiveDbSet<Customer> Customers => this.ExpressiveSet<Customer>();
     public ExpressiveDbSet<Order> Orders => this.ExpressiveSet<Order>();
 

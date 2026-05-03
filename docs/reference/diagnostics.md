@@ -26,7 +26,7 @@ See [Troubleshooting](./troubleshooting) for symptom-oriented guidance -- find t
 | [EXP0010](#exp0010) | Warning | Interceptor emission failed | -- |
 | [EXP0011](#exp0011) | Warning | Unresolvable member in pattern | -- |
 | [EXP0012](#exp0012) | Info | Factory method can be converted to constructor | -- |
-| [EXP0013](#exp0013) | Warning | Member could benefit from `[Expressive]` | [Add `[Expressive]`](#exp0013-fix) |
+| [EXP0013](#exp0013) | Warning | Referenced member could benefit from `[Expressive]` | [Add `[Expressive]`](#exp0013-fix) |
 | [EXP0014](#exp0014) | Error | `[ExpressiveFor]` target type not found | -- |
 | [EXP0015](#exp0015) | Error | `[ExpressiveFor]` target member not found | -- |
 | [EXP0017](#exp0017) | Error | `[ExpressiveFor]` return type mismatch | -- |
@@ -338,7 +338,7 @@ public CustomerDto(Customer c)
 
 ## Analyzer Diagnostic (EXP0013)
 
-### EXP0013 -- Member could benefit from `[Expressive]` {#exp0013}
+### EXP0013 -- Referenced member could benefit from `[Expressive]` {#exp0013}
 
 **Severity:** Warning
 **Category:** Design

@@ -101,13 +101,13 @@ Mark computed properties and methods with `[Expressive]` to generate companion e
 
 ## Requirements
 
-| | .NET 8.0 | .NET 10.0 |
-|---|---|---|
-| **ExpressiveSharp** | C# 12 | C# 14 |
-| **ExpressiveSharp.Abstractions** | C# 12 | C# 14 |
-| **ExpressiveSharp.EntityFrameworkCore** | EF Core 8.x | EF Core 10.x |
-| **ExpressiveSharp.MongoDB** | MongoDB.Driver 3.x | MongoDB.Driver 3.x |
-| **ExpressiveSharp.EntityFrameworkCore.RelationalExtensions** | EF Core 8.x | EF Core 10.x |
+| | .NET 8.0 | .NET 9.0 | .NET 10.0 |
+|---|---|---|---|
+| **ExpressiveSharp** | C# 12 | C# 13 | C# 14 |
+| **ExpressiveSharp.Abstractions** | C# 12 | C# 13 | C# 14 |
+| **ExpressiveSharp.EntityFrameworkCore** | EF Core 8.x | EF Core 9.x | EF Core 10.x |
+| **ExpressiveSharp.MongoDB** | MongoDB.Driver 3.x | MongoDB.Driver 3.x | MongoDB.Driver 3.x |
+| **ExpressiveSharp.EntityFrameworkCore.RelationalExtensions** | EF Core 8.x | EF Core 9.x | EF Core 10.x |
 
 ## Next Steps
 

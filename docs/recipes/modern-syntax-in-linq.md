@@ -231,7 +231,7 @@ Use `[Expressive]` for shared business logic (computed properties, filters, clas
 
 **EF Core (ExpressiveDbSet only):** `Include`, `ThenInclude`, `AsNoTracking`, `IgnoreQueryFilters`, `TagWith`, `AnyAsync`, `FirstAsync`, `SumAsync`, and all other async lambda methods
 
-On .NET 10+, additional methods are available: `LeftJoin`, `RightJoin`, `CountBy`, `AggregateBy`, and `Index`.
+On .NET 9+, `CountBy`, `AggregateBy`, and `Index` are available. On .NET 10+, `LeftJoin` and `RightJoin` are also available.
 
 ## Tips
 
