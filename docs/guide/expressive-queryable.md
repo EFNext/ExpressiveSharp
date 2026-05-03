@@ -59,15 +59,11 @@ Most common `Queryable` methods are supported:
 
 **Comparer overloads** (`IEqualityComparer<T>`, `IComparer<T>`) are also supported.
 
-### .NET 10+ Additional Methods
+### .NET 9 / .NET 10 Additional Methods
 
-On .NET 10 and later, these additional methods are available:
+On .NET 9 and later: `CountBy`, `AggregateBy`, `Index`.
 
-- `LeftJoin`
-- `RightJoin`
-- `CountBy`
-- `AggregateBy`
-- `Index`
+On .NET 10 and later (in addition to the above): `LeftJoin`, `RightJoin`.
 
 ## Pattern Matching and Switch Expressions
 

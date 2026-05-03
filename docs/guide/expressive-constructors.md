@@ -11,7 +11,7 @@ db.Orders
     .Select(o => new OrderSummaryDto
     {
         Id = o.Id,
-        Description = "Order #" + o.Id,
+        Description = $"Order #{o.Id}",
         Total = o.Items.Sum(i => i.UnitPrice * i.Quantity),
     })
 ---setup---
@@ -26,7 +26,7 @@ public class OrderSummaryDto
 With an `[Expressive]` constructor, you define the projection once and use it everywhere:
 
 ::: expressive-sample
-db.Orders.Select(o => new OrderSummaryDto(o.Id, "Order #" + o.Id, o.Total()))
+db.Orders.Select(o => new OrderSummaryDto(o.Id, $"Order #{o.Id}", o.Total()))
 ---setup---
 public class OrderSummaryDto
 {

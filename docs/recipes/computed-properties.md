@@ -129,7 +129,7 @@ public static class CustomerProfile
 {
     [Expressive]
     public static string DisplayName(this Customer c)
-        => c.Name + (c.Country != null ? " (" + c.Country + ")" : "");
+        => c.Country != null ? $"{c.Name} ({c.Country})" : c.Name;
 
     [Expressive]
     public static bool IsActive(this Customer c)

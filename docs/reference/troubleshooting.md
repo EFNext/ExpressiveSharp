@@ -17,7 +17,7 @@ This page helps you diagnose and fix common issues with ExpressiveSharp. Entries
 public string Greeting(string name)
 {
     var prefix = IsVip ? "Dear" : "Hi";
-    return prefix + " " + name;
+    return $"{prefix} {name}";
 }
 ```
 
@@ -52,7 +52,7 @@ public string FullName { get; set; }
 
 // Fixed: expression-bodied property
 [Expressive]
-public string FullName => FirstName + " " + LastName;
+public string FullName => $"{FirstName} {LastName}";
 
 // Also valid: remove the attribute if projection is not needed
 public string FullName { get; set; }
@@ -145,9 +145,9 @@ The `[Expressive]` member calls a method with no SQL equivalent:
 [Expressive]
 public string FilePath => Path.Combine(Directory, FileName);
 
-// Works: string concatenation is translated by EF Core
+// Works: string interpolation is translated by EF Core
 [Expressive]
-public string FilePath => Directory + "/" + FileName;
+public string FilePath => $"{Directory}/{FileName}";
 ```
 
 For third-party methods you cannot change, provide a translatable equivalent via [`[ExpressiveFor]`](./expressive-for):
@@ -328,11 +328,11 @@ No. The core `ExpressiveSharp` package works with any LINQ provider or standalon
 
 ### What .NET versions are supported?
 
-| | .NET 8.0 | .NET 10.0 |
-|---|---|---|
-| **ExpressiveSharp** | C# 12 | C# 14 |
-| **ExpressiveSharp.EntityFrameworkCore** | EF Core 8.x | EF Core 10.x |
-| **RelationalExtensions** | EF Core 8.x | EF Core 10.x |
+| | .NET 8.0 | .NET 9.0 | .NET 10.0 |
+|---|---|---|---|
+| **ExpressiveSharp** | C# 12 | C# 13 | C# 14 |
+| **ExpressiveSharp.EntityFrameworkCore** | EF Core 8.x | EF Core 9.x | EF Core 10.x |
+| **RelationalExtensions** | EF Core 8.x | EF Core 9.x | EF Core 10.x |
 
 ### How do I suppress a specific diagnostic?
 

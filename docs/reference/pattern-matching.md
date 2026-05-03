@@ -178,8 +178,8 @@ Type patterns in switch arms produce type checks and casts:
 [Expressive]
 public static string Describe(this Shape shape) => shape switch
 {
-    Circle c    => "Circle with radius " + c.Radius,
-    Rectangle r => "Rectangle " + r.Width + "x" + r.Height,
+    Circle c    => $"Circle with radius {c.Radius}",
+    Rectangle r => $"Rectangle {r.Width}x{r.Height}",
     _           => "Unknown shape",
 };
 ```

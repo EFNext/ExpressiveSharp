@@ -17,7 +17,7 @@ public string FullName { get; set; }
 
 // Expression-bodied property -- works
 [Expressive]
-public string FullName => FirstName + " " + LastName;
+public string FullName => $"{FirstName} {LastName}";
 ```
 
 ## Block Body Restrictions
@@ -96,9 +96,9 @@ When targeting EF Core, the body of an `[Expressive]` member can only use operat
 [Expressive]
 public string FilePath => Path.Combine(Directory, FileName);
 
-// Works -- string concatenation is translated by EF Core
+// Works -- string interpolation is translated by EF Core
 [Expressive]
-public string FilePath => Directory + "/" + FileName;
+public string FilePath => $"{Directory}/{FileName}";
 ```
 
 ::: info Using ExpressiveFor for Unsupported Methods

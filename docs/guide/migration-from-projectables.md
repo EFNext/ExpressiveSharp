@@ -90,7 +90,7 @@ options.UseSqlServer(connectionString)
        .UseExpressives(opts => opts.AddPlugin(new MyPlugin()));
 ```
 
-`UseExpressives()` automatically registers four transformers as global defaults (`ConvertLoopsToLinq`, `RemoveNullConditionalPatterns`, `FlattenTupleComparisons`, `FlattenBlockExpressions`), sets up the query compiler decorator, and configures model conventions.
+`UseExpressives()` automatically registers six transformers as global defaults (`ReplaceThrowWithDefault`, `ConvertLoopsToLinq`, `RemoveNullConditionalPatterns`, `FlattenTupleComparisons`, `FlattenConcatArrayCalls`, `FlattenBlockExpressions`), sets up the query compiler decorator, and configures model conventions. `ReplaceThrowWithDefault` can be opted out via `o => o.PreserveThrowExpressions()`.
 
 ### Null-Conditional Handling
 
@@ -144,13 +144,13 @@ Pick based on whether you want the generator to declare the target property for 
 // Before (Projectables)
 [Projectable(UseMemberBody = nameof(FullNameProjection))]
 public string FullName { get; init; }
-private string FullNameProjection => LastName + ", " + FirstName;
+private string FullNameProjection => $"{LastName}, {FirstName}";
 
 // After (ExpressiveSharp) -- partial class, stub only; FullName is generated
 public partial class Customer
 {
     [ExpressiveProperty("FullName")]
-    private string FullNameExpression => LastName + ", " + FirstName;
+    private string FullNameExpression => $"{LastName}, {FirstName}";
 }
 ```
 
@@ -172,7 +172,7 @@ public string FullName => $"{FirstName} {LastName}".Trim().ToUpper();
 
 [Projectable(UseMemberBody = nameof(FullNameProjection))]
 public string FullName => ...;
-private string FullNameProjection => FirstName + " " + LastName;
+private string FullNameProjection => $"{FirstName} {LastName}";
 
 // After (ExpressiveSharp)
 using ExpressiveSharp.Mapping;
@@ -180,7 +180,7 @@ using ExpressiveSharp.Mapping;
 public string FullName => $"{FirstName} {LastName}".Trim().ToUpper();
 
 [ExpressiveFor(nameof(FullName))]
-private string FullNameExpression => FirstName + " " + LastName;
+private string FullNameExpression => $"{FirstName} {LastName}";
 ```
 
 **Scenario 2: External/third-party type methods**
@@ -253,7 +253,7 @@ The `InterceptorsNamespaces` MSBuild property needed for method interceptors is 
 
 9. **Package consolidation** -- Remove all old packages and install `ExpressiveSharp.EntityFrameworkCore`.
 
-10. **Target framework** -- ExpressiveSharp targets .NET 8.0 and .NET 10.0. If you are on .NET 6 or 7, you will need to upgrade.
+10. **Target framework** -- ExpressiveSharp targets .NET 8.0, .NET 9.0, and .NET 10.0. If you are on .NET 6 or 7, you will need to upgrade.
 
 ## Feature Comparison
 
@@ -277,7 +277,7 @@ The `InterceptorsNamespaces` MSBuild property needed for method interceptors is 
 | EF Core specific | Yes | No -- works standalone |
 | Compatibility modes | Full / Limited | Full only (simpler) |
 | Code generation approach | Syntax tree rewriting | Semantic (IOperation) analysis |
-| Target frameworks | .NET 6+ | .NET 8 / .NET 10 |
+| Target frameworks | .NET 6+ | .NET 8 / .NET 9 / .NET 10 |
 
 ## New Features Available After Migration
 

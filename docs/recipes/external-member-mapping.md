@@ -71,7 +71,7 @@ static class PersonMappings
     // Provide a SQL-friendly alternative
     [ExpressiveFor(typeof(Person), nameof(Person.FullName))]
     static string FullName(Person p)
-        => p.FirstName + " " + p.LastName;
+        => $"{p.FirstName} {p.LastName}";
 }
 ```
 
@@ -217,7 +217,7 @@ public class Person
     // so EF Core projects it from the underlying columns instead of trying to
     // map it to a column of its own. `this` is the receiver automatically.
     [ExpressiveFor(nameof(FullName))]
-    private string FullNameExpression => FirstName + " " + LastName;
+    private string FullNameExpression => $"{FirstName} {LastName}";
 }
 ```
 
