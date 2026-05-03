@@ -36,6 +36,8 @@ internal sealed class WindowFunctionMethodCallTranslator : IMethodCallTranslator
         if (method.DeclaringType != typeof(WindowFunction))
             return null;
 
+        ValidateArguments(method, arguments);
+
         var longTypeMapping = _typeMappingSource.FindMapping(typeof(long))!;
 
         return method.Name switch
@@ -114,6 +116,38 @@ internal sealed class WindowFunctionMethodCallTranslator : IMethodCallTranslator
 
             _ => null
         };
+    }
+
+    private static void ValidateArguments(MethodInfo method, IReadOnlyList<SqlExpression> arguments)
+    {
+        switch (method.Name)
+        {
+            case nameof(WindowFunction.Ntile):
+                if (arguments.Count >= 1 && arguments[0] is SqlConstantExpression { Value: int n } && n <= 0)
+                    throw new InvalidOperationException(
+                        $"WindowFunction.Ntile requires a positive bucket count; got {n}.");
+                break;
+
+            case nameof(WindowFunction.PercentRank):
+            case nameof(WindowFunction.CumeDist):
+                if (arguments.Count >= 1 && arguments[0] is WindowSpecSqlExpression spec && spec.Orderings.Count == 0)
+                    throw new InvalidOperationException(
+                        $"WindowFunction.{method.Name} requires an ORDER BY clause on the window definition.");
+                break;
+
+            case nameof(WindowFunction.Lag):
+            case nameof(WindowFunction.Lead):
+                if (arguments.Count >= 3 && arguments[1] is SqlConstantExpression { Value: int offset } && offset < 0)
+                    throw new InvalidOperationException(
+                        $"WindowFunction.{method.Name} offset must be non-negative; got {offset}.");
+                break;
+
+            case nameof(WindowFunction.NthValue):
+                if (arguments.Count >= 3 && arguments[1] is SqlConstantExpression { Value: int p } && p < 1)
+                    throw new InvalidOperationException(
+                        $"WindowFunction.NthValue position is 1-based; got {p}.");
+                break;
+        }
     }
 
     private static bool ExtractAggregateArgs(
