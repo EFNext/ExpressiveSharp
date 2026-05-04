@@ -322,6 +322,18 @@ public double Total => Price * Quantity;
 public double TotalWithTax => Total * (1 + TaxRate);  // Total is inlined
 ```
 
+### How do I see what ExpressiveSharp is doing at runtime?
+
+Subscribe to the `ExpressiveSharp` `ActivitySource`, `Meter`, or `EventSource`. The metrics surface cache hit/miss ratios and per-expansion timings; the EventSource surfaces failure paths that ExpressiveSharp recovers from silently — registry static-ctor failures, hot-reload reset failures, and `[ExpressiveFor]` collisions.
+
+The fastest path is `dotnet-trace`, which needs no code changes:
+
+```sh
+dotnet-trace collect -n MyApp --providers ExpressiveSharp::Verbose
+```
+
+See [Telemetry](./telemetry) for the full instrument and event reference.
+
 ### Is ExpressiveSharp EF Core specific?
 
 No. The core `ExpressiveSharp` package works with any LINQ provider or standalone expression tree use case. See [ExpressionPolyfill.Create](../guide/expression-polyfill) and [IExpressiveQueryable](../guide/expressive-queryable) for non-EF-Core usage.
