@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Metadata;
 using ExpressiveSharp.Services;
@@ -91,5 +92,36 @@ public class ExpressiveHotReloadHandlerTests
 
         Assert.IsTrue(attributes.Any(a => a.HandlerType == typeof(ExpressiveHotReloadHandler)),
             "MetadataUpdateHandlerAttribute for ExpressiveHotReloadHandler not found on ExpressiveSharp assembly.");
+    }
+    
+    [TestMethod]
+    public void ClearCache_RebuildsGeneratedRegistryMap()
+    {
+        var registryType = typeof(Product).Assembly.GetType("ExpressiveSharp.Generated.ExpressionRegistry");
+        Assert.IsNotNull(registryType, "Generated ExpressionRegistry not found in test assembly.");
+
+        var mapField = registryType!.GetField("_map", BindingFlags.Static | BindingFlags.NonPublic);
+        Assert.IsNotNull(mapField, "ExpressionRegistry._map field not found.");
+
+        var totalProperty = typeof(Product).GetProperty(nameof(Product.Total))!;
+        var resolver = new ExpressiveResolver();
+
+        var initial = resolver.FindGeneratedExpression(totalProperty);
+        Assert.IsNotNull(initial);
+        Assert.AreEqual(ExpressionType.Multiply, initial.Body.NodeType);
+
+        var mapBefore = mapField!.GetValue(null);
+        Assert.IsNotNull(mapBefore);
+
+        ExpressiveHotReloadHandler.ClearCache([typeof(Product)]);
+
+        var mapAfter = mapField.GetValue(null);
+        Assert.IsNotNull(mapAfter);
+        Assert.IsFalse(ReferenceEquals(mapBefore, mapAfter),
+            "ExpressionRegistry._map was not rebuilt — ResetMap was not invoked by the hot-reload handler.");
+
+        var rebuilt = resolver.FindGeneratedExpression(totalProperty);
+        Assert.IsNotNull(rebuilt);
+        Assert.AreEqual(initial.ToString(), rebuilt.ToString());
     }
 }
