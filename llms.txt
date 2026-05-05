@@ -45,6 +45,7 @@ ExpressiveSharp is a Roslyn source generator that enables modern C# syntax (null
 - [Switch Expressions](https://efnext.github.io/ExpressiveSharp/reference/switch-expressions.md)
 - [Expression Transformers](https://efnext.github.io/ExpressiveSharp/reference/expression-transformers.md)
 - [Diagnostics & Code Fixes](https://efnext.github.io/ExpressiveSharp/reference/diagnostics.md)
+- [Telemetry](https://efnext.github.io/ExpressiveSharp/reference/telemetry.md)
 - [Troubleshooting](https://efnext.github.io/ExpressiveSharp/reference/troubleshooting.md)
 
 ### Advanced
