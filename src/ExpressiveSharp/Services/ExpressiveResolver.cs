@@ -106,18 +106,23 @@ namespace ExpressiveSharp.Services
         public LambdaExpression FindGeneratedExpression(MemberInfo expressiveMemberInfo,
             ExpressiveAttribute? expressiveAttribute = null)
         {
-            if (ExpressiveDiagnostics.CacheHits.Enabled || ExpressiveDiagnostics.CacheMisses.Enabled)
+            // Hits are counted on the fast path; misses are counted inside the factory so that
+            // concurrent racing TryGetValue calls don't both pre-increment when only one factory
+            // actually runs. ConcurrentDictionary may still invoke the factory multiple times
+            // under contention, which can over-count by a tiny margin — acceptable for an
+            // observability counter.
+            if (ExpressiveDiagnostics.CacheHits.Enabled
+                && _expressionCache.TryGetValue(expressiveMemberInfo, out var cached))
             {
-                if (_expressionCache.TryGetValue(expressiveMemberInfo, out var cached))
-                {
-                    ExpressiveDiagnostics.CacheHits.Add(1);
-                    return cached;
-                }
-                ExpressiveDiagnostics.CacheMisses.Add(1);
+                ExpressiveDiagnostics.CacheHits.Add(1);
+                return cached;
             }
 
-            return _expressionCache.GetOrAdd(expressiveMemberInfo,
-                static (mi, _) => ResolveExpressionCore(mi), (object?)null);
+            return _expressionCache.GetOrAdd(expressiveMemberInfo, static (mi, _) =>
+            {
+                ExpressiveDiagnostics.CacheMisses.Add(1);
+                return ResolveExpressionCore(mi);
+            }, (object?)null);
         }
 
         /// <inheritdoc/>
@@ -256,6 +261,10 @@ namespace ExpressiveSharp.Services
         /// </summary>
         public static LambdaExpression? FindGeneratedExpressionViaReflection(MemberInfo expressiveMemberInfo)
         {
+            // ConcurrentDictionary.GetOrAdd may invoke the factory more than once under
+            // contention, which can over-count the counter by a small margin on cold concurrent
+            // lookups. Acceptable for an observability signal — the alternative (Lazy<T> wrapper)
+            // adds allocation on every lookup.
             var result = _reflectionCache.GetOrAdd(expressiveMemberInfo, static mi =>
             {
                 var built = BuildReflectionExpression(mi);

@@ -20,10 +20,14 @@ internal sealed class ExpressiveEventSource : EventSource
     public void RegistryInitializationFailed(Assembly assembly, Exception exception)
     {
         if (!IsEnabled()) return;
+        // The caller catches TypeInitializationException, but the actionable cause is the
+        // static-ctor exception nested inside it — unwrap so consumers see the real failure.
+        var actual = exception is TypeInitializationException && exception.InnerException is { } inner
+            ? inner : exception;
         RegistryInitializationFailed(
             assembly.GetName().Name ?? "<unknown>",
-            exception.GetType().FullName ?? exception.GetType().Name,
-            exception.Message);
+            actual.GetType().FullName ?? actual.GetType().Name,
+            actual.Message);
     }
 
     [Event(2, Level = EventLevel.Warning,

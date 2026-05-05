@@ -324,12 +324,17 @@ public double TotalWithTax => Total * (1 + TaxRate);  // Total is inlined
 
 ### How do I see what ExpressiveSharp is doing at runtime?
 
-Subscribe to the `ExpressiveSharp` `ActivitySource`, `Meter`, or `EventSource`. The metrics surface cache hit/miss ratios and per-expansion timings; the EventSource surfaces failure paths that ExpressiveSharp recovers from silently — registry static-ctor failures, hot-reload reset failures, and `[ExpressiveFor]` collisions.
-
-The fastest path is `dotnet-trace`, which needs no code changes:
+ExpressiveSharp emits three independent signals on the `ExpressiveSharp` source name — each requires a different out-of-process tool:
 
 ```sh
+# Failure events (registry static-ctor failures, hot-reload reset failures, [ExpressiveFor] collisions)
 dotnet-trace collect -n MyApp --providers ExpressiveSharp::Verbose
+
+# Metrics (cache hit/miss ratios, expansion timings, reflection-fallback rate)
+dotnet-counters monitor -n MyApp ExpressiveSharp
+
+# Distributed tracing (the Expressive.Expand activity span) — wire via OpenTelemetry,
+# see the Telemetry reference for the AddSource("ExpressiveSharp") snippet.
 ```
 
 See [Telemetry](./telemetry) for the full instrument and event reference.

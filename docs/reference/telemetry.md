@@ -6,7 +6,7 @@ Every instrument is **zero-cost when no listener is attached**: counters and act
 
 ## Activity (Distributed Tracing)
 
-A single span is emitted from `ExpressiveSharp.ActivitySource`:
+A single span is emitted from the `ExpressiveSharp` `ActivitySource` (the source's name is also exposed as the constant `ExpressiveDiagnostics.SourceName`):
 
 | Span | Emitted from | Tags |
 |------|--------------|------|
