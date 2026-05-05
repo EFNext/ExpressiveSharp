@@ -214,6 +214,16 @@ The built-in `RelationalExtensions` package (for window functions) uses this plu
 The `ExpressiveSharp.EntityFrameworkCore` package bundles Roslyn analyzers and code fixes from `ExpressiveSharp.EntityFrameworkCore.CodeFixers`. These provide compile-time diagnostics and IDE quick-fix actions for common issues like missing `[Expressive]` attributes.
 :::
 
+## Hot Reload
+
+Body edits to `[Expressive]` members flow through to EF Core automatically — `ExpressiveQueryCompiler` re-expands every query at execution time, and the new tree shape produces a fresh entry in EF Core's compiled-query cache. No restart, no manual cache clear.
+
+::: warning
+`EF.CompileQuery(...)` snapshots expansion at compile time. Hot-reloading an `[Expressive]` member does not retroactively update an already-compiled query delegate — you have to recreate it.
+:::
+
+See [Hot Reload](../../advanced/hot-reload) for the full picture, including caveats around captured expression trees and rude edits.
+
 ## Next Steps
 
 - [Window Functions](../window-functions) — SQL window functions via the RelationalExtensions package

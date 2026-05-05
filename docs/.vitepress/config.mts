@@ -77,6 +77,7 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: 'Block-Bodied Members', link: '/advanced/block-bodied-members' },
         { text: 'Custom Transformers', link: '/advanced/custom-transformers' },
         { text: 'Testing Strategy', link: '/advanced/testing-strategy' },
+        { text: 'Hot Reload', link: '/advanced/hot-reload' },
         { text: 'Limitations', link: '/advanced/limitations' },
       ]
     }
