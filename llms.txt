@@ -54,6 +54,7 @@ ExpressiveSharp is a Roslyn source generator that enables modern C# syntax (null
 - [Block-Bodied Members](https://efnext.github.io/ExpressiveSharp/advanced/block-bodied-members.md)
 - [Custom Transformers](https://efnext.github.io/ExpressiveSharp/advanced/custom-transformers.md)
 - [Testing Strategy](https://efnext.github.io/ExpressiveSharp/advanced/testing-strategy.md)
+- [Hot Reload](https://efnext.github.io/ExpressiveSharp/advanced/hot-reload.md)
 - [Limitations](https://efnext.github.io/ExpressiveSharp/advanced/limitations.md)
 
 ### Recipes
