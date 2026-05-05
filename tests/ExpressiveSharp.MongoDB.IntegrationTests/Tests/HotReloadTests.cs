@@ -24,13 +24,13 @@ public class HotReloadTests : MongoTestBase
 
         var (registryType, mapField, totalKey) = HotReloadRegistry.Locate(typeof(Order), nameof(Order.Total));
         var map = (IDictionary<nint, LambdaExpression>)mapField.GetValue(null)!;
-
         Expression<Func<Order, double>> reloaded = o => o.Price * o.Quantity * 2;
-        map[totalKey] = reloaded;
-        HotReloadRegistry.ClearResolverCaches();
 
         try
         {
+            map[totalKey] = reloaded;
+            HotReloadRegistry.ClearResolverCaches();
+
             var reloadedTotals = await Orders.AsExpressive()
                 .Select(o => o.Total)
                 .ToListAsync();

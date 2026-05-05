@@ -31,13 +31,13 @@ public class HotReloadTests : EFCoreTestBase
 
         var (registryType, mapField, totalKey) = HotReloadRegistry.Locate(typeof(Order), nameof(Order.Total));
         var map = (IDictionary<nint, LambdaExpression>)mapField.GetValue(null)!;
-
         Expression<Func<Order, double>> reloaded = o => o.Price * o.Quantity * 2;
-        map[totalKey] = reloaded;
-        HotReloadRegistry.ClearResolverCaches();
 
         try
         {
+            map[totalKey] = reloaded;
+            HotReloadRegistry.ClearResolverCaches();
+
             var reloadedSql = Context.Set<Order>().Where(o => o.Total > 200).ToQueryString();
             Assert.AreNotEqual(baselineSql, reloadedSql,
                 "ExpressiveQueryCompiler did not pick up the reloaded body — SQL is unchanged.");
