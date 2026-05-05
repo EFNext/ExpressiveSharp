@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Metadata;
+using ExpressiveSharp.Diagnostics;
 
 [assembly: MetadataUpdateHandler(typeof(ExpressiveSharp.Services.ExpressiveHotReloadHandler))]
 
@@ -56,8 +57,17 @@ internal static class ExpressiveHotReloadHandler
             var reset = registryType?.GetMethod("ResetMap", BindingFlags.Static | BindingFlags.NonPublic);
             if (reset is null) continue;
 
-            try { reset.Invoke(null, null); }
-            catch { /* best-effort; stale registry stays stale */ }
+            try
+            {
+                reset.Invoke(null, null);
+            }
+            catch (Exception ex)
+            {
+                // Best-effort; stale registry stays stale. Surface via EventSource so
+                // a hot-reload edit-and-continue failure is no longer silent.
+                var inner = (ex as TargetInvocationException)?.InnerException ?? ex;
+                ExpressiveEventSource.Log.HotReloadResetFailed(assembly, inner);
+            }
         }
     }
 }

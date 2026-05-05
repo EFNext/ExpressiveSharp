@@ -64,6 +64,7 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: 'Switch Expressions', link: '/reference/switch-expressions' },
         { text: 'Expression Transformers', link: '/reference/expression-transformers' },
         { text: 'Diagnostics & Code Fixes', link: '/reference/diagnostics' },
+        { text: 'Telemetry', link: '/reference/telemetry' },
         { text: 'Troubleshooting', link: '/reference/troubleshooting' },
       ]
     }

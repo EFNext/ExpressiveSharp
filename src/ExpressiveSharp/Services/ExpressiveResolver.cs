@@ -5,6 +5,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using ExpressiveSharp.Diagnostics;
 using ExpressiveSharp.Extensions;
 
 namespace ExpressiveSharp.Services
@@ -104,8 +105,25 @@ namespace ExpressiveSharp.Services
 
         public LambdaExpression FindGeneratedExpression(MemberInfo expressiveMemberInfo,
             ExpressiveAttribute? expressiveAttribute = null)
-            => _expressionCache.GetOrAdd(expressiveMemberInfo, static (mi, _) => ResolveExpressionCore(mi),
-                (object?)null);
+        {
+            // Hits are counted on the fast path; misses are counted inside the factory so that
+            // concurrent racing TryGetValue calls don't both pre-increment when only one factory
+            // actually runs. ConcurrentDictionary may still invoke the factory multiple times
+            // under contention, which can over-count by a tiny margin — acceptable for an
+            // observability counter.
+            if (ExpressiveDiagnostics.CacheHits.Enabled
+                && _expressionCache.TryGetValue(expressiveMemberInfo, out var cached))
+            {
+                ExpressiveDiagnostics.CacheHits.Add(1);
+                return cached;
+            }
+
+            return _expressionCache.GetOrAdd(expressiveMemberInfo, static (mi, _) =>
+            {
+                ExpressiveDiagnostics.CacheMisses.Add(1);
+                return ResolveExpressionCore(mi);
+            }, (object?)null);
+        }
 
         /// <inheritdoc/>
         public LambdaExpression? FindExternalExpression(MemberInfo memberInfo)
@@ -127,9 +145,10 @@ namespace ExpressiveSharp.Services
                 {
                     result = kvp.Value(memberInfo);
                 }
-                catch (TypeInitializationException)
+                catch (TypeInitializationException ex)
                 {
                     // Registry's static ctor failed — mark inert so we don't re-throw on every lookup.
+                    ExpressiveEventSource.Log.RegistryInitializationFailed(kvp.Key, ex);
                     _assemblyRegistries[kvp.Key] = _nullRegistry;
                     continue;
                 }
@@ -138,9 +157,12 @@ namespace ExpressiveSharp.Services
                     continue;
 
                 if (found is not null)
+                {
+                    ExpressiveEventSource.Log.MultipleExpressiveForMappings(memberInfo, foundAssembly!, kvp.Key);
                     throw new InvalidOperationException(
                         $"Multiple [ExpressiveFor] mappings found for '{memberInfo}' " +
                         $"in assemblies '{foundAssembly!.GetName().Name}' and '{kvp.Key.GetName().Name}'.");
+                }
 
                 found = result;
                 foundAssembly = kvp.Key;
@@ -239,8 +261,20 @@ namespace ExpressiveSharp.Services
         /// </summary>
         public static LambdaExpression? FindGeneratedExpressionViaReflection(MemberInfo expressiveMemberInfo)
         {
-            var result = _reflectionCache.GetOrAdd(expressiveMemberInfo,
-                static mi => BuildReflectionExpression(mi) ?? _reflectionNullSentinel);
+            // ConcurrentDictionary.GetOrAdd may invoke the factory more than once under
+            // contention, which can over-count the counter by a small margin on cold concurrent
+            // lookups. Acceptable for an observability signal — the alternative (Lazy<T> wrapper)
+            // adds allocation on every lookup.
+            var result = _reflectionCache.GetOrAdd(expressiveMemberInfo, static mi =>
+            {
+                var built = BuildReflectionExpression(mi);
+                if (ExpressiveDiagnostics.ReflectionFallback.Enabled)
+                {
+                    ExpressiveDiagnostics.ReflectionFallback.Add(1,
+                        new KeyValuePair<string, object?>("member", mi.ToString()));
+                }
+                return built ?? _reflectionNullSentinel;
+            });
             return ReferenceEquals(result, _reflectionNullSentinel) ? null : result;
         }
 
