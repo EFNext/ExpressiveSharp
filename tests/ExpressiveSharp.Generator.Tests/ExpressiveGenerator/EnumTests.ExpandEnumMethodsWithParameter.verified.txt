@@ -14,22 +14,20 @@ namespace ExpressiveSharp.Generated
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Entity), "@this");
             var expr_0 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Entity).GetProperty("Status", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Status
             var expr_1 = global::System.Linq.Expressions.Expression.Constant(null, typeof(string));
-            var expr_2 = global::System.Linq.Expressions.Expression.Constant(global::Foo.Status.Rejected, typeof(global::Foo.Status));
-            var expr_3 = global::System.Linq.Expressions.Expression.Constant("Status: ", typeof(string)); // "Status: "
-            var expr_4 = global::System.Linq.Expressions.Expression.Call(typeof(global::Foo.EnumExtensions).GetMethod("GetDisplayNameWithPrefix", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(global::Foo.Status), typeof(string) }, null), new global::System.Linq.Expressions.Expression[] { expr_2, expr_3 });
-            var expr_5 = global::System.Linq.Expressions.Expression.Equal(expr_0, expr_2);
+            var expr_2 = global::System.Linq.Expressions.Expression.Constant("Status: ", typeof(string)); // "Status: "
+            var expr_3 = global::System.Linq.Expressions.Expression.Constant(global::Foo.Status.Rejected, typeof(global::Foo.Status));
+            var expr_4 = global::System.Linq.Expressions.Expression.Call(typeof(global::Foo.EnumExtensions).GetMethod("GetDisplayNameWithPrefix", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(global::Foo.Status), typeof(string) }, null), new global::System.Linq.Expressions.Expression[] { expr_3, expr_2 });
+            var expr_5 = global::System.Linq.Expressions.Expression.Equal(expr_0, expr_3);
             var expr_6 = global::System.Linq.Expressions.Expression.Condition(expr_5, expr_4, expr_1, typeof(string));
             var expr_7 = global::System.Linq.Expressions.Expression.Constant(global::Foo.Status.Approved, typeof(global::Foo.Status));
-            var expr_8 = global::System.Linq.Expressions.Expression.Constant("Status: ", typeof(string)); // "Status: "
-            var expr_9 = global::System.Linq.Expressions.Expression.Call(typeof(global::Foo.EnumExtensions).GetMethod("GetDisplayNameWithPrefix", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(global::Foo.Status), typeof(string) }, null), new global::System.Linq.Expressions.Expression[] { expr_7, expr_8 });
-            var expr_10 = global::System.Linq.Expressions.Expression.Equal(expr_0, expr_7);
-            var expr_11 = global::System.Linq.Expressions.Expression.Condition(expr_10, expr_9, expr_6, typeof(string));
-            var expr_12 = global::System.Linq.Expressions.Expression.Constant(global::Foo.Status.Pending, typeof(global::Foo.Status));
-            var expr_13 = global::System.Linq.Expressions.Expression.Constant("Status: ", typeof(string)); // "Status: "
-            var expr_14 = global::System.Linq.Expressions.Expression.Call(typeof(global::Foo.EnumExtensions).GetMethod("GetDisplayNameWithPrefix", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(global::Foo.Status), typeof(string) }, null), new global::System.Linq.Expressions.Expression[] { expr_12, expr_13 });
-            var expr_15 = global::System.Linq.Expressions.Expression.Equal(expr_0, expr_12);
-            var expr_16 = global::System.Linq.Expressions.Expression.Condition(expr_15, expr_14, expr_11, typeof(string));
-            return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.Entity, string>>(expr_16, p__this);
+            var expr_8 = global::System.Linq.Expressions.Expression.Call(typeof(global::Foo.EnumExtensions).GetMethod("GetDisplayNameWithPrefix", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(global::Foo.Status), typeof(string) }, null), new global::System.Linq.Expressions.Expression[] { expr_7, expr_2 });
+            var expr_9 = global::System.Linq.Expressions.Expression.Equal(expr_0, expr_7);
+            var expr_10 = global::System.Linq.Expressions.Expression.Condition(expr_9, expr_8, expr_6, typeof(string));
+            var expr_11 = global::System.Linq.Expressions.Expression.Constant(global::Foo.Status.Pending, typeof(global::Foo.Status));
+            var expr_12 = global::System.Linq.Expressions.Expression.Call(typeof(global::Foo.EnumExtensions).GetMethod("GetDisplayNameWithPrefix", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(global::Foo.Status), typeof(string) }, null), new global::System.Linq.Expressions.Expression[] { expr_11, expr_2 });
+            var expr_13 = global::System.Linq.Expressions.Expression.Equal(expr_0, expr_11);
+            var expr_14 = global::System.Linq.Expressions.Expression.Condition(expr_13, expr_12, expr_10, typeof(string));
+            return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.Entity, string>>(expr_14, p__this);
         }
     }
 }

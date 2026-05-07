@@ -87,8 +87,33 @@ public class EnumComparisonTests
 
         var labels = source.Select(expanded.Compile()).ToList();
 
+        // The null branch yields Nullable<Bucket>.ToString() which the runtime defines as "" for null.
         CollectionAssert.AreEqual(new[] { "Low", "Mid", "High", "" }, labels);
     }
+
+    [TestMethod]
+    public void ExtensionOnNullableEnum_NullBranch_PreservesUserDefinedFallback()
+    {
+        var source = new List<EnumComparisonEntity>
+        {
+            new() { NullableValue = Bucket.Low },
+            new() { NullableValue = null },
+        }.AsQueryable();
+
+        Expression<Func<EnumComparisonEntity, string>> expr = e => e.NullableDescription;
+        var expanded = (Expression<Func<EnumComparisonEntity, string>>)expr.ExpandExpressives();
+
+        var labels = source.Select(expanded.Compile()).ToList();
+
+        // The null branch must invoke Describe(null) so the extension's own null handling wins.
+        CollectionAssert.AreEqual(new[] { "Low", "n/a" }, labels);
+    }
+}
+
+public static class BucketExtensions
+{
+    public static string Describe(this Bucket? value) =>
+        value.HasValue ? value.Value.ToString() : "n/a";
 }
 
 public class EnumComparisonEntity
@@ -110,6 +135,9 @@ public class EnumComparisonEntity
 
     [Expressive]
     public string NullableLabel => NullableValue.ToString() ?? string.Empty;
+
+    [Expressive]
+    public string NullableDescription => NullableValue.Describe();
 }
 
 public enum Bucket { Low, Mid, High }

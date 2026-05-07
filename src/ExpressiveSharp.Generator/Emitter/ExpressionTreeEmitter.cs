@@ -755,6 +755,38 @@ internal sealed class ExpressionTreeEmitter
 
         var receiverTypeFqn = receiverType.ToDisplayString(_fqnFormat);
 
+        // Hoist non-receiver argument emission so per-arm calls and the null-branch call reuse the same vars.
+        var staticArgOffset = method.IsExtensionMethod ? 1 : 0;
+        var sharedExtraArgVars = new List<string>();
+        var argStartIndex = originalMethod.IsStatic ? staticArgOffset : 0;
+        for (var i = argStartIndex; i < invocation.Arguments.Length; i++)
+        {
+            sharedExtraArgVars.Add(EmitOperation(invocation.Arguments[i].Value));
+        }
+
+        string BuildCall(string operandVar)
+        {
+            string callArgsExpr;
+            if (originalMethod.IsStatic)
+            {
+                var allArgs = new List<string> { operandVar };
+                allArgs.AddRange(sharedExtraArgVars);
+                callArgsExpr = $"new global::System.Linq.Expressions.Expression[] {{ {string.Join(", ", allArgs)} }}";
+                var callVar = NextVar();
+                AppendLine($"var {callVar} = {Expr}.Call({methodField}, {callArgsExpr});");
+                return callVar;
+            }
+            else
+            {
+                callArgsExpr = sharedExtraArgVars.Count > 0
+                    ? $"new global::System.Linq.Expressions.Expression[] {{ {string.Join(", ", sharedExtraArgVars)} }}"
+                    : "global::System.Array.Empty<global::System.Linq.Expressions.Expression>()";
+                var callVar = NextVar();
+                AppendLine($"var {callVar} = {Expr}.Call({operandVar}, {methodField}, {callArgsExpr});");
+                return callVar;
+            }
+        }
+
         // Build the ternary chain in reverse so the first member ends up as the outermost (and first-tested) branch.
         var currentVar = defaultVar;
         foreach (var member in enumMembers.AsEnumerable().Reverse())
@@ -772,33 +804,7 @@ internal sealed class ExpressionTreeEmitter
                 enumValueVar = lifted;
             }
 
-            // Static path passes the enum value as the first arg; instance path uses it as the receiver.
-            string callVar;
-            if (originalMethod.IsStatic)
-            {
-                var callArgVars = new List<string> { enumValueVar };
-                var argOffset = method.IsExtensionMethod ? 1 : 0;
-                for (var i = argOffset; i < invocation.Arguments.Length; i++)
-                {
-                    callArgVars.Add(EmitOperation(invocation.Arguments[i].Value));
-                }
-                var callArgsExpr = $"new global::System.Linq.Expressions.Expression[] {{ {string.Join(", ", callArgVars)} }}";
-                callVar = NextVar();
-                AppendLine($"var {callVar} = {Expr}.Call({methodField}, {callArgsExpr});");
-            }
-            else
-            {
-                var callArgVars = new List<string>();
-                for (var i = 0; i < invocation.Arguments.Length; i++)
-                {
-                    callArgVars.Add(EmitOperation(invocation.Arguments[i].Value));
-                }
-                var callArgsExpr = callArgVars.Count > 0
-                    ? $"new global::System.Linq.Expressions.Expression[] {{ {string.Join(", ", callArgVars)} }}"
-                    : "global::System.Array.Empty<global::System.Linq.Expressions.Expression>()";
-                callVar = NextVar();
-                AppendLine($"var {callVar} = {Expr}.Call({enumValueVar}, {methodField}, {callArgsExpr});");
-            }
+            var callVar = BuildCall(enumValueVar);
 
             var condVar = NextVar();
             AppendLine($"var {condVar} = {Expr}.Equal({receiverVar}, {enumValueVar});");
@@ -808,17 +814,21 @@ internal sealed class ExpressionTreeEmitter
             currentVar = ternaryVar;
         }
 
-        // For Nullable<TEnum>, wrap in: receiver == null ? default : chain
+        // For Nullable<TEnum>, wrap in: receiver == null ? null-branch-call : chain
+        // Calling the method with a null Nullable<TEnum> preserves runtime semantics — Nullable<T>.ToString()
+        // returns "" for null, and extensions on Nullable<TEnum> can define their own null behavior.
         if (isNullable)
         {
             var nullConst = NextVar();
             AppendLine($"var {nullConst} = {Expr}.Constant(null, typeof({receiverTypeFqn}));");
 
+            var nullCallVar = BuildCall(nullConst);
+
             var nullCheck = NextVar();
             AppendLine($"var {nullCheck} = {Expr}.Equal({receiverVar}, {nullConst});");
 
             var wrappedVar = NextVar();
-            AppendLine($"var {wrappedVar} = {Expr}.Condition({nullCheck}, {defaultVar}, {currentVar}, typeof({returnTypeFqn}));");
+            AppendLine($"var {wrappedVar} = {Expr}.Condition({nullCheck}, {nullCallVar}, {currentVar}, typeof({returnTypeFqn}));");
             currentVar = wrappedVar;
         }
 

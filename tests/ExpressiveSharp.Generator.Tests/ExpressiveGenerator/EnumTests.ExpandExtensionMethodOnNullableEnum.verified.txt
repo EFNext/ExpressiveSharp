@@ -30,9 +30,10 @@ namespace ExpressiveSharp.Generated
             var expr_15 = global::System.Linq.Expressions.Expression.Equal(expr_0, expr_13);
             var expr_16 = global::System.Linq.Expressions.Expression.Condition(expr_15, expr_14, expr_11, typeof(string));
             var expr_17 = global::System.Linq.Expressions.Expression.Constant(null, typeof(global::Foo.Trend?));
-            var expr_18 = global::System.Linq.Expressions.Expression.Equal(expr_0, expr_17);
-            var expr_19 = global::System.Linq.Expressions.Expression.Condition(expr_18, expr_1, expr_16, typeof(string));
-            return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.Entity, string>>(expr_19, p__this);
+            var expr_18 = global::System.Linq.Expressions.Expression.Call(typeof(global::Foo.TrendExtensions).GetMethod("Describe", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static, null, new global::System.Type[] { typeof(global::Foo.Trend?) }, null), new global::System.Linq.Expressions.Expression[] { expr_17 });
+            var expr_19 = global::System.Linq.Expressions.Expression.Equal(expr_0, expr_17);
+            var expr_20 = global::System.Linq.Expressions.Expression.Condition(expr_19, expr_18, expr_16, typeof(string));
+            return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Foo.Entity, string>>(expr_20, p__this);
         }
     }
 }
