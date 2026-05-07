@@ -753,12 +753,24 @@ internal sealed class ExpressionTreeEmitter
             AppendLine($"var {defaultVar} = {Expr}.Default(typeof({returnTypeFqn}));");
         }
 
+        var receiverTypeFqn = receiverType.ToDisplayString(_fqnFormat);
+
         // Build the ternary chain in reverse so the first member ends up as the outermost (and first-tested) branch.
         var currentVar = defaultVar;
         foreach (var member in enumMembers.AsEnumerable().Reverse())
         {
             var enumValueVar = NextVar();
             AppendLine($"var {enumValueVar} = {Expr}.Constant({enumTypeFqn}.{member.Name}, typeof({enumTypeFqn}));");
+
+            // The MethodInfo is bound on the original receiver type — for an instance method on
+            // Nullable<TEnum> or an extension whose first param is Nullable<TEnum>, the per-arm
+            // operand must also be Nullable<TEnum> or Expression.Call rejects the type mismatch.
+            if (isNullable)
+            {
+                var lifted = NextVar();
+                AppendLine($"var {lifted} = {Expr}.Convert({enumValueVar}, typeof({receiverTypeFqn}));");
+                enumValueVar = lifted;
+            }
 
             // Static path passes the enum value as the first arg; instance path uses it as the receiver.
             string callVar;
@@ -800,7 +812,6 @@ internal sealed class ExpressionTreeEmitter
         if (isNullable)
         {
             var nullConst = NextVar();
-            var receiverTypeFqn = receiverType.ToDisplayString(_fqnFormat);
             AppendLine($"var {nullConst} = {Expr}.Constant(null, typeof({receiverTypeFqn}));");
 
             var nullCheck = NextVar();

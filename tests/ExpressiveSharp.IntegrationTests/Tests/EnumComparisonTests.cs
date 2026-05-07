@@ -70,6 +70,25 @@ public class EnumComparisonTests
 
         Assert.IsNotNull(registered);
     }
+
+    [TestMethod]
+    public void ToStringOnNullableEnum_ExpandExpressives_MaterializesAndEvaluates()
+    {
+        var source = new List<EnumComparisonEntity>
+        {
+            new() { NullableValue = Bucket.Low },
+            new() { NullableValue = Bucket.Mid },
+            new() { NullableValue = Bucket.High },
+            new() { NullableValue = null },
+        }.AsQueryable();
+
+        Expression<Func<EnumComparisonEntity, string>> expr = e => e.NullableLabel;
+        var expanded = (Expression<Func<EnumComparisonEntity, string>>)expr.ExpandExpressives();
+
+        var labels = source.Select(expanded.Compile()).ToList();
+
+        CollectionAssert.AreEqual(new[] { "Low", "Mid", "High", "" }, labels);
+    }
 }
 
 public class EnumComparisonEntity
@@ -88,6 +107,9 @@ public class EnumComparisonEntity
 
     [Expressive]
     public bool IsLowOrMid => NullableValue <= Bucket.Mid;
+
+    [Expressive]
+    public string NullableLabel => NullableValue.ToString() ?? string.Empty;
 }
 
 public enum Bucket { Low, Mid, High }

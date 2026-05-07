@@ -333,4 +333,60 @@ public class EnumTests : GeneratorTestBase
 
         return Verifier.Verify(result.GeneratedTrees[0].ToString());
     }
+
+    [TestMethod]
+    public Task ExpandToStringOnNullableEnum()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                public enum Trend { Increase, Decrease, NoChange }
+
+                public record Entity
+                {
+                    public Trend? Trend { get; init; }
+
+                    [Expressive]
+                    public string TrendLabel => Trend.ToString() ?? string.Empty;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task ExpandExtensionMethodOnNullableEnum()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                public enum Trend { Increase, Decrease, NoChange }
+
+                public static class TrendExtensions
+                {
+                    public static string Describe(this Trend? value) =>
+                        value.HasValue ? value.Value.ToString() : "n/a";
+                }
+
+                public record Entity
+                {
+                    public Trend? Trend { get; init; }
+
+                    [Expressive]
+                    public string TrendLabel => Trend.Describe();
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
 }
