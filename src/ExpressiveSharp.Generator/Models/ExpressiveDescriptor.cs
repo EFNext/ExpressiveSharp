@@ -29,6 +29,8 @@ internal class ExpressiveDescriptor
     public ParameterListSyntax? ParametersList { get; set; }
 
     public IEnumerable<string>? ParameterTypeNames { get; set; }
+    
+    public IParameterSymbol? ExtensionParameterSymbol { get; set; }
 
     public TypeParameterListSyntax? TypeParameterList { get; set; }
 

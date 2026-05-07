@@ -272,7 +272,8 @@ static internal partial class ExpressiveInterpreter
         {
             var thisParam = descriptor.ParametersList.Parameters[0];
             var thisTypeFqn = thisParam.Type?.ToString() ?? "object";
-            emitterParams.Add(new EmitterParameter("@this", thisTypeFqn, isThis: true));
+            emitterParams.Add(new EmitterParameter(
+                "@this", thisTypeFqn, symbol: descriptor.ExtensionParameterSymbol, isThis: true));
         }
 
         var allTypeArgs = emitterParams.Select(p => p.TypeFqn).ToList();
@@ -295,7 +296,8 @@ static internal partial class ExpressiveInterpreter
         {
             var thisParam = descriptor.ParametersList.Parameters[0];
             var thisTypeFqn = thisParam.Type?.ToString() ?? "object";
-            result.Add(new EmitterParameter("@this", thisTypeFqn, isThis: true));
+            result.Add(new EmitterParameter(
+                "@this", thisTypeFqn, symbol: descriptor.ExtensionParameterSymbol, isThis: true));
         }
 
         foreach (var param in methodSymbol.Parameters)
