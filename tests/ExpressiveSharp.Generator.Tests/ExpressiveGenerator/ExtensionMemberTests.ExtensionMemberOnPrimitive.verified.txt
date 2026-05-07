@@ -11,8 +11,7 @@ namespace ExpressiveSharp.Generated
         static global::System.Linq.Expressions.Expression<global::System.Func<int, int>> Squared_Expression() 
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "@this");
-            var expr_1 = global::System.Linq.Expressions.Expression.Parameter(typeof(int), "i"); // i
-            var expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Multiply, expr_1, expr_1);
+            var expr_0 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Multiply, p__this, p__this); // i * i
             return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<int, int>>(expr_0, p__this);
         }
     }

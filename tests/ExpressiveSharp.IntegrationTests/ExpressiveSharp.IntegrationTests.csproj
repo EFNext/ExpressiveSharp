@@ -11,4 +11,9 @@
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
+  <!-- C# 14 extension members require net10. -->
+  <ItemGroup Condition="'$(TargetFramework)' != 'net10.0'">
+    <Compile Remove="Tests/ExtensionMemberTests.cs" />
+  </ItemGroup>
+
 </Project>

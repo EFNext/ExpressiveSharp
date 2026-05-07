@@ -34,6 +34,7 @@ static internal partial class ExpressiveInterpreter
         var descriptor = BuildBaseDescriptor(
             member, memberSymbol, methodSymbol,
             isExtensionMember, extensionParameter, extensionReceiverType);
+        descriptor.ExtensionParameterSymbol = extensionParameter;
 
         foreach (var typeName in expressiveAttribute.TransformerTypeNames)
             descriptor.DeclaredTransformerTypeNames.Add(typeName);
@@ -94,6 +95,12 @@ static internal partial class ExpressiveInterpreter
             ParametersList = SyntaxFactory.ParameterList()
         };
 
+        // A `static` member inside an `extension(T) { }` block has no implicit receiver —
+        // treat it like an ordinary static method on the containing static class.
+        var isInstanceExtensionMember = isExtensionMember
+            && extensionReceiverType is not null
+            && !member.Modifiers.Any(SyntaxKind.StaticKeyword);
+
         if (methodSymbol is not null)
         {
             var parameterTypeNames = methodSymbol.Parameters
@@ -102,10 +109,10 @@ static internal partial class ExpressiveInterpreter
 
             // Prepend the extension receiver type to match how the runtime sees the method
             // (receiver is the first implicit parameter).
-            if (isExtensionMember && extensionReceiverType is not null)
+            if (isInstanceExtensionMember)
             {
                 parameterTypeNames.Insert(0,
-                    extensionReceiverType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                    extensionReceiverType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
             }
 
             descriptor.ParameterTypeNames = parameterTypeNames;
@@ -116,12 +123,12 @@ static internal partial class ExpressiveInterpreter
             SetupGenericTypeParameters(descriptor, classForNaming);
         }
 
-        if (isExtensionMember && extensionReceiverType is not null)
+        if (isInstanceExtensionMember)
         {
             descriptor.ParametersList = descriptor.ParametersList.AddParameters(
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier("@this"))
                     .WithType(SyntaxFactory.ParseTypeName(
-                        extensionReceiverType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))));
+                        extensionReceiverType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))));
         }
         else if (!member.Modifiers.Any(SyntaxKind.StaticKeyword) && member is not ConstructorDeclarationSyntax)
         {
@@ -132,9 +139,9 @@ static internal partial class ExpressiveInterpreter
         }
 
         // Target class info is used by the registry to associate the projection.
-        if (isExtensionMember && extensionReceiverType is not null)
+        if (isInstanceExtensionMember)
         {
-            descriptor.TargetClassNamespace = extensionReceiverType.ContainingNamespace.IsGlobalNamespace
+            descriptor.TargetClassNamespace = extensionReceiverType!.ContainingNamespace.IsGlobalNamespace
                 ? null
                 : extensionReceiverType.ContainingNamespace.ToDisplayString();
             descriptor.TargetNestedInClassNames = GetNestedInClassPath(extensionReceiverType);
