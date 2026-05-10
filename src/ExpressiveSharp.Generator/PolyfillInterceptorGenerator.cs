@@ -340,6 +340,10 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                         {{delegateFqn}} __func,
                         params global::ExpressiveSharp.IExpressionTreeTransformer[] transformers)
                     {
+                        global::System.ArgumentNullException.ThrowIfNull(transformers);
+                        for (var __i = 0; __i < transformers.Length; __i++)
+                            if (transformers[__i] is null)
+                                throw new global::System.ArgumentNullException(nameof(transformers), $"transformers[{__i}] is null");
             {{emitResult.Body}}            global::System.Linq.Expressions.Expression result = __lambda;
                         foreach (var t in transformers) result = t.Transform(result);
                         return (global::System.Linq.Expressions.Expression<{{delegateFqn}}>)result;
