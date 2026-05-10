@@ -50,4 +50,30 @@ public class ListPatternTests : GeneratorTestBase
 
         return Verifier.Verify(result.GeneratedTrees[0].ToString());
     }
+
+    [TestMethod]
+    public void ListPattern_OnArray_DoesNotEmitUnsupportedOperationDiagnostic()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    public int[] Items { get; set; }
+
+                    [Expressive]
+                    public string Shape() => Items switch
+                    {
+                        [] => "empty",
+                        [_] => "one",
+                        _ => "many",
+                    };
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.IsFalse(
+            result.Diagnostics.Any(d => d.Id == "EXP0008" && d.GetMessage().Contains("ListPattern")),
+            "Arrays have Length and indexer; list patterns on int[] should be supported.");
+    }
 }

@@ -51,4 +51,24 @@ public class IndexRangeTests : GeneratorTestBase
 
         return Verifier.Verify(result.GeneratedTrees[0].ToString());
     }
+
+    [TestMethod]
+    public void RangeSliceOnString_DoesNotEmitUnsupportedOperationDiagnostic()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    public string Label { get; set; }
+
+                    [Expressive]
+                    public string FirstFive => Label[..5];
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.IsFalse(
+            result.Diagnostics.Any(d => d.Id == "EXP0008" && d.GetMessage().Contains("ImplicitIndexerReference")));
+    }
 }

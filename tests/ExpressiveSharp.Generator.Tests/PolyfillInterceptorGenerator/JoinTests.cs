@@ -1,3 +1,5 @@
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using VerifyMSTest;
 using ExpressiveSharp.Generator.Tests.Infrastructure;
@@ -135,5 +137,45 @@ public class JoinTests : GeneratorTestBase
         Assert.AreEqual(1, result.GeneratedTrees.Length);
 
         return Verifier.Verify(result.GeneratedTrees[0].GetText().ToString());
+    }
+
+    [TestMethod]
+    public void GroupJoin_AnonymousResultSelector_GeneratedInterceptorCompiles()
+    {
+        var source =
+            """
+            using ExpressiveSharp;
+
+            namespace TestNs
+            {
+                class Order { public int CustomerId { get; set; } }
+                class Customer { public int Id { get; set; } public string Name { get; set; } }
+                class TestClass
+                {
+                    public void Run(System.Linq.IQueryable<Order> orders, System.Collections.Generic.IEnumerable<Customer> customers)
+                    {
+                        orders.AsExpressive()
+                              .GroupJoin(customers,
+                                         o => o.CustomerId,
+                                         c => c.Id,
+                                         (o, cs) => new { o.CustomerId, Count = cs.Count() })
+                              .ToList();
+                    }
+                }
+            }
+            """;
+
+        var compilation = CreateCompilation(source);
+        var subject = new global::ExpressiveSharp.Generator.PolyfillInterceptorGenerator();
+        GeneratorDriver driver = CSharpGeneratorDriver
+            .Create(subject)
+            .WithUpdatedParseOptions((CSharpParseOptions)compilation.SyntaxTrees.First().Options)
+            .RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out _);
+
+        var errors = outputCompilation.GetDiagnostics()
+            .Where(d => d.Severity == DiagnosticSeverity.Error)
+            .ToList();
+
+        Assert.AreEqual(0, errors.Count, string.Join("\n", errors.Select(d => d.ToString())));
     }
 }
