@@ -602,6 +602,14 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                 typeParamNames[i] = $"T{i}";
             typeParams = $"<{string.Join(", ", typeParamNames)}>";
 
+            // The unsubstituted method type parameter symbols carry per-position identity
+            // even when two distinct parameters happen to substitute to the same concrete
+            // type (e.g. GroupJoin's TInner=TKey=int) — used by the interceptor signature
+            // emission below. The substituted type entries remain so EmitLambdaBody (which
+            // sees substituted parameter symbols) can still resolve anonymous return types
+            // and element types into Tn aliases.
+            for (int i = 0; i < method.TypeParameters.Length; i++)
+                typeAliases[method.TypeParameters[i]] = typeParamNames[i];
             if (!typeAliases.ContainsKey(elemSym))
                 typeAliases[elemSym] = typeParamNames[0];
             for (int i = 0; i < methodTypeArgs.Length; i++)
@@ -615,18 +623,14 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             else
                 elemRef = elemFqn;
 
+            var origMethod = method.OriginalDefinition;
             var funcFqnGenerics = new string[funcParamIndices.Count];
             for (int fi = 0; fi < funcParamIndices.Count; fi++)
             {
-                var funcTypeArgs = ((INamedTypeSymbol)method.Parameters[funcParamIndices[fi]].Type).TypeArguments;
+                var funcTypeArgs = ((INamedTypeSymbol)origMethod.Parameters[funcParamIndices[fi]].Type).TypeArguments;
                 var sigParts = new string[funcTypeArgs.Length];
                 for (int i = 0; i < funcTypeArgs.Length; i++)
-                {
-                    if (typeAliases.TryGetValue(funcTypeArgs[i], out var gp))
-                        sigParts[i] = gp;
-                    else
-                        sigParts[i] = funcTypeArgs[i].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                }
+                    sigParts[i] = ResolveTypeFqn(funcTypeArgs[i], typeAliases);
                 funcFqnGenerics[fi] = "global::System.Func<" + string.Join(", ", sigParts) + ">";
                 delegateFqns[fi] = funcFqnGenerics[fi];
             }
@@ -637,12 +641,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
             if (isRewritableReturn)
             {
-                if (typeAliases.TryGetValue(returnElemType!, out var retParam))
-                    returnRef = retParam;
-                else
-                    // Composite return types like IGrouping<TKey, AnonType> need alias substitution
-                    // (anonymous types have no nameable form in C# source).
-                    returnRef = ResolveTypeFqn(returnElemType!, typeAliases);
+                var origReturnElem = ((INamedTypeSymbol)origMethod.ReturnType).TypeArguments[0];
+                returnRef = ResolveTypeFqn(origReturnElem, typeAliases);
             }
             else
             {
@@ -663,7 +663,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                 }
                 else
                 {
-                    var paramType = method.Parameters[i].Type;
+                    var paramType = origMethod.Parameters[i].Type;
                     var paramTypeFqn = ResolveTypeFqn(paramType, typeAliases);
                     var paramName = method.Parameters[i].Name;
                     interceptorParams.Add($"{paramTypeFqn} {paramName}");
