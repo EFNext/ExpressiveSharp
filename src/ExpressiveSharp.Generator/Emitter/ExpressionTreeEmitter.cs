@@ -1634,6 +1634,23 @@ internal sealed class ExpressionTreeEmitter
         return resultVar;
     }
 
+    // Switch arm bodies can reference pattern-declared variables (`int i => i + 1`).
+    // The pattern itself emits only the TypeIs/Equal/etc. test, so we bind each
+    // declared local to a Convert of the governing value before the arm body emits,
+    // otherwise the local reference falls through to the closure-capture path and
+    // tries to read a non-existent field on __func.Target.
+    private void BindPatternDeclarations(IPatternOperation pattern, string operandVar)
+    {
+        if (pattern is IDeclarationPatternOperation decl
+            && decl.DeclaredSymbol is ILocalSymbol localSym)
+        {
+            var convertVar = NextVar();
+            var typeFqn = decl.NarrowedType.ToDisplayString(_fqnFormat);
+            AppendLine($"var {convertVar} = {Expr}.Convert({operandVar}, typeof({typeFqn}));");
+            _localToVar[localSym] = convertVar;
+        }
+    }
+
     private string EmitRelationalPattern(IRelationalPatternOperation relational, string operandVar, ITypeSymbol? operandType)
     {
         var resultVar = NextVar();
@@ -2133,6 +2150,8 @@ internal sealed class ExpressionTreeEmitter
             }
 
             var conditionVar = EmitPattern(arm.Pattern, governingVar, switchExpr.Value.Type);
+
+            BindPatternDeclarations(arm.Pattern, governingVar);
 
             if (arm.Guard is not null)
             {
