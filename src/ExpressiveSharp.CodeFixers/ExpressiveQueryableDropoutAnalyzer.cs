@@ -38,10 +38,17 @@ public sealed class ExpressiveQueryableDropoutAnalyzer : DiagnosticAnalyzer
     {
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.EnableConcurrentExecution();
-        context.RegisterSyntaxNodeAction(AnalyzeInvocation, SyntaxKind.InvocationExpression);
+        context.RegisterCompilationStartAction(compilationStart =>
+        {
+            var openGeneric = compilationStart.Compilation
+                .GetTypeByMetadataName("ExpressiveSharp.IExpressiveQueryable`1");
+            compilationStart.RegisterSyntaxNodeAction(
+                ctx => AnalyzeInvocation(ctx, openGeneric),
+                SyntaxKind.InvocationExpression);
+        });
     }
 
-    private static void AnalyzeInvocation(SyntaxNodeAnalysisContext context)
+    private static void AnalyzeInvocation(SyntaxNodeAnalysisContext context, INamedTypeSymbol? expressiveQueryableOpenGeneric)
     {
         var invocation = (InvocationExpressionSyntax)context.Node;
 
@@ -81,11 +88,64 @@ public sealed class ExpressiveQueryableDropoutAnalyzer : DiagnosticAnalyzer
         if (ExpressiveSymbolHelpers.IsOrImplementsExpressiveQueryable(resultType))
             return;
 
+        // Suppress when an IExpressiveQueryable<T> sibling exists in any referenced namespace
+        // — that scenario is owned by EXP0021 (a higher-severity Warning with its own codefix
+        // for adding the missing `using`). Reporting both would just be duplicate noise.
+        if (expressiveQueryableOpenGeneric is not null
+            && FindExpressiveSiblingNamespace(context.SemanticModel.Compilation, calledName, expressiveQueryableOpenGeneric) is not null)
+        {
+            return;
+        }
+
         context.ReportDiagnostic(Diagnostic.Create(
             ExpressiveQueryableDropout,
             memberAccess.Name.GetLocation(),
             properties: null,
             calledName));
+    }
+
+    /// <summary>
+    /// Walks the compilation's referenced assemblies looking for an extension method
+    /// named <paramref name="methodName"/> whose first parameter is
+    /// <c>IExpressiveQueryable&lt;T&gt;</c>. Returns the containing namespace's display
+    /// string when found — used to suggest a `using` directive that would bring the
+    /// sibling overload into scope.
+    /// </summary>
+    private static string? FindExpressiveSiblingNamespace(Compilation compilation, string methodName, INamedTypeSymbol expressiveQueryableOpenGeneric)
+    {
+        foreach (var reference in compilation.References)
+        {
+            if (compilation.GetAssemblyOrModuleSymbol(reference) is not IAssemblySymbol assembly)
+                continue;
+            var match = SearchNamespace(assembly.GlobalNamespace, methodName, expressiveQueryableOpenGeneric);
+            if (match is not null) return match;
+        }
+        return SearchNamespace(compilation.Assembly.GlobalNamespace, methodName, expressiveQueryableOpenGeneric);
+    }
+
+    private static string? SearchNamespace(INamespaceSymbol ns, string methodName, INamedTypeSymbol expressiveQueryableOpenGeneric)
+    {
+        foreach (var type in ns.GetTypeMembers())
+        {
+            if (!type.IsStatic) continue;
+            foreach (var member in type.GetMembers(methodName))
+            {
+                if (member is IMethodSymbol method
+                    && method.IsExtensionMethod
+                    && method.Parameters.Length > 0
+                    && method.Parameters[0].Type is INamedTypeSymbol firstParamType
+                    && SymbolEqualityComparer.Default.Equals(firstParamType.ConstructedFrom, expressiveQueryableOpenGeneric))
+                {
+                    return type.ContainingNamespace?.ToDisplayString();
+                }
+            }
+        }
+        foreach (var child in ns.GetNamespaceMembers())
+        {
+            var found = SearchNamespace(child, methodName, expressiveQueryableOpenGeneric);
+            if (found is not null) return found;
+        }
+        return null;
     }
 
     private static bool ImplementsIQueryable(ITypeSymbol type)
