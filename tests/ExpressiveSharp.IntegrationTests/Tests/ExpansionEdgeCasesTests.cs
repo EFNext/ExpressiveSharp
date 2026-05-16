@@ -97,3 +97,47 @@ public class RecursiveTree
         + (Left == null ? 0 : Left.Sum)
         + (Right == null ? 0 : Right.Sum);
 }
+
+public class NestedCtorChildEntity { public int Value { get; set; } }
+public class NestedCtorParentEntity { public int Id { get; set; } public NestedCtorChildEntity? Child { get; set; } }
+
+public class NestedCtorChildDto
+{
+    public int Value { get; set; }
+    public NestedCtorChildDto() { }
+    [Expressive] public NestedCtorChildDto(NestedCtorChildEntity c) { Value = c.Value; }
+}
+
+public class NestedCtorParentDto
+{
+    public int Id { get; set; }
+    public NestedCtorChildDto? Child { get; set; }
+    public NestedCtorParentDto() { }
+    [Expressive]
+    public NestedCtorParentDto(NestedCtorParentEntity p)
+    {
+        Id = p.Id;
+        Child = new NestedCtorChildDto(p.Child!);
+    }
+}
+
+[TestClass]
+public class NestedExpressiveCtorTests
+{
+    [TestMethod]
+    public void Nested_ExpressiveCtor_InlinedViaExpandExpressives()
+    {
+        Expression<Func<NestedCtorParentEntity, NestedCtorParentDto>> expr = p => new NestedCtorParentDto(p);
+        var expanded = (Expression<Func<NestedCtorParentEntity, NestedCtorParentDto>>)expr.ExpandExpressives();
+
+        var fn = expanded.Compile();
+        var result = fn(new NestedCtorParentEntity { Id = 7, Child = new NestedCtorChildEntity { Value = 42 } });
+
+        Assert.AreEqual(7, result.Id);
+        Assert.AreEqual(42, result.Child!.Value);
+
+        var text = expanded.ToString();
+        Assert.IsFalse(text.Contains("NestedCtorChildDto(p.", StringComparison.Ordinal),
+            "Nested ctor should be inlined to MemberInit, not survive as `new NestedCtorChildDto(p...)`. Got: " + text);
+    }
+}

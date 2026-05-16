@@ -2890,7 +2890,10 @@ internal sealed class ExpressionTreeEmitter
         if (type is IArrayTypeSymbol arrayType)
         {
             var elementTypeFqn = arrayType.ElementType.ToDisplayString(_fqnFormat);
-            AppendLine($"var {resultVar} = {Expr}.NewArrayInit(typeof({elementTypeFqn}), {elementsExpr});");
+            var arrayArgs = elementVars.Count == 0
+                ? $"typeof({elementTypeFqn})"
+                : $"typeof({elementTypeFqn}), {elementsExpr}";
+            AppendLine($"var {resultVar} = {Expr}.NewArrayInit({arrayArgs});");
         }
         else if (type is INamedTypeSymbol namedType && namedType.IsGenericType
             && namedType.OriginalDefinition.SpecialType == SpecialType.None)
@@ -2906,7 +2909,7 @@ internal sealed class ExpressionTreeEmitter
                     .OfType<IMethodSymbol>()
                     .FirstOrDefault(m => m.Parameters.Length == 1);
 
-                if (addMethod is not null)
+                if (addMethod is not null && elementVars.Count > 0)
                 {
                     var addField = _fieldCache.EnsureMethodInfo(addMethod);
                     var elemInitVars = new List<string>();
@@ -2920,7 +2923,7 @@ internal sealed class ExpressionTreeEmitter
                 }
                 else
                 {
-                    // No Add method — leave the collection empty.
+                    // No elements (or no Add method) — return the bare New expression.
                     AppendLine($"var {resultVar} = {newVar};");
                 }
             }

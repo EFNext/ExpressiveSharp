@@ -1350,4 +1350,96 @@ public class ConstructorTests : GeneratorTestBase
 
         return Verifier.Verify(result.GeneratedTrees[0].ToString());
     }
+
+    [TestMethod]
+    public void ProjectableConstructor_CollectionPropertyWithIncompatibleElementType_DoesNotAutoMap()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                public class Content {
+                    public string Text { get; set; }
+                }
+
+                public record ContentDto(string Text);
+
+                public class Item {
+                    public int Id { get; set; }
+                    public ICollection<Content> LocalizedContents { get; set; }
+                }
+
+                public record ItemDto
+                {
+                    public int Id { get; init; }
+                    public List<ContentDto> LocalizedContents { get; init; }
+
+                    public ItemDto() { }
+
+                    [Expressive]
+                    public ItemDto(Item item)
+                    {
+                        Id = item.Id;
+                        LocalizedContents = [];
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        var errors = result.Diagnostics
+            .Where(d => d.Severity == DiagnosticSeverity.Error)
+            .ToList();
+        Assert.AreEqual(0, errors.Count, string.Join("\n", errors.Select(d => d.ToString())));
+
+        var compileErrors = result.GeneratedTrees
+            .SelectMany(t => t.GetDiagnostics())
+            .Where(d => d.Severity == DiagnosticSeverity.Error)
+            .ToList();
+        Assert.AreEqual(0, compileErrors.Count, string.Join("\n", compileErrors.Select(d => d.ToString())));
+    }
+
+    [TestMethod]
+    public Task ProjectableConstructor_NestedExpressiveConstructor_InlinesChild()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                public class ChildEntity {
+                    public int Value { get; set; }
+                }
+                public class ParentEntity {
+                    public int Id { get; set; }
+                    public ChildEntity Child { get; set; }
+                }
+
+                public class ChildDto {
+                    public int Value { get; set; }
+                    public ChildDto() { }
+                    [Expressive]
+                    public ChildDto(ChildEntity child) { Value = child.Value; }
+                }
+
+                public class ParentDto {
+                    public int Id { get; set; }
+                    public ChildDto Child { get; set; }
+                    public ParentDto() { }
+                    [Expressive]
+                    public ParentDto(ParentEntity parent) {
+                        Id = parent.Id;
+                        Child = new ChildDto(parent.Child);
+                    }
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.IsTrue(result.GeneratedTrees.Length > 0);
+
+        // Snapshot both companion files to see whether the nested ChildDto
+        // ctor is inlined or left as an opaque `new ChildDto(parent.Child)`.
+        var combined = string.Join("\n\n--- next file ---\n\n",
+            result.GeneratedTrees.Select(t => t.FilePath + "\n" + t.ToString()));
+        return Verifier.Verify(combined);
+    }
 }
