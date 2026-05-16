@@ -1749,23 +1749,28 @@ internal sealed class ExpressionTreeEmitter
     {
         var conditions = new List<string>();
 
-        var countProp = operandType?.GetMembers("Count").OfType<IPropertySymbol>().FirstOrDefault()
-            ?? operandType?.GetMembers("Length").OfType<IPropertySymbol>().FirstOrDefault();
+        var arrayType = operandType as IArrayTypeSymbol;
+        IPropertySymbol? countProp = null;
+        IPropertySymbol? indexer = null;
 
-        var indexer = operandType?.GetMembers()
-            .OfType<IPropertySymbol>()
-            .FirstOrDefault(p => p.IsIndexer && p.Parameters.Length == 1
-                && p.Parameters[0].Type.SpecialType == SpecialType.System_Int32);
-
-        if (countProp is null || indexer is null)
+        if (arrayType is null)
         {
-            ReportDiagnostic(Diagnostics.UnsupportedOperation,
-                listPattern.Syntax?.GetLocation() ?? Location.None,
-                "ListPattern (type lacks Count/Length or indexer)");
-            return EmitUnsupported(listPattern);
-        }
+            countProp = operandType?.GetMembers("Count").OfType<IPropertySymbol>().FirstOrDefault()
+                ?? operandType?.GetMembers("Length").OfType<IPropertySymbol>().FirstOrDefault();
 
-        var countField = _fieldCache.EnsurePropertyInfo(countProp);
+            indexer = operandType?.GetMembers()
+                .OfType<IPropertySymbol>()
+                .FirstOrDefault(p => p.IsIndexer && p.Parameters.Length == 1
+                    && p.Parameters[0].Type.SpecialType == SpecialType.System_Int32);
+
+            if (countProp is null || indexer is null)
+            {
+                ReportDiagnostic(Diagnostics.UnsupportedOperation,
+                    listPattern.Syntax?.GetLocation() ?? Location.None,
+                    "ListPattern (type lacks Count/Length or indexer)");
+                return EmitUnsupported(listPattern);
+            }
+        }
 
         // A `..` slice means minimum-length match; otherwise exact-length.
         var hasSlice = listPattern.Patterns.Any(p => p is ISlicePatternOperation);
@@ -1773,7 +1778,15 @@ internal sealed class ExpressionTreeEmitter
         var requiredCount = fixedPatterns.Count;
 
         var countAccess = NextVar();
-        AppendLine($"var {countAccess} = {Expr}.Property({operandVar}, {countField});");
+        if (arrayType is not null)
+        {
+            AppendLine($"var {countAccess} = {Expr}.ArrayLength({operandVar});");
+        }
+        else
+        {
+            var countField = _fieldCache.EnsurePropertyInfo(countProp!);
+            AppendLine($"var {countAccess} = {Expr}.Property({operandVar}, {countField});");
+        }
         var countConst = NextVar();
         AppendLine($"var {countConst} = {Expr}.Constant({requiredCount});");
         var lengthCheck = NextVar();
@@ -1805,17 +1818,19 @@ internal sealed class ExpressionTreeEmitter
             AppendLine($"var {idxConst} = {Expr}.Constant({elementIndex});");
 
             var elementAccess = NextVar();
-            if (operandType is IArrayTypeSymbol)
+            ITypeSymbol elementType;
+            if (arrayType is not null)
             {
                 AppendLine($"var {elementAccess} = {Expr}.ArrayIndex({operandVar}, {idxConst});");
+                elementType = arrayType.ElementType;
             }
             else
             {
-                var indexerField = _fieldCache.EnsurePropertyInfo(indexer);
+                var indexerField = _fieldCache.EnsurePropertyInfo(indexer!);
                 AppendLine($"var {elementAccess} = {Expr}.Property({operandVar}, {indexerField}, {idxConst});");
+                elementType = indexer!.Type;
             }
 
-            var elementType = indexer.Type;
             var subCondition = EmitPattern(subPattern, elementAccess, elementType);
             conditions.Add(subCondition);
             elementIndex++;
