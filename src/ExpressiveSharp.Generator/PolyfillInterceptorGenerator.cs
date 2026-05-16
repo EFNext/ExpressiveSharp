@@ -324,10 +324,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             return null;
 
         var elemType = delegateNamed.TypeArguments[0];
-        if (elemType is not INamedTypeSymbol elemSymbol)
-            return null;
 
-        var emitResult = EmitLambdaBody(lam, elemSymbol, model, spc, delegateFqn,
+        var emitResult = EmitLambdaBody(lam, elemType, model, spc, delegateFqn,
             varPrefix: $"i{fileTag}{line}c{col}_", delegateVarName: "__func");
         if (emitResult is null)
             return null;
@@ -425,7 +423,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
     private static Emitter.EmitResult? EmitLambdaBody(
         LambdaExpressionSyntax lambda,
-        INamedTypeSymbol elementSymbol,
+        ITypeSymbol elementSymbol,
         SemanticModel model,
         SourceProductionContext spc,
         string delegateTypeFqn,
@@ -486,18 +484,15 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
         // Return type from delegate args, resolved through aliases for anonymous types.
         var returnTypeFqn = "object";
-        if (elementSymbol.ContainingNamespace is not null)
+        var typeInfo = model.GetTypeInfo(lambda);
+        if (typeInfo.ConvertedType is INamedTypeSymbol convertedType &&
+            convertedType.TypeArguments.Length > 0)
         {
-            var typeInfo = model.GetTypeInfo(lambda);
-            if (typeInfo.ConvertedType is INamedTypeSymbol convertedType &&
-                convertedType.TypeArguments.Length > 0)
-            {
-                var returnTypeSymbol = convertedType.TypeArguments[convertedType.TypeArguments.Length - 1];
-                if (typeAliases is not null && typeAliases.TryGetValue(returnTypeSymbol, out var aliasedReturn))
-                    returnTypeFqn = aliasedReturn;
-                else
-                    returnTypeFqn = returnTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            }
+            var returnTypeSymbol = convertedType.TypeArguments[convertedType.TypeArguments.Length - 1];
+            if (typeAliases is not null && typeAliases.TryGetValue(returnTypeSymbol, out var aliasedReturn))
+                returnTypeFqn = aliasedReturn;
+            else
+                returnTypeFqn = returnTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         }
 
         var result = emitter.Emit(bodyNode, emitterParams, returnTypeFqn, delegateTypeFqn,
@@ -727,7 +722,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             var prefix = single ? $"i{fileTag}{line}c{col}_" : $"i{fileTag}{line}c{col}{(char)('a' + j)}_";
             var delegateName = single ? "__func" : $"__func{j + 1}";
             var funcType = (INamedTypeSymbol)method.Parameters[funcParamIndices[j]].Type;
-            var lambdaElemSym = funcType.TypeArguments[0] as INamedTypeSymbol ?? elemSym;
+            var lambdaElemSym = funcType.TypeArguments[0];
             var emitResult = EmitLambdaBody(lambdas[j], lambdaElemSym, model, spc,
                 delegateFqns[j], lambdaVar, varPrefix: prefix,
                 typeAliases: hasAnyAnon ? typeAliases : null,
