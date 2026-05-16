@@ -60,13 +60,34 @@ public class ExpansionEdgeCasesTests
         Assert.AreEqual("many", fn(new[] { 1, 2 }));
     }
 
-    [Ignore("ExpressiveReplacer has no recursion guard; expansion currently throws StackOverflowException, which is uncatchable and terminates the test runner.")]
     [TestMethod]
-    public void RecursiveExpressiveMember_ExpandsWithoutCrashingTheProcess()
+    public void SelfRecursiveExpressiveMember_ExpandsOnceAndLeavesNestedReferenceIntact()
     {
         Expression<Func<RecursiveTree, int>> expr = t => t.Sum;
-        var expanded = expr.ExpandExpressives();
-        Assert.IsNotNull(expanded);
+        var expanded = (Expression<Func<RecursiveTree, int>>)expr.ExpandExpressives();
+
+        var tree = new RecursiveTree
+        {
+            Value = 1,
+            Left = new RecursiveTree { Value = 2 },
+            Right = new RecursiveTree
+            {
+                Value = 3,
+                Right = new RecursiveTree { Value = 4 },
+            },
+        };
+        Assert.AreEqual(10, expanded.Compile()(tree));
+    }
+
+    [TestMethod]
+    public void MutuallyRecursiveExpressiveMembers_ExpandWithoutInfiniteLoop()
+    {
+        Expression<Func<MutualA, int>> expr = a => a.FromA;
+        var expanded = (Expression<Func<MutualA, int>>)expr.ExpandExpressives();
+        var fn = expanded.Compile();
+
+        Assert.AreEqual(7, fn(new MutualA { X = 7 }));
+        Assert.AreEqual(99, fn(new MutualA { X = 7, B = new MutualB { Y = 99 } }));
     }
 
     [TestMethod]
@@ -112,6 +133,24 @@ public class RecursiveTree
     public int Sum => Value
         + (Left == null ? 0 : Left.Sum)
         + (Right == null ? 0 : Right.Sum);
+}
+
+public class MutualA
+{
+    public int X { get; set; }
+    public MutualB? B { get; set; }
+
+    [Expressive]
+    public int FromA => B == null ? X : B.FromB;
+}
+
+public class MutualB
+{
+    public int Y { get; set; }
+    public MutualA? A { get; set; }
+
+    [Expressive]
+    public int FromB => A == null ? Y : A.FromA;
 }
 
 public class NestedCtorChildEntity { public int Value { get; set; } }
