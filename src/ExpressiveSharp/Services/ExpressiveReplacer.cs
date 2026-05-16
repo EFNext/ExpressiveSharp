@@ -50,6 +50,9 @@ public class ExpressiveReplacer : ExpressionVisitor
     [return: NotNullIfNotNull(nameof(node))]
     public virtual Expression? Replace(Expression? node) => Visit(node);
 
+    private static bool IsPolymorphicallyDispatched(MethodInfo? method)
+        => method is not null && method.IsVirtual && !method.IsFinal;
+
     protected override Expression VisitMethodCall(MethodCallExpression node)
     {
         // Replace MethodGroup arguments with their reflected expressions.
@@ -77,7 +80,8 @@ public class ExpressiveReplacer : ExpressionVisitor
 
         var methodInfo = node.Object?.Type.GetConcreteMethod(node.Method) ?? node.Method;
 
-        if (!_expandingMembers.Contains(methodInfo) &&
+        if (!IsPolymorphicallyDispatched(methodInfo) &&
+            !_expandingMembers.Contains(methodInfo) &&
             TryGetReflectedExpression(methodInfo, out var reflectedExpression))
         {
             _expandingMembers.Add(methodInfo);
@@ -162,6 +166,10 @@ public class ExpressiveReplacer : ExpressionVisitor
                 => nodeExpression.Type.GetConcreteProperty(property),
             _ => node.Member
         };
+
+        var virtualAccessor = nodeMember is PropertyInfo prop ? prop.GetMethod : null;
+        if (IsPolymorphicallyDispatched(virtualAccessor))
+            return base.VisitMember(node);
 
         if (!_expandingMembers.Contains(nodeMember) &&
             TryGetReflectedExpression(nodeMember, out var reflectedExpression))
