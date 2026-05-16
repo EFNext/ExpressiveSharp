@@ -258,7 +258,84 @@ public sealed class ExpressiveQueryableDropoutAnalyzerTests : GeneratorTestBase
             "EXP0036 should not fire on terminating calls whose result is not IQueryable<T>");
     }
 
+    [TestMethod]
+    public async Task ExpressiveReceiver_BuiltInWhereWithInlineLambda_NoEXP0036()
+    {
+        // Queryable.Where on an IExpressiveQueryable<T> receiver is rewritten by the
+        // polyfill interceptor into the IExpressiveQueryable.Where stub at compile time,
+        // so the runtime chain is preserved even though the source-level resolved symbol
+        // is Queryable.Where. The analyzer should treat sibling-extension cases as exempt.
+        const string source = """
+            using System.Linq;
+            using ExpressiveSharp;
+            namespace Test
+            {
+                public class Order { public int Id { get; set; } }
+
+                class C
+                {
+                    void M(IExpressiveQueryable<Order> orders)
+                    {
+                        var filtered = orders.Where(o => o.Id > 0);
+                    }
+                }
+            }
+            """;
+
+        var diagnostics = await GetDiagnosticsAsync(source);
+
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0036"),
+            "EXP0036 should not fire on built-in LINQ calls whose IExpressiveQueryable<T> sibling stub exists.");
+    }
+
+    [TestMethod]
+    public async Task ExpressiveDbSet_BuiltInWhereWithInlineLambda_OnlyEXP0021Fires_NotEXP0036()
+    {
+        // The user's StoryGrain shape: ExpressiveDbSet<T>-style receiver, no
+        // `using ExpressiveSharp;`. EXP0021 owns this scenario (Warning + codefix);
+        // EXP0036 stays silent here so the user gets one actionable diagnostic
+        // instead of two overlapping ones.
+        const string source = """
+            using System.Linq;
+            namespace Test
+            {
+                public class Order { public int Id { get; set; } }
+
+                public class StubDbSet<T> : System.Linq.IQueryable<T>
+                {
+                    public System.Linq.Expressions.Expression Expression => null!;
+                    public System.Type ElementType => typeof(T);
+                    public System.Linq.IQueryProvider Provider => null!;
+                    public System.Collections.Generic.IEnumerator<T> GetEnumerator() => null!;
+                    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => null!;
+                }
+
+                public class StubExpressiveDbSet<T> : StubDbSet<T>, ExpressiveSharp.IExpressiveQueryable<T> { }
+
+                class C
+                {
+                    void M(StubExpressiveDbSet<Order> orders)
+                    {
+                        var filtered = orders.Where(o => o.Id > 0);
+                    }
+                }
+            }
+            """;
+
+        var diagnostics = await GetDiagnosticsAsync(source,
+            new ExpressiveQueryableDropoutAnalyzer(),
+            new MissingExpressiveImportAnalyzer());
+
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0021"),
+            "EXP0021 should own the missing-using scenario.");
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0036"),
+            "EXP0036 should suppress itself when EXP0021 covers the same dropout cause.");
+    }
+
     private async Task<ImmutableArray<Diagnostic>> GetDiagnosticsAsync(string source)
+        => await GetDiagnosticsAsync(source, new ExpressiveQueryableDropoutAnalyzer());
+
+    private async Task<ImmutableArray<Diagnostic>> GetDiagnosticsAsync(string source, params DiagnosticAnalyzer[] analyzers)
     {
         var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
         var trees = new[]
@@ -273,9 +350,8 @@ public sealed class ExpressiveQueryableDropoutAnalyzerTests : GeneratorTestBase
             GetDefaultReferences(),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
-        var analyzer = new ExpressiveQueryableDropoutAnalyzer();
         var compilationWithAnalyzers = compilation.WithAnalyzers(
-            ImmutableArray.Create<DiagnosticAnalyzer>(analyzer));
+            ImmutableArray.Create(analyzers));
 
         return await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync(CancellationToken.None);
     }

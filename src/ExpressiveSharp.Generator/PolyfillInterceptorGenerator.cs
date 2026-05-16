@@ -324,10 +324,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             return null;
 
         var elemType = delegateNamed.TypeArguments[0];
-        if (elemType is not INamedTypeSymbol elemSymbol)
-            return null;
 
-        var emitResult = EmitLambdaBody(lam, elemSymbol, model, spc, delegateFqn,
+        var emitResult = EmitLambdaBody(lam, elemType, model, spc, delegateFqn,
             varPrefix: $"i{fileTag}{line}c{col}_", delegateVarName: "__func");
         if (emitResult is null)
             return null;
@@ -340,6 +338,10 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                         {{delegateFqn}} __func,
                         params global::ExpressiveSharp.IExpressionTreeTransformer[] transformers)
                     {
+                        global::System.ArgumentNullException.ThrowIfNull(transformers);
+                        for (var __i = 0; __i < transformers.Length; __i++)
+                            if (transformers[__i] is null)
+                                throw new global::System.ArgumentNullException(nameof(transformers), $"transformers[{__i}] is null");
             {{emitResult.Body}}            global::System.Linq.Expressions.Expression result = __lambda;
                         foreach (var t in transformers) result = t.Transform(result);
                         return (global::System.Linq.Expressions.Expression<{{delegateFqn}}>)result;
@@ -421,7 +423,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
     private static Emitter.EmitResult? EmitLambdaBody(
         LambdaExpressionSyntax lambda,
-        INamedTypeSymbol elementSymbol,
+        ITypeSymbol elementSymbol,
         SemanticModel model,
         SourceProductionContext spc,
         string delegateTypeFqn,
@@ -482,18 +484,15 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
         // Return type from delegate args, resolved through aliases for anonymous types.
         var returnTypeFqn = "object";
-        if (elementSymbol.ContainingNamespace is not null)
+        var typeInfo = model.GetTypeInfo(lambda);
+        if (typeInfo.ConvertedType is INamedTypeSymbol convertedType &&
+            convertedType.TypeArguments.Length > 0)
         {
-            var typeInfo = model.GetTypeInfo(lambda);
-            if (typeInfo.ConvertedType is INamedTypeSymbol convertedType &&
-                convertedType.TypeArguments.Length > 0)
-            {
-                var returnTypeSymbol = convertedType.TypeArguments[convertedType.TypeArguments.Length - 1];
-                if (typeAliases is not null && typeAliases.TryGetValue(returnTypeSymbol, out var aliasedReturn))
-                    returnTypeFqn = aliasedReturn;
-                else
-                    returnTypeFqn = returnTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            }
+            var returnTypeSymbol = convertedType.TypeArguments[convertedType.TypeArguments.Length - 1];
+            if (typeAliases is not null && typeAliases.TryGetValue(returnTypeSymbol, out var aliasedReturn))
+                returnTypeFqn = aliasedReturn;
+            else
+                returnTypeFqn = returnTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         }
 
         var result = emitter.Emit(bodyNode, emitterParams, returnTypeFqn, delegateTypeFqn,
@@ -598,6 +597,14 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                 typeParamNames[i] = $"T{i}";
             typeParams = $"<{string.Join(", ", typeParamNames)}>";
 
+            // The unsubstituted method type parameter symbols carry per-position identity
+            // even when two distinct parameters happen to substitute to the same concrete
+            // type (e.g. GroupJoin's TInner=TKey=int) — used by the interceptor signature
+            // emission below. The substituted type entries remain so EmitLambdaBody (which
+            // sees substituted parameter symbols) can still resolve anonymous return types
+            // and element types into Tn aliases.
+            for (int i = 0; i < method.TypeParameters.Length; i++)
+                typeAliases[method.TypeParameters[i]] = typeParamNames[i];
             if (!typeAliases.ContainsKey(elemSym))
                 typeAliases[elemSym] = typeParamNames[0];
             for (int i = 0; i < methodTypeArgs.Length; i++)
@@ -611,18 +618,14 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             else
                 elemRef = elemFqn;
 
+            var origMethod = method.OriginalDefinition;
             var funcFqnGenerics = new string[funcParamIndices.Count];
             for (int fi = 0; fi < funcParamIndices.Count; fi++)
             {
-                var funcTypeArgs = ((INamedTypeSymbol)method.Parameters[funcParamIndices[fi]].Type).TypeArguments;
+                var funcTypeArgs = ((INamedTypeSymbol)origMethod.Parameters[funcParamIndices[fi]].Type).TypeArguments;
                 var sigParts = new string[funcTypeArgs.Length];
                 for (int i = 0; i < funcTypeArgs.Length; i++)
-                {
-                    if (typeAliases.TryGetValue(funcTypeArgs[i], out var gp))
-                        sigParts[i] = gp;
-                    else
-                        sigParts[i] = funcTypeArgs[i].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                }
+                    sigParts[i] = ResolveTypeFqn(funcTypeArgs[i], typeAliases);
                 funcFqnGenerics[fi] = "global::System.Func<" + string.Join(", ", sigParts) + ">";
                 delegateFqns[fi] = funcFqnGenerics[fi];
             }
@@ -633,12 +636,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
             if (isRewritableReturn)
             {
-                if (typeAliases.TryGetValue(returnElemType!, out var retParam))
-                    returnRef = retParam;
-                else
-                    // Composite return types like IGrouping<TKey, AnonType> need alias substitution
-                    // (anonymous types have no nameable form in C# source).
-                    returnRef = ResolveTypeFqn(returnElemType!, typeAliases);
+                var origReturnElem = ((INamedTypeSymbol)origMethod.ReturnType).TypeArguments[0];
+                returnRef = ResolveTypeFqn(origReturnElem, typeAliases);
             }
             else
             {
@@ -659,7 +658,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                 }
                 else
                 {
-                    var paramType = method.Parameters[i].Type;
+                    var paramType = origMethod.Parameters[i].Type;
                     var paramTypeFqn = ResolveTypeFqn(paramType, typeAliases);
                     var paramName = method.Parameters[i].Name;
                     interceptorParams.Add($"{paramTypeFqn} {paramName}");
@@ -723,7 +722,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             var prefix = single ? $"i{fileTag}{line}c{col}_" : $"i{fileTag}{line}c{col}{(char)('a' + j)}_";
             var delegateName = single ? "__func" : $"__func{j + 1}";
             var funcType = (INamedTypeSymbol)method.Parameters[funcParamIndices[j]].Type;
-            var lambdaElemSym = funcType.TypeArguments[0] as INamedTypeSymbol ?? elemSym;
+            var lambdaElemSym = funcType.TypeArguments[0];
             var emitResult = EmitLambdaBody(lambdas[j], lambdaElemSym, model, spc,
                 delegateFqns[j], lambdaVar, varPrefix: prefix,
                 typeAliases: hasAnyAnon ? typeAliases : null,

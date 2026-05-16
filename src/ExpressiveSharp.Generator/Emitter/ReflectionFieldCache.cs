@@ -28,11 +28,14 @@ internal sealed class ReflectionFieldCache
 
     public string EnsureFieldInfo(IFieldSymbol field)
     {
-        var typeFqn = ResolveTypeFqn(field.ContainingType);
-        var flags = field.IsStatic
+        // Named tuple elements (X, Y) only exist at compile time; the runtime field on
+        // ValueTuple<...> is Item1/Item2/etc. CorrespondingTupleField maps to that.
+        var runtimeField = field.CorrespondingTupleField ?? field;
+        var typeFqn = ResolveTypeFqn(runtimeField.ContainingType);
+        var flags = runtimeField.IsStatic
             ? "global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static"
             : "global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance";
-        return $"typeof({typeFqn}).GetField(\"{field.Name}\", {flags})";
+        return $"typeof({typeFqn}).GetField(\"{runtimeField.Name}\", {flags})";
     }
 
     public string EnsureMethodInfo(IMethodSymbol method)

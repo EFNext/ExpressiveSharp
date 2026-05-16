@@ -16,7 +16,11 @@ public class ExpressiveReplacer : ExpressionVisitor
     private readonly IExpressiveResolver _resolver;
     private readonly ExpressionArgumentReplacer _expressionArgumentReplacer = new();
     private readonly Dictionary<MemberInfo, LambdaExpression?> _memberCache = new();
-    private readonly HashSet<ConstructorInfo> _expandingConstructors = new();
+    // Guards against infinite expansion when an [Expressive] member references itself
+    // (directly or via mutual recursion). Currently-expanding members are left as plain
+    // calls instead of being inlined again — the runtime then dispatches normally on
+    // .Compile()/.Invoke().
+    private readonly HashSet<MemberInfo> _expandingMembers = new();
 
     private static readonly ConditionalWeakTable<Type, StrongBox<bool>> _compilerGeneratedClosureCache = new();
 
@@ -46,6 +50,9 @@ public class ExpressiveReplacer : ExpressionVisitor
     [return: NotNullIfNotNull(nameof(node))]
     public virtual Expression? Replace(Expression? node) => Visit(node);
 
+    private static bool IsPolymorphicallyDispatched(MethodInfo? method)
+        => method is not null && method.IsVirtual && !method.IsFinal;
+
     protected override Expression VisitMethodCall(MethodCallExpression node)
     {
         // Replace MethodGroup arguments with their reflected expressions.
@@ -73,27 +80,36 @@ public class ExpressiveReplacer : ExpressionVisitor
 
         var methodInfo = node.Object?.Type.GetConcreteMethod(node.Method) ?? node.Method;
 
-        if (TryGetReflectedExpression(methodInfo, out var reflectedExpression))
+        if (!IsPolymorphicallyDispatched(methodInfo) &&
+            !_expandingMembers.Contains(methodInfo) &&
+            TryGetReflectedExpression(methodInfo, out var reflectedExpression))
         {
-            for (var parameterIndex = 0; parameterIndex < reflectedExpression.Parameters.Count; parameterIndex++)
+            _expandingMembers.Add(methodInfo);
+            try
             {
-                var parameterExpression = reflectedExpression.Parameters[parameterIndex];
-                var mappedArgumentExpression = (parameterIndex, node.Object) switch {
-                    (0, not null) => node.Object,
-                    (_, not null) => node.Arguments[parameterIndex - 1],
-                    (_, null) => node.Arguments.Count > parameterIndex ? node.Arguments[parameterIndex] : null
-                };
-
-                if (mappedArgumentExpression is not null)
+                for (var parameterIndex = 0; parameterIndex < reflectedExpression.Parameters.Count; parameterIndex++)
                 {
-                    _expressionArgumentReplacer.ParameterArgumentMapping.Add(parameterExpression, mappedArgumentExpression);
+                    var parameterExpression = reflectedExpression.Parameters[parameterIndex];
+                    var mappedArgumentExpression = (parameterIndex, node.Object) switch {
+                        (0, not null) => node.Object,
+                        (_, not null) => node.Arguments[parameterIndex - 1],
+                        (_, null) => node.Arguments.Count > parameterIndex ? node.Arguments[parameterIndex] : null
+                    };
+
+                    if (mappedArgumentExpression is not null)
+                    {
+                        _expressionArgumentReplacer.ParameterArgumentMapping.Add(parameterExpression, mappedArgumentExpression);
+                    }
                 }
+
+                var updatedBody = _expressionArgumentReplacer.Visit(reflectedExpression.Body);
+                return base.Visit(updatedBody);
             }
-
-            var updatedBody = _expressionArgumentReplacer.Visit(reflectedExpression.Body);
-            _expressionArgumentReplacer.ParameterArgumentMapping.Clear();
-
-            return base.Visit(updatedBody);
+            finally
+            {
+                _expressionArgumentReplacer.ParameterArgumentMapping.Clear();
+                _expandingMembers.Remove(methodInfo);
+            }
         }
 
         return base.VisitMethodCall(node);
@@ -109,10 +125,10 @@ public class ExpressiveReplacer : ExpressionVisitor
     {
         var constructor = node.Constructor;
         if (constructor is not null &&
-            !_expandingConstructors.Contains(constructor) &&
+            !_expandingMembers.Contains(constructor) &&
             TryGetReflectedExpression(constructor, out var reflectedExpression))
         {
-            _expandingConstructors.Add(constructor);
+            _expandingMembers.Add(constructor);
             try
             {
                 for (var parameterIndex = 0; parameterIndex < reflectedExpression.Parameters.Count; parameterIndex++)
@@ -130,7 +146,7 @@ public class ExpressiveReplacer : ExpressionVisitor
             finally
             {
                 _expressionArgumentReplacer.ParameterArgumentMapping.Clear();
-                _expandingConstructors.Remove(constructor);
+                _expandingMembers.Remove(constructor);
             }
         }
 
@@ -151,18 +167,30 @@ public class ExpressiveReplacer : ExpressionVisitor
             _ => node.Member
         };
 
-        if (TryGetReflectedExpression(nodeMember, out var reflectedExpression))
+        var virtualAccessor = nodeMember is PropertyInfo prop ? prop.GetMethod : null;
+        if (IsPolymorphicallyDispatched(virtualAccessor))
+            return base.VisitMember(node);
+
+        if (!_expandingMembers.Contains(nodeMember) &&
+            TryGetReflectedExpression(nodeMember, out var reflectedExpression))
         {
-            if (nodeExpression is not null)
+            _expandingMembers.Add(nodeMember);
+            try
             {
-                _expressionArgumentReplacer.ParameterArgumentMapping.Add(reflectedExpression.Parameters[0], nodeExpression);
-                var updatedBody = _expressionArgumentReplacer.Visit(reflectedExpression.Body);
-                _expressionArgumentReplacer.ParameterArgumentMapping.Clear();
+                if (nodeExpression is not null)
+                {
+                    _expressionArgumentReplacer.ParameterArgumentMapping.Add(reflectedExpression.Parameters[0], nodeExpression);
+                    var updatedBody = _expressionArgumentReplacer.Visit(reflectedExpression.Body);
+                    return base.Visit(updatedBody);
+                }
 
-                return base.Visit(updatedBody);
+                return base.Visit(reflectedExpression.Body);
             }
-
-            return base.Visit(reflectedExpression.Body);
+            finally
+            {
+                _expressionArgumentReplacer.ParameterArgumentMapping.Clear();
+                _expandingMembers.Remove(nodeMember);
+            }
         }
 
         return base.VisitMember(node);

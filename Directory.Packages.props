@@ -32,6 +32,8 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Cosmos" Version="8.0.25" />
     <PackageVersion Include="MongoDB.Driver" Version="3.0.0" />
     <PackageVersion Include="Snappier" Version="1.3.1" />
+    <!-- Transitive pin: MongoDB.Driver 3.x pulls SharpCompress 0.30.1, which has GHSA-6c8g-7p36-r338 (<=0.47.4). -->
+    <PackageVersion Include="SharpCompress" Version="0.48.1" />
     <PackageVersion Include="Testcontainers.MongoDb" Version="4.3.0" />
     <!-- Blazor WebAssembly host for the docs playground. -->
     <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.5" />

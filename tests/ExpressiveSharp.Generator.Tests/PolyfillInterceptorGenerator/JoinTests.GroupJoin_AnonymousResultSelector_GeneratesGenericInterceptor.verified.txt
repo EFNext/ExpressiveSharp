@@ -11,7 +11,7 @@ namespace ExpressiveSharp.Generated.Interceptors
             global::System.Collections.Generic.IEnumerable<T1> inner,
                     global::System.Func<T0, T2> __func1,
                     global::System.Func<T1, T2> __func2,
-                    global::System.Func<T0, global::System.Collections.Generic.IEnumerable<global::TestNs.Customer>, T3> __func3)
+                    global::System.Func<T0, global::System.Collections.Generic.IEnumerable<T1>, T3> __func3)
         {
             // Source: o => o.CustomerId
             var i361d11c19a_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(T0), "o");
@@ -28,7 +28,7 @@ namespace ExpressiveSharp.Generated.Interceptors
             var i361d11c19c_expr_2 = global::System.Linq.Expressions.Expression.Call(global::System.Linq.Enumerable.First(global::System.Linq.Enumerable.Where(typeof(global::System.Linq.Enumerable).GetMethods(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static), m => m.Name == "Count" && m.IsGenericMethodDefinition && m.GetGenericArguments().Length == 1 && m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType.IsGenericType && !m.GetParameters()[0].ParameterType.IsGenericParameter)).MakeGenericMethod(typeof(T1)), new global::System.Linq.Expressions.Expression[] { i361d11c19c_p_cs }); // cs.Count()
             var i361d11c19c_expr_3 = typeof(T3).GetConstructors()[0];
             var i361d11c19c_expr_0 = global::System.Linq.Expressions.Expression.New(i361d11c19c_expr_3, new global::System.Linq.Expressions.Expression[] { i361d11c19c_expr_1, i361d11c19c_expr_2 }, new global::System.Reflection.MemberInfo[] { typeof(T3).GetProperty("CustomerId"), typeof(T3).GetProperty("Count") });
-            var __lambda3 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<T0, global::System.Collections.Generic.IEnumerable<global::TestNs.Customer>, T3>>(i361d11c19c_expr_0, i361d11c19c_p_o, i361d11c19c_p_cs);
+            var __lambda3 = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<T0, global::System.Collections.Generic.IEnumerable<T1>, T3>>(i361d11c19c_expr_0, i361d11c19c_p_o, i361d11c19c_p_cs);
             return (global::ExpressiveSharp.IExpressiveQueryable<T3>)(object)
                 global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                     global::System.Linq.Queryable.GroupJoin(

@@ -495,6 +495,7 @@ internal sealed class ExpressionTreeEmitter
             ICoalesceOperation coalesce => EmitCoalesce(coalesce),
             IArrayCreationOperation arrayCreate => EmitArrayCreation(arrayCreate),
             IArrayElementReferenceOperation arrayElement => EmitArrayElementReference(arrayElement),
+            IImplicitIndexerReferenceOperation implicitIdx => EmitImplicitIndexerReference(implicitIdx),
             IAnonymousFunctionOperation lambda => EmitNestedLambda(lambda),
             IDelegateCreationOperation delegateCreate => EmitDelegateCreation(delegateCreate),
             ITupleOperation tuple => EmitTuple(tuple),
@@ -1071,9 +1072,13 @@ internal sealed class ExpressionTreeEmitter
             return quoteResult;
         }
 
-        // Implicit reference upcasts in argument position break EF Core's queryable-chain matching.
-        if (conversion.IsImplicit && conversion.Conversion.IsReference && conversion.Parent is IArgumentOperation)
+        // Implicit reference upcasts from a concrete reference operands
+        if (conversion.IsImplicit
+            && conversion.Conversion.IsReference
+            && conversion.Operand.Type is { IsReferenceType: true })
+        {
             return EmitOperation(conversion.Operand);
+        }
 
         var resultVar = NextVar();
         var operandVar = EmitOperation(conversion.Operand);
@@ -1634,6 +1639,23 @@ internal sealed class ExpressionTreeEmitter
         return resultVar;
     }
 
+    // Switch arm bodies can reference pattern-declared variables (`int i => i + 1`).
+    // The pattern itself emits only the TypeIs/Equal/etc. test, so we bind each
+    // declared local to a Convert of the governing value before the arm body emits,
+    // otherwise the local reference falls through to the closure-capture path and
+    // tries to read a non-existent field on __func.Target.
+    private void BindPatternDeclarations(IPatternOperation pattern, string operandVar)
+    {
+        if (pattern is IDeclarationPatternOperation decl
+            && decl.DeclaredSymbol is ILocalSymbol localSym)
+        {
+            var convertVar = NextVar();
+            var typeFqn = decl.NarrowedType.ToDisplayString(_fqnFormat);
+            AppendLine($"var {convertVar} = {Expr}.Convert({operandVar}, typeof({typeFqn}));");
+            _localToVar[localSym] = convertVar;
+        }
+    }
+
     private string EmitRelationalPattern(IRelationalPatternOperation relational, string operandVar, ITypeSymbol? operandType)
     {
         var resultVar = NextVar();
@@ -1732,23 +1754,28 @@ internal sealed class ExpressionTreeEmitter
     {
         var conditions = new List<string>();
 
-        var countProp = operandType?.GetMembers("Count").OfType<IPropertySymbol>().FirstOrDefault()
-            ?? operandType?.GetMembers("Length").OfType<IPropertySymbol>().FirstOrDefault();
+        var arrayType = operandType as IArrayTypeSymbol;
+        IPropertySymbol? countProp = null;
+        IPropertySymbol? indexer = null;
 
-        var indexer = operandType?.GetMembers()
-            .OfType<IPropertySymbol>()
-            .FirstOrDefault(p => p.IsIndexer && p.Parameters.Length == 1
-                && p.Parameters[0].Type.SpecialType == SpecialType.System_Int32);
-
-        if (countProp is null || indexer is null)
+        if (arrayType is null)
         {
-            ReportDiagnostic(Diagnostics.UnsupportedOperation,
-                listPattern.Syntax?.GetLocation() ?? Location.None,
-                "ListPattern (type lacks Count/Length or indexer)");
-            return EmitUnsupported(listPattern);
-        }
+            countProp = operandType?.GetMembers("Count").OfType<IPropertySymbol>().FirstOrDefault()
+                ?? operandType?.GetMembers("Length").OfType<IPropertySymbol>().FirstOrDefault();
 
-        var countField = _fieldCache.EnsurePropertyInfo(countProp);
+            indexer = operandType?.GetMembers()
+                .OfType<IPropertySymbol>()
+                .FirstOrDefault(p => p.IsIndexer && p.Parameters.Length == 1
+                    && p.Parameters[0].Type.SpecialType == SpecialType.System_Int32);
+
+            if (countProp is null || indexer is null)
+            {
+                ReportDiagnostic(Diagnostics.UnsupportedOperation,
+                    listPattern.Syntax?.GetLocation() ?? Location.None,
+                    "ListPattern (type lacks Count/Length or indexer)");
+                return EmitUnsupported(listPattern);
+            }
+        }
 
         // A `..` slice means minimum-length match; otherwise exact-length.
         var hasSlice = listPattern.Patterns.Any(p => p is ISlicePatternOperation);
@@ -1756,7 +1783,15 @@ internal sealed class ExpressionTreeEmitter
         var requiredCount = fixedPatterns.Count;
 
         var countAccess = NextVar();
-        AppendLine($"var {countAccess} = {Expr}.Property({operandVar}, {countField});");
+        if (arrayType is not null)
+        {
+            AppendLine($"var {countAccess} = {Expr}.ArrayLength({operandVar});");
+        }
+        else
+        {
+            var countField = _fieldCache.EnsurePropertyInfo(countProp!);
+            AppendLine($"var {countAccess} = {Expr}.Property({operandVar}, {countField});");
+        }
         var countConst = NextVar();
         AppendLine($"var {countConst} = {Expr}.Constant({requiredCount});");
         var lengthCheck = NextVar();
@@ -1788,17 +1823,19 @@ internal sealed class ExpressionTreeEmitter
             AppendLine($"var {idxConst} = {Expr}.Constant({elementIndex});");
 
             var elementAccess = NextVar();
-            if (operandType is IArrayTypeSymbol)
+            ITypeSymbol elementType;
+            if (arrayType is not null)
             {
                 AppendLine($"var {elementAccess} = {Expr}.ArrayIndex({operandVar}, {idxConst});");
+                elementType = arrayType.ElementType;
             }
             else
             {
-                var indexerField = _fieldCache.EnsurePropertyInfo(indexer);
+                var indexerField = _fieldCache.EnsurePropertyInfo(indexer!);
                 AppendLine($"var {elementAccess} = {Expr}.Property({operandVar}, {indexerField}, {idxConst});");
+                elementType = indexer!.Type;
             }
 
-            var elementType = indexer.Type;
             var subCondition = EmitPattern(subPattern, elementAccess, elementType);
             conditions.Add(subCondition);
             elementIndex++;
@@ -2133,6 +2170,8 @@ internal sealed class ExpressionTreeEmitter
             }
 
             var conditionVar = EmitPattern(arm.Pattern, governingVar, switchExpr.Value.Type);
+
+            BindPatternDeclarations(arm.Pattern, governingVar);
 
             if (arm.Guard is not null)
             {
@@ -2716,6 +2755,70 @@ internal sealed class ExpressionTreeEmitter
         return resultVar;
     }
 
+    // Lowers `s[range]` on string to `s.Substring(start, length)` so the result lands
+    // in expression-tree shape (the language-level Range/Index machinery doesn't survive
+    // an expression tree otherwise).
+    private string EmitImplicitIndexerReference(IImplicitIndexerReferenceOperation op)
+    {
+        if (op.Instance is null || op.Instance.Type is null)
+            return EmitUnsupported(op);
+
+        var receiverType = op.Instance.Type;
+        var receiverVar = EmitOperation(op.Instance);
+
+        if (receiverType.SpecialType == SpecialType.System_String && op.Argument is IRangeOperation range)
+        {
+            var lengthAccessor = NextVar();
+            AppendLine($"var {lengthAccessor} = {Expr}.Property({receiverVar}, typeof(global::System.String).GetProperty(\"Length\"));");
+
+            var startVar = EmitIndexAsInt(range.LeftOperand, lengthAccessor, defaultIsZero: true);
+            var endVar = EmitIndexAsInt(range.RightOperand, lengthAccessor, defaultIsZero: false);
+
+            var lengthVar = NextVar();
+            AppendLine($"var {lengthVar} = {Expr}.Subtract({endVar}, {startVar});");
+
+            var substringMethod = NextVar();
+            AppendLine($"var {substringMethod} = typeof(global::System.String).GetMethod(\"Substring\", new global::System.Type[] {{ typeof(int), typeof(int) }});");
+
+            var resultVar = NextVar();
+            AppendLine($"var {resultVar} = {Expr}.Call({receiverVar}, {substringMethod}, {startVar}, {lengthVar});");
+            return resultVar;
+        }
+
+        return EmitUnsupported(op);
+    }
+
+    // Emits an int-typed expression representing the absolute offset of an Index operand.
+    // `defaultIsZero=true` returns 0 when the operand is omitted (left side of `..`);
+    // false returns the receiver length (right side).
+    private string EmitIndexAsInt(IOperation? indexOperand, string lengthVar, bool defaultIsZero)
+    {
+        if (indexOperand is null)
+        {
+            if (defaultIsZero)
+            {
+                var zeroVar = NextVar();
+                AppendLine($"var {zeroVar} = {Expr}.Constant(0);");
+                return zeroVar;
+            }
+            return lengthVar;
+        }
+
+        if (indexOperand is IUnaryOperation { OperatorKind: UnaryOperatorKind.Hat } fromEnd)
+        {
+            var inner = EmitOperation(fromEnd.Operand);
+            var resultVar = NextVar();
+            AppendLine($"var {resultVar} = {Expr}.Subtract({lengthVar}, {inner});");
+            return resultVar;
+        }
+
+        // Plain int (possibly wrapped in a conversion-to-Index that we can ignore).
+        if (indexOperand is IConversionOperation conv && conv.Operand.Type?.SpecialType == SpecialType.System_Int32)
+            return EmitOperation(conv.Operand);
+
+        return EmitOperation(indexOperand);
+    }
+
     private string EmitRange(IRangeOperation range)
     {
         var resultVar = NextVar();
@@ -2856,7 +2959,10 @@ internal sealed class ExpressionTreeEmitter
         if (type is IArrayTypeSymbol arrayType)
         {
             var elementTypeFqn = arrayType.ElementType.ToDisplayString(_fqnFormat);
-            AppendLine($"var {resultVar} = {Expr}.NewArrayInit(typeof({elementTypeFqn}), {elementsExpr});");
+            var arrayArgs = elementVars.Count == 0
+                ? $"typeof({elementTypeFqn})"
+                : $"typeof({elementTypeFqn}), {elementsExpr}";
+            AppendLine($"var {resultVar} = {Expr}.NewArrayInit({arrayArgs});");
         }
         else if (type is INamedTypeSymbol namedType && namedType.IsGenericType
             && namedType.OriginalDefinition.SpecialType == SpecialType.None)
@@ -2872,7 +2978,7 @@ internal sealed class ExpressionTreeEmitter
                     .OfType<IMethodSymbol>()
                     .FirstOrDefault(m => m.Parameters.Length == 1);
 
-                if (addMethod is not null)
+                if (addMethod is not null && elementVars.Count > 0)
                 {
                     var addField = _fieldCache.EnsureMethodInfo(addMethod);
                     var elemInitVars = new List<string>();
@@ -2886,7 +2992,7 @@ internal sealed class ExpressionTreeEmitter
                 }
                 else
                 {
-                    // No Add method — leave the collection empty.
+                    // No elements (or no Add method) — return the bare New expression.
                     AppendLine($"var {resultVar} = {newVar};");
                 }
             }

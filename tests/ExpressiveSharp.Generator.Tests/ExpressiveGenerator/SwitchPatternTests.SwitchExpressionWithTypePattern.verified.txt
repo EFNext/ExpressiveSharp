@@ -19,22 +19,20 @@ namespace ExpressiveSharp.Generated
             var expr_1 = global::System.Linq.Expressions.Expression.Constant(null, typeof(object)); // null
             var expr_0 = global::System.Linq.Expressions.Expression.Convert(expr_1, typeof(global::ItemData));
             var expr_2 = global::System.Linq.Expressions.Expression.TypeIs(p_item, typeof(global::DocumentItem));
-            var expr_6 = global::System.Linq.Expressions.Expression.Variable(typeof(global::DocumentItem), "documentItem"); // documentItem
-            var expr_5 = global::System.Linq.Expressions.Expression.Property(expr_6, typeof(global::Item).GetProperty("Id", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance));
-            var expr_7 = global::System.Linq.Expressions.Expression.Property(expr_6, typeof(global::Item).GetProperty("Name", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // documentItem.Name
-            var expr_8 = global::System.Linq.Expressions.Expression.Property(expr_6, typeof(global::DocumentItem).GetProperty("Priority", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // documentItem.Priority
-            var expr_4 = global::System.Linq.Expressions.Expression.New(typeof(global::DocumentData).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] { typeof(int), typeof(string), typeof(int) }, null), expr_5, expr_7, expr_8);
-            var expr_3 = global::System.Linq.Expressions.Expression.Convert(expr_4, typeof(global::ItemData));
-            var expr_9 = global::System.Linq.Expressions.Expression.Condition(expr_2, expr_3, expr_0, typeof(global::ItemData));
-            var expr_10 = global::System.Linq.Expressions.Expression.TypeIs(p_item, typeof(global::GroupItem));
-            var expr_14 = global::System.Linq.Expressions.Expression.Variable(typeof(global::GroupItem), "groupItem"); // groupItem
-            var expr_13 = global::System.Linq.Expressions.Expression.Property(expr_14, typeof(global::Item).GetProperty("Id", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance));
-            var expr_15 = global::System.Linq.Expressions.Expression.Property(expr_14, typeof(global::Item).GetProperty("Name", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // groupItem.Name
-            var expr_16 = global::System.Linq.Expressions.Expression.Property(expr_14, typeof(global::GroupItem).GetProperty("Description", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // groupItem.Description
-            var expr_12 = global::System.Linq.Expressions.Expression.New(typeof(global::GroupData).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] { typeof(int), typeof(string), typeof(string) }, null), expr_13, expr_15, expr_16);
-            var expr_11 = global::System.Linq.Expressions.Expression.Convert(expr_12, typeof(global::ItemData));
-            var expr_17 = global::System.Linq.Expressions.Expression.Condition(expr_10, expr_11, expr_9, typeof(global::ItemData));
-            return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Item, global::ItemData>>(expr_17, p_item);
+            var expr_3 = global::System.Linq.Expressions.Expression.Convert(p_item, typeof(global::DocumentItem));
+            var expr_5 = global::System.Linq.Expressions.Expression.Property(expr_3, typeof(global::Item).GetProperty("Id", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // documentItem.Id
+            var expr_6 = global::System.Linq.Expressions.Expression.Property(expr_3, typeof(global::Item).GetProperty("Name", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // documentItem.Name
+            var expr_7 = global::System.Linq.Expressions.Expression.Property(expr_3, typeof(global::DocumentItem).GetProperty("Priority", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // documentItem.Priority
+            var expr_4 = global::System.Linq.Expressions.Expression.New(typeof(global::DocumentData).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] { typeof(int), typeof(string), typeof(int) }, null), expr_5, expr_6, expr_7);
+            var expr_8 = global::System.Linq.Expressions.Expression.Condition(expr_2, expr_4, expr_0, typeof(global::ItemData));
+            var expr_9 = global::System.Linq.Expressions.Expression.TypeIs(p_item, typeof(global::GroupItem));
+            var expr_10 = global::System.Linq.Expressions.Expression.Convert(p_item, typeof(global::GroupItem));
+            var expr_12 = global::System.Linq.Expressions.Expression.Property(expr_10, typeof(global::Item).GetProperty("Id", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // groupItem.Id
+            var expr_13 = global::System.Linq.Expressions.Expression.Property(expr_10, typeof(global::Item).GetProperty("Name", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // groupItem.Name
+            var expr_14 = global::System.Linq.Expressions.Expression.Property(expr_10, typeof(global::GroupItem).GetProperty("Description", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // groupItem.Description
+            var expr_11 = global::System.Linq.Expressions.Expression.New(typeof(global::GroupData).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance, null, new global::System.Type[] { typeof(int), typeof(string), typeof(string) }, null), expr_12, expr_13, expr_14);
+            var expr_15 = global::System.Linq.Expressions.Expression.Condition(expr_9, expr_11, expr_8, typeof(global::ItemData));
+            return global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::Item, global::ItemData>>(expr_15, p_item);
         }
     }
 }
