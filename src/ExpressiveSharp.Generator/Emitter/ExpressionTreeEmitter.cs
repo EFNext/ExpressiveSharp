@@ -495,6 +495,7 @@ internal sealed class ExpressionTreeEmitter
             ICoalesceOperation coalesce => EmitCoalesce(coalesce),
             IArrayCreationOperation arrayCreate => EmitArrayCreation(arrayCreate),
             IArrayElementReferenceOperation arrayElement => EmitArrayElementReference(arrayElement),
+            IImplicitIndexerReferenceOperation implicitIdx => EmitImplicitIndexerReference(implicitIdx),
             IAnonymousFunctionOperation lambda => EmitNestedLambda(lambda),
             IDelegateCreationOperation delegateCreate => EmitDelegateCreation(delegateCreate),
             ITupleOperation tuple => EmitTuple(tuple),
@@ -2748,6 +2749,70 @@ internal sealed class ExpressionTreeEmitter
         AppendLine($"var {indexCtor} = typeof(global::System.Index).GetConstructor(new global::System.Type[] {{ typeof(int), typeof(bool) }});");
         AppendLine($"var {resultVar} = {Expr}.New({indexCtor}, {innerVar}, {trueConst});");
         return resultVar;
+    }
+
+    // Lowers `s[range]` on string to `s.Substring(start, length)` so the result lands
+    // in expression-tree shape (the language-level Range/Index machinery doesn't survive
+    // an expression tree otherwise).
+    private string EmitImplicitIndexerReference(IImplicitIndexerReferenceOperation op)
+    {
+        if (op.Instance is null || op.Instance.Type is null)
+            return EmitUnsupported(op);
+
+        var receiverType = op.Instance.Type;
+        var receiverVar = EmitOperation(op.Instance);
+
+        if (receiverType.SpecialType == SpecialType.System_String && op.Argument is IRangeOperation range)
+        {
+            var lengthAccessor = NextVar();
+            AppendLine($"var {lengthAccessor} = {Expr}.Property({receiverVar}, typeof(global::System.String).GetProperty(\"Length\"));");
+
+            var startVar = EmitIndexAsInt(range.LeftOperand, lengthAccessor, defaultIsZero: true);
+            var endVar = EmitIndexAsInt(range.RightOperand, lengthAccessor, defaultIsZero: false);
+
+            var lengthVar = NextVar();
+            AppendLine($"var {lengthVar} = {Expr}.Subtract({endVar}, {startVar});");
+
+            var substringMethod = NextVar();
+            AppendLine($"var {substringMethod} = typeof(global::System.String).GetMethod(\"Substring\", new global::System.Type[] {{ typeof(int), typeof(int) }});");
+
+            var resultVar = NextVar();
+            AppendLine($"var {resultVar} = {Expr}.Call({receiverVar}, {substringMethod}, {startVar}, {lengthVar});");
+            return resultVar;
+        }
+
+        return EmitUnsupported(op);
+    }
+
+    // Emits an int-typed expression representing the absolute offset of an Index operand.
+    // `defaultIsZero=true` returns 0 when the operand is omitted (left side of `..`);
+    // false returns the receiver length (right side).
+    private string EmitIndexAsInt(IOperation? indexOperand, string lengthVar, bool defaultIsZero)
+    {
+        if (indexOperand is null)
+        {
+            if (defaultIsZero)
+            {
+                var zeroVar = NextVar();
+                AppendLine($"var {zeroVar} = {Expr}.Constant(0);");
+                return zeroVar;
+            }
+            return lengthVar;
+        }
+
+        if (indexOperand is IUnaryOperation { OperatorKind: UnaryOperatorKind.Hat } fromEnd)
+        {
+            var inner = EmitOperation(fromEnd.Operand);
+            var resultVar = NextVar();
+            AppendLine($"var {resultVar} = {Expr}.Subtract({lengthVar}, {inner});");
+            return resultVar;
+        }
+
+        // Plain int (possibly wrapped in a conversion-to-Index that we can ignore).
+        if (indexOperand is IConversionOperation conv && conv.Operand.Type?.SpecialType == SpecialType.System_Int32)
+            return EmitOperation(conv.Operand);
+
+        return EmitOperation(indexOperand);
     }
 
     private string EmitRange(IRangeOperation range)

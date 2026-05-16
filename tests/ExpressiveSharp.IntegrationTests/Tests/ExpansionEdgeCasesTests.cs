@@ -68,6 +68,22 @@ public class ExpansionEdgeCasesTests
         var expanded = expr.ExpandExpressives();
         Assert.IsNotNull(expanded);
     }
+
+    [TestMethod]
+    public void Polyfill_StringRangeSlice_ProducesSubstring()
+    {
+        var fromStart = ExpressionPolyfill.Create((string s) => s[..3]);
+        Assert.AreEqual("hel", fromStart.Compile()("hello"));
+
+        var inMiddle = ExpressionPolyfill.Create((string s) => s[1..4]);
+        Assert.AreEqual("ell", inMiddle.Compile()("hello"));
+
+        var toEnd = ExpressionPolyfill.Create((string s) => s[2..]);
+        Assert.AreEqual("llo", toEnd.Compile()("hello"));
+
+        var fromEndBoth = ExpressionPolyfill.Create((string s) => s[^2..]);
+        Assert.AreEqual("lo", fromEndBoth.Compile()("hello"));
+    }
 }
 
 public class VirtualDispatchBase
