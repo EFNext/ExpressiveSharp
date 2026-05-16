@@ -19,6 +19,7 @@
                       VersionOverride="10.0.5" />
     <PackageReference Include="MongoDB.Driver" />
     <PackageReference Include="Snappier" />
+    <PackageReference Include="SharpCompress" />
   </ItemGroup>
 
   <ItemGroup>
