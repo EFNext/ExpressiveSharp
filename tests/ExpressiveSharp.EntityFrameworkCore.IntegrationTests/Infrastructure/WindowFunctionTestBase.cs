@@ -799,6 +799,29 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
     }
 
     [TestMethod]
+    public async Task Average_NullableIntColumn_CastsToFloat()
+    {
+        var query = Context.Orders
+            .Select(o => new
+            {
+                o.Id,
+                AvgCustomer = WindowFunction.Average(o.CustomerId,
+                    Window.OrderBy(o.Id)
+                          .RowsBetween(WindowFrameBound.UnboundedPreceding, WindowFrameBound.UnboundedFollowing)),
+            })
+            .OrderBy(x => x.Id);
+
+        var sql = query.ToQueryString();
+        StringAssert.Contains(sql, "AVG");
+        StringAssert.Contains(sql, "CAST");
+
+        var results = await query.ToListAsync();
+        Assert.AreEqual(10, results.Count);
+        // AVG of CustomerId (five 1s + five 2s = 15/10) must be 1.5, not integer-divided to 1.
+        Assert.AreEqual(1.5, results[0].AvgCustomer!.Value, 0.01);
+    }
+
+    [TestMethod]
     public async Task Sum_WithoutFrame_UsesDefaultFrame()
     {
         // Sum with OrderedWindowDefinition only (no explicit frame).
