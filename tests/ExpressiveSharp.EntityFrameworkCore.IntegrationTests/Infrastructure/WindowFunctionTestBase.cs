@@ -813,7 +813,9 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
 
         var sql = query.ToQueryString();
         StringAssert.Contains(sql, "AVG");
-        StringAssert.Contains(sql, "CAST");
+        // Float cast renders per-provider: CAST(... AS ...) on most, ::double precision on PostgreSQL.
+        Assert.IsTrue(sql.Contains("CAST(") || sql.Contains("::"),
+            $"AVG argument should be cast to floating point, but no cast was found in: {sql}");
 
         var results = await query.ToListAsync();
         Assert.AreEqual(10, results.Count);
