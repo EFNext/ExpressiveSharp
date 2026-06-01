@@ -75,7 +75,9 @@ public class ExpressiveReplacer : ExpressionVisitor
 
         VisitMethodCallCore(node);
 
-        var methodInfo = node.Object?.Type.GetConcreteMethod(node.Method) ?? node.Method;
+        var methodInfo = node.Method.DeclaringType?.IsInterface == true
+            ? (node.Object?.Type.GetConcreteMethod(node.Method) ?? node.Method)
+            : node.Method;
 
         if (!_expandingMembers.Contains(methodInfo) &&
             TryGetReflectedExpression(methodInfo, out var reflectedExpression))
@@ -158,7 +160,7 @@ public class ExpressiveReplacer : ExpressionVisitor
             _ => node.Expression
         };
         var nodeMember = node.Member switch {
-            PropertyInfo property when nodeExpression is not null
+            PropertyInfo property when nodeExpression is not null && property.DeclaringType?.IsInterface == true
                 => nodeExpression.Type.GetConcreteProperty(property),
             _ => node.Member
         };

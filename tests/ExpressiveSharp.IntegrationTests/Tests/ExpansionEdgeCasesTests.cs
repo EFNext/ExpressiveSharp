@@ -9,13 +9,6 @@ public class ExpansionEdgeCasesTests
     [TestMethod]
     public void VirtualMethod_Expansion_UsesStaticDeclaredType()
     {
-        // Expression-tree expansion runs at compile time and only sees the *static* (declared)
-        // type of the receiver — it cannot honor C# virtual dispatch. Expanding `b.Describe()`
-        // where `b` is statically typed VirtualDispatchBase therefore inlines the BASE body,
-        // even though the runtime instance is a VirtualDispatchDerived. This is the documented
-        // behavior EXP0038 warns about: query providers (EF Core, MongoDB) depend on it because
-        // they translate the tree to SQL/MQL and never see a runtime object. To branch on the
-        // concrete type, test it explicitly — see docs/advanced/limitations.md.
         var derived = new VirtualDispatchDerived { Id = 7, Name = "x" };
 
         Expression<Func<VirtualDispatchBase, string>> expr = b => b.Describe();
@@ -23,6 +16,24 @@ public class ExpansionEdgeCasesTests
         var fromExpansion = expanded.Compile()(derived);
 
         Assert.AreEqual("base#7", fromExpansion);
+    }
+
+    [TestMethod]
+    public void BaseSlotProperty_ExpandsBaseBody_NotOverride()
+    {
+        Expression<Func<ScoreDerived, int>> expr = d => d.Score;
+        var expanded = (Expression<Func<ScoreDerived, int>>)expr.ExpandExpressives();
+
+        Assert.AreEqual(10, expanded.Compile()(new ScoreDerived { Id = 5 }));
+    }
+
+    [TestMethod]
+    public void BaseSlotMethod_ExpandsBaseBody_NotOverride()
+    {
+        Expression<Func<GreetDerived, int>> expr = d => d.Greet();
+        var expanded = (Expression<Func<GreetDerived, int>>)expr.ExpandExpressives();
+
+        Assert.AreEqual(30, expanded.Compile()(new GreetDerived { Id = 3 }));
     }
 
     [TestMethod]
@@ -113,9 +124,6 @@ public class ExpansionEdgeCasesTests
     }
 }
 
-// These types deliberately declare a virtual/override [Expressive] member to exercise the
-// static-type expansion behavior verified by VirtualMethod_Expansion_UsesStaticDeclaredType.
-// EXP0038 fires exactly because of that shape, so it is suppressed here on purpose.
 #pragma warning disable EXP0038
 public class VirtualDispatchBase
 {
@@ -131,6 +139,34 @@ public class VirtualDispatchDerived : VirtualDispatchBase
 
     [Expressive]
     public override string Describe() => $"derived#{Id}/{Name}";
+}
+
+public class ScoreBase
+{
+    public int Id { get; set; }
+
+    [Expressive]
+    public virtual int Score => Id * 2;
+}
+
+public class ScoreDerived : ScoreBase
+{
+    [Expressive]
+    public override int Score => base.Score + 1;
+}
+
+public class GreetBase
+{
+    public int Id { get; set; }
+
+    [Expressive]
+    public virtual int Greet() => Id * 10;
+}
+
+public class GreetDerived : GreetBase
+{
+    [Expressive]
+    public override int Greet() => base.Greet() + 1;
 }
 #pragma warning restore EXP0038
 
