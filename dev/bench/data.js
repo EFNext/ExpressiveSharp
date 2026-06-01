@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1780286257894,
+  "lastUpdate": 1780339286128,
   "repoUrl": "https://github.com/EFNext/ExpressiveSharp",
   "entries": {
     "ExpressiveSharp Benchmarks": [
@@ -22710,6 +22710,552 @@ window.BENCHMARK_DATA = {
             "value": 11830077.20474138,
             "unit": "ns",
             "range": "± 378542.79235147644"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "koen@linker.io",
+            "name": "Koen",
+            "username": "koenbeuk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "55d9ce4b6b825b9988c6da4ff64e97ab898ba693",
+          "message": "Merge pull request #67 from EFNext/fix/avg-window-nullable-fix\n\nfix AVG over nullable int?/long? window",
+          "timestamp": "2026-06-01T18:50:31+01:00",
+          "tree_id": "45b13ee508893e4231b48c59cc2b0c6768e3fff8",
+          "url": "https://github.com/EFNext/ExpressiveSharp/commit/55d9ce4b6b825b9988c6da4ff64e97ab898ba693"
+        },
+        "date": 1780339279079,
+        "tool": "benchmarkdotnet",
+        "benches": [
+          {
+            "name": "ExpressiveSharp.Benchmarks.EFCoreQueryOverheadBenchmarks.Baseline",
+            "value": 6405.511818195211,
+            "unit": "ns",
+            "range": "± 107.2792041161818"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.ExpressionReplacerBenchmarks.Replace_Property",
+            "value": 2862.4139072812836,
+            "unit": "ns",
+            "range": "± 29.714856462082516"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.ExpressionResolverBenchmarks.Resolve_Property",
+            "value": 8.490947945309538,
+            "unit": "ns",
+            "range": "± 0.029455929563722772"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.TransformerBenchmarks.Transform_RemoveNullConditionalPatterns",
+            "value": 161.157124876976,
+            "unit": "ns",
+            "range": "± 5.51562631672608"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.EFCoreQueryOverheadBenchmarks.WithExpressives_Property",
+            "value": 16702.82974558863,
+            "unit": "ns",
+            "range": "± 135.98030216288342"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.ExpressionReplacerBenchmarks.Replace_Method",
+            "value": 3039.1574006257233,
+            "unit": "ns",
+            "range": "± 64.65851604898576"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.ExpressionResolverBenchmarks.Resolve_Method",
+            "value": 10.986022871274214,
+            "unit": "ns",
+            "range": "± 0.8829151272175748"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.TransformerBenchmarks.Transform_FlattenBlockExpressions",
+            "value": 53.05735977108662,
+            "unit": "ns",
+            "range": "± 0.03946488637919911"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.EFCoreQueryOverheadBenchmarks.WithExpressives_Method",
+            "value": 16895.358516148157,
+            "unit": "ns",
+            "range": "± 187.0742692102554"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.ExpressionReplacerBenchmarks.Replace_NullConditional",
+            "value": 5133.8993188266095,
+            "unit": "ns",
+            "range": "± 92.91755562037014"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.ExpressionResolverBenchmarks.Resolve_MethodWithParams",
+            "value": 10.516020892063777,
+            "unit": "ns",
+            "range": "± 0.7902990012717744"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.TransformerBenchmarks.Transform_ConvertLoopsToLinq",
+            "value": 52.714841779607994,
+            "unit": "ns",
+            "range": "± 0.04507473258156014"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.EFCoreQueryOverheadBenchmarks.WithExpressives_NullConditional",
+            "value": 21177.301119290867,
+            "unit": "ns",
+            "range": "± 180.90536190975166"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.ExpressionReplacerBenchmarks.Replace_BlockBody",
+            "value": 5542.307392883301,
+            "unit": "ns",
+            "range": "± 49.42320879831708"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.ExpressionResolverBenchmarks.Resolve_Constructor",
+            "value": 8.365264766175171,
+            "unit": "ns",
+            "range": "± 0.09248080698806636"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.TransformerBenchmarks.Transform_FlattenTupleComparisons",
+            "value": 52.191031899945486,
+            "unit": "ns",
+            "range": "± 2.2000015049998063"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.EFCoreQueryOverheadBenchmarks.ColdStart_WithExpressives",
+            "value": 89475.53504231772,
+            "unit": "ns",
+            "range": "± 1211.3282504196256"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.ExpressionReplacerBenchmarks.Replace_DeepChain",
+            "value": 17464.368721516927,
+            "unit": "ns",
+            "range": "± 177.58572759383586"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.ExpressionResolverBenchmarks.ResolveViaReflection_Property",
+            "value": 8.323561527899333,
+            "unit": "ns",
+            "range": "± 0.15153209353376493"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.TransformerBenchmarks.ExpandExpressives_FullPipeline",
+            "value": 17136.10328832166,
+            "unit": "ns",
+            "range": "± 175.38885906815204"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.EFCoreQueryOverheadBenchmarks.ColdStart_Baseline",
+            "value": 59100.86574370285,
+            "unit": "ns",
+            "range": "± 353.2116464242581"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.ExpressionResolverBenchmarks.ResolveViaReflection_Method",
+            "value": 10.097043687211615,
+            "unit": "ns",
+            "range": "± 0.022880631593482543"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.ExpressionResolverBenchmarks.ResolveViaReflection_MethodWithParams",
+            "value": 10.636353396375974,
+            "unit": "ns",
+            "range": "± 0.20591543100155238"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.ExpressionResolverBenchmarks.ResolveViaReflection_Constructor",
+            "value": 8.470929203698269,
+            "unit": "ns",
+            "range": "± 0.18086782552549457"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillColdBuildWithNoiseBenchmarks.Cold(NoiseInvocationsPerFile: 0)",
+            "value": 5118186.686342592,
+            "unit": "ns",
+            "range": "± 36082.65647707135"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillColdBuildWithNoiseBenchmarks.Incremental_EditCallSiteFile(NoiseInvocationsPerFile: 0)",
+            "value": 584667.9679129465,
+            "unit": "ns",
+            "range": "± 3131.737116278862"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillColdBuildWithNoiseBenchmarks.Cold_E2E(NoiseInvocationsPerFile: 0)",
+            "value": 5212120.361530173,
+            "unit": "ns",
+            "range": "± 52056.08067025256"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillColdBuildWithNoiseBenchmarks.Incremental_EditCallSiteFile_E2E(NoiseInvocationsPerFile: 0)",
+            "value": 599040.789851262,
+            "unit": "ns",
+            "range": "± 13030.21754298504"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillSingleFileBenchmarks.Cold(CallSiteCount: 1)",
+            "value": 142391.68491908483,
+            "unit": "ns",
+            "range": "± 532.2153680985296"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillSingleFileBenchmarks.Incremental_EditEntityFile(CallSiteCount: 1)",
+            "value": 18475.205324300132,
+            "unit": "ns",
+            "range": "± 140.24490237822462"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillSingleFileBenchmarks.Incremental_EditQueryFile(CallSiteCount: 1)",
+            "value": 126437.48433883103,
+            "unit": "ns",
+            "range": "± 401.32333567285355"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillSingleFileBenchmarks.Cold_E2E(CallSiteCount: 1)",
+            "value": 142984.6503155048,
+            "unit": "ns",
+            "range": "± 562.1002885129706"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillSingleFileBenchmarks.Incremental_EditEntityFile_E2E(CallSiteCount: 1)",
+            "value": 18572.69137008102,
+            "unit": "ns",
+            "range": "± 174.85092870068894"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillSingleFileBenchmarks.Incremental_EditQueryFile_E2E(CallSiteCount: 1)",
+            "value": 123899.52548828124,
+            "unit": "ns",
+            "range": "± 1697.520722686098"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.GeneratorBenchmarks.RunGenerator(ExpressiveCount: 1)",
+            "value": 1173957.6429148708,
+            "unit": "ns",
+            "range": "± 89814.36057077635"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.GeneratorBenchmarks.RunGenerator_NoiseChange(ExpressiveCount: 1)",
+            "value": 1148792.1717447916,
+            "unit": "ns",
+            "range": "± 105441.68994009896"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.GeneratorBenchmarks.RunGenerator_ExpressiveChange(ExpressiveCount: 1)",
+            "value": 1149258.5388020833,
+            "unit": "ns",
+            "range": "± 92082.80854862448"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.GeneratorBenchmarks.RunGenerator_Incremental_NoiseChange(ExpressiveCount: 1)",
+            "value": 55410.61779296875,
+            "unit": "ns",
+            "range": "± 204.83883230157323"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.GeneratorBenchmarks.RunGenerator_Incremental_ExpressiveChange(ExpressiveCount: 1)",
+            "value": 295925.5245535714,
+            "unit": "ns",
+            "range": "± 31270.086521017347"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillMultiFileBenchmarks.Cold(FileCount: 1)",
+            "value": 455765.84333683894,
+            "unit": "ns",
+            "range": "± 2324.15523174229"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillMultiFileBenchmarks.Incremental_EditCallSiteFile(FileCount: 1)",
+            "value": 439694.83738425927,
+            "unit": "ns",
+            "range": "± 5912.992177372337"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillMultiFileBenchmarks.Incremental_EditNoiseFile(FileCount: 1)",
+            "value": 19326.873911176408,
+            "unit": "ns",
+            "range": "± 77.11661773527112"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillMultiFileBenchmarks.Cold_E2E(FileCount: 1)",
+            "value": 454622.2630994073,
+            "unit": "ns",
+            "range": "± 4280.986578591455"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillMultiFileBenchmarks.Incremental_EditCallSiteFile_E2E(FileCount: 1)",
+            "value": 443332.68681278935,
+            "unit": "ns",
+            "range": "± 1974.5098186632702"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillMultiFileBenchmarks.Incremental_EditNoiseFile_E2E(FileCount: 1)",
+            "value": 19784.107451302665,
+            "unit": "ns",
+            "range": "± 51.04959643315984"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillMultiFileBenchmarks.Cold(FileCount: 5)",
+            "value": 1945214.3434375,
+            "unit": "ns",
+            "range": "± 5559.285013479566"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillMultiFileBenchmarks.Incremental_EditCallSiteFile(FileCount: 5)",
+            "value": 448244.44475446426,
+            "unit": "ns",
+            "range": "± 3427.168152522822"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillMultiFileBenchmarks.Incremental_EditNoiseFile(FileCount: 5)",
+            "value": 29078.837160307787,
+            "unit": "ns",
+            "range": "± 140.88008377242403"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillMultiFileBenchmarks.Cold_E2E(FileCount: 5)",
+            "value": 1924941.6029575893,
+            "unit": "ns",
+            "range": "± 10328.891420908034"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillMultiFileBenchmarks.Incremental_EditCallSiteFile_E2E(FileCount: 5)",
+            "value": 451304.251171875,
+            "unit": "ns",
+            "range": "± 1236.596262353796"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillMultiFileBenchmarks.Incremental_EditNoiseFile_E2E(FileCount: 5)",
+            "value": 29186.76954323905,
+            "unit": "ns",
+            "range": "± 156.75692758003723"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillSingleFileBenchmarks.Cold(CallSiteCount: 10)",
+            "value": 821454.6240931919,
+            "unit": "ns",
+            "range": "± 9718.214415484075"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillSingleFileBenchmarks.Incremental_EditEntityFile(CallSiteCount: 10)",
+            "value": 19186.299882559942,
+            "unit": "ns",
+            "range": "± 72.03815433070281"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillSingleFileBenchmarks.Incremental_EditQueryFile(CallSiteCount: 10)",
+            "value": 809317.1589988426,
+            "unit": "ns",
+            "range": "± 16571.410673675964"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillSingleFileBenchmarks.Cold_E2E(CallSiteCount: 10)",
+            "value": 824903.437536169,
+            "unit": "ns",
+            "range": "± 3106.1823942655574"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillSingleFileBenchmarks.Incremental_EditEntityFile_E2E(CallSiteCount: 10)",
+            "value": 18557.6648201778,
+            "unit": "ns",
+            "range": "± 82.82339106746414"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillSingleFileBenchmarks.Incremental_EditQueryFile_E2E(CallSiteCount: 10)",
+            "value": 813728.0852864584,
+            "unit": "ns",
+            "range": "± 6680.4347403557485"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillMultiFileBenchmarks.Cold(FileCount: 10)",
+            "value": 3891498.201171875,
+            "unit": "ns",
+            "range": "± 24772.314621961545"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillMultiFileBenchmarks.Incremental_EditCallSiteFile(FileCount: 10)",
+            "value": 463919.6094098772,
+            "unit": "ns",
+            "range": "± 2858.0257245147486"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillMultiFileBenchmarks.Incremental_EditNoiseFile(FileCount: 10)",
+            "value": 40216.52917480469,
+            "unit": "ns",
+            "range": "± 137.48643502330583"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillMultiFileBenchmarks.Cold_E2E(FileCount: 10)",
+            "value": 3948517.7015086208,
+            "unit": "ns",
+            "range": "± 16579.668534819262"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillMultiFileBenchmarks.Incremental_EditCallSiteFile_E2E(FileCount: 10)",
+            "value": 468010.70985243056,
+            "unit": "ns",
+            "range": "± 1785.6338593763326"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillMultiFileBenchmarks.Incremental_EditNoiseFile_E2E(FileCount: 10)",
+            "value": 41452.32651774088,
+            "unit": "ns",
+            "range": "± 1671.1438620426122"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillColdBuildWithNoiseBenchmarks.Cold(NoiseInvocationsPerFile: 25)",
+            "value": 5239453.439453125,
+            "unit": "ns",
+            "range": "± 112918.21988632699"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillColdBuildWithNoiseBenchmarks.Incremental_EditCallSiteFile(NoiseInvocationsPerFile: 25)",
+            "value": 633220.576171875,
+            "unit": "ns",
+            "range": "± 5064.257989100341"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillColdBuildWithNoiseBenchmarks.Cold_E2E(NoiseInvocationsPerFile: 25)",
+            "value": 5434558.74296875,
+            "unit": "ns",
+            "range": "± 45375.54220893997"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillColdBuildWithNoiseBenchmarks.Incremental_EditCallSiteFile_E2E(NoiseInvocationsPerFile: 25)",
+            "value": 626839.7832728794,
+            "unit": "ns",
+            "range": "± 9477.280424159522"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillSingleFileBenchmarks.Cold(CallSiteCount: 100)",
+            "value": 7630931.35,
+            "unit": "ns",
+            "range": "± 64856.68158267386"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillSingleFileBenchmarks.Incremental_EditEntityFile(CallSiteCount: 100)",
+            "value": 18712.597970468025,
+            "unit": "ns",
+            "range": "± 113.24257023819477"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillSingleFileBenchmarks.Incremental_EditQueryFile(CallSiteCount: 100)",
+            "value": 7750386.963020833,
+            "unit": "ns",
+            "range": "± 50222.63100721424"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillSingleFileBenchmarks.Cold_E2E(CallSiteCount: 100)",
+            "value": 7696151.408405173,
+            "unit": "ns",
+            "range": "± 32549.364452330832"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillSingleFileBenchmarks.Incremental_EditEntityFile_E2E(CallSiteCount: 100)",
+            "value": 18794.321762650103,
+            "unit": "ns",
+            "range": "± 73.23914889580401"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillSingleFileBenchmarks.Incremental_EditQueryFile_E2E(CallSiteCount: 100)",
+            "value": 7772493.7623922415,
+            "unit": "ns",
+            "range": "± 49215.41184948216"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.GeneratorBenchmarks.RunGenerator(ExpressiveCount: 100)",
+            "value": 43301512.97126436,
+            "unit": "ns",
+            "range": "± 4250287.136780849"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.GeneratorBenchmarks.RunGenerator_NoiseChange(ExpressiveCount: 100)",
+            "value": 41308458.641666666,
+            "unit": "ns",
+            "range": "± 3547920.548560867"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.GeneratorBenchmarks.RunGenerator_ExpressiveChange(ExpressiveCount: 100)",
+            "value": 38199766.233333334,
+            "unit": "ns",
+            "range": "± 4167383.8566352664"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.GeneratorBenchmarks.RunGenerator_Incremental_NoiseChange(ExpressiveCount: 100)",
+            "value": 481235.9229561942,
+            "unit": "ns",
+            "range": "± 3360.018993706546"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.GeneratorBenchmarks.RunGenerator_Incremental_ExpressiveChange(ExpressiveCount: 100)",
+            "value": 3255265.0002790177,
+            "unit": "ns",
+            "range": "± 218237.94474285026"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillColdBuildWithNoiseBenchmarks.Cold(NoiseInvocationsPerFile: 100)",
+            "value": 6084316.338831019,
+            "unit": "ns",
+            "range": "± 90769.40320315842"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillColdBuildWithNoiseBenchmarks.Incremental_EditCallSiteFile(NoiseInvocationsPerFile: 100)",
+            "value": 690059.5393992456,
+            "unit": "ns",
+            "range": "± 3353.366216637493"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillColdBuildWithNoiseBenchmarks.Cold_E2E(NoiseInvocationsPerFile: 100)",
+            "value": 6111025.5234375,
+            "unit": "ns",
+            "range": "± 98460.36469420003"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.PolyfillColdBuildWithNoiseBenchmarks.Incremental_EditCallSiteFile_E2E(NoiseInvocationsPerFile: 100)",
+            "value": 697248.7930410879,
+            "unit": "ns",
+            "range": "± 4575.544463287969"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.GeneratorBenchmarks.RunGenerator(ExpressiveCount: 1000)",
+            "value": 311932707.7692308,
+            "unit": "ns",
+            "range": "± 4985081.55407123"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.GeneratorBenchmarks.RunGenerator_NoiseChange(ExpressiveCount: 1000)",
+            "value": 318269177.2692308,
+            "unit": "ns",
+            "range": "± 3518255.4492962505"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.GeneratorBenchmarks.RunGenerator_ExpressiveChange(ExpressiveCount: 1000)",
+            "value": 312003997,
+            "unit": "ns",
+            "range": "± 2629099.048171582"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.GeneratorBenchmarks.RunGenerator_Incremental_NoiseChange(ExpressiveCount: 1000)",
+            "value": 7225829.361979167,
+            "unit": "ns",
+            "range": "± 26997.556670891154"
+          },
+          {
+            "name": "ExpressiveSharp.Benchmarks.GeneratorBenchmarks.RunGenerator_Incremental_ExpressiveChange(ExpressiveCount: 1000)",
+            "value": 10892518.386160715,
+            "unit": "ns",
+            "range": "± 33312.86502809398"
           }
         ]
       }
