@@ -408,7 +408,7 @@ namespace ExpressiveSharp
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IExpressiveQueryable<T> UnionBy<T, TKey>(
             this IExpressiveQueryable<T> source,
-            IEnumerable<TKey> second,
+            IEnumerable<T> second,
             Func<T, TKey> keySelector)
             => throw new UnreachableException(InterceptedMessage);
 
@@ -551,7 +551,7 @@ namespace ExpressiveSharp
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static IExpressiveQueryable<T> UnionBy<T, TKey>(
             this IExpressiveQueryable<T> source,
-            IEnumerable<TKey> second,
+            IEnumerable<T> second,
             Func<T, TKey> keySelector,
             IEqualityComparer<TKey>? comparer)
             => throw new UnreachableException(InterceptedMessage);

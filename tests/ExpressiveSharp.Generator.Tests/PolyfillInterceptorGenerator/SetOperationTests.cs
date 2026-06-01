@@ -75,7 +75,7 @@ public class SetOperationTests : GeneratorTestBase
                 class Order { public string Tag { get; set; } }
                 class TestClass
                 {
-                    public void Run(System.Linq.IQueryable<Order> query, System.Collections.Generic.IEnumerable<string> extra)
+                    public void Run(System.Linq.IQueryable<Order> query, System.Collections.Generic.IEnumerable<Order> extra)
                     {
                         query.AsExpressive()
                              .UnionBy(extra, o => o.Tag)

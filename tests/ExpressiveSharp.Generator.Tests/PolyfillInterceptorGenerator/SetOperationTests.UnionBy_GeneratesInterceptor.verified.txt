@@ -8,7 +8,7 @@ namespace ExpressiveSharp.Generated.Interceptors
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
         internal static global::ExpressiveSharp.IExpressiveQueryable<global::TestNs.Order> __Polyfill_UnionBy_361d_10_18(
             this global::ExpressiveSharp.IExpressiveQueryable<global::TestNs.Order> source,
-            global::System.Collections.Generic.IEnumerable<string> second,
+            global::System.Collections.Generic.IEnumerable<global::TestNs.Order> second,
                     global::System.Func<global::TestNs.Order, string> __func)
         {
             // Source: o => o.Tag
