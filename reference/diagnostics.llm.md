@@ -39,6 +39,7 @@ See [Troubleshooting](./troubleshooting) for symptom-oriented guidance -- find t
 | [EXP0034](#exp0034) | Error | `[ExpressiveProperty]` requires an instance stub | -- |
 | [EXP0035](#exp0035) | Error | `[ExpressiveProperty]` target shadows inherited member | -- |
 | [EXP0036](#exp0036) | Info | `IExpressiveQueryable<T>` chain dropped to plain `IQueryable<T>` | -- |
+| [EXP0038](#exp0038) | Warning | `[Expressive]` member is virtual and will not dispatch polymorphically | -- |
 | [EXP1001](#exp1001) | Warning | Replace `[Projectable]` with `[Expressive]` | [Replace attribute](#exp1001-fix) |
 | [EXP1002](#exp1002) | Warning | Replace `UseProjectables()` with `UseExpressives()` | [Replace method call](#exp1002-fix) |
 | [EXP1003](#exp1003) | Warning | Replace Projectables namespace | [Replace namespace](#exp1003-fix) |
@@ -694,6 +695,53 @@ db.Orders.AsExpressiveDbSet()
 
 - `.AsQueryable()` — the standard explicit downcast — is sanctioned and never reported.
 - Marking the offending method with `[NotExpressive]` suppresses the diagnostic at every call site, for cases where the dropout is intentional (the helper performs work that genuinely needs to run on the client).
+
+---
+
+## Virtual Member Diagnostic (EXP0038)
+
+### EXP0038 -- Virtual member will not dispatch polymorphically {#exp0038}
+
+**Severity:** Warning
+**Category:** Design
+
+**Message:**
+```
+[Expressive] member '{0}' is virtual, abstract, or an override. When it is expanded into an
+expression tree (e.g. for EF Core or MongoDB), the call is resolved using the static (declared)
+type, so an overridden body in a derived type is never used. Test the runtime type explicitly
+(e.g. 'x switch { Derived d => d.Member, _ => x.Member }'), or move the logic into a non-virtual
+[Expressive] static/extension method.
+```
+
+**Cause:** An `[Expressive]` member is declared `virtual`, `abstract`, or `override` (a default interface member counts -- it is implicitly virtual). Expression-tree expansion happens at compile time and only sees the **static (declared) type** of the receiver, so it cannot honor C# virtual dispatch. When the member is expanded for a query provider, the **base** body is always inlined; an overridden body in a derived type is never used.
+
+This differs from compiling the expression to a delegate and invoking it in memory, where the CLR dispatches on the runtime type.
+
+**Fix:** Branch on the runtime type so each arm has a statically-typed receiver, or move the logic into a single non-virtual `[Expressive]` static/extension method. See [Limitations: virtual and polymorphic members](../advanced/limitations#virtual-polymorphic-members) for full examples.
+
+```csharp
+// Warning: virtual [Expressive] member
+[Expressive]
+public virtual string Describe() => $"Animal: {Name}";
+
+// Fix 1: test the runtime type explicitly
+db.Animals.AsExpressive().Select(a => a switch
+{
+    Dog d => d.Describe(),
+    _     => a.Describe(),
+});
+
+// Fix 2: non-virtual [Expressive] extension method that does the type test once
+[Expressive]
+public static string Describe(this Animal a) => a switch
+{
+    Dog d => $"Dog: {d.Name}",
+    _     => $"Animal: {a.Name}",
+};
+```
+
+If a virtual member is intentional (you only ever compile it to an in-memory delegate, never translate it through a provider), suppress the warning with `#pragma warning disable EXP0038` or `<NoWarn>$(NoWarn);EXP0038</NoWarn>`.
 
 ---
 
