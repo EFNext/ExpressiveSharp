@@ -209,6 +209,74 @@ public class DiagnosticTests : GeneratorTestBase
             "Expected EXP0014 for unresolvable target type in [ExpressiveFor]");
     }
 
+    [TestMethod]
+    public void VirtualMethod_ReportsEXP0038()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class Animal {
+                    public string Name { get; set; }
+
+                    [Expressive]
+                    public virtual string Describe() => "Animal: " + Name;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        var diag = result.Diagnostics.FirstOrDefault(d => d.Id == "EXP0038");
+        Assert.IsNotNull(diag, "Expected EXP0038 for a virtual [Expressive] member");
+        Assert.AreEqual(DiagnosticSeverity.Warning, diag.Severity);
+        Assert.IsTrue(result.GeneratedTrees.Length > 0,
+            "Generator should still produce output alongside the EXP0038 warning");
+    }
+
+    [TestMethod]
+    public void VirtualAndOverrideProperties_BothReportEXP0038()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class Animal {
+                    public string Name { get; set; }
+
+                    [Expressive]
+                    public virtual string Label => Name;
+                }
+
+                class Dog : Animal {
+                    [Expressive]
+                    public override string Label => "Dog: " + Name;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(2, result.Diagnostics.Count(d => d.Id == "EXP0038"),
+            "Expected EXP0038 for both the virtual base property and its override");
+    }
+
+    [TestMethod]
+    public void NonVirtualMember_DoesNotReportEXP0038()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class Animal {
+                    public string Name { get; set; }
+
+                    [Expressive]
+                    public string Describe() => "Animal: " + Name;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.IsFalse(result.Diagnostics.Any(d => d.Id == "EXP0038"),
+            "A non-virtual [Expressive] member must not report EXP0038");
+    }
+
     // NOTE: EXP0010 (InterceptorEmissionFailed) is intentionally not tested.
     // It is a catch-all for unhandled exceptions during interceptor generation
     // in PolyfillInterceptorGenerator. No natural user input triggers it — it

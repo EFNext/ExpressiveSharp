@@ -111,6 +111,67 @@ static bool IsNullOrWhiteSpace(string? s)
 ```
 :::
 
+## Virtual and Polymorphic Members {#virtual-polymorphic-members}
+
+Expression-tree expansion happens at **compile time** and works purely from the **static (declared) type** of each receiver. It has no runtime instance to inspect, so it cannot honor C# virtual dispatch.
+
+If you mark a `virtual`, `abstract`, or `override` member `[Expressive]` (a default interface member counts too -- it is implicitly virtual), the generator reports [EXP0038](../reference/diagnostics#exp0038). When the member is expanded for a query provider (EF Core, MongoDB), the call is resolved against the declared type and the **base** body is always inlined -- an overridden body in a derived type is never used:
+
+```csharp
+public class Animal
+{
+    public string Name { get; set; } = "";
+
+    [Expressive] // EXP0038
+    public virtual string Describe() => $"Animal: {Name}";
+}
+
+public class Dog : Animal
+{
+    [Expressive] // EXP0038
+    public override string Describe() => $"Dog: {Name}";
+}
+
+// The static type is Animal, so expansion inlines the BASE body -- even for Dog rows:
+db.Animals.AsExpressive().Select(a => a.Describe()); // => "Animal: {Name}" in SQL
+```
+
+This is by design: a query provider translates the expression to SQL/MQL and never materializes a CLR object, so there is no runtime type to dispatch on. (Contrast this with compiling the expression to a delegate and invoking it in memory, where the CLR *does* dispatch on the runtime type.)
+
+### Recommended: test the runtime type explicitly
+
+Branch on the concrete type so each arm has a statically-typed receiver. Every branch then expands to the correct body and the provider emits a `CASE`:
+
+```csharp
+db.Animals.AsExpressive().Select(a => a switch
+{
+    Dog d => d.Describe(),   // expands Dog.Describe
+    _     => a.Describe(),   // expands Animal.Describe
+});
+```
+
+### Recommended: use a non-virtual static/extension method
+
+Move the logic into a single non-virtual `[Expressive]` method that performs the type test itself. This keeps the polymorphic shape in one place and produces no EXP0038:
+
+```csharp
+public static class AnimalExpressions
+{
+    [Expressive]
+    public static string Describe(this Animal a) => a switch
+    {
+        Dog d => $"Dog: {d.Name}",
+        _     => $"Animal: {a.Name}",
+    };
+}
+
+db.Animals.AsExpressive().Select(a => a.Describe());
+```
+
+::: tip
+Declaring entity members `virtual` is common in EF Core because it enables lazy-loading proxies. That remains fine for plain navigation and scalar properties -- EXP0038 only concerns members you *also* mark `[Expressive]`.
+:::
+
 ## Performance: First-Execution Overhead
 
 `ExpandExpressives()` walks the expression tree and substitutes `[Expressive]` member references on every query execution. This adds a small cost to the first execution of each unique query shape. EF Core caches the compiled query afterward, so subsequent executions of the same shape skip the expansion entirely.

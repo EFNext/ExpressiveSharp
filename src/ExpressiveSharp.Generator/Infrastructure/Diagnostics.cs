@@ -198,4 +198,15 @@ static internal class Diagnostics
         category: "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    // EXP0036/EXP0037 live in WindowFunctionLiteralArgsAnalyzer (EntityFrameworkCore.CodeFixers).
+
+    public readonly static DiagnosticDescriptor VirtualMemberDispatchedStatically = new DiagnosticDescriptor(
+        id: "EXP0038",
+        title: "[Expressive] member is virtual and will not dispatch polymorphically",
+        messageFormat: "[Expressive] member '{0}' is virtual, abstract, or an override. When it is expanded into an expression tree (e.g. for EF Core or MongoDB), the call is resolved using the static (declared) type, so an overridden body in a derived type is never used. Test the runtime type explicitly (e.g. 'x switch {{ Derived d => d.Member, _ => x.Member }}'), or move the logic into a non-virtual [Expressive] static/extension method.",
+        category: "Design",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Expression-tree expansion happens at compile time and only sees the static (declared) type of the receiver, so it cannot honor C# virtual dispatch. Declaring an [Expressive] member virtual/abstract/override therefore silently expands the base body for query providers. This differs from compiling the expression to a delegate and invoking it in memory, where the CLR dispatches on the runtime type.");
 }

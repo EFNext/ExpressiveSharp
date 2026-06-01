@@ -229,6 +229,17 @@ public class ExpressiveGenerator : IIncrementalGenerator
                 factoryCandidate.Identifier.Text));
         }
 
+        // EXP0038: virtual/abstract/override members are expanded using the static (declared)
+        // type. Once the body is inlined into an expression tree (EF Core, MongoDB, ...), C#
+        // virtual dispatch is lost, so an overridden body in a derived type is never used.
+        if (memberSymbol.IsVirtual || memberSymbol.IsAbstract || memberSymbol.IsOverride)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                Infrastructure.Diagnostics.VirtualMemberDispatchedStatically,
+                memberSymbol.Locations.Length > 0 ? memberSymbol.Locations[0] : Location.None,
+                memberSymbol.Name));
+        }
+
         var generatedClassName = ExpressionClassNameGenerator.GenerateClassName(expressive.ClassNamespace, expressive.NestedInClassNames);
         var methodSuffix = ExpressionClassNameGenerator.GenerateMethodSuffix(expressive.MemberName, expressive.ParameterTypeNames);
         var generatedFileName = expressive.ClassTypeParameterList is not null

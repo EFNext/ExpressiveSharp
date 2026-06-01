@@ -7,16 +7,33 @@ namespace ExpressiveSharp.IntegrationTests.Tests;
 public class ExpansionEdgeCasesTests
 {
     [TestMethod]
-    public void VirtualMethod_ExpansionPreservesPolymorphicDispatch()
+    public void VirtualMethod_Expansion_UsesStaticDeclaredType()
     {
         var derived = new VirtualDispatchDerived { Id = 7, Name = "x" };
-        var directCall = ((VirtualDispatchBase)derived).Describe();
 
         Expression<Func<VirtualDispatchBase, string>> expr = b => b.Describe();
         var expanded = (Expression<Func<VirtualDispatchBase, string>>)expr.ExpandExpressives();
         var fromExpansion = expanded.Compile()(derived);
 
-        Assert.AreEqual(directCall, fromExpansion);
+        Assert.AreEqual("base#7", fromExpansion);
+    }
+
+    [TestMethod]
+    public void BaseSlotProperty_ExpandsBaseBody_NotOverride()
+    {
+        Expression<Func<ScoreDerived, int>> expr = d => d.Score;
+        var expanded = (Expression<Func<ScoreDerived, int>>)expr.ExpandExpressives();
+
+        Assert.AreEqual(10, expanded.Compile()(new ScoreDerived { Id = 5 }));
+    }
+
+    [TestMethod]
+    public void BaseSlotMethod_ExpandsBaseBody_NotOverride()
+    {
+        Expression<Func<GreetDerived, int>> expr = d => d.Greet();
+        var expanded = (Expression<Func<GreetDerived, int>>)expr.ExpandExpressives();
+
+        Assert.AreEqual(30, expanded.Compile()(new GreetDerived { Id = 3 }));
     }
 
     [TestMethod]
@@ -107,6 +124,7 @@ public class ExpansionEdgeCasesTests
     }
 }
 
+#pragma warning disable EXP0038
 public class VirtualDispatchBase
 {
     public int Id { get; set; }
@@ -122,6 +140,35 @@ public class VirtualDispatchDerived : VirtualDispatchBase
     [Expressive]
     public override string Describe() => $"derived#{Id}/{Name}";
 }
+
+public class ScoreBase
+{
+    public int Id { get; set; }
+
+    [Expressive]
+    public virtual int Score => Id * 2;
+}
+
+public class ScoreDerived : ScoreBase
+{
+    [Expressive]
+    public override int Score => base.Score + 1;
+}
+
+public class GreetBase
+{
+    public int Id { get; set; }
+
+    [Expressive]
+    public virtual int Greet() => Id * 10;
+}
+
+public class GreetDerived : GreetBase
+{
+    [Expressive]
+    public override int Greet() => base.Greet() + 1;
+}
+#pragma warning restore EXP0038
 
 public class RecursiveTree
 {
