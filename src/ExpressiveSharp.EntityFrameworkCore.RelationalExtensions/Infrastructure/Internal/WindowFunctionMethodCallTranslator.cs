@@ -81,7 +81,7 @@ internal sealed class WindowFunctionMethodCallTranslator : IMethodCallTranslator
                     // cast the argument so SQL computes a floating-point AVG, not integer division.
                     [NeedsFloatCast(expr, method.ReturnType)
                         ? _sqlExpressionFactory.ApplyDefaultTypeMapping(
-                            _sqlExpressionFactory.Convert(expr, method.ReturnType))
+                            _sqlExpressionFactory.Convert(expr, typeof(double)))
                         : expr],
                     spec, method.ReturnType),
 
@@ -209,7 +209,7 @@ internal sealed class WindowFunctionMethodCallTranslator : IMethodCallTranslator
     // SQL Server performs integer division for AVG(int) — cast the argument when the
     // CLR return type is floating-point but the expression is an integer type.
     private static bool NeedsFloatCast(SqlExpression expr, Type returnType) =>
-        returnType == typeof(double)
+        (returnType == typeof(double) || returnType == typeof(double?))
         && expr.Type is var t
         && (t == typeof(int) || t == typeof(long) || t == typeof(int?) || t == typeof(long?));
 
