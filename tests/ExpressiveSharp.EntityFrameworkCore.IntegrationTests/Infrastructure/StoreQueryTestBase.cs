@@ -190,4 +190,23 @@ public abstract class StoreQueryTestBase : EFCoreTestBase
         // Totals: 240, 1500, 30, 250 → clamped to [0, 200]: 200, 200, 30, 200
         CollectionAssert.AreEqual(new[] { 200.0, 200.0, 30.0, 200.0 }, results);
     }
+
+    [TestMethod]
+    public async Task VirtualExpressiveMember_FiltersInDatabase()
+    {
+        // Regression for the reverted "bad commit": a virtual [Expressive] member must expand
+        // (using its static/declared body) and translate to SQL. The polymorphism gate used to
+        // skip expansion, so LineItem.IsExpensive reached the provider untranslated and threw.
+        // Compare against the database's own non-expressive predicate so the assertion is
+        // independent of the seed details.
+        Expression<Func<LineItem, bool>> expr = li => li.IsExpensive;
+        var expanded = (Expression<Func<LineItem, bool>>)expr.ExpandExpressives();
+
+        var expected = await Context.Set<LineItem>().Where(li => li.UnitPrice > 40).CountAsync();
+        Assert.IsTrue(expected > 0, "Seed should contain at least one expensive line item.");
+
+        var actual = await Context.Set<LineItem>().Where(expanded).CountAsync();
+
+        Assert.AreEqual(expected, actual);
+    }
 }

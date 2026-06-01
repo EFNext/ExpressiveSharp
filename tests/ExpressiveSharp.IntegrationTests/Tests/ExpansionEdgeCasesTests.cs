@@ -7,16 +7,22 @@ namespace ExpressiveSharp.IntegrationTests.Tests;
 public class ExpansionEdgeCasesTests
 {
     [TestMethod]
-    public void VirtualMethod_ExpansionPreservesPolymorphicDispatch()
+    public void VirtualMethod_Expansion_UsesStaticDeclaredType()
     {
+        // Expression-tree expansion runs at compile time and only sees the *static* (declared)
+        // type of the receiver — it cannot honor C# virtual dispatch. Expanding `b.Describe()`
+        // where `b` is statically typed VirtualDispatchBase therefore inlines the BASE body,
+        // even though the runtime instance is a VirtualDispatchDerived. This is the documented
+        // behavior EXP0038 warns about: query providers (EF Core, MongoDB) depend on it because
+        // they translate the tree to SQL/MQL and never see a runtime object. To branch on the
+        // concrete type, test it explicitly — see docs/advanced/limitations.md.
         var derived = new VirtualDispatchDerived { Id = 7, Name = "x" };
-        var directCall = ((VirtualDispatchBase)derived).Describe();
 
         Expression<Func<VirtualDispatchBase, string>> expr = b => b.Describe();
         var expanded = (Expression<Func<VirtualDispatchBase, string>>)expr.ExpandExpressives();
         var fromExpansion = expanded.Compile()(derived);
 
-        Assert.AreEqual(directCall, fromExpansion);
+        Assert.AreEqual("base#7", fromExpansion);
     }
 
     [TestMethod]
@@ -107,6 +113,10 @@ public class ExpansionEdgeCasesTests
     }
 }
 
+// These types deliberately declare a virtual/override [Expressive] member to exercise the
+// static-type expansion behavior verified by VirtualMethod_Expansion_UsesStaticDeclaredType.
+// EXP0038 fires exactly because of that shape, so it is suppressed here on purpose.
+#pragma warning disable EXP0038
 public class VirtualDispatchBase
 {
     public int Id { get; set; }
@@ -122,6 +132,7 @@ public class VirtualDispatchDerived : VirtualDispatchBase
     [Expressive]
     public override string Describe() => $"derived#{Id}/{Name}";
 }
+#pragma warning restore EXP0038
 
 public class RecursiveTree
 {
