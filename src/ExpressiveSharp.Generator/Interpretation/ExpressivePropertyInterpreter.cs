@@ -19,7 +19,7 @@ static internal class ExpressivePropertyInterpreter
             SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
             | SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
 
-    // semanticModel must be from the *original* (non-augmented) compilation so that the EXP0031
+    // semanticModel must be from the *original* (non-augmented) compilation so that the EXP0018
     // conflict check and ChooseBackingNames don't observe siblings synthesized by this pipeline.
     // bodyBindingSemanticModel may come from a compilation augmented with synthesized partials so
     // that one [ExpressiveProperty] body can reference another's synthesized target. Pass null to
@@ -73,7 +73,7 @@ static internal class ExpressivePropertyInterpreter
             return null;
         }
 
-        // Declared members first (EXP0031) because that's the more common mistake and deserves the
+        // Declared members first (EXP0018) because that's the more common mistake and deserves the
         // dedicated "use [ExpressiveFor] instead" steering.
         if (containingType.GetMembers(targetName!).Any(m =>
             m is IPropertySymbol or IMethodSymbol or IFieldSymbol or IEventSymbol))

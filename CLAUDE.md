@@ -119,7 +119,7 @@ ExpressiveSharp.EntityFrameworkCore.CodeFixers (Roslyn analyzer, netstandard2.0)
 
 ### Diagnostics
 
-22 diagnostic codes (EXP0001–EXP0012, EXP0018 in `src/ExpressiveSharp.Generator/Infrastructure/Diagnostics.cs`, EXP0013 in CodeFixers, EXP0014–EXP0020 for `[ExpressiveFor]` validation, EXP0036/EXP0037 in `WindowFunctionLiteralArgsAnalyzer`). Key ones: EXP0001 (requires body), EXP0004 (block body requires opt-in), EXP0008 (unsupported operation, default value used), EXP0018 (unsupported operation ignored, e.g. alignment specifiers), EXP0019 (`[ExpressiveFor]` conflicts with `[Expressive]`), EXP0036 (`Ntile` non-positive literal), EXP0037 (`Lag`/`Lead` negative literal offset).
+34 diagnostic codes: a contiguous `EXP0001–EXP0031` plus the migration band `EXP1001–EXP1003`. Generator diagnostics live in `src/ExpressiveSharp.Generator/Infrastructure/Diagnostics.cs` (`EXP0001–EXP0012` core `[Expressive]`, `EXP0013–EXP0017` `[ExpressiveFor]`, `EXP0018–EXP0022` `[ExpressiveProperty]`, `EXP0023` ignored operation, `EXP0024` virtual member); analyzer diagnostics `EXP0025–EXP0029` in `ExpressiveSharp.CodeFixers`; window-function diagnostics `EXP0030`/`EXP0031` in `WindowFunctionLiteralArgsAnalyzer` (`EntityFrameworkCore.CodeFixers`); migration `EXP1001–EXP1003` in `MigrationAnalyzer`. The canonical reference is `docs/reference/diagnostics.md`. Key ones: EXP0001 (requires body), EXP0004 (block body requires opt-in), EXP0008 (unsupported operation, default value used), EXP0023 (unsupported operation ignored, e.g. alignment specifiers), EXP0016 (`[ExpressiveFor]` conflicts with `[Expressive]`), EXP0030 (`Ntile` non-positive literal), EXP0031 (`Lag`/`Lead` negative literal offset).
 
 ## Testing
 

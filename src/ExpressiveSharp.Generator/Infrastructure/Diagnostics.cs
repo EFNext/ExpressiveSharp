@@ -92,9 +92,6 @@ static internal class Diagnostics
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
-    // EXP0013 (MemberCouldBeExpressive) is emitted by MissingExpressiveAnalyzer
-    // in ExpressiveSharp.CodeFixers so VS can pair it with the code fix provider.
-
     public readonly static DiagnosticDescriptor FactoryMethodShouldBeConstructor = new DiagnosticDescriptor(
         id: "EXP0012",
         title: "[Expressive] factory method can be converted to a constructor",
@@ -104,7 +101,7 @@ static internal class Diagnostics
         isEnabledByDefault: true);
 
     public readonly static DiagnosticDescriptor ExpressiveForTargetTypeNotFound = new DiagnosticDescriptor(
-        id: "EXP0014",
+        id: "EXP0013",
         title: "[ExpressiveFor] target type not found",
         messageFormat: "[ExpressiveFor] target type '{0}' could not be resolved",
         category: "Design",
@@ -112,35 +109,26 @@ static internal class Diagnostics
         isEnabledByDefault: true);
 
     public readonly static DiagnosticDescriptor ExpressiveForMemberNotFound = new DiagnosticDescriptor(
-        id: "EXP0015",
+        id: "EXP0014",
         title: "[ExpressiveFor] target member not found",
         messageFormat: "No member '{0}' found on type '{1}' matching the stub's parameter signature",
         category: "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    // EXP0016 (ExpressiveForStubMustBeStatic) is retired — instance stubs are now permitted
-    // on the target type itself. Constructor stubs remain static-only; signature mismatches fall
-    // back to EXP0015 (ExpressiveForMemberNotFound).
+    // Note: instance stubs are permitted on the target type itself; constructor stubs remain
+    // static-only. Signature mismatches fall back to EXP0014 (ExpressiveForMemberNotFound).
 
     public readonly static DiagnosticDescriptor ExpressiveForReturnTypeMismatch = new DiagnosticDescriptor(
-        id: "EXP0017",
+        id: "EXP0015",
         title: "[ExpressiveFor] return type mismatch",
         messageFormat: "[ExpressiveFor] return type mismatch for '{0}': target returns '{1}' but stub returns '{2}'",
         category: "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public readonly static DiagnosticDescriptor IgnoredOperation = new DiagnosticDescriptor(
-        id: "EXP0018",
-        title: "Unsupported operation ignored",
-        messageFormat: "Expression contains an unsupported operation ({0}). The operation will be ignored and the surrounding expression emitted without it.",
-        category: "Design",
-        DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
-
     public readonly static DiagnosticDescriptor ExpressiveForConflictsWithExpressive = new DiagnosticDescriptor(
-        id: "EXP0019",
+        id: "EXP0016",
         title: "[ExpressiveFor] conflicts with [Expressive]",
         messageFormat: "Target member '{0}' on type '{1}' already has [Expressive]; remove [ExpressiveFor] or [Expressive]",
         category: "Design",
@@ -148,19 +136,15 @@ static internal class Diagnostics
         isEnabledByDefault: true);
 
     public readonly static DiagnosticDescriptor ExpressiveForDuplicateMapping = new DiagnosticDescriptor(
-        id: "EXP0020",
+        id: "EXP0017",
         title: "Duplicate [ExpressiveFor] mapping",
         messageFormat: "Duplicate [ExpressiveFor] mapping for member '{0}' on type '{1}'; only one stub per target member is allowed",
         category: "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    // EXP0021–EXP0030 (Projectable diagnostics) were retired when the
-    // [Expressive(Projectable = true)] feature was superseded by [ExpressiveProperty].
-    // The codes are not reused.
-
     public readonly static DiagnosticDescriptor ExpressivePropertyTargetExists = new DiagnosticDescriptor(
-        id: "EXP0031",
+        id: "EXP0018",
         title: "[ExpressiveProperty] target name is already defined",
         messageFormat: "[ExpressiveProperty] target name '{0}' is already defined on '{1}' — rename the stub, or use [ExpressiveFor(nameof({0}))] to map onto the existing member instead",
         category: "Design",
@@ -168,7 +152,7 @@ static internal class Diagnostics
         isEnabledByDefault: true);
 
     public readonly static DiagnosticDescriptor ExpressivePropertyRequiresPartial = new DiagnosticDescriptor(
-        id: "EXP0032",
+        id: "EXP0019",
         title: "[ExpressiveProperty] requires a partial containing type",
         messageFormat: "[ExpressiveProperty] requires the containing type '{0}' to be declared 'partial' (applies to class, struct, and record)",
         category: "Design",
@@ -176,7 +160,7 @@ static internal class Diagnostics
         isEnabledByDefault: true);
 
     public readonly static DiagnosticDescriptor ExpressivePropertyRequiresExpressionBody = new DiagnosticDescriptor(
-        id: "EXP0033",
+        id: "EXP0020",
         title: "[ExpressiveProperty] requires an expression-bodied property stub",
         messageFormat: "[ExpressiveProperty] must be placed on a property with an expression body '=> expr' — accessor-list forms and method stubs are not supported",
         category: "Design",
@@ -184,7 +168,7 @@ static internal class Diagnostics
         isEnabledByDefault: true);
 
     public readonly static DiagnosticDescriptor ExpressivePropertyInstanceOnly = new DiagnosticDescriptor(
-        id: "EXP0034",
+        id: "EXP0021",
         title: "[ExpressiveProperty] requires an instance stub",
         messageFormat: "[ExpressiveProperty] is not supported on static stubs — stub '{0}' must be declared as an instance member",
         category: "Design",
@@ -192,21 +176,35 @@ static internal class Diagnostics
         isEnabledByDefault: true);
 
     public readonly static DiagnosticDescriptor ExpressivePropertyShadowsInherited = new DiagnosticDescriptor(
-        id: "EXP0035",
+        id: "EXP0022",
         title: "[ExpressiveProperty] target shadows inherited member",
         messageFormat: "[ExpressiveProperty] target name '{0}' shadows an inherited member on '{1}' — rename the target to avoid silent hiding, or drop [ExpressiveProperty] and use [Expressive] on an override",
         category: "Design",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    // EXP0036/EXP0037 live in WindowFunctionLiteralArgsAnalyzer (EntityFrameworkCore.CodeFixers).
+    public readonly static DiagnosticDescriptor IgnoredOperation = new DiagnosticDescriptor(
+        id: "EXP0023",
+        title: "Unsupported operation ignored",
+        messageFormat: "Expression contains an unsupported operation ({0}). The operation will be ignored and the surrounding expression emitted without it.",
+        category: "Design",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
 
     public readonly static DiagnosticDescriptor VirtualMemberDispatchedStatically = new DiagnosticDescriptor(
-        id: "EXP0038",
+        id: "EXP0024",
         title: "[Expressive] member is virtual and will not dispatch polymorphically",
         messageFormat: "[Expressive] member '{0}' is virtual, abstract, or an override. When it is expanded into an expression tree (e.g. for EF Core or MongoDB), the call is resolved using the static (declared) type, so an overridden body in a derived type is never used. Test the runtime type explicitly (e.g. 'x switch {{ Derived d => d.Member, _ => x.Member }}'), or move the logic into a non-virtual [Expressive] static/extension method.",
         category: "Design",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Expression-tree expansion happens at compile time and only sees the static (declared) type of the receiver, so it cannot honor C# virtual dispatch. Declaring an [Expressive] member virtual/abstract/override therefore silently expands the base body for query providers. This differs from compiling the expression to a delegate and invoking it in memory, where the CLR dispatches on the runtime type.");
+
+    // Diagnostics defined outside this file:
+    //   EXP0025 MemberCouldBeExpressive, EXP0026 StubNotResolved, EXP0027 NoStubExists,
+    //   EXP0028 PlainQueryableMissingAsExpressive, EXP0029 ExpressiveQueryableDropout
+    //     — analyzers in ExpressiveSharp.CodeFixers (paired with their code fix providers).
+    //   EXP0030 NtileRequiresPositiveBuckets, EXP0031 NavigationOffsetMustBeNonNegative
+    //     — WindowFunctionLiteralArgsAnalyzer in ExpressiveSharp.EntityFrameworkCore.CodeFixers.
+    //   EXP1001–EXP1003 — Projectables migration (MigrationAnalyzer, same assembly).
 }

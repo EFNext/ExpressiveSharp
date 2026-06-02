@@ -177,10 +177,10 @@ public sealed class AddExpressiveCodeFixProviderTests : GeneratorTestBase
             System.Collections.Immutable.ImmutableArray.Create<DiagnosticAnalyzer>(analyzer));
 
         var analyzerDiagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync(CancellationToken.None);
-        var diagnostic = analyzerDiagnostics.FirstOrDefault(d => d.Id == "EXP0013");
-        Assert.IsNotNull(diagnostic, "Expected EXP0013 diagnostic to be emitted");
+        var diagnostic = analyzerDiagnostics.FirstOrDefault(d => d.Id == "EXP0025");
+        Assert.IsNotNull(diagnostic, "Expected EXP0025 diagnostic to be emitted");
         Assert.IsTrue(diagnostic.AdditionalLocations.Count > 0,
-            "Expected additional location (declaration) on EXP0013");
+            "Expected additional location (declaration) on EXP0025");
 
         var usageTree = diagnostic.Location.SourceTree;
         Assert.IsNotNull(usageTree, "Diagnostic should have a source tree");

@@ -8,17 +8,17 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace ExpressiveSharp.CodeFixers;
 
 /// <summary>
-/// Reports EXP0021 when a LINQ method on an <c>IExpressiveQueryable&lt;T&gt;</c> receiver resolves to
+/// Reports EXP0026 when a LINQ method on an <c>IExpressiveQueryable&lt;T&gt;</c> receiver resolves to
 /// <c>System.Linq.Queryable</c> instead of the ExpressiveSharp delegate-based overload — typically
 /// because <c>using ExpressiveSharp;</c> is missing.
-/// Reports EXP0022 when no ExpressiveSharp stub exists for the called method, meaning the
+/// Reports EXP0027 when no ExpressiveSharp stub exists for the called method, meaning the
 /// <c>IExpressiveQueryable</c> chain will be broken.
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class MissingExpressiveImportAnalyzer : DiagnosticAnalyzer
 {
     public static readonly DiagnosticDescriptor StubNotResolved = new(
-        id: "EXP0021",
+        id: "EXP0026",
         title: "IExpressiveQueryable LINQ method resolves to Queryable",
         messageFormat: "LINQ method '{0}' on IExpressiveQueryable<T> resolves to System.Linq.Queryable instead of the ExpressiveSharp overload. Add 'using ExpressiveSharp;' to enable expression tree rewriting and maintain the IExpressiveQueryable chain.",
         category: "Usage",
@@ -26,7 +26,7 @@ public sealed class MissingExpressiveImportAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true);
 
     public static readonly DiagnosticDescriptor NoStubExists = new(
-        id: "EXP0022",
+        id: "EXP0027",
         title: "No IExpressiveQueryable overload for Queryable method",
         messageFormat: "Method '{0}' from System.Linq.Queryable has no IExpressiveQueryable<T> overload. The result will be IQueryable<T>, breaking the IExpressiveQueryable chain.",
         category: "Usage",

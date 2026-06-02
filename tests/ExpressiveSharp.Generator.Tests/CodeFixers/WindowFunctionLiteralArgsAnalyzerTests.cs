@@ -34,7 +34,7 @@ public sealed class WindowFunctionLiteralArgsAnalyzerTests : GeneratorTestBase
         """;
 
     [TestMethod]
-    public async Task NtileWithZeroBuckets_ReportsEXP0036()
+    public async Task NtileWithZeroBuckets_ReportsEXP0030()
     {
         const string source = """
             using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.WindowFunctions;
@@ -45,12 +45,12 @@ public sealed class WindowFunctionLiteralArgsAnalyzerTests : GeneratorTestBase
             """;
 
         var diagnostics = await GetWindowDiagnosticsAsync(source);
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0036"),
-            "Expected EXP0036 for Ntile(0)");
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0030"),
+            "Expected EXP0030 for Ntile(0)");
     }
 
     [TestMethod]
-    public async Task NtileWithNegativeBuckets_ReportsEXP0036()
+    public async Task NtileWithNegativeBuckets_ReportsEXP0030()
     {
         const string source = """
             using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.WindowFunctions;
@@ -61,7 +61,7 @@ public sealed class WindowFunctionLiteralArgsAnalyzerTests : GeneratorTestBase
             """;
 
         var diagnostics = await GetWindowDiagnosticsAsync(source);
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0036"));
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0030"));
     }
 
     [TestMethod]
@@ -76,7 +76,7 @@ public sealed class WindowFunctionLiteralArgsAnalyzerTests : GeneratorTestBase
             """;
 
         var diagnostics = await GetWindowDiagnosticsAsync(source);
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0036"));
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0030"));
     }
 
     [TestMethod]
@@ -91,11 +91,11 @@ public sealed class WindowFunctionLiteralArgsAnalyzerTests : GeneratorTestBase
             """;
 
         var diagnostics = await GetWindowDiagnosticsAsync(source);
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0036"));
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0030"));
     }
 
     [TestMethod]
-    public async Task LagWithNegativeOffset_ReportsEXP0037()
+    public async Task LagWithNegativeOffset_ReportsEXP0031()
     {
         const string source = """
             using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.WindowFunctions;
@@ -106,11 +106,11 @@ public sealed class WindowFunctionLiteralArgsAnalyzerTests : GeneratorTestBase
             """;
 
         var diagnostics = await GetWindowDiagnosticsAsync(source);
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0037"));
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0031"));
     }
 
     [TestMethod]
-    public async Task LeadWithNegativeOffset_ReportsEXP0037()
+    public async Task LeadWithNegativeOffset_ReportsEXP0031()
     {
         const string source = """
             using ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.WindowFunctions;
@@ -121,7 +121,7 @@ public sealed class WindowFunctionLiteralArgsAnalyzerTests : GeneratorTestBase
             """;
 
         var diagnostics = await GetWindowDiagnosticsAsync(source);
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0037"));
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0031"));
     }
 
     [TestMethod]
@@ -136,7 +136,7 @@ public sealed class WindowFunctionLiteralArgsAnalyzerTests : GeneratorTestBase
             """;
 
         var diagnostics = await GetWindowDiagnosticsAsync(source);
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0037"));
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0031"));
     }
 
     [TestMethod]
@@ -151,7 +151,7 @@ public sealed class WindowFunctionLiteralArgsAnalyzerTests : GeneratorTestBase
             """;
 
         var diagnostics = await GetWindowDiagnosticsAsync(source);
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0037"));
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0031"));
     }
 
     private async Task<ImmutableArray<Diagnostic>> GetWindowDiagnosticsAsync(string source)

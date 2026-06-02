@@ -23,7 +23,7 @@ You write a stub member -- a method **or** a property -- whose body defines the 
 - For **instance properties** with an `instance` method or property stub on the target type, the stub is parameterless.
 - For **static properties**, the stub is parameterless.
 - Property stubs can only target other properties (no parameters to carry method arguments).
-- The return type / property type must match (EXP0017 if not).
+- The return type / property type must match (EXP0015 if not).
 - Constructor stubs (`[ExpressiveForConstructor]`) must still be `static` methods; instance or property ctor stubs have no coherent meaning.
 
 ## Static Method Mapping
@@ -167,14 +167,14 @@ The following diagnostics are specific to `[ExpressiveFor]` and `[ExpressiveForC
 
 | Code | Severity | Description |
 |------|----------|-------------|
-| [EXP0014](./diagnostics#exp0014) | Error | Target type specified in `[ExpressiveFor]` could not be resolved |
-| [EXP0015](./diagnostics#exp0015) | Error | No member with the given name found on the target type matching the stub's parameter signature |
-| [EXP0017](./diagnostics#exp0017) | Error | Return type of the stub does not match the target member's return type |
-| [EXP0019](./diagnostics#exp0019) | Error | The target member already has `[Expressive]` -- remove one of the two attributes |
-| [EXP0020](./diagnostics#exp0020) | Error | Duplicate mapping -- only one stub per target member is allowed |
+| [EXP0013](./diagnostics#exp0013) | Error | Target type specified in `[ExpressiveFor]` could not be resolved |
+| [EXP0014](./diagnostics#exp0014) | Error | No member with the given name found on the target type matching the stub's parameter signature |
+| [EXP0015](./diagnostics#exp0015) | Error | Return type of the stub does not match the target member's return type |
+| [EXP0016](./diagnostics#exp0016) | Error | The target member already has `[Expressive]` -- remove one of the two attributes |
+| [EXP0017](./diagnostics#exp0017) | Error | Duplicate mapping -- only one stub per target member is allowed |
 
 ::: warning
-If a member already has `[Expressive]`, adding `[ExpressiveFor]` targeting it is a compile error (EXP0019). `[ExpressiveFor]` is only for members that do not have `[Expressive]`.
+If a member already has `[Expressive]`, adding `[ExpressiveFor]` targeting it is a compile error (EXP0016). `[ExpressiveFor]` is only for members that do not have `[Expressive]`.
 :::
 
 ## Complete Usage Example

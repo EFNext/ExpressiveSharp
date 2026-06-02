@@ -10,10 +10,10 @@ public class LineItem
 
     // Virtual [Expressive] member — regression coverage that static-type expansion still reaches
     // the query provider as translatable SQL. The reverted "bad commit" gate skipped expansion for
-    // virtual members, so this would hit EF Core untranslated and throw. EXP0038 is expected here
+    // virtual members, so this would hit EF Core untranslated and throw. EXP0024 is expected here
     // by design and suppressed.
-#pragma warning disable EXP0038
+#pragma warning disable EXP0024
     [Expressive]
     public virtual bool IsExpensive => UnitPrice > 40;
-#pragma warning restore EXP0038
+#pragma warning restore EXP0024
 }

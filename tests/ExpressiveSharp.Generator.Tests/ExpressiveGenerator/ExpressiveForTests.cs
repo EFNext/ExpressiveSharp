@@ -172,7 +172,7 @@ public class ExpressiveForTests : GeneratorTestBase
     }
 
     [TestMethod]
-    public void MemberNotFound_EXP0015()
+    public void MemberNotFound_EXP0014()
     {
         var compilation = CreateCompilation(
             """
@@ -188,11 +188,11 @@ public class ExpressiveForTests : GeneratorTestBase
         var result = RunExpressiveGenerator(compilation);
 
         Assert.AreEqual(1, result.Diagnostics.Length);
-        Assert.AreEqual("EXP0015", result.Diagnostics[0].Id);
+        Assert.AreEqual("EXP0014", result.Diagnostics[0].Id);
     }
 
     [TestMethod]
-    public void InstanceStubOnUnrelatedType_Rejected_EXP0015()
+    public void InstanceStubOnUnrelatedType_Rejected_EXP0014()
     {
         // Instance stub targeting System.Math.Abs — stub's containing type is `Mappings`,
         // which does not match `System.Math`, so no member should be found.
@@ -210,7 +210,7 @@ public class ExpressiveForTests : GeneratorTestBase
         var result = RunExpressiveGenerator(compilation);
 
         Assert.AreEqual(1, result.Diagnostics.Length);
-        Assert.AreEqual("EXP0015", result.Diagnostics[0].Id);
+        Assert.AreEqual("EXP0014", result.Diagnostics[0].Id);
     }
 
     [TestMethod]
@@ -320,7 +320,7 @@ public class ExpressiveForTests : GeneratorTestBase
     }
 
     [TestMethod]
-    public void ReturnTypeMismatch_EXP0017()
+    public void ReturnTypeMismatch_EXP0015()
     {
         var compilation = CreateCompilation(
             """
@@ -336,11 +336,11 @@ public class ExpressiveForTests : GeneratorTestBase
         var result = RunExpressiveGenerator(compilation);
 
         Assert.AreEqual(1, result.Diagnostics.Length);
-        Assert.AreEqual("EXP0017", result.Diagnostics[0].Id);
+        Assert.AreEqual("EXP0015", result.Diagnostics[0].Id);
     }
 
     [TestMethod]
-    public void ConflictWithExpressive_EXP0019()
+    public void ConflictWithExpressive_EXP0016()
     {
         var compilation = CreateCompilation(
             """
@@ -362,12 +362,12 @@ public class ExpressiveForTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        var exp0019 = result.Diagnostics.Where(d => d.Id == "EXP0019").ToArray();
-        Assert.AreEqual(1, exp0019.Length);
+        var exp0016 = result.Diagnostics.Where(d => d.Id == "EXP0016").ToArray();
+        Assert.AreEqual(1, exp0016.Length);
     }
 
     [TestMethod]
-    public void DuplicateMapping_EXP0020()
+    public void DuplicateMapping_EXP0017()
     {
         var compilation = CreateCompilation(
             """
@@ -387,8 +387,8 @@ public class ExpressiveForTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        var exp0020 = result.Diagnostics.Where(d => d.Id == "EXP0020").ToArray();
-        Assert.AreEqual(2, exp0020.Length);
+        var exp0017 = result.Diagnostics.Where(d => d.Id == "EXP0017").ToArray();
+        Assert.AreEqual(2, exp0017.Length);
     }
 
     // Each test below exercises one specific branch of
@@ -426,7 +426,7 @@ public class ExpressiveForTests : GeneratorTestBase
     }
 
     [TestMethod]
-    public void InstanceStub_StaticPropertyTarget_Rejected_EXP0015()
+    public void InstanceStub_StaticPropertyTarget_Rejected_EXP0014()
     {
         // Static property + instance property stub → never matches (no way to supply receiver).
         var compilation = CreateCompilation(
@@ -445,11 +445,11 @@ public class ExpressiveForTests : GeneratorTestBase
         var result = RunExpressiveGenerator(compilation);
 
         Assert.AreEqual(1, result.Diagnostics.Length);
-        Assert.AreEqual("EXP0015", result.Diagnostics[0].Id);
+        Assert.AreEqual("EXP0014", result.Diagnostics[0].Id);
     }
 
     [TestMethod]
-    public void PropertyStub_TargetingMethod_Rejected_EXP0015()
+    public void PropertyStub_TargetingMethod_Rejected_EXP0014()
     {
         // Property stubs can only target properties — even if a matching method exists.
         var compilation = CreateCompilation(
@@ -469,11 +469,11 @@ public class ExpressiveForTests : GeneratorTestBase
         var result = RunExpressiveGenerator(compilation);
 
         Assert.AreEqual(1, result.Diagnostics.Length);
-        Assert.AreEqual("EXP0015", result.Diagnostics[0].Id);
+        Assert.AreEqual("EXP0014", result.Diagnostics[0].Id);
     }
 
     [TestMethod]
-    public void StaticStub_InstanceMethod_WrongReceiverType_Rejected_EXP0015()
+    public void StaticStub_InstanceMethod_WrongReceiverType_Rejected_EXP0014()
     {
         // Static stub over instance method, but the explicit receiver param is the wrong type.
         var compilation = CreateCompilation(
@@ -495,11 +495,11 @@ public class ExpressiveForTests : GeneratorTestBase
         var result = RunExpressiveGenerator(compilation);
 
         Assert.AreEqual(1, result.Diagnostics.Length);
-        Assert.AreEqual("EXP0015", result.Diagnostics[0].Id);
+        Assert.AreEqual("EXP0014", result.Diagnostics[0].Id);
     }
 
     [TestMethod]
-    public void StaticStub_MethodTarget_WrongParamType_Rejected_EXP0015()
+    public void StaticStub_MethodTarget_WrongParamType_Rejected_EXP0014()
     {
         // Param count matches but a param type differs — hits the matcher's per-param loop.
         var compilation = CreateCompilation(
@@ -516,11 +516,11 @@ public class ExpressiveForTests : GeneratorTestBase
         var result = RunExpressiveGenerator(compilation);
 
         Assert.AreEqual(1, result.Diagnostics.Length);
-        Assert.AreEqual("EXP0015", result.Diagnostics[0].Id);
+        Assert.AreEqual("EXP0014", result.Diagnostics[0].Id);
     }
 
     [TestMethod]
-    public void StaticStub_InstanceMethod_ParamCountMismatch_Rejected_EXP0015()
+    public void StaticStub_InstanceMethod_ParamCountMismatch_Rejected_EXP0014()
     {
         // Instance method has 1 param; static stub provides [receiver] only (missing the arg).
         var compilation = CreateCompilation(
@@ -542,11 +542,11 @@ public class ExpressiveForTests : GeneratorTestBase
         var result = RunExpressiveGenerator(compilation);
 
         Assert.AreEqual(1, result.Diagnostics.Length);
-        Assert.AreEqual("EXP0015", result.Diagnostics[0].Id);
+        Assert.AreEqual("EXP0014", result.Diagnostics[0].Id);
     }
 
     [TestMethod]
-    public void PropertyStub_WithExplicitTargetType_WrongContainingType_Rejected_EXP0015()
+    public void PropertyStub_WithExplicitTargetType_WrongContainingType_Rejected_EXP0014()
     {
         // Property stub must be on the target type; [ExpressiveFor(typeof(Other))] on a stub
         // whose containing type is not Other cannot supply a receiver from `this`.
@@ -568,11 +568,11 @@ public class ExpressiveForTests : GeneratorTestBase
         var result = RunExpressiveGenerator(compilation);
 
         Assert.AreEqual(1, result.Diagnostics.Length);
-        Assert.AreEqual("EXP0015", result.Diagnostics[0].Id);
+        Assert.AreEqual("EXP0014", result.Diagnostics[0].Id);
     }
 
     [TestMethod]
-    public void InstanceStub_InstanceMethod_ParamCountMismatch_Rejected_EXP0015()
+    public void InstanceStub_InstanceMethod_ParamCountMismatch_Rejected_EXP0014()
     {
         // Instance stub on target type, but arg count doesn't match the target method.
         var compilation = CreateCompilation(
@@ -592,11 +592,11 @@ public class ExpressiveForTests : GeneratorTestBase
         var result = RunExpressiveGenerator(compilation);
 
         Assert.AreEqual(1, result.Diagnostics.Length);
-        Assert.AreEqual("EXP0015", result.Diagnostics[0].Id);
+        Assert.AreEqual("EXP0014", result.Diagnostics[0].Id);
     }
 
     [TestMethod]
-    public void SingleArgForm_UnknownMember_Rejected_EXP0015()
+    public void SingleArgForm_UnknownMember_Rejected_EXP0014()
     {
         // Single-arg form with a name that doesn't exist on the stub's containing type.
         var compilation = CreateCompilation(
@@ -615,6 +615,6 @@ public class ExpressiveForTests : GeneratorTestBase
         var result = RunExpressiveGenerator(compilation);
 
         Assert.AreEqual(1, result.Diagnostics.Length);
-        Assert.AreEqual("EXP0015", result.Diagnostics[0].Id);
+        Assert.AreEqual("EXP0014", result.Diagnostics[0].Id);
     }
 }

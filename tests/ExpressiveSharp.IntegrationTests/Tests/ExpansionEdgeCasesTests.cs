@@ -124,7 +124,7 @@ public class ExpansionEdgeCasesTests
     }
 }
 
-#pragma warning disable EXP0038
+#pragma warning disable EXP0024
 public class VirtualDispatchBase
 {
     public int Id { get; set; }
@@ -168,7 +168,7 @@ public class GreetDerived : GreetBase
     [Expressive]
     public override int Greet() => base.Greet() + 1;
 }
-#pragma warning restore EXP0038
+#pragma warning restore EXP0024
 
 public class RecursiveTree
 {

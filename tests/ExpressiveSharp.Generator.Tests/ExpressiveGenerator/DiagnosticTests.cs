@@ -97,7 +97,7 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [TestMethod]
-    public void StringInterpolation_AlignmentSpecifier_ReportsEXP0018()
+    public void StringInterpolation_AlignmentSpecifier_ReportsEXP0023()
     {
         var compilation = CreateCompilation(
             """
@@ -112,8 +112,8 @@ public class DiagnosticTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0018"),
-            "Expected EXP0018 for alignment specifier in string interpolation");
+        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0023"),
+            "Expected EXP0023 for alignment specifier in string interpolation");
         Assert.IsTrue(result.GeneratedTrees.Length > 0,
             "Generator should still produce output (interpolation without alignment)");
     }
@@ -190,7 +190,7 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [TestMethod]
-    public void ExpressiveFor_NonExistentTargetType_ReportsEXP0014()
+    public void ExpressiveFor_NonExistentTargetType_ReportsEXP0013()
     {
         var compilation = CreateCompilation(
             """
@@ -205,12 +205,12 @@ public class DiagnosticTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0014"),
-            "Expected EXP0014 for unresolvable target type in [ExpressiveFor]");
+        Assert.IsTrue(result.Diagnostics.Any(d => d.Id == "EXP0013"),
+            "Expected EXP0013 for unresolvable target type in [ExpressiveFor]");
     }
 
     [TestMethod]
-    public void VirtualMethod_ReportsEXP0038()
+    public void VirtualMethod_ReportsEXP0024()
     {
         var compilation = CreateCompilation(
             """
@@ -225,15 +225,15 @@ public class DiagnosticTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        var diag = result.Diagnostics.FirstOrDefault(d => d.Id == "EXP0038");
-        Assert.IsNotNull(diag, "Expected EXP0038 for a virtual [Expressive] member");
+        var diag = result.Diagnostics.FirstOrDefault(d => d.Id == "EXP0024");
+        Assert.IsNotNull(diag, "Expected EXP0024 for a virtual [Expressive] member");
         Assert.AreEqual(DiagnosticSeverity.Warning, diag.Severity);
         Assert.IsTrue(result.GeneratedTrees.Length > 0,
-            "Generator should still produce output alongside the EXP0038 warning");
+            "Generator should still produce output alongside the EXP0024 warning");
     }
 
     [TestMethod]
-    public void VirtualAndOverrideProperties_BothReportEXP0038()
+    public void VirtualAndOverrideProperties_BothReportEXP0024()
     {
         var compilation = CreateCompilation(
             """
@@ -253,12 +253,12 @@ public class DiagnosticTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.AreEqual(2, result.Diagnostics.Count(d => d.Id == "EXP0038"),
-            "Expected EXP0038 for both the virtual base property and its override");
+        Assert.AreEqual(2, result.Diagnostics.Count(d => d.Id == "EXP0024"),
+            "Expected EXP0024 for both the virtual base property and its override");
     }
 
     [TestMethod]
-    public void NonVirtualMember_DoesNotReportEXP0038()
+    public void NonVirtualMember_DoesNotReportEXP0024()
     {
         var compilation = CreateCompilation(
             """
@@ -273,8 +273,8 @@ public class DiagnosticTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.IsFalse(result.Diagnostics.Any(d => d.Id == "EXP0038"),
-            "A non-virtual [Expressive] member must not report EXP0038");
+        Assert.IsFalse(result.Diagnostics.Any(d => d.Id == "EXP0024"),
+            "A non-virtual [Expressive] member must not report EXP0024");
     }
 
     // NOTE: EXP0010 (InterceptorEmissionFailed) is intentionally not tested.

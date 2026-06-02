@@ -306,7 +306,7 @@ The package was previously labeled experimental. Upgrading is API-compatible; th
 
 - Direct invocation of a `WindowFunction.*` stub (i.e. outside an EF Core query) now throws an exception that names the method and points at this guide.
 - `Ntile(0)` / `Ntile(-1)`, negative literal `Lag`/`Lead` offsets, and `NthValue(0)` now throw `InvalidOperationException` at translation time. Previously these reached the database and produced a provider-specific error.
-- New analyzer warnings **EXP0036** (`Ntile` non-positive literal buckets) and **EXP0037** (`Lag`/`Lead` negative literal offsets) may surface on existing code.
+- New analyzer warnings **EXP0030** (`Ntile` non-positive literal buckets) and **EXP0031** (`Lag`/`Lead` negative literal offsets) may surface on existing code.
 
 ## Next Steps
 

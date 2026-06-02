@@ -103,7 +103,7 @@ These are **warnings**, not errors. The generated code compiles but substitutes 
 
 ---
 
-### "Member could benefit from `[Expressive]`" (EXP0013) {#exp0013}
+### "Member could benefit from `[Expressive]`" (EXP0025) {#exp0025}
 
 **Symptom:** A member referenced inside an `[Expressive]` body is not itself marked `[Expressive]`, producing a warning. This means the member's body is opaque to the expression tree -- it will be called as a delegate instead of being inlined.
 
@@ -160,7 +160,7 @@ static bool IsNullOrWhiteSpace(string? s)
 
 **2. Referenced member not marked `[Expressive]`**
 
-If an `[Expressive]` member references another member that is *not* `[Expressive]`, the referenced member remains opaque to EF Core. Look for EXP0013 warnings and add `[Expressive]` to the referenced member.
+If an `[Expressive]` member references another member that is *not* `[Expressive]`, the referenced member remains opaque to EF Core. Look for EXP0025 warnings and add `[Expressive]` to the referenced member.
 
 **3. Unsupported operation in the body**
 

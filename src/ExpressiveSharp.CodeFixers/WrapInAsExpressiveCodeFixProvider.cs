@@ -12,7 +12,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ExpressiveSharp.CodeFixers;
 
 /// <summary>
-/// Provides a code fix for EXP0027 that wraps the chain root with <c>.AsExpressive()</c>
+/// Provides a code fix for EXP0028 that wraps the chain root with <c>.AsExpressive()</c>
 /// (and adds <c>using ExpressiveSharp;</c> if needed) so that subsequent LINQ methods
 /// flow through the ExpressiveSharp delegate-based overloads.
 /// </summary>
@@ -21,7 +21,7 @@ namespace ExpressiveSharp.CodeFixers;
 public sealed class WrapInAsExpressiveCodeFixProvider : CodeFixProvider
 {
     public override ImmutableArray<string> FixableDiagnosticIds =>
-        ImmutableArray.Create("EXP0027");
+        ImmutableArray.Create("EXP0028");
 
     public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
 
@@ -44,7 +44,7 @@ public sealed class WrapInAsExpressiveCodeFixProvider : CodeFixProvider
                 CodeAction.Create(
                     title: "Wrap source with .AsExpressive()",
                     createChangedDocument: ct => WrapWithAsExpressiveAsync(context.Document, invocation, ct),
-                    equivalenceKey: "EXP0027_WrapAsExpressive"),
+                    equivalenceKey: "EXP0028_WrapAsExpressive"),
                 diagnostic);
         }
     }
