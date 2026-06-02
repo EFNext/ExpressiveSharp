@@ -1436,7 +1436,7 @@ internal sealed class ExpressionTreeEmitter
         foreach (var param in lambdaParams)
         {
             var paramTypeFqn = param.Type.ToDisplayString(_fqnFormat);
-            var varName = $"p_{SanitizeIdentifier(param.Name)}_{_varCounter++}";
+            var varName = $"{_varPrefix}p_{SanitizeIdentifier(param.Name)}_{_varCounter++}";
             _symbolToVar[param] = varName;
             paramVarNames.Add(varName);
             AppendLine($"var {varName} = {Expr}.Parameter(typeof({paramTypeFqn}), \"{param.Name}\");");
