@@ -119,20 +119,20 @@ static bool IsNullOrWhiteSpace(string? s)
 
 Expression-tree expansion happens at **compile time** and works purely from the **static (declared) type** of each receiver. It has no runtime instance to inspect, so it cannot honor C# virtual dispatch.
 
-If you mark a `virtual`, `abstract`, or `override` member `[Expressive]` (a default interface member counts too -- it is implicitly virtual), the generator reports [EXP0038](../reference/diagnostics#exp0038). When the member is expanded for a query provider (EF Core, MongoDB), the call is resolved against the declared type and the **base** body is always inlined -- an overridden body in a derived type is never used:
+If you mark a `virtual`, `abstract`, or `override` member `[Expressive]` (a default interface member counts too -- it is implicitly virtual), the generator reports [EXP0024](../reference/diagnostics#exp0024). When the member is expanded for a query provider (EF Core, MongoDB), the call is resolved against the declared type and the **base** body is always inlined -- an overridden body in a derived type is never used:
 
 ```csharp
 public class Animal
 {
     public string Name { get; set; } = "";
 
-    [Expressive] // EXP0038
+    [Expressive] // EXP0024
     public virtual string Describe() => $"Animal: {Name}";
 }
 
 public class Dog : Animal
 {
-    [Expressive] // EXP0038
+    [Expressive] // EXP0024
     public override string Describe() => $"Dog: {Name}";
 }
 
@@ -156,7 +156,7 @@ db.Animals.AsExpressive().Select(a => a switch
 
 ### Recommended: use a non-virtual static/extension method
 
-Move the logic into a single non-virtual `[Expressive]` method that performs the type test itself. This keeps the polymorphic shape in one place and produces no EXP0038:
+Move the logic into a single non-virtual `[Expressive]` method that performs the type test itself. This keeps the polymorphic shape in one place and produces no EXP0024:
 
 ```csharp
 public static class AnimalExpressions
@@ -173,7 +173,7 @@ db.Animals.AsExpressive().Select(a => a.Describe());
 ```
 
 ::: tip
-Declaring entity members `virtual` is common in EF Core because it enables lazy-loading proxies. That remains fine for plain navigation and scalar properties -- EXP0038 only concerns members you *also* mark `[Expressive]`.
+Declaring entity members `virtual` is common in EF Core because it enables lazy-loading proxies. That remains fine for plain navigation and scalar properties -- EXP0024 only concerns members you *also* mark `[Expressive]`.
 :::
 
 ## Performance: First-Execution Overhead

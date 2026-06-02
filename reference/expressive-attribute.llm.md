@@ -169,8 +169,9 @@ expr.ExpandExpressives(); // RemoveNullConditionalPatterns applied automatically
 
 Use `[NotExpressive]` to mark a member that *looks* expressive-eligible (it has an expression body that the source generator could lift) but should intentionally remain runtime-evaluated. The attribute suppresses the analyzer suggestions:
 
-- [EXP0013](./diagnostics#exp0013) — "Member could benefit from `[Expressive]`"
-- [EXP0027](./diagnostics#exp0027) — "Plain `IQueryable` chain references an `[Expressive]` member without `.AsExpressive()`"
+- [EXP0025](./diagnostics#exp0025) — "Member could benefit from `[Expressive]`"
+- [EXP0028](./diagnostics#exp0028) — "Plain `IQueryable` chain references an `[Expressive]` member without `.AsExpressive()`"
+- [EXP0029](./diagnostics#exp0029) — "`IExpressiveQueryable<T>` chain dropped to plain `IQueryable<T>`" (when applied to the method that drops the chain)
 
 ```csharp
 public class Order

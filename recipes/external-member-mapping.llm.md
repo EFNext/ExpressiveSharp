@@ -12,7 +12,7 @@ Use `[ExpressiveFor]` when:
 - You want to override how a specific member translates to SQL
 
 ::: info
-If a member already has `[Expressive]`, adding `[ExpressiveFor]` targeting it is a compile error (EXP0019). `[ExpressiveFor]` is specifically for members that **do not** have `[Expressive]`.
+If a member already has `[Expressive]`, adding `[ExpressiveFor]` targeting it is a compile error (EXP0016). `[ExpressiveFor]` is specifically for members that **do not** have `[Expressive]`.
 :::
 
 ## Static Method: `Math.Clamp`
@@ -227,11 +227,11 @@ static class DateTimeMappings
 
 | Code | Description |
 |------|-------------|
-| EXP0014 | `[ExpressiveFor]` target type not found |
-| EXP0015 | `[ExpressiveFor]` target member not found on the specified type |
-| EXP0017 | Return type of stub does not match target member's return type |
-| EXP0019 | Target member already has `[Expressive]` -- use `[Expressive]` directly instead |
-| EXP0020 | Duplicate `[ExpressiveFor]` mapping for the same target member |
+| EXP0013 | `[ExpressiveFor]` target type not found |
+| EXP0014 | `[ExpressiveFor]` target member not found on the specified type |
+| EXP0015 | Return type of stub does not match target member's return type |
+| EXP0016 | Target member already has `[Expressive]` -- use `[Expressive]` directly instead |
+| EXP0017 | Duplicate `[ExpressiveFor]` mapping for the same target member |
 
 ## Tips
 

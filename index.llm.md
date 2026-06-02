@@ -55,7 +55,7 @@ features:
 
   - icon: "\U0001FA7A"
     title: Roslyn Analyzers & Code Fixes
-    details: EXP0001–EXP0036 diagnostics catch projection errors at compile time. Quick-fix actions and migration fixers from Projectables included.
+    details: EXP0001–EXP0031 diagnostics catch projection errors at compile time. Quick-fix actions and migration fixers from Projectables included.
 ---
 
 ## At a Glance

@@ -9,10 +9,6 @@ The ExpressiveSharp source generator and companion analyzers emit diagnostics du
 See [Troubleshooting](./troubleshooting) for symptom-oriented guidance -- find the error message or behavior you see and get step-by-step resolution.
 :::
 
-::: info Retired diagnostics
-`EXP0016` ("`[ExpressiveFor]` stub must be static") has been retired. Instance stubs on the target type are now permitted; constructor-stub and unrelated-type mismatches surface as `EXP0015` (member not found) instead.
-:::
-
 ## Overview
 
 | ID | Severity | Title | Code Fix |
@@ -29,20 +25,25 @@ See [Troubleshooting](./troubleshooting) for symptom-oriented guidance -- find t
 | [EXP0010](#exp0010) | Warning | Interceptor emission failed | -- |
 | [EXP0011](#exp0011) | Warning | Unresolvable member in pattern | -- |
 | [EXP0012](#exp0012) | Info | Factory method can be converted to constructor | -- |
-| [EXP0013](#exp0013) | Warning | Referenced member could benefit from `[Expressive]` | [Add `[Expressive]`](#exp0013-fix) |
-| [EXP0014](#exp0014) | Error | `[ExpressiveFor]` target type not found | -- |
-| [EXP0015](#exp0015) | Error | `[ExpressiveFor]` target member not found | -- |
-| [EXP0017](#exp0017) | Error | `[ExpressiveFor]` return type mismatch | -- |
-| [EXP0019](#exp0019) | Error | `[ExpressiveFor]` conflicts with `[Expressive]` | -- |
-| [EXP0020](#exp0020) | Error | Duplicate `[ExpressiveFor]` mapping | -- |
-| [EXP0027](#exp0027) | Info | Plain `IQueryable` chain references an `[Expressive]` member without `.AsExpressive()` | [Wrap with `.AsExpressive()`](#exp0027-fix) |
-| [EXP0031](#exp0031) | Error | `[ExpressiveProperty]` target name is already defined | -- |
-| [EXP0032](#exp0032) | Error | `[ExpressiveProperty]` requires a partial containing type | -- |
-| [EXP0033](#exp0033) | Error | `[ExpressiveProperty]` requires an expression-bodied property stub | -- |
-| [EXP0034](#exp0034) | Error | `[ExpressiveProperty]` requires an instance stub | -- |
-| [EXP0035](#exp0035) | Error | `[ExpressiveProperty]` target shadows inherited member | -- |
-| [EXP0036](#exp0036) | Info | `IExpressiveQueryable<T>` chain dropped to plain `IQueryable<T>` | -- |
-| [EXP0038](#exp0038) | Warning | `[Expressive]` member is virtual and will not dispatch polymorphically | -- |
+| [EXP0013](#exp0013) | Error | `[ExpressiveFor]` target type not found | -- |
+| [EXP0014](#exp0014) | Error | `[ExpressiveFor]` target member not found | -- |
+| [EXP0015](#exp0015) | Error | `[ExpressiveFor]` return type mismatch | -- |
+| [EXP0016](#exp0016) | Error | `[ExpressiveFor]` conflicts with `[Expressive]` | -- |
+| [EXP0017](#exp0017) | Error | Duplicate `[ExpressiveFor]` mapping | -- |
+| [EXP0018](#exp0018) | Error | `[ExpressiveProperty]` target name is already defined | -- |
+| [EXP0019](#exp0019) | Error | `[ExpressiveProperty]` requires a partial containing type | -- |
+| [EXP0020](#exp0020) | Error | `[ExpressiveProperty]` requires an expression-bodied property stub | -- |
+| [EXP0021](#exp0021) | Error | `[ExpressiveProperty]` requires an instance stub | -- |
+| [EXP0022](#exp0022) | Error | `[ExpressiveProperty]` target shadows inherited member | -- |
+| [EXP0023](#exp0023) | Warning | Unsupported operation ignored | -- |
+| [EXP0024](#exp0024) | Warning | `[Expressive]` member is virtual and will not dispatch polymorphically | -- |
+| [EXP0025](#exp0025) | Warning | Referenced member could benefit from `[Expressive]` | [Add `[Expressive]`](#exp0025-fix) |
+| [EXP0026](#exp0026) | Warning | `IExpressiveQueryable<T>` LINQ method resolves to `Queryable` | [Add `using ExpressiveSharp;`](#exp0026-fix) |
+| [EXP0027](#exp0027) | Info | No `IExpressiveQueryable<T>` overload for `Queryable` method | -- |
+| [EXP0028](#exp0028) | Info | Plain `IQueryable` chain references an `[Expressive]` member without `.AsExpressive()` | [Wrap with `.AsExpressive()`](#exp0028-fix) |
+| [EXP0029](#exp0029) | Info | `IExpressiveQueryable<T>` chain dropped to plain `IQueryable<T>` | -- |
+| [EXP0030](#exp0030) | Warning | `WindowFunction.Ntile` requires a positive bucket count | -- |
+| [EXP0031](#exp0031) | Warning | `WindowFunction.Lag`/`Lead` offset must be non-negative | -- |
 | [EXP1001](#exp1001) | Warning | Replace `[Projectable]` with `[Expressive]` | [Replace attribute](#exp1001-fix) |
 | [EXP1002](#exp1002) | Warning | Replace `UseProjectables()` with `UseExpressives()` | [Replace method call](#exp1002-fix) |
 | [EXP1003](#exp1003) | Warning | Replace Projectables namespace | [Replace namespace](#exp1003-fix) |
@@ -351,47 +352,11 @@ public CustomerDto(Customer c)
 
 ***
 
-## Analyzer Diagnostic (EXP0013)
-
-### EXP0013 -- Referenced member could benefit from `[Expressive]` {#exp0013}
-
-**Severity:** Warning
-**Category:** Design
-**Source:** `MissingExpressiveAnalyzer` (in `ExpressiveSharp.CodeFixers`)
-
-**Message:**
-
-```
-Member '{0}' is referenced in an [Expressive] expression but is not marked [Expressive].
-Adding [Expressive] would allow its body to be inlined into the expression tree.
-```
-
-**Cause:** A member referenced inside an `[Expressive]` body, an `ExpressionPolyfill.Create()` lambda, or an `IExpressiveQueryable` LINQ lambda has an expandable body (expression-bodied or block-bodied) but is not marked `[Expressive]`. Without the attribute, the member call remains opaque in the generated expression tree and cannot be translated by LINQ providers.
-
-**Fix:** {#exp0013-fix}
-
-The IDE offers a code fix that adds `[Expressive]` to the referenced member automatically (including the `using ExpressiveSharp;` directive if needed):
-
-```csharp
-// Warning: Total is referenced in an [Expressive] body but not marked [Expressive]
-public double Total => Price * Quantity;
-
-// Fixed: add [Expressive]
-[Expressive]
-public double Total => Price * Quantity;
-```
-
-::: tip
-Enum method calls are excluded from this diagnostic -- the generator expands those automatically via per-value ternary chains, so `[Expressive]` is not needed on the enum extension method.
-:::
-
-***
-
-## External Mapping Diagnostics (EXP0014--EXP0020)
+## External Mapping Diagnostics (EXP0013--EXP0017)
 
 These diagnostics are specific to `[ExpressiveFor]` and `[ExpressiveForConstructor]`. See [`[ExpressiveFor]` Mapping](./expressive-for) for full usage details.
 
-### EXP0014 -- Target type not found {#exp0014}
+### EXP0013 -- Target type not found {#exp0013}
 
 **Severity:** Error
 **Category:** Design
@@ -408,7 +373,7 @@ These diagnostics are specific to `[ExpressiveFor]` and `[ExpressiveForConstruct
 
 ***
 
-### EXP0015 -- Target member not found {#exp0015}
+### EXP0014 -- Target member not found {#exp0014}
 
 **Severity:** Error
 **Category:** Design
@@ -437,7 +402,7 @@ static double Clamp(double value, double min, double max)
 
 ***
 
-### EXP0017 -- Return type mismatch {#exp0017}
+### EXP0015 -- Return type mismatch {#exp0015}
 
 **Severity:** Error
 **Category:** Design
@@ -464,7 +429,7 @@ static double Clamp(double value, double min, double max) => /* ... */;
 
 ***
 
-### EXP0019 -- Conflicts with `[Expressive]` {#exp0019}
+### EXP0016 -- Conflicts with `[Expressive]` {#exp0016}
 
 **Severity:** Error
 **Category:** Design
@@ -481,7 +446,7 @@ Target member '{0}' on type '{1}' already has [Expressive]; remove [ExpressiveFo
 
 ***
 
-### EXP0020 -- Duplicate mapping {#exp0020}
+### EXP0017 -- Duplicate mapping {#exp0017}
 
 **Severity:** Error
 **Category:** Design
@@ -498,49 +463,15 @@ Duplicate [ExpressiveFor] mapping for member '{0}' on type '{1}'; only one stub 
 
 ***
 
-### EXP0027 -- Plain `IQueryable` chain references an `[Expressive]` member without `.AsExpressive()` {#exp0027}
-
-**Severity:** Info
-**Category:** Usage
-
-**Message:**
-
-```
-LINQ method '{0}' on a plain IQueryable<T> references the [Expressive] member '{1}'.
-Without .AsExpressive(), the member's body will not be inlined into the expression tree;
-the provider may evaluate the call in memory or fail to translate it. Wrap the source
-with .AsExpressive().
-```
-
-**Cause:** A LINQ method on a plain `IQueryable<T>` receiver (one that is not `IExpressiveQueryable<T>`) is invoked with a lambda whose body references an `[Expressive]` member. Because the chain is not expressive-aware, the source generator does not rewrite the lambda into an expression tree that inlines the member's body — the underlying query provider receives a call to the runtime delegate. Most providers cannot translate this and will either evaluate the call client-side (silent overfetch) or throw at execution time.
-
-**Fix:** Wrap the chain root with `.AsExpressive()` so that subsequent LINQ methods flow through the ExpressiveSharp delegate-based overloads, which inline `[Expressive]` member bodies at compile time.
-
-```csharp
-// Before — IsAdult is silently evaluated on the client.
-var adults = users.Where(u => u.IsAdult).ToList();
-
-// After — IsAdult is inlined into the expression tree before the provider sees it.
-var adults = users.AsExpressive().Where(u => u.IsAdult).ToList();
-```
-
-When you intentionally want to evaluate a member at runtime (e.g., it captures process state), mark the member with `[NotExpressive]` to suppress the diagnostic at every call site.
-
-#### Code Fix: Wrap source with `.AsExpressive()` {#exp0027-fix}
-
-The IDE offers a single code action: **Wrap source with `.AsExpressive()`**. It walks the LINQ chain to the leftmost non-LINQ expression, wraps it with `.AsExpressive()`, and inserts `using ExpressiveSharp;` if it is not already imported.
-
-***
-
-## `[ExpressiveProperty]` Diagnostics (EXP0031--EXP0035)
+## `[ExpressiveProperty]` Diagnostics (EXP0018--EXP0022)
 
 These diagnostics apply to `[ExpressiveProperty]` stubs, which ask the generator to emit a new property on the stub's containing partial type. See [`[ExpressiveProperty]` Attribute](./expressive-property) for the full feature reference.
 
 ::: info Replacing `[Expressive(Projectable = true)]`
-`[ExpressiveProperty]` replaces the now-removed `[Expressive(Projectable = true)]`. Diagnostic codes `EXP0021`--`EXP0026` and `EXP0028`--`EXP0030` were retired along with that feature and are not reused. (EXP0027 has been reassigned to the [plain-IQueryable analyzer](#exp0027).) The migration recipe is in [Migration from Projectables](../guide/migration-from-projectables#migrating-usememberbody).
+`[ExpressiveProperty]` replaces the now-removed `[Expressive(Projectable = true)]`. The migration recipe is in [Migration from Projectables](../guide/migration-from-projectables#migrating-usememberbody).
 :::
 
-### EXP0031 -- Target name is already defined {#exp0031}
+### EXP0018 -- Target name is already defined {#exp0018}
 
 **Severity:** Error
 **Category:** Design
@@ -570,7 +501,7 @@ private decimal AmountExpression => TotalAmount - Discount;
 
 ***
 
-### EXP0032 -- Requires a partial containing type {#exp0032}
+### EXP0019 -- Requires a partial containing type {#exp0019}
 
 **Severity:** Error
 **Category:** Design
@@ -604,7 +535,7 @@ public partial class Account
 
 ***
 
-### EXP0033 -- Requires an expression-bodied property stub {#exp0033}
+### EXP0020 -- Requires an expression-bodied property stub {#exp0020}
 
 **Severity:** Error
 **Category:** Design
@@ -636,7 +567,7 @@ private decimal AmountExpression => TotalAmount - Discount;
 
 ***
 
-### EXP0034 -- Requires an instance stub {#exp0034}
+### EXP0021 -- Requires an instance stub {#exp0021}
 
 **Severity:** Error
 **Category:** Design
@@ -654,7 +585,7 @@ an instance member
 
 ***
 
-### EXP0035 -- Target shadows inherited member {#exp0035}
+### EXP0022 -- Target shadows inherited member {#exp0022}
 
 **Severity:** Error
 **Category:** Design
@@ -673,61 +604,27 @@ on an override
 
 ***
 
-### EXP0036 -- `IExpressiveQueryable<T>` chain dropped to plain `IQueryable<T>` {#exp0036}
+## General Diagnostics (EXP0023--EXP0024)
 
-**Severity:** Info
-**Category:** Usage
+### EXP0023 -- Unsupported operation ignored {#exp0023}
+
+**Severity:** Warning
+**Category:** Design
 
 **Message:**
 
 ```
-'{0}' returns IQueryable<T> from an IExpressiveQueryable<T> receiver, dropping the expressive
-chain. Downstream LINQ skips ExpressiveSharp rewriting and [Expressive] members may evaluate
-on the client. Add an IExpressiveQueryable<T>-typed overload of '{0}', wrap the result with
-.AsExpressive(), or mark the method [NotExpressive] if the dropout is intentional.
+Expression contains an unsupported operation ({0}). The operation will be ignored and the
+surrounding expression emitted without it.
 ```
 
-**Cause:** A method invocation is being made on a receiver that implements `IExpressiveQueryable<T>`, but the method's return type is plain `IQueryable<T>` (or some derivative that is not also expressive). The chain loses its expressive type at this call site, and every downstream LINQ operation on the result skips ExpressiveSharp's rewrite step — `[Expressive]` members in subsequent `Where` / `Select` / `Include` / etc. fall back to runtime delegate invocation, which most providers cannot translate and will evaluate on the client.
+**Cause:** The member body contains an operation that has no expression-tree equivalent but can be dropped without substituting a value — most commonly a string-interpolation **alignment or format specifier** (e.g. `$"{value,10}"` or `$"{value:N2}"`). The generator emits the surrounding interpolated string but does not honor the specifier.
 
-The diagnostic fires once, at the dropout point itself, regardless of how many further calls follow.
-
-**Common dropout shapes:**
-
-```csharp
-// User-defined helper typed on plain IQueryable<T> — drops the chain.
-public static IQueryable<T> Filter<T>(this IQueryable<T> source) => source.Where(...);
-
-db.Orders.AsExpressiveDbSet().Filter()  // ⚠ EXP0036 fires on .Filter()
-    .Include(o => o.Customer)           // chain is plain from here on
-    .ToList();
-```
-
-**Fix (preferred):** Add a sibling overload typed on `IExpressiveQueryable<T>` that returns `IExpressiveQueryable<T>`:
-
-```csharp
-public static IExpressiveQueryable<T> Filter<T>(this IExpressiveQueryable<T> source)
-    => source.Where(...);
-```
-
-**Fix (when the helper can't be modified):** wrap the result with `.AsExpressive()` to restore the chain:
-
-```csharp
-db.Orders.AsExpressiveDbSet()
-    .ThirdPartyHelper()      // returns plain IQueryable<Order>
-    .AsExpressive()          // re-wrap
-    .Include(o => o.Customer);
-```
-
-**Exemptions:**
-
-* `.AsQueryable()` — the standard explicit downcast — is sanctioned and never reported.
-* Marking the offending method with `[NotExpressive]` suppresses the diagnostic at every call site, for cases where the dropout is intentional (the helper performs work that genuinely needs to run on the client).
+**Fix:** If the formatting matters, compute the formatted value outside the `[Expressive]` body, or apply formatting in the consuming code after materialization. Unlike [EXP0008](#exp0008) — which substitutes a `default` value and can change results — `EXP0023` only drops the unsupported sub-operation; the surrounding expression is still emitted correctly.
 
 ***
 
-## Virtual Member Diagnostic (EXP0038)
-
-### EXP0038 -- Virtual member will not dispatch polymorphically {#exp0038}
+### EXP0024 -- Virtual member will not dispatch polymorphically {#exp0024}
 
 **Severity:** Warning
 **Category:** Design
@@ -769,7 +666,226 @@ public static string Describe(this Animal a) => a switch
 };
 ```
 
-If a virtual member is intentional (you only ever compile it to an in-memory delegate, never translate it through a provider), suppress the warning with `#pragma warning disable EXP0038` or `<NoWarn>$(NoWarn);EXP0038</NoWarn>`.
+If a virtual member is intentional (you only ever compile it to an in-memory delegate, never translate it through a provider), suppress the warning with `#pragma warning disable EXP0024` or `<NoWarn>$(NoWarn);EXP0024</NoWarn>`.
+
+***
+
+## Analyzer & `IExpressiveQueryable<T>` Diagnostics (EXP0025--EXP0029)
+
+These diagnostics are emitted by the companion analyzers in `ExpressiveSharp.CodeFixers` (shipped with the `ExpressiveSharp` package). They flag places where `[Expressive]` rewriting silently won't apply.
+
+### EXP0025 -- Referenced member could benefit from `[Expressive]` {#exp0025}
+
+**Severity:** Warning
+**Category:** Design
+**Source:** `MissingExpressiveAnalyzer` (in `ExpressiveSharp.CodeFixers`)
+
+**Message:**
+
+```
+Member '{0}' is referenced in an [Expressive] expression but is not marked [Expressive].
+Adding [Expressive] would allow its body to be inlined into the expression tree.
+```
+
+**Cause:** A member referenced inside an `[Expressive]` body, an `ExpressionPolyfill.Create()` lambda, or an `IExpressiveQueryable` LINQ lambda has an expandable body (expression-bodied or block-bodied) but is not marked `[Expressive]`. Without the attribute, the member call remains opaque in the generated expression tree and cannot be translated by LINQ providers.
+
+**Fix:** {#exp0025-fix}
+
+The IDE offers a code fix that adds `[Expressive]` to the referenced member automatically (including the `using ExpressiveSharp;` directive if needed):
+
+```csharp
+// Warning: Total is referenced in an [Expressive] body but not marked [Expressive]
+public double Total => Price * Quantity;
+
+// Fixed: add [Expressive]
+[Expressive]
+public double Total => Price * Quantity;
+```
+
+::: tip
+Enum method calls are excluded from this diagnostic -- the generator expands those automatically via per-value ternary chains, so `[Expressive]` is not needed on the enum extension method.
+:::
+
+***
+
+### EXP0026 -- `IExpressiveQueryable<T>` LINQ method resolves to `Queryable` {#exp0026}
+
+**Severity:** Warning
+**Category:** Usage
+**Source:** `MissingExpressiveImportAnalyzer` (in `ExpressiveSharp.CodeFixers`)
+
+**Message:**
+
+```
+LINQ method '{0}' on IExpressiveQueryable<T> resolves to System.Linq.Queryable instead of the
+ExpressiveSharp overload. Add 'using ExpressiveSharp;' to enable expression tree rewriting and
+maintain the IExpressiveQueryable chain.
+```
+
+**Cause:** A LINQ method invoked on an `IExpressiveQueryable<T>` receiver bound to `System.Linq.Queryable` rather than the ExpressiveSharp delegate-based overload, because `using ExpressiveSharp;` is not imported. Without that import the chain silently degrades to plain `IQueryable<T>` and `[Expressive]` members are no longer rewritten.
+
+**Fix:** {#exp0026-fix}
+
+Add `using ExpressiveSharp;`. The IDE offers a code fix that inserts the directive automatically.
+
+***
+
+### EXP0027 -- No `IExpressiveQueryable<T>` overload for `Queryable` method {#exp0027}
+
+**Severity:** Info
+**Category:** Usage
+**Source:** `MissingExpressiveImportAnalyzer` (in `ExpressiveSharp.CodeFixers`)
+
+**Message:**
+
+```
+Method '{0}' from System.Linq.Queryable has no IExpressiveQueryable<T> overload. The result
+will be IQueryable<T>, breaking the IExpressiveQueryable chain.
+```
+
+**Cause:** The called `Queryable` method has no ExpressiveSharp stub, so its result is plain `IQueryable<T>` and the expressive chain ends here. Unlike [EXP0026](#exp0026), this is not fixable by adding an import — no overload exists.
+
+**Fix:** Re-establish the chain after the call with `.AsExpressive()` if you need `[Expressive]` rewriting downstream, or accept the plain `IQueryable<T>` if the remainder of the query needs no rewriting.
+
+***
+
+### EXP0028 -- Plain `IQueryable` chain references an `[Expressive]` member without `.AsExpressive()` {#exp0028}
+
+**Severity:** Info
+**Category:** Usage
+
+**Message:**
+
+```
+LINQ method '{0}' on a plain IQueryable<T> references the [Expressive] member '{1}'.
+Without .AsExpressive(), the member's body will not be inlined into the expression tree;
+the provider may evaluate the call in memory or fail to translate it. Wrap the source
+with .AsExpressive().
+```
+
+**Cause:** A LINQ method on a plain `IQueryable<T>` receiver (one that is not `IExpressiveQueryable<T>`) is invoked with a lambda whose body references an `[Expressive]` member. Because the chain is not expressive-aware, the source generator does not rewrite the lambda into an expression tree that inlines the member's body — the underlying query provider receives a call to the runtime delegate. Most providers cannot translate this and will either evaluate the call client-side (silent overfetch) or throw at execution time.
+
+**Fix:** Wrap the chain root with `.AsExpressive()` so that subsequent LINQ methods flow through the ExpressiveSharp delegate-based overloads, which inline `[Expressive]` member bodies at compile time.
+
+```csharp
+// Before — IsAdult is silently evaluated on the client.
+var adults = users.Where(u => u.IsAdult).ToList();
+
+// After — IsAdult is inlined into the expression tree before the provider sees it.
+var adults = users.AsExpressive().Where(u => u.IsAdult).ToList();
+```
+
+When you intentionally want to evaluate a member at runtime (e.g., it captures process state), mark the member with `[NotExpressive]` to suppress the diagnostic at every call site.
+
+#### Code Fix: Wrap source with `.AsExpressive()` {#exp0028-fix}
+
+The IDE offers a single code action: **Wrap source with `.AsExpressive()`**. It walks the LINQ chain to the leftmost non-LINQ expression, wraps it with `.AsExpressive()`, and inserts `using ExpressiveSharp;` if it is not already imported.
+
+***
+
+### EXP0029 -- `IExpressiveQueryable<T>` chain dropped to plain `IQueryable<T>` {#exp0029}
+
+**Severity:** Info
+**Category:** Usage
+
+**Message:**
+
+```
+'{0}' returns IQueryable<T> from an IExpressiveQueryable<T> receiver, dropping the expressive
+chain. Downstream LINQ skips ExpressiveSharp rewriting and [Expressive] members may evaluate
+on the client. Add an IExpressiveQueryable<T>-typed overload of '{0}', wrap the result with
+.AsExpressive(), or mark the method [NotExpressive] if the dropout is intentional.
+```
+
+**Cause:** A method invocation is being made on a receiver that implements `IExpressiveQueryable<T>`, but the method's return type is plain `IQueryable<T>` (or some derivative that is not also expressive). The chain loses its expressive type at this call site, and every downstream LINQ operation on the result skips ExpressiveSharp's rewrite step — `[Expressive]` members in subsequent `Where` / `Select` / `Include` / etc. fall back to runtime delegate invocation, which most providers cannot translate and will evaluate on the client.
+
+The diagnostic fires once, at the dropout point itself, regardless of how many further calls follow.
+
+**Common dropout shapes:**
+
+```csharp
+// User-defined helper typed on plain IQueryable<T> — drops the chain.
+public static IQueryable<T> Filter<T>(this IQueryable<T> source) => source.Where(...);
+
+db.Orders.AsExpressiveDbSet().Filter()  // ⚠ EXP0029 fires on .Filter()
+    .Include(o => o.Customer)           // chain is plain from here on
+    .ToList();
+```
+
+**Fix (preferred):** Add a sibling overload typed on `IExpressiveQueryable<T>` that returns `IExpressiveQueryable<T>`:
+
+```csharp
+public static IExpressiveQueryable<T> Filter<T>(this IExpressiveQueryable<T> source)
+    => source.Where(...);
+```
+
+**Fix (when the helper can't be modified):** wrap the result with `.AsExpressive()` to restore the chain:
+
+```csharp
+db.Orders.AsExpressiveDbSet()
+    .ThirdPartyHelper()      // returns plain IQueryable<Order>
+    .AsExpressive()          // re-wrap
+    .Include(o => o.Customer);
+```
+
+**Exemptions:**
+
+* `.AsQueryable()` — the standard explicit downcast — is sanctioned and never reported.
+* Marking the offending method with `[NotExpressive]` suppresses the diagnostic at every call site, for cases where the dropout is intentional (the helper performs work that genuinely needs to run on the client).
+
+***
+
+## Window Function Diagnostics (EXP0030--EXP0031)
+
+These diagnostics are emitted by the `WindowFunctionLiteralArgsAnalyzer` in the `ExpressiveSharp.EntityFrameworkCore.CodeFixers` package (shipped with `ExpressiveSharp.EntityFrameworkCore`). They validate constant literal arguments to `WindowFunction.*` calls before they reach the database. Only compile-time constant arguments are checked; a variable count or offset is never flagged. See [Window Functions](../guide/window-functions) for the full feature reference.
+
+### EXP0030 -- `WindowFunction.Ntile` requires a positive bucket count {#exp0030}
+
+**Severity:** Warning
+**Category:** Usage
+
+**Message:**
+
+```
+WindowFunction.Ntile requires a positive bucket count; literal value {0} produces invalid SQL
+```
+
+**Cause:** `NTILE(n)` divides ordered rows into `n` buckets, so SQL requires `n >= 1`. A literal `0` or negative bucket count raises a database error at execution time.
+
+**Fix:** Pass a positive literal bucket count:
+
+```csharp
+// Warning: EXP0030
+WindowFunction.Ntile(0, Window.OrderBy(x => x.Score));
+
+// Fixed
+WindowFunction.Ntile(4, Window.OrderBy(x => x.Score));
+```
+
+***
+
+### EXP0031 -- `WindowFunction.Lag`/`Lead` offset must be non-negative {#exp0031}
+
+**Severity:** Warning
+**Category:** Usage
+
+**Message:**
+
+```
+WindowFunction.{0} offset must be non-negative; literal value {1} is rejected during EF translation
+```
+
+**Cause:** `LAG` and `LEAD` offsets count rows backward or forward from the current row; SQL requires the offset to be `>= 0`. A negative literal offset is rejected during EF translation.
+
+**Fix:** Use a non-negative offset — swap `Lag` for `Lead` (or vice versa) instead of negating:
+
+```csharp
+// Warning: EXP0031
+WindowFunction.Lag(x.Value, -1, window);
+
+// Fixed
+WindowFunction.Lead(x.Value, 1, window);
+```
 
 ***
 
