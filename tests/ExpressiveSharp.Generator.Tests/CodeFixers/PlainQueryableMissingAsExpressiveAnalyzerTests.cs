@@ -16,7 +16,7 @@ namespace ExpressiveSharp.Generator.Tests.CodeFixers;
 public sealed class PlainQueryableMissingAsExpressiveAnalyzerTests : GeneratorTestBase
 {
     [TestMethod]
-    public async Task PlainQueryable_WithExpressiveProperty_ReportsEXP0027()
+    public async Task PlainQueryable_WithExpressiveProperty_ReportsEXP0028()
     {
         const string source = """
             using System.Linq;
@@ -43,12 +43,12 @@ public sealed class PlainQueryableMissingAsExpressiveAnalyzerTests : GeneratorTe
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0027"),
-            "Expected EXP0027 when plain IQueryable lambda references an [Expressive] member");
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0028"),
+            "Expected EXP0028 when plain IQueryable lambda references an [Expressive] member");
     }
 
     [TestMethod]
-    public async Task ExpressiveQueryable_NoEXP0027()
+    public async Task ExpressiveQueryable_NoEXP0028()
     {
         const string source = """
             using System.Linq;
@@ -75,12 +75,12 @@ public sealed class PlainQueryableMissingAsExpressiveAnalyzerTests : GeneratorTe
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0027"),
-            "EXP0027 should not fire when the receiver is already IExpressiveQueryable");
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0028"),
+            "EXP0028 should not fire when the receiver is already IExpressiveQueryable");
     }
 
     [TestMethod]
-    public async Task PlainQueryable_NonExpressiveMember_NoEXP0027()
+    public async Task PlainQueryable_NonExpressiveMember_NoEXP0028()
     {
         const string source = """
             using System.Linq;
@@ -103,12 +103,12 @@ public sealed class PlainQueryableMissingAsExpressiveAnalyzerTests : GeneratorTe
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0027"),
-            "EXP0027 should not fire when no [Expressive] member is referenced");
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0028"),
+            "EXP0028 should not fire when no [Expressive] member is referenced");
     }
 
     [TestMethod]
-    public async Task PlainEnumerable_NoEXP0027()
+    public async Task PlainEnumerable_NoEXP0028()
     {
         const string source = """
             using System.Collections.Generic;
@@ -136,12 +136,12 @@ public sealed class PlainQueryableMissingAsExpressiveAnalyzerTests : GeneratorTe
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0027"),
-            "EXP0027 should not fire on IEnumerable (LINQ-to-Objects) chains");
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0028"),
+            "EXP0028 should not fire on IEnumerable (LINQ-to-Objects) chains");
     }
 
     [TestMethod]
-    public async Task PlainQueryable_WithNotExpressiveMember_NoEXP0027()
+    public async Task PlainQueryable_WithNotExpressiveMember_NoEXP0028()
     {
         const string source = """
             using System.Linq;
@@ -168,12 +168,12 @@ public sealed class PlainQueryableMissingAsExpressiveAnalyzerTests : GeneratorTe
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0027"),
-            "[NotExpressive] should suppress EXP0027");
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0028"),
+            "[NotExpressive] should suppress EXP0028");
     }
 
     [TestMethod]
-    public async Task PlainQueryable_AfterAsExpressive_NoEXP0027()
+    public async Task PlainQueryable_AfterAsExpressive_NoEXP0028()
     {
         const string source = """
             using System.Linq;
@@ -200,12 +200,12 @@ public sealed class PlainQueryableMissingAsExpressiveAnalyzerTests : GeneratorTe
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0027"),
-            "EXP0027 should not fire when the chain is already wrapped with .AsExpressive()");
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0028"),
+            "EXP0028 should not fire when the chain is already wrapped with .AsExpressive()");
     }
 
     [TestMethod]
-    public async Task PlainQueryable_ExpressiveMethodInLambda_ReportsEXP0027()
+    public async Task PlainQueryable_ExpressiveMethodInLambda_ReportsEXP0028()
     {
         const string source = """
             using System.Linq;
@@ -232,8 +232,8 @@ public sealed class PlainQueryableMissingAsExpressiveAnalyzerTests : GeneratorTe
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0027"),
-            "Expected EXP0027 when plain IQueryable lambda references an [Expressive] method");
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0028"),
+            "Expected EXP0028 when plain IQueryable lambda references an [Expressive] method");
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

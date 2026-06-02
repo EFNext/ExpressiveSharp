@@ -55,11 +55,11 @@ public class InterfaceTests : GeneratorTestBase
 
         var result = RunExpressiveGenerator(compilation);
 
-        // A default interface member is implicitly virtual, so EXP0038 fires: when expanded into
+        // A default interface member is implicitly virtual, so EXP0024 fires: when expanded into
         // an expression tree the call resolves against the static (interface) type, not a runtime
         // override. The generator still emits the expression for the declared body.
         Assert.AreEqual(1, result.Diagnostics.Length);
-        Assert.AreEqual("EXP0038", result.Diagnostics[0].Id);
+        Assert.AreEqual("EXP0024", result.Diagnostics[0].Id);
         Assert.AreEqual(1, result.GeneratedTrees.Length);
 
         return Verifier.Verify(result.GeneratedTrees[0].ToString());

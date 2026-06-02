@@ -229,7 +229,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
                 factoryCandidate.Identifier.Text));
         }
 
-        // EXP0038: virtual/abstract/override members are expanded using the static (declared)
+        // EXP0024: virtual/abstract/override members are expanded using the static (declared)
         // type. Once the body is inlined into an expression tree (EF Core, MongoDB, ...), C#
         // virtual dispatch is lost, so an overridden body in a derived type is never used.
         if (memberSymbol.IsVirtual || memberSymbol.IsAbstract || memberSymbol.IsOverride)
@@ -450,7 +450,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
             descriptor.MemberName, descriptor.ParameterTypeNames);
         var generatedFileName = $"{generatedClassName}.{methodSuffix}.g.cs";
 
-        // Skip duplicate emissions — EXP0020 is reported via the registry duplicate check
+        // Skip duplicate emissions — EXP0017 is reported via the registry duplicate check
         if (emittedFileNames is not null && !emittedFileNames.Add(generatedFileName))
             return;
 
@@ -701,7 +701,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
 
         // Pair every (decl, originalCompilation) with the augmented compilation. Validation
         // and ChooseBackingNames must use the original compilation (augmentation would otherwise
-        // false-positive EXP0031 against synthesized siblings); body-binding uses the augmented
+        // false-positive EXP0018 against synthesized siblings); body-binding uses the augmented
         // SemanticModel so cross-references between [ExpressiveProperty] stubs resolve.
         var compilationAndPairsWithBinding = compilationAndPairs.Combine(bindingCompilationProvider);
 

@@ -143,8 +143,8 @@ public sealed class WrapInAsExpressiveCodeFixProviderTests : GeneratorTestBase
             ImmutableArray.Create<DiagnosticAnalyzer>(analyzer));
 
         var analyzerDiagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync(CancellationToken.None);
-        var diagnostic = analyzerDiagnostics.FirstOrDefault(d => d.Id == "EXP0027");
-        Assert.IsNotNull(diagnostic, "Expected EXP0027 diagnostic to be emitted");
+        var diagnostic = analyzerDiagnostics.FirstOrDefault(d => d.Id == "EXP0028");
+        Assert.IsNotNull(diagnostic, "Expected EXP0028 diagnostic to be emitted");
 
         var docInSolution = project.Solution.GetDocument(diagnostic.Location.SourceTree)
             ?? throw new System.Exception("Failed to locate document for diagnostic");

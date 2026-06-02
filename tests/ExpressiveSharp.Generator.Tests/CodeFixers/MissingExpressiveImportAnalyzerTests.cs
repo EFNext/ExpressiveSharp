@@ -16,7 +16,7 @@ namespace ExpressiveSharp.Generator.Tests.CodeFixers;
 public sealed class MissingExpressiveImportAnalyzerTests : GeneratorTestBase
 {
     [TestMethod]
-    public async Task Where_WithoutUsing_ReportsEXP0021()
+    public async Task Where_WithoutUsing_ReportsEXP0026()
     {
         const string source = """
             using System;
@@ -35,12 +35,12 @@ public sealed class MissingExpressiveImportAnalyzerTests : GeneratorTestBase
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0021"),
-            "Expected EXP0021 for Where on IExpressiveQueryable without using");
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0026"),
+            "Expected EXP0026 for Where on IExpressiveQueryable without using");
     }
 
     [TestMethod]
-    public async Task Take_WithoutUsing_ReportsEXP0021()
+    public async Task Take_WithoutUsing_ReportsEXP0026()
     {
         const string source = """
             using System;
@@ -59,8 +59,8 @@ public sealed class MissingExpressiveImportAnalyzerTests : GeneratorTestBase
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0021"),
-            "Expected EXP0021 for Take on IExpressiveQueryable without using (chain break)");
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0026"),
+            "Expected EXP0026 for Take on IExpressiveQueryable without using (chain break)");
     }
 
     [TestMethod]
@@ -84,8 +84,8 @@ public sealed class MissingExpressiveImportAnalyzerTests : GeneratorTestBase
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0021"),
-            "Should not report EXP0021 when using ExpressiveSharp is present");
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0026"),
+            "Should not report EXP0026 when using ExpressiveSharp is present");
     }
 
     [TestMethod]
@@ -108,12 +108,12 @@ public sealed class MissingExpressiveImportAnalyzerTests : GeneratorTestBase
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0021" || d.Id == "EXP0022"),
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0026" || d.Id == "EXP0027"),
             "Should not report any diagnostic for plain IQueryable");
     }
 
     [TestMethod]
-    public async Task Contains_WithoutStub_ReportsEXP0022()
+    public async Task Contains_WithoutStub_ReportsEXP0027()
     {
         const string source = """
             using System;
@@ -132,10 +132,10 @@ public sealed class MissingExpressiveImportAnalyzerTests : GeneratorTestBase
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0022"),
-            "Expected EXP0022 for Contains (no stub exists)");
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0021"),
-            "Should not report EXP0021 when no stub exists");
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0027"),
+            "Expected EXP0027 for Contains (no stub exists)");
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0026"),
+            "Should not report EXP0026 when no stub exists");
     }
 
     [TestMethod]
@@ -158,7 +158,7 @@ public sealed class MissingExpressiveImportAnalyzerTests : GeneratorTestBase
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0021" || d.Id == "EXP0022"),
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0026" || d.Id == "EXP0027"),
             "Should not report any diagnostic for plain IQueryable");
     }
 

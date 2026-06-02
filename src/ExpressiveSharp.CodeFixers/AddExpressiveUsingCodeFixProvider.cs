@@ -11,14 +11,14 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ExpressiveSharp.CodeFixers;
 
 /// <summary>
-/// Provides a code fix for EXP0021 that adds <c>using ExpressiveSharp;</c> to bring
+/// Provides a code fix for EXP0026 that adds <c>using ExpressiveSharp;</c> to bring
 /// the delegate-based LINQ stubs into scope.
 /// </summary>
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddExpressiveUsingCodeFixProvider))]
 public sealed class AddExpressiveUsingCodeFixProvider : CodeFixProvider
 {
     public override ImmutableArray<string> FixableDiagnosticIds =>
-        ImmutableArray.Create("EXP0021");
+        ImmutableArray.Create("EXP0026");
 
     public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
 
@@ -37,7 +37,7 @@ public sealed class AddExpressiveUsingCodeFixProvider : CodeFixProvider
                     title: "Add 'using ExpressiveSharp'",
                     createChangedDocument: _ => Task.FromResult(
                         context.Document.WithSyntaxRoot(EnsureUsingDirective(root))),
-                    equivalenceKey: "EXP0021_AddUsing"),
+                    equivalenceKey: "EXP0026_AddUsing"),
                 diagnostic);
         }
     }

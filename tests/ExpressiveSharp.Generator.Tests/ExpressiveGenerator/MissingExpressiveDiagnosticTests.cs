@@ -16,7 +16,7 @@ namespace ExpressiveSharp.Generator.Tests.ExpressiveGenerator;
 public class MissingExpressiveDiagnosticTests : GeneratorTestBase
 {
     [TestMethod]
-    public async Task MethodCall_ToSourceMethodWithExpressionBody_WarnsEXP0013()
+    public async Task MethodCall_ToSourceMethodWithExpressionBody_WarnsEXP0025()
     {
         var diagnostics = await RunAnalyzerAsync(
             """
@@ -30,12 +30,12 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0013"),
-            "Expected EXP0013 for method call to source method without [Expressive]");
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0025"),
+            "Expected EXP0025 for method call to source method without [Expressive]");
     }
 
     [TestMethod]
-    public async Task PropertyAccess_ToSourcePropertyWithExpressionBody_WarnsEXP0013()
+    public async Task PropertyAccess_ToSourcePropertyWithExpressionBody_WarnsEXP0025()
     {
         var diagnostics = await RunAnalyzerAsync(
             """
@@ -50,12 +50,12 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0013"),
-            "Expected EXP0013 for property access to source property without [Expressive]");
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0025"),
+            "Expected EXP0025 for property access to source property without [Expressive]");
     }
 
     [TestMethod]
-    public async Task PropertyAccess_ToSourcePropertyWithBlockGetter_WarnsEXP0013()
+    public async Task PropertyAccess_ToSourcePropertyWithBlockGetter_WarnsEXP0025()
     {
         var diagnostics = await RunAnalyzerAsync(
             """
@@ -70,12 +70,12 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0013"),
-            "Expected EXP0013 for property access to source property with block getter without [Expressive]");
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0025"),
+            "Expected EXP0025 for property access to source property with block getter without [Expressive]");
     }
 
     [TestMethod]
-    public async Task MethodCall_ToBlockBodyMethod_WarnsEXP0013()
+    public async Task MethodCall_ToBlockBodyMethod_WarnsEXP0025()
     {
         var diagnostics = await RunAnalyzerAsync(
             """
@@ -89,12 +89,12 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0013"),
-            "Expected EXP0013 for method call to block-body method without [Expressive]");
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0025"),
+            "Expected EXP0025 for method call to block-body method without [Expressive]");
     }
 
     [TestMethod]
-    public async Task ExtensionMethod_OnNonEnumReceiver_WarnsEXP0013()
+    public async Task ExtensionMethod_OnNonEnumReceiver_WarnsEXP0025()
     {
         var diagnostics = await RunAnalyzerAsync(
             """
@@ -112,12 +112,12 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0013"),
-            "Expected EXP0013 for non-enum extension method without [Expressive]");
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0025"),
+            "Expected EXP0025 for non-enum extension method without [Expressive]");
     }
 
     [TestMethod]
-    public async Task PropertyWithoutExpressive_ReferencedInExpressive_WarnsEXP0013()
+    public async Task PropertyWithoutExpressive_ReferencedInExpressive_WarnsEXP0025()
     {
         var diagnostics = await RunAnalyzerAsync(
             """
@@ -133,12 +133,12 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0013"),
-            "Expected EXP0013 for property without [Expressive] referenced in [Expressive] member");
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0025"),
+            "Expected EXP0025 for property without [Expressive] referenced in [Expressive] member");
     }
 
     [TestMethod]
-    public async Task EXP0013_HasAdditionalLocation_PointingToDeclaration()
+    public async Task EXP0025_HasAdditionalLocation_PointingToDeclaration()
     {
         var diagnostics = await RunAnalyzerAsync(
             """
@@ -152,9 +152,9 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        var diag = diagnostics.First(d => d.Id == "EXP0013");
+        var diag = diagnostics.First(d => d.Id == "EXP0025");
         Assert.AreEqual(1, diag.AdditionalLocations.Count,
-            "EXP0013 should include the declaration as an additional location");
+            "EXP0025 should include the declaration as an additional location");
     }
 
     [TestMethod]
@@ -173,7 +173,7 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0025"),
             "Should not warn when referenced method already has [Expressive]");
     }
 
@@ -192,7 +192,7 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0025"),
             "Should not warn for auto-property access");
     }
 
@@ -211,7 +211,7 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0025"),
             "Should not warn for BCL method call");
     }
 
@@ -233,7 +233,7 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0025"),
             "Should not warn when referenced property already has [Expressive]");
     }
 
@@ -262,12 +262,12 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0025"),
             "Should not warn for enum extension method — generator expands these via TryEmitEnumMethodExpansion");
     }
 
     [TestMethod]
-    public async Task ExpressiveQueryable_Select_WithNonExpressiveExtensionMethod_WarnsEXP0013()
+    public async Task ExpressiveQueryable_Select_WithNonExpressiveExtensionMethod_WarnsEXP0025()
     {
         var diagnostics = await RunAnalyzerAsync(
             """
@@ -294,12 +294,12 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0013"),
-            "Expected EXP0013 for non-[Expressive] extension method in IExpressiveQueryable Select lambda");
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0025"),
+            "Expected EXP0025 for non-[Expressive] extension method in IExpressiveQueryable Select lambda");
     }
 
     [TestMethod]
-    public async Task ExpressiveQueryable_Where_WithNonExpressiveInstanceMethod_WarnsEXP0013()
+    public async Task ExpressiveQueryable_Where_WithNonExpressiveInstanceMethod_WarnsEXP0025()
     {
         var diagnostics = await RunAnalyzerAsync(
             """
@@ -319,12 +319,12 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0013"),
-            "Expected EXP0013 for non-[Expressive] instance method in IExpressiveQueryable Where lambda");
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0025"),
+            "Expected EXP0025 for non-[Expressive] instance method in IExpressiveQueryable Where lambda");
     }
 
     [TestMethod]
-    public async Task ExpressiveQueryable_Select_WithNonExpressiveProperty_WarnsEXP0013()
+    public async Task ExpressiveQueryable_Select_WithNonExpressiveProperty_WarnsEXP0025()
     {
         var diagnostics = await RunAnalyzerAsync(
             """
@@ -345,12 +345,12 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0013"),
-            "Expected EXP0013 for non-[Expressive] property in IExpressiveQueryable Select lambda");
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0025"),
+            "Expected EXP0025 for non-[Expressive] property in IExpressiveQueryable Select lambda");
     }
 
     [TestMethod]
-    public async Task ExpressiveQueryable_MethodGroup_WithNonExpressiveMethod_WarnsEXP0013()
+    public async Task ExpressiveQueryable_MethodGroup_WithNonExpressiveMethod_WarnsEXP0025()
     {
         var diagnostics = await RunAnalyzerAsync(
             """
@@ -379,8 +379,8 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0013"),
-            "Expected EXP0013 for non-[Expressive] method group in IExpressiveQueryable Select");
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0025"),
+            "Expected EXP0025 for non-[Expressive] method group in IExpressiveQueryable Select");
     }
 
     [TestMethod]
@@ -412,7 +412,7 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0025"),
             "Should not warn when referenced method already has [Expressive] in LINQ lambda");
     }
 
@@ -436,7 +436,7 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0025"),
             "Should not warn for BCL method call in IExpressiveQueryable LINQ lambda");
     }
 
@@ -460,7 +460,7 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0025"),
             "Should not warn for auto-property access in IExpressiveQueryable LINQ lambda");
     }
 
@@ -494,13 +494,13 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0025"),
             "Should not warn for enum extension method in IExpressiveQueryable LINQ lambda");
     }
 
     // When a stub on the same type registers an expression for a member via
     // [ExpressiveProperty("X")] or [ExpressiveFor(nameof(X))], the referenced member
-    // is effectively expressive — EXP0013 must not fire on it.
+    // is effectively expressive — EXP0025 must not fire on it.
 
     [TestMethod]
     public async Task PropertyAccess_ToExpressivePropertySynthesizedTarget_DoesNotWarn()
@@ -521,7 +521,7 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0025"),
             "Should not warn for a reference to an [ExpressiveProperty]-synthesized target");
     }
 
@@ -545,7 +545,7 @@ public class MissingExpressiveDiagnosticTests : GeneratorTestBase
             }
             """);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0025"),
             "Should not warn for a reference to an [ExpressiveFor]-mapped same-type target");
     }
 

@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace ExpressiveSharp.CodeFixers;
 
 /// <summary>
-/// Reports EXP0013 when a member referenced inside an [Expressive] body, an
+/// Reports EXP0025 when a member referenced inside an [Expressive] body, an
 /// <c>ExpressionPolyfill.Create()</c> lambda, or an <c>IExpressiveQueryable</c>
 /// LINQ lambda has an expandable body but is not marked [Expressive].
 /// </summary>
@@ -17,7 +17,7 @@ namespace ExpressiveSharp.CodeFixers;
 public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
 {
     public static readonly DiagnosticDescriptor MemberCouldBeExpressive = new(
-        id: "EXP0013",
+        id: "EXP0025",
         title: "Referenced member could benefit from [Expressive]",
         messageFormat: "Member '{0}' is referenced in an [Expressive] expression but is not marked [Expressive]. Adding [Expressive] would allow its body to be inlined into the expression tree.",
         category: "Design",
@@ -157,7 +157,7 @@ public sealed class MissingExpressiveAnalyzer : DiagnosticAnalyzer
     }
 
     // Generator already expands enum/Nullable<Enum> receivers via TryEmitEnumMethodExpansion,
-    // so EXP0013 would be a false positive.
+    // so EXP0025 would be a false positive.
     private static bool HasEnumReceiver(
         IMethodSymbol method,
         InvocationExpressionSyntax invocation,

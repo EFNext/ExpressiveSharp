@@ -243,7 +243,7 @@ public class ExpressivePropertyTests : GeneratorTestBase
     }
 
     [TestMethod]
-    public void TargetAlreadyExists_ReportsEXP0031()
+    public void TargetAlreadyExists_ReportsEXP0018()
     {
         var compilation = CreateCompilation(
             """
@@ -260,11 +260,11 @@ public class ExpressivePropertyTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0031"));
+        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0018"));
     }
 
     [TestMethod]
-    public void NonPartialContainer_ReportsEXP0032()
+    public void NonPartialContainer_ReportsEXP0019()
     {
         var compilation = CreateCompilation(
             """
@@ -281,11 +281,11 @@ public class ExpressivePropertyTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0032"));
+        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0019"));
     }
 
     [TestMethod]
-    public void AccessorListFormRejected_EXP0033()
+    public void AccessorListFormRejected_EXP0020()
     {
         // Accessor-list form (`{ get => expr; }`) is rejected in favor of top-level `=> expr`.
         var compilation = CreateCompilation(
@@ -303,11 +303,11 @@ public class ExpressivePropertyTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0033"));
+        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0020"));
     }
 
     [TestMethod]
-    public void StaticStubRejected_EXP0034()
+    public void StaticStubRejected_EXP0021()
     {
         var compilation = CreateCompilation(
             """
@@ -324,7 +324,7 @@ public class ExpressivePropertyTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0034"));
+        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0021"));
     }
 
     [TestMethod]
@@ -397,7 +397,7 @@ public class ExpressivePropertyTests : GeneratorTestBase
     }
 
     [TestMethod]
-    public void ShadowsInheritedMember_ReportsEXP0035()
+    public void ShadowsInheritedMember_ReportsEXP0022()
     {
         // Target name already exists on the base type — silently hiding it would be a footgun.
         var compilation = CreateCompilation(
@@ -419,7 +419,7 @@ public class ExpressivePropertyTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0035"));
+        Assert.AreEqual(1, result.Diagnostics.Count(d => d.Id == "EXP0022"));
     }
 
     [TestMethod]

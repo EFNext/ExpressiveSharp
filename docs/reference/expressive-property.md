@@ -91,11 +91,11 @@ If you need a mutable `set` (not just `init`), that's a future addition; open an
 
 | Code | Cause |
 |------|-------|
-| [EXP0031](./diagnostics#exp0031) | Target name already defined on the containing type. Rename the stub, or switch to `[ExpressiveFor(nameof(X))]`. |
-| [EXP0032](./diagnostics#exp0032) | Containing type is not `partial`. |
-| [EXP0033](./diagnostics#exp0033) | Stub is not a property with top-level expression body. |
-| [EXP0034](./diagnostics#exp0034) | Stub is `static`. |
-| [EXP0035](./diagnostics#exp0035) | Target name shadows an inherited member on a base type. |
+| [EXP0018](./diagnostics#exp0018) | Target name already defined on the containing type. Rename the stub, or switch to `[ExpressiveFor(nameof(X))]`. |
+| [EXP0019](./diagnostics#exp0019) | Containing type is not `partial`. |
+| [EXP0020](./diagnostics#exp0020) | Stub is not a property with top-level expression body. |
+| [EXP0021](./diagnostics#exp0021) | Stub is `static`. |
+| [EXP0022](./diagnostics#exp0022) | Target name shadows an inherited member on a base type. |
 
 ## EF Core and MongoDB integration
 

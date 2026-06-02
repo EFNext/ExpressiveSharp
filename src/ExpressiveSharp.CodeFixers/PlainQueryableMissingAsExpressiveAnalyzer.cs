@@ -10,7 +10,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace ExpressiveSharp.CodeFixers;
 
 /// <summary>
-/// Reports EXP0027 when a LINQ method on a plain <see cref="System.Linq.IQueryable{T}"/> receiver
+/// Reports EXP0028 when a LINQ method on a plain <see cref="System.Linq.IQueryable{T}"/> receiver
 /// (not <c>IExpressiveQueryable&lt;T&gt;</c>) is invoked with a lambda whose body references an
 /// <c>[Expressive]</c> member. Without <c>.AsExpressive()</c>, the body of the referenced member
 /// is not expanded into the query tree and the provider may silently fall back to client-side
@@ -20,7 +20,7 @@ namespace ExpressiveSharp.CodeFixers;
 public sealed class PlainQueryableMissingAsExpressiveAnalyzer : DiagnosticAnalyzer
 {
     public static readonly DiagnosticDescriptor PlainQueryableMissingAsExpressive = new(
-        id: "EXP0027",
+        id: "EXP0028",
         title: "Plain IQueryable chain references an [Expressive] member without .AsExpressive()",
         messageFormat: "LINQ method '{0}' on a plain IQueryable<T> references the [Expressive] member '{1}'. Without .AsExpressive(), the member's body will not be inlined into the expression tree; the provider may evaluate the call in memory or fail to translate it. Wrap the source with .AsExpressive().",
         category: "Usage",
@@ -62,7 +62,7 @@ public sealed class PlainQueryableMissingAsExpressiveAnalyzer : DiagnosticAnalyz
         if (!ImplementsIQueryable(receiverType))
             return;
 
-        // If the chain is already an IExpressiveQueryable, the existing EXP0013 / EXP0021
+        // If the chain is already an IExpressiveQueryable, the existing EXP0025 / EXP0026
         // diagnostics cover it.
         if (ExpressiveSymbolHelpers.IsOrImplementsExpressiveQueryable(receiverType))
             return;

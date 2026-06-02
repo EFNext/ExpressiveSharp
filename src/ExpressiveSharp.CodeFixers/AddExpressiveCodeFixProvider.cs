@@ -12,7 +12,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ExpressiveSharp.CodeFixers;
 
 /// <summary>
-/// Code fix for EXP0013: adds [Expressive] to the referenced member's declaration.
+/// Code fix for EXP0025: adds [Expressive] to the referenced member's declaration.
 /// The diagnostic's additional location (index 0) points to that declaration.
 /// </summary>
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddExpressiveCodeFixProvider))]
@@ -20,7 +20,7 @@ namespace ExpressiveSharp.CodeFixers;
 public sealed class AddExpressiveCodeFixProvider : CodeFixProvider
 {
     public override ImmutableArray<string> FixableDiagnosticIds =>
-        ImmutableArray.Create("EXP0013");
+        ImmutableArray.Create("EXP0025");
 
     public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
 
@@ -40,7 +40,7 @@ public sealed class AddExpressiveCodeFixProvider : CodeFixProvider
                 CodeAction.Create(
                     title: "Add [Expressive] attribute",
                     createChangedSolution: ct => AddExpressiveAttributeAsync(declDocument, declLocation, ct),
-                    equivalenceKey: "EXP0013_AddExpressive"),
+                    equivalenceKey: "EXP0025_AddExpressive"),
                 diagnostic);
         }
     }

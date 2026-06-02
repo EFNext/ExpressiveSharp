@@ -16,7 +16,7 @@ namespace ExpressiveSharp.Generator.Tests.CodeFixers;
 public sealed class NotExpressiveOptOutTests : GeneratorTestBase
 {
     [TestMethod]
-    public async Task NotExpressive_OnReferencedMember_SuppressesEXP0013()
+    public async Task NotExpressive_OnReferencedMember_SuppressesEXP0025()
     {
         const string source = """
             using ExpressiveSharp;
@@ -35,12 +35,12 @@ public sealed class NotExpressiveOptOutTests : GeneratorTestBase
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0013"),
-            "[NotExpressive] should suppress EXP0013 on the referenced member");
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0025"),
+            "[NotExpressive] should suppress EXP0025 on the referenced member");
     }
 
     [TestMethod]
-    public async Task NoOptOut_StillReportsEXP0013()
+    public async Task NoOptOut_StillReportsEXP0025()
     {
         const string source = """
             using ExpressiveSharp;
@@ -58,8 +58,8 @@ public sealed class NotExpressiveOptOutTests : GeneratorTestBase
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0013"),
-            "EXP0013 should still fire when [NotExpressive] is absent");
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0025"),
+            "EXP0025 should still fire when [NotExpressive] is absent");
     }
 
     private async Task<ImmutableArray<Diagnostic>> GetDiagnosticsAsync(string source)

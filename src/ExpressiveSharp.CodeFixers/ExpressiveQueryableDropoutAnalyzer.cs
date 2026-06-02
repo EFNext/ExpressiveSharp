@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace ExpressiveSharp.CodeFixers;
 
 /// <summary>
-/// Reports EXP0036 at the *dropout call* itself: a method invocation whose receiver implements
+/// Reports EXP0029 at the *dropout call* itself: a method invocation whose receiver implements
 /// <c>IExpressiveQueryable&lt;T&gt;</c> but whose return type is plain <c>IQueryable&lt;T&gt;</c>.
 /// The chain stops being expressive at this call; downstream LINQ skips ExpressiveSharp rewriting.
 /// </summary>
@@ -23,7 +23,7 @@ namespace ExpressiveSharp.CodeFixers;
 public sealed class ExpressiveQueryableDropoutAnalyzer : DiagnosticAnalyzer
 {
     public static readonly DiagnosticDescriptor ExpressiveQueryableDropout = new(
-        id: "EXP0036",
+        id: "EXP0029",
         title: "IExpressiveQueryable<T> chain dropped to plain IQueryable<T>",
         messageFormat: "'{0}' returns IQueryable<T> from an IExpressiveQueryable<T> receiver, dropping the expressive chain. Downstream LINQ skips ExpressiveSharp rewriting and [Expressive] members may evaluate on the client. Add an IExpressiveQueryable<T>-typed overload of '{0}', wrap the result with .AsExpressive(), or mark the method [NotExpressive] if the dropout is intentional.",
         category: "Usage",
@@ -65,7 +65,7 @@ public sealed class ExpressiveQueryableDropoutAnalyzer : DiagnosticAnalyzer
         if (symbolInfo.Symbol is not IMethodSymbol method)
             return;
 
-        // Method-level opt-out. Honored same as EXP0027 honors it on referenced members.
+        // Method-level opt-out. Honored same as EXP0028 honors it on referenced members.
         if (ExpressiveSymbolHelpers.HasNotExpressiveAttribute(method))
             return;
 
@@ -89,7 +89,7 @@ public sealed class ExpressiveQueryableDropoutAnalyzer : DiagnosticAnalyzer
             return;
 
         // Suppress when an IExpressiveQueryable<T> sibling exists in any referenced namespace
-        // — that scenario is owned by EXP0021 (a higher-severity Warning with its own codefix
+        // — that scenario is owned by EXP0026 (a higher-severity Warning with its own codefix
         // for adding the missing `using`). Reporting both would just be duplicate noise.
         if (expressiveQueryableOpenGeneric is not null
             && FindExpressiveSiblingNamespace(context.SemanticModel.Compilation, calledName, expressiveQueryableOpenGeneric) is not null)

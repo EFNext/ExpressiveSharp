@@ -13,7 +13,7 @@ public sealed class WindowFunctionLiteralArgsAnalyzer : DiagnosticAnalyzer
         "ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.WindowFunctions.WindowFunction";
 
     public static readonly DiagnosticDescriptor NtileRequiresPositiveBuckets = new(
-        id: "EXP0036",
+        id: "EXP0030",
         title: "WindowFunction.Ntile requires a positive bucket count",
         messageFormat: "WindowFunction.Ntile requires a positive bucket count; literal value {0} produces invalid SQL",
         category: "Usage",
@@ -22,7 +22,7 @@ public sealed class WindowFunctionLiteralArgsAnalyzer : DiagnosticAnalyzer
         description: "NTILE(n) divides ordered rows into n buckets. SQL requires n >= 1; non-positive values raise a database error at execution time.");
 
     public static readonly DiagnosticDescriptor NavigationOffsetMustBeNonNegative = new(
-        id: "EXP0037",
+        id: "EXP0031",
         title: "WindowFunction.Lag/Lead offset must be non-negative",
         messageFormat: "WindowFunction.{0} offset must be non-negative; literal value {1} is rejected during EF translation",
         category: "Usage",

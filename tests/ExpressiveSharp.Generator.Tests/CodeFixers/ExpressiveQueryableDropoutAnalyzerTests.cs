@@ -62,7 +62,7 @@ public sealed class ExpressiveQueryableDropoutAnalyzerTests : GeneratorTestBase
         """;
 
     [TestMethod]
-    public async Task ExpressiveReceiver_PlainHelper_ReportsEXP0036()
+    public async Task ExpressiveReceiver_PlainHelper_ReportsEXP0029()
     {
         const string source = """
             using System.Linq;
@@ -84,12 +84,12 @@ public sealed class ExpressiveQueryableDropoutAnalyzerTests : GeneratorTestBase
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0036"),
-            "Expected EXP0036 when a plain-IQueryable helper is called on an expressive receiver");
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0029"),
+            "Expected EXP0029 when a plain-IQueryable helper is called on an expressive receiver");
     }
 
     [TestMethod]
-    public async Task ExpressiveReceiver_AsQueryable_NoEXP0036()
+    public async Task ExpressiveReceiver_AsQueryable_NoEXP0029()
     {
         // .AsQueryable() is a sanctioned explicit downcast — we treat it as user intent.
         const string source = """
@@ -111,8 +111,8 @@ public sealed class ExpressiveQueryableDropoutAnalyzerTests : GeneratorTestBase
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0036"),
-            "EXP0036 should not fire on an explicit .AsQueryable() — it is the sanctioned downcast");
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0029"),
+            "EXP0029 should not fire on an explicit .AsQueryable() — it is the sanctioned downcast");
     }
 
     [TestMethod]
@@ -146,13 +146,13 @@ public sealed class ExpressiveQueryableDropoutAnalyzerTests : GeneratorTestBase
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        var hits = diagnostics.Count(d => d.Id == "EXP0036");
+        var hits = diagnostics.Count(d => d.Id == "EXP0029");
         Assert.AreEqual(1, hits,
-            "EXP0036 should fire once at the dropout point, not at downstream Include/Where/etc.");
+            "EXP0029 should fire once at the dropout point, not at downstream Include/Where/etc.");
     }
 
     [TestMethod]
-    public async Task ExpressiveReceiver_ExpressiveShadow_NoEXP0036()
+    public async Task ExpressiveReceiver_ExpressiveShadow_NoEXP0029()
     {
         const string source = """
             using System.Linq;
@@ -174,12 +174,12 @@ public sealed class ExpressiveQueryableDropoutAnalyzerTests : GeneratorTestBase
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0036"),
-            "EXP0036 should not fire when the called method preserves IExpressiveQueryable<T>");
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0029"),
+            "EXP0029 should not fire when the called method preserves IExpressiveQueryable<T>");
     }
 
     [TestMethod]
-    public async Task PlainReceiver_NoEXP0036()
+    public async Task PlainReceiver_NoEXP0029()
     {
         const string source = """
             using System.Linq;
@@ -200,12 +200,12 @@ public sealed class ExpressiveQueryableDropoutAnalyzerTests : GeneratorTestBase
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0036"),
-            "EXP0036 should not fire when the chain was never expressive to begin with");
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0029"),
+            "EXP0029 should not fire when the chain was never expressive to begin with");
     }
 
     [TestMethod]
-    public async Task ExpressiveReceiver_NotExpressiveMethod_NoEXP0036()
+    public async Task ExpressiveReceiver_NotExpressiveMethod_NoEXP0029()
     {
         const string source = """
             using System.Linq;
@@ -227,12 +227,12 @@ public sealed class ExpressiveQueryableDropoutAnalyzerTests : GeneratorTestBase
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0036"),
-            "[NotExpressive] on the offending method should suppress EXP0036");
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0029"),
+            "[NotExpressive] on the offending method should suppress EXP0029");
     }
 
     [TestMethod]
-    public async Task ExpressiveReceiver_TerminatingCall_NoEXP0036()
+    public async Task ExpressiveReceiver_TerminatingCall_NoEXP0029()
     {
         const string source = """
             using System.Collections.Generic;
@@ -254,12 +254,12 @@ public sealed class ExpressiveQueryableDropoutAnalyzerTests : GeneratorTestBase
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0036"),
-            "EXP0036 should not fire on terminating calls whose result is not IQueryable<T>");
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0029"),
+            "EXP0029 should not fire on terminating calls whose result is not IQueryable<T>");
     }
 
     [TestMethod]
-    public async Task ExpressiveReceiver_BuiltInWhereWithInlineLambda_NoEXP0036()
+    public async Task ExpressiveReceiver_BuiltInWhereWithInlineLambda_NoEXP0029()
     {
         // Queryable.Where on an IExpressiveQueryable<T> receiver is rewritten by the
         // polyfill interceptor into the IExpressiveQueryable.Where stub at compile time,
@@ -284,16 +284,16 @@ public sealed class ExpressiveQueryableDropoutAnalyzerTests : GeneratorTestBase
 
         var diagnostics = await GetDiagnosticsAsync(source);
 
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0036"),
-            "EXP0036 should not fire on built-in LINQ calls whose IExpressiveQueryable<T> sibling stub exists.");
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0029"),
+            "EXP0029 should not fire on built-in LINQ calls whose IExpressiveQueryable<T> sibling stub exists.");
     }
 
     [TestMethod]
-    public async Task ExpressiveDbSet_BuiltInWhereWithInlineLambda_OnlyEXP0021Fires_NotEXP0036()
+    public async Task ExpressiveDbSet_BuiltInWhereWithInlineLambda_OnlyEXP0026Fires_NotEXP0029()
     {
         // The user's StoryGrain shape: ExpressiveDbSet<T>-style receiver, no
-        // `using ExpressiveSharp;`. EXP0021 owns this scenario (Warning + codefix);
-        // EXP0036 stays silent here so the user gets one actionable diagnostic
+        // `using ExpressiveSharp;`. EXP0026 owns this scenario (Warning + codefix);
+        // EXP0029 stays silent here so the user gets one actionable diagnostic
         // instead of two overlapping ones.
         const string source = """
             using System.Linq;
@@ -326,10 +326,10 @@ public sealed class ExpressiveQueryableDropoutAnalyzerTests : GeneratorTestBase
             new ExpressiveQueryableDropoutAnalyzer(),
             new MissingExpressiveImportAnalyzer());
 
-        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0021"),
-            "EXP0021 should own the missing-using scenario.");
-        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0036"),
-            "EXP0036 should suppress itself when EXP0021 covers the same dropout cause.");
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0026"),
+            "EXP0026 should own the missing-using scenario.");
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0029"),
+            "EXP0029 should suppress itself when EXP0026 covers the same dropout cause.");
     }
 
     private async Task<ImmutableArray<Diagnostic>> GetDiagnosticsAsync(string source)
