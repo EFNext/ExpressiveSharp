@@ -179,4 +179,49 @@ public class JoinTests : GeneratorTestBase
 
         Assert.AreEqual(0, errors.Count, string.Join("\n", errors.Select(d => d.ToString())));
     }
+
+    // Regression: two sibling key-selector lambdas in a multi-lambda interceptor each contain a
+    // nested lambda with the same parameter name. The nested-lambda ParameterExpression variable
+    // must carry the per-lambda _varPrefix; without it, both emitters declare the same local
+    // (p_t_<n>) in the shared interceptor body → CS0128 duplicate-variable compile error.
+    [TestMethod]
+    public void Join_SiblingKeySelectorsWithNestedLambdas_GeneratedInterceptorCompiles()
+    {
+        var source =
+            """
+            using ExpressiveSharp;
+
+            namespace TestNs
+            {
+                class Order { public int CustomerId { get; set; } public System.Collections.Generic.List<string> Tags { get; set; } }
+                class Customer { public int Id { get; set; } public System.Collections.Generic.List<string> Labels { get; set; } }
+                class TestClass
+                {
+                    public void Run(System.Linq.IQueryable<Order> orders, System.Collections.Generic.IEnumerable<Customer> customers)
+                    {
+                        orders.AsExpressive()
+                              .Join(customers,
+                                    o => o.Tags.Count(t => t.Length > 0),
+                                    c => c.Labels.Count(t => t.Length > 0),
+                                    (o, c) => o.CustomerId)
+                              .ToList();
+                    }
+                }
+            }
+            """;
+
+        var compilation = CreateCompilation(source);
+        var subject = new global::ExpressiveSharp.Generator.PolyfillInterceptorGenerator();
+        GeneratorDriver driver = CSharpGeneratorDriver
+            .Create(subject)
+            .WithUpdatedParseOptions((CSharpParseOptions)compilation.SyntaxTrees.First().Options)
+            .RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out _);
+
+        var errors = outputCompilation.GetDiagnostics()
+            .Where(d => d.Severity == DiagnosticSeverity.Error)
+            .Where(d => d.Id != "CS9137")
+            .ToList();
+
+        Assert.AreEqual(0, errors.Count, string.Join("\n", errors.Select(d => d.ToString())));
+    }
 }
