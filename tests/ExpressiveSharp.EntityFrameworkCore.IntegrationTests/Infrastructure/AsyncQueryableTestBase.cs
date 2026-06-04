@@ -118,6 +118,43 @@ public abstract class AsyncQueryableTestBase : EFCoreRelationalTestBase
     }
 
     [TestMethod]
+    public async Task Include_ToListAsync_DirectTerminal_LoadsNavigation()
+    {
+        var results = await Context.ExpressiveOrders
+            .Include(o => o.Customer)
+            .ToListAsync();
+
+        Assert.AreEqual(4, results.Count);
+        Assert.AreEqual(3, results.Count(o => o.Customer != null));
+    }
+
+    [TestMethod]
+    public async Task Include_ToArrayAsync_DirectTerminal_LoadsNavigation()
+    {
+        var results = await Context.ExpressiveOrders
+            .Include(o => o.Customer)
+            .ToArrayAsync();
+
+        Assert.AreEqual(4, results.Length);
+        Assert.AreEqual(3, results.Count(o => o.Customer != null));
+    }
+
+    [TestMethod]
+    public async Task Include_ThenInclude_ToListAsync_DirectTerminal_LoadsTwoLevelNavigation()
+    {
+        var results = await Context.ExpressiveOrders
+            .Include(o => o.Customer)
+            .ThenInclude(c => c!.Address)
+            .ToListAsync();
+
+        Assert.AreEqual(4, results.Count);
+        var aliceOrder = results.Single(o => o.CustomerId == 1);
+        Assert.IsNotNull(aliceOrder.Customer);
+        Assert.IsNotNull(aliceOrder.Customer!.Address);
+        Assert.AreEqual("New York", aliceOrder.Customer.Address!.City);
+    }
+
+    [TestMethod]
     public async Task TagWith_Where_FirstAsync_ExecutesCorrectly()
     {
         var result = await Context.Orders
