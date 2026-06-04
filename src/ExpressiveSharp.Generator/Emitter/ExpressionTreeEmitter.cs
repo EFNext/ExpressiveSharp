@@ -35,7 +35,7 @@ internal sealed class ExpressionTreeEmitter
         SymbolDisplayFormat.FullyQualifiedFormat;
 
     private readonly SemanticModel _semanticModel;
-    private readonly SourceProductionContext? _context;
+    private readonly GeneratorOutputContext? _context;
     private readonly ReflectionFieldCache _fieldCache;
     private readonly List<string> _lines = new();
     private readonly Dictionary<IParameterSymbol, string> _symbolToVar = new(SymbolEqualityComparer.Default);
@@ -56,7 +56,7 @@ internal sealed class ExpressionTreeEmitter
 
     public ExpressionTreeEmitter(
         SemanticModel semanticModel,
-        SourceProductionContext? context = null,
+        GeneratorOutputContext? context = null,
         string varPrefix = "",
         string? delegateVarName = null)
     {

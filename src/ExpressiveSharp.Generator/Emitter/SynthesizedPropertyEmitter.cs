@@ -1,4 +1,5 @@
 using System.Text;
+using ExpressiveSharp.Generator.Infrastructure;
 using ExpressiveSharp.Generator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
@@ -12,7 +13,7 @@ namespace ExpressiveSharp.Generator.Emitter;
 /// </summary>
 static internal class SynthesizedPropertyEmitter
 {
-    public static void Emit(SynthesizedPropertySpec spec, string generatedFileName, SourceProductionContext context)
+    public static void Emit(SynthesizedPropertySpec spec, string generatedFileName, GeneratorOutputContext context)
     {
         var source = BuildSource(spec);
         context.AddSource(generatedFileName, SourceText.From(source, Encoding.UTF8));

@@ -157,14 +157,20 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             .WithComparer(FileAndSynthesizedSourcesComparer.Instance);
 
         context.RegisterSourceOutput(filesWithCompilationAndSynth,
-            static (spc, pair) => ProcessFileAndEmit(pair.Left.Left, pair.Left.Right, pair.Right, spc));
+            static (spc, pair) =>
+            {
+                // Keeps its existing caching; collector is just the shared emit path, flushed inline.
+                var output = new GeneratorOutputContext(spc.CancellationToken);
+                ProcessFileAndEmit(pair.Left.Left, pair.Left.Right, pair.Right, output);
+                output.FlushTo(spc);
+            });
     }
 
     private static void ProcessFileAndEmit(
         CompilationUnitSyntax unit,
         Compilation compilation,
         ImmutableArray<(string HintName, string Source)> synthesizedSources,
-        SourceProductionContext spc)
+        GeneratorOutputContext spc)
     {
         var ct = spc.CancellationToken;
 
@@ -300,7 +306,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         int line,
         int col,
         string fileTag,
-        SourceProductionContext spc)
+        GeneratorOutputContext spc)
     {
         if (method.TypeArguments.Length != 1)
             return null;
@@ -368,7 +374,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         int line,
         int col,
         string fileTag,
-        SourceProductionContext spc)
+        GeneratorOutputContext spc)
     {
         if (model.GetTypeInfo(ma.Expression).Type is not INamedTypeSymbol receiverType)
             return null;
@@ -425,7 +431,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         LambdaExpressionSyntax lambda,
         ITypeSymbol elementSymbol,
         SemanticModel model,
-        SourceProductionContext spc,
+        GeneratorOutputContext spc,
         string delegateTypeFqn,
         string assignToVariable = "__lambda",
         string varPrefix = "",
@@ -533,7 +539,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         => $"__Polyfill_{op}_{fileTag}_{line}_{col}";
 
     private static string? EmitGenericLambda(
-        InvocationExpressionSyntax inv, SemanticModel model, SourceProductionContext spc,
+        InvocationExpressionSyntax inv, SemanticModel model, GeneratorOutputContext spc,
         string interceptAttr, int line, int col, string fileTag,
         string methodName, INamedTypeSymbol elemSym, string elemFqn,
         IMethodSymbol method, List<int> funcParamIndices, string targetTypeFqn)
