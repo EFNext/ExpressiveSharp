@@ -17,7 +17,9 @@ public class ExpressiveDbSet<TEntity> : DbSet<TEntity>, IExpressiveQueryable<TEn
     private readonly DbSet<TEntity> _inner;
     private readonly IQueryable<TEntity> _queryable;
 
-    public ExpressiveDbSet(DbSet<TEntity> inner)
+    // Constructed only via AsExpressiveDbSet() (through InternalExpressiveDbSet) so every
+    // instance is the async-capable runtime subclass. See InternalExpressiveDbSet.
+    private protected ExpressiveDbSet(DbSet<TEntity> inner)
     {
         _inner = inner;
         _queryable = inner;

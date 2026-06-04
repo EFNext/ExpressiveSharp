@@ -122,6 +122,24 @@ public abstract class AsyncQueryableTestBase : EFCoreRelationalTestBase
     }
 
     [TestMethod]
+    public async Task ExpressiveDbSet_ToListAsync_DirectTerminal_Executes()
+    {
+        // Streaming terminal directly on the ExpressiveDbSet (no intervening operator to
+        // re-wrap it). ToListAsync casts the source to IAsyncEnumerable<T>.
+        var results = await Context.ExpressiveOrders.ToListAsync();
+
+        Assert.AreEqual(4, results.Count);
+    }
+
+    [TestMethod]
+    public async Task ExpressiveDbSet_ToArrayAsync_DirectTerminal_Executes()
+    {
+        var results = await Context.ExpressiveOrders.ToArrayAsync();
+
+        Assert.AreEqual(4, results.Length);
+    }
+
+    [TestMethod]
     public async Task Include_ToListAsync_DirectTerminal_LoadsNavigation()
     {
         var results = await Context.ExpressiveOrders
