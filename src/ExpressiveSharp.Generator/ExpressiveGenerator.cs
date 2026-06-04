@@ -18,6 +18,9 @@ namespace ExpressiveSharp.Generator;
 [Generator]
 public class ExpressiveGenerator : IIncrementalGenerator
 {
+    /// <summary>Tracking name for the value-equatable generated-source node (used by incremental-cache tests).</summary>
+    public const string ExpressiveSourcesTrackingName = "ExpressiveSources";
+
     private const string ExpressiveAttributeName = "ExpressiveSharp.ExpressiveAttribute";
     private const string ExpressiveForAttributeName = "ExpressiveSharp.Mapping.ExpressiveForAttribute";
     private const string ExpressiveForConstructorAttributeName = "ExpressiveSharp.Mapping.ExpressiveForConstructorAttribute";
@@ -65,53 +68,38 @@ public class ExpressiveGenerator : IIncrementalGenerator
                 GlobalOptions: pair.Right
             ));
 
-        // Combine with the augmented compilation directly: validation has no synthesized-sibling
-        // conflicts in this pipeline (only [ExpressiveProperty] does), so binding-against-augmented
-        // is correct everywhere.
-        var compilationAndMemberPairs = memberDeclarationsWithGlobalOptions
+        // A member's output depends on the whole compilation (cross-file binding), so a comparer keyed
+        // on member syntax + ExternalReferences would serve stale output. Recompute on every compilation
+        // change; gate downstream on the value-equatable projections below.
+        var expressiveComputations = memberDeclarationsWithGlobalOptions
             .Combine(bindingCompilationProvider)
-            .WithComparer(new MemberDeclarationSyntaxAndCompilationEqualityComparer());
+            .Select(static (source, ct) => ComputeExpressiveMember(source, ct));
 
-        context.RegisterImplementationSourceOutput(compilationAndMemberPairs,
-            static (spc, source) =>
-            {
-                var ((member, attribute, globalOptions), bindingCompilation) = source;
-                var semanticModel = bindingCompilation.GetSemanticModel(member.SyntaxTree);
-                var memberSymbol = semanticModel.GetDeclaredSymbol(member);
+        var expressiveSources = expressiveComputations.Select(static (c, _) =>
+                new EquatableArray<GeneratedSource>(c?.Sources ?? ImmutableArray<GeneratedSource>.Empty))
+            .WithTrackingName(ExpressiveSourcesTrackingName);
+        context.RegisterImplementationSourceOutput(expressiveSources,
+            static (spc, sources) => EmitSources(sources, spc));
 
-                if (memberSymbol is null)
-                {
-                    return;
-                }
+        // Diagnostics flow live (not value-cached) so their syntax-tree locations stay valid for
+        // #pragma warning / .editorconfig suppression; recomputed each run, so never stale.
+        var expressiveDiagnostics = expressiveComputations.Select(static (c, _) =>
+            c?.Diagnostics ?? ImmutableArray<Diagnostic>.Empty);
+        context.RegisterImplementationSourceOutput(expressiveDiagnostics,
+            static (spc, diagnostics) => ReportDiagnostics(diagnostics, spc));
 
-                Execute(member, semanticModel, memberSymbol, attribute, globalOptions, bindingCompilation, spc);
-            });
+        var registryEntries = expressiveComputations.Select(static (c, _) => c?.RegistryEntry);
 
-        var registryEntries = compilationAndMemberPairs.Select(
-            static (source, cancellationToken) => {
-                var ((member, _, _), bindingCompilation) = source;
-
-                var semanticModel = bindingCompilation.GetSemanticModel(member.SyntaxTree);
-                var memberSymbol = semanticModel.GetDeclaredSymbol(member, cancellationToken);
-
-                if (memberSymbol is null)
-                {
-                    return null;
-                }
-
-                return ExtractRegistryEntry(memberSymbol);
-            });
-
-        var expressiveForDeclarations = CreateExpressiveForPipeline(
+        var expressiveForResults = CreateExpressiveForPipeline(
             context, globalOptions, bindingCompilationProvider, ExpressiveForAttributeName, ExpressiveForMemberKind.MethodOrProperty);
 
-        var expressiveForConstructorDeclarations = CreateExpressiveForPipeline(
+        var expressiveForConstructorResults = CreateExpressiveForPipeline(
             context, globalOptions, bindingCompilationProvider, ExpressiveForConstructorAttributeName, ExpressiveForMemberKind.Constructor);
 
-        var expressiveForRegistryEntries = expressiveForDeclarations.Select(
-            static (source, _) => ExtractRegistryEntryForExternal(source));
-        var expressiveForConstructorRegistryEntries = expressiveForConstructorDeclarations.Select(
-            static (source, _) => ExtractRegistryEntryForExternal(source));
+        var expressiveForRegistryEntries = expressiveForResults.Select(
+            static (result, _) => result?.RegistryEntry);
+        var expressiveForConstructorRegistryEntries = expressiveForConstructorResults.Select(
+            static (result, _) => result?.RegistryEntry);
 
         // ── [ExpressiveProperty] pipeline ───────────────────────────────────────
 
@@ -133,15 +121,16 @@ public class ExpressiveGenerator : IIncrementalGenerator
                 builder.AddRange(forEntries);
                 builder.AddRange(forCtorEntries);
                 builder.AddRange(propEntries);
-                return builder.ToImmutable();
+                // EquatableArray so the registry file re-emits only when the entries actually change.
+                return new EquatableArray<ExpressionRegistryEntry?>(builder.ToImmutable());
             });
 
         context.RegisterImplementationSourceOutput(
             allRegistryEntries,
-            static (spc, entries) => ExpressionRegistryEmitter.Emit(entries, spc));
+            static (spc, entries) => ExpressionRegistryEmitter.Emit(entries.AsImmutableArray, spc));
     }
 
-    private static IncrementalValuesProvider<((MemberDeclarationSyntax Member, ExpressiveForAttributeData Attribute, ExpressiveGlobalOptions GlobalOptions), Compilation)>
+    private static IncrementalValuesProvider<MemberComputation?>
         CreateExpressiveForPipeline(
             IncrementalGeneratorInitializationContext context,
             IncrementalValueProvider<ExpressiveGlobalOptions> globalOptions,
@@ -166,36 +155,99 @@ public class ExpressiveGenerator : IIncrementalGenerator
                 GlobalOptions: pair.Right
             ));
 
-        // Combine with the augmented compilation directly. The augmented compilation is
-        // shared across the entire run via bindingCompilationProvider's Select cache, so
-        // we don't re-parse synthesized partials per member.
-        var compilationAndPairs = declarationsWithGlobalOptions
+        // Recompute per change (the target type lives cross-file); gate on the projections below.
+        var computations = declarationsWithGlobalOptions
             .Combine(bindingCompilationProvider)
-            .WithComparer(new ExpressiveForMemberCompilationEqualityComparer());
+            .Select(static (source, ct) => ComputeExpressiveForMember(source, ct));
 
-        // Collect all items and emit in a single batch to detect duplicates before AddSource.
-        // Per-item emission would crash the generator on duplicate hint names (Roslyn deduplicates
-        // after all per-item callbacks, not at the AddSource call site).
-        context.RegisterImplementationSourceOutput(compilationAndPairs.Collect(),
-            static (spc, items) =>
+        // Collect + dedup by hint name before AddSource: two stubs may map to the same target (a
+        // per-item output would crash on the duplicate hint name).
+        var collectedSources = computations.Collect()
+            .Select(static (items, _) =>
             {
-                var emittedFileNames = new HashSet<string>();
-
-                foreach (var source in items)
+                var seen = new HashSet<string>();
+                var builder = ImmutableArray.CreateBuilder<GeneratedSource>();
+                foreach (var computation in items)
                 {
-                    var ((member, attribute, globalOptions), bindingCompilation) = source;
-                    var semanticModel = bindingCompilation.GetSemanticModel(member.SyntaxTree);
-                    var stubSymbol = semanticModel.GetDeclaredSymbol(member);
-
-                    if (stubSymbol is not (IMethodSymbol or IPropertySymbol))
+                    if (computation is null)
                         continue;
-
-                    ExecuteFor(member, semanticModel, stubSymbol, attribute, globalOptions,
-                        bindingCompilation, spc, emittedFileNames);
+                    foreach (var source in computation.Sources)
+                    {
+                        if (seen.Add(source.HintName))
+                            builder.Add(source);
+                    }
                 }
+                return new EquatableArray<GeneratedSource>(builder.ToImmutable());
             });
 
-        return compilationAndPairs;
+        context.RegisterImplementationSourceOutput(collectedSources,
+            static (spc, sources) => EmitSources(sources, spc));
+
+        // Diagnostics flow live per member (real locations preserved).
+        var diagnostics = computations.Select(static (c, _) =>
+            c?.Diagnostics ?? ImmutableArray<Diagnostic>.Empty);
+        context.RegisterImplementationSourceOutput(diagnostics,
+            static (spc, ds) => ReportDiagnostics(ds, spc));
+
+        return computations;
+    }
+
+    // emittedFileNames: null -> always emit; cross-member dedup happens when sources are collected.
+    private static MemberComputation? ComputeExpressiveForMember(
+        ((MemberDeclarationSyntax Member, ExpressiveForAttributeData Attribute, ExpressiveGlobalOptions GlobalOptions) Left, Compilation BindingCompilation) source,
+        CancellationToken cancellationToken)
+    {
+        var ((member, attribute, globalOptions), bindingCompilation) = source;
+        var semanticModel = bindingCompilation.GetSemanticModel(member.SyntaxTree);
+        var stubSymbol = semanticModel.GetDeclaredSymbol(member, cancellationToken);
+
+        if (stubSymbol is not (IMethodSymbol or IPropertySymbol))
+        {
+            return null;
+        }
+
+        var output = new GeneratorOutputContext(cancellationToken);
+        ExecuteFor(member, semanticModel, stubSymbol, attribute, globalOptions,
+            bindingCompilation, output, emittedFileNames: null);
+        var registryEntry = ExtractRegistryEntryForExternal(source);
+
+        return new MemberComputation(output.Sources, output.Diagnostics, registryEntry);
+    }
+
+    private static MemberComputation? ComputeExpressiveMember(
+        ((MemberDeclarationSyntax Member, ExpressiveAttributeData Attribute, ExpressiveGlobalOptions GlobalOptions) Left, Compilation BindingCompilation) source,
+        CancellationToken cancellationToken)
+    {
+        var ((member, attribute, globalOptions), bindingCompilation) = source;
+        var semanticModel = bindingCompilation.GetSemanticModel(member.SyntaxTree);
+        var memberSymbol = semanticModel.GetDeclaredSymbol(member, cancellationToken);
+
+        if (memberSymbol is null)
+        {
+            return null;
+        }
+
+        var output = new GeneratorOutputContext(cancellationToken);
+        Execute(member, semanticModel, memberSymbol, attribute, globalOptions, bindingCompilation, output);
+        var registryEntry = ExtractRegistryEntry(memberSymbol);
+
+        return new MemberComputation(output.Sources, output.Diagnostics, registryEntry);
+    }
+
+    private static void EmitSources(EquatableArray<GeneratedSource> sources, SourceProductionContext context)
+    {
+        foreach (var source in sources.AsImmutableArray)
+        {
+            context.AddSource(source.HintName, SourceText.From(source.Text, Encoding.UTF8));
+        }
+    }
+
+    private static void ReportDiagnostics(ImmutableArray<Diagnostic> diagnostics, SourceProductionContext context)
+    {
+        foreach (var diagnostic in diagnostics)
+        {
+            context.ReportDiagnostic(diagnostic);
+        }
     }
 
     private static void Execute(
@@ -205,7 +257,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
         ExpressiveAttributeData expressiveAttribute,
         ExpressiveGlobalOptions globalOptions,
         Compilation? compilation,
-        SourceProductionContext context)
+        GeneratorOutputContext context)
     {
         var expressive = ExpressiveInterpreter.GetDescriptor(
             semanticModel, member, memberSymbol, expressiveAttribute, globalOptions, context, compilation);
@@ -265,7 +317,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
         string generatedFileName,
         MemberDeclarationSyntax member,
         Compilation? compilation,
-        SourceProductionContext context)
+        GeneratorOutputContext context)
     {
         var emission = expressive.ExpressionTreeEmission!;
         var sb = new System.Text.StringBuilder();
@@ -432,7 +484,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
         ExpressiveForAttributeData attributeData,
         ExpressiveGlobalOptions globalOptions,
         Compilation compilation,
-        SourceProductionContext context,
+        GeneratorOutputContext context,
         HashSet<string>? emittedFileNames = null)
     {
         var descriptor = ExpressiveForInterpreter.GetDescriptor(
@@ -708,6 +760,8 @@ public class ExpressiveGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(compilationAndPairsWithBinding.Collect(),
             static (spc, items) =>
             {
+                // Already binds the live compilation per run; collector is just the shared emit path.
+                var output = new GeneratorOutputContext(spc.CancellationToken);
                 var emittedFileNames = new HashSet<string>();
                 foreach (var source in items)
                 {
@@ -721,8 +775,10 @@ public class ExpressiveGenerator : IIncrementalGenerator
                         : bindingCompilation.GetSemanticModel(stub.SyntaxTree);
 
                     ExecuteExpressiveProperty(stub, stubSymbol, semanticModel, bindingSemanticModel,
-                        attribute, spc, emittedFileNames);
+                        attribute, output, emittedFileNames);
                 }
+
+                output.FlushTo(spc);
             });
 
         return compilationAndPairs;
@@ -734,7 +790,7 @@ public class ExpressiveGenerator : IIncrementalGenerator
         SemanticModel semanticModel,
         SemanticModel bodyBindingSemanticModel,
         ExpressivePropertyAttributeData attribute,
-        SourceProductionContext context,
+        GeneratorOutputContext context,
         HashSet<string> emittedFileNames)
     {
         var result = ExpressivePropertyInterpreter.GetDescriptor(

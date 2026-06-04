@@ -16,7 +16,7 @@ static internal class ExpressiveForInterpreter
         ISymbol stubSymbol,
         ExpressiveForAttributeData attributeData,
         ExpressiveGlobalOptions globalOptions,
-        SourceProductionContext context,
+        GeneratorOutputContext context,
         Compilation compilation)
     {
         var stubIdentifierLocation = stubMember switch
@@ -76,7 +76,7 @@ static internal class ExpressiveForInterpreter
         IMethodSymbol stubSymbol,
         ExpressiveForAttributeData attributeData,
         ExpressiveGlobalOptions globalOptions,
-        SourceProductionContext context,
+        GeneratorOutputContext context,
         Compilation compilation,
         INamedTypeSymbol targetType)
     {
@@ -124,7 +124,7 @@ static internal class ExpressiveForInterpreter
         IMethodSymbol stubSymbol,
         ExpressiveForAttributeData attributeData,
         ExpressiveGlobalOptions globalOptions,
-        SourceProductionContext context,
+        GeneratorOutputContext context,
         Compilation compilation,
         INamedTypeSymbol targetType)
     {
@@ -168,7 +168,7 @@ static internal class ExpressiveForInterpreter
         IPropertySymbol stubSymbol,
         ExpressiveForAttributeData attributeData,
         ExpressiveGlobalOptions globalOptions,
-        SourceProductionContext context,
+        GeneratorOutputContext context,
         Compilation compilation,
         INamedTypeSymbol targetType,
         Location stubIdentifierLocation)
@@ -273,7 +273,7 @@ static internal class ExpressiveForInterpreter
         IMethodSymbol stubSymbol,
         ExpressiveForAttributeData attributeData,
         ExpressiveGlobalOptions globalOptions,
-        SourceProductionContext context,
+        GeneratorOutputContext context,
         INamedTypeSymbol targetType,
         IPropertySymbol targetProperty)
     {
@@ -301,7 +301,7 @@ static internal class ExpressiveForInterpreter
         IMethodSymbol stubSymbol,
         ExpressiveForAttributeData attributeData,
         ExpressiveGlobalOptions globalOptions,
-        SourceProductionContext context,
+        GeneratorOutputContext context,
         INamedTypeSymbol targetType,
         IMethodSymbol targetMethod)
     {
@@ -327,7 +327,7 @@ static internal class ExpressiveForInterpreter
         IMethodSymbol stubSymbol,
         ExpressiveForAttributeData attributeData,
         ExpressiveGlobalOptions globalOptions,
-        SourceProductionContext context,
+        GeneratorOutputContext context,
         INamedTypeSymbol targetType,
         string targetMemberName,
         System.Collections.Immutable.ImmutableArray<IParameterSymbol> targetParameters,
@@ -387,7 +387,7 @@ static internal class ExpressiveForInterpreter
         IPropertySymbol stubSymbol,
         ExpressiveForAttributeData attributeData,
         ExpressiveGlobalOptions globalOptions,
-        SourceProductionContext context,
+        GeneratorOutputContext context,
         INamedTypeSymbol targetType,
         string targetMemberName)
     {
@@ -446,7 +446,7 @@ static internal class ExpressiveForInterpreter
 
     private static ExpressiveDescriptor BuildDescriptorCore(
         SemanticModel semanticModel,
-        SourceProductionContext context,
+        GeneratorOutputContext context,
         SyntaxTree stubSyntaxTree,
         ISymbol stubSymbol,
         ExpressiveForAttributeData attributeData,
@@ -541,7 +541,7 @@ static internal class ExpressiveForInterpreter
     }
 
     private static void ReportConflict(
-        SourceProductionContext context,
+        GeneratorOutputContext context,
         MethodDeclarationSyntax stubMethod,
         string memberName,
         INamedTypeSymbol targetType)

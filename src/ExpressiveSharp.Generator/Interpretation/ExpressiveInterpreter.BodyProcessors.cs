@@ -16,7 +16,7 @@ static internal partial class ExpressiveInterpreter
         ISymbol memberSymbol,
         SemanticModel semanticModel,
         DeclarationSyntaxRewriter declarationSyntaxRewriter,
-        SourceProductionContext context,
+        GeneratorOutputContext context,
         ExpressiveDescriptor descriptor,
         bool allowBlockBody)
     {
@@ -66,7 +66,7 @@ static internal partial class ExpressiveInterpreter
         ISymbol memberSymbol,
         SemanticModel semanticModel,
         DeclarationSyntaxRewriter declarationSyntaxRewriter,
-        SourceProductionContext context,
+        GeneratorOutputContext context,
         ExpressiveDescriptor descriptor,
         bool allowBlockBody)
     {
@@ -127,7 +127,7 @@ static internal partial class ExpressiveInterpreter
         ISymbol memberSymbol,
         SemanticModel semanticModel,
         DeclarationSyntaxRewriter declarationSyntaxRewriter,
-        SourceProductionContext context,
+        GeneratorOutputContext context,
         Compilation? compilation,
         ExpressiveDescriptor descriptor)
     {
@@ -242,7 +242,7 @@ static internal partial class ExpressiveInterpreter
     private static EmitResult EmitExpressionTree(
         SyntaxNode bodyExpression,
         SemanticModel semanticModel,
-        SourceProductionContext context,
+        GeneratorOutputContext context,
         ExpressiveDescriptor descriptor,
         IMethodSymbol methodSymbol)
     {
@@ -261,7 +261,7 @@ static internal partial class ExpressiveInterpreter
     private static EmitResult EmitExpressionTreeForProperty(
         SyntaxNode bodyExpression,
         SemanticModel semanticModel,
-        SourceProductionContext context,
+        GeneratorOutputContext context,
         ExpressiveDescriptor descriptor,
         ISymbol memberSymbol)
     {
@@ -317,7 +317,7 @@ static internal partial class ExpressiveInterpreter
         SemanticModel semanticModel,
         SyntaxNode bodySyntax,
         string memberName,
-        SourceProductionContext context)
+        GeneratorOutputContext context)
     {
         var operation = semanticModel.GetOperation(bodySyntax);
         if (operation is null) return;
@@ -328,7 +328,7 @@ static internal partial class ExpressiveInterpreter
     private static void WalkOperations(
         IOperation operation,
         string memberName,
-        SourceProductionContext context)
+        GeneratorOutputContext context)
     {
         switch (operation)
         {

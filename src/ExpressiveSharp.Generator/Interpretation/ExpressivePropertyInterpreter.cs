@@ -29,7 +29,7 @@ static internal class ExpressivePropertyInterpreter
         PropertyDeclarationSyntax stubProperty,
         IPropertySymbol stubSymbol,
         ExpressivePropertyAttributeData attributeData,
-        SourceProductionContext context,
+        GeneratorOutputContext context,
         SemanticModel? bodyBindingSemanticModel = null)
     {
         var stubLocation = stubProperty.Identifier.GetLocation();
@@ -181,7 +181,7 @@ static internal class ExpressivePropertyInterpreter
 
     private static ExpressiveDescriptor? BuildDescriptor(
         SemanticModel semanticModel,
-        SourceProductionContext context,
+        GeneratorOutputContext context,
         PropertyDeclarationSyntax stubProperty,
         IPropertySymbol stubSymbol,
         ExpressivePropertyAttributeData attributeData,

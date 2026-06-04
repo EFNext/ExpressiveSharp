@@ -15,7 +15,7 @@ static internal partial class ExpressiveInterpreter
         ISymbol memberSymbol,
         ExpressiveAttributeData expressiveAttribute,
         ExpressiveGlobalOptions globalOptions,
-        SourceProductionContext context,
+        GeneratorOutputContext context,
         Compilation? compilation = null)
     {
         var isExtensionMember = memberSymbol.ContainingType is { IsExtension: true };

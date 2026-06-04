@@ -71,7 +71,7 @@ static internal partial class ExpressiveInterpreter
     }
 
     private static bool ReportRequiresBodyAndFail(
-        SourceProductionContext context,
+        GeneratorOutputContext context,
         SyntaxNode node,
         string memberName)
     {
