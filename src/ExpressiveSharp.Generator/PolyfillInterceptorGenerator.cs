@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Text;
+using System.Threading;
 using ExpressiveSharp.Generator.Comparers;
 using ExpressiveSharp.Generator.Emitter;
 using ExpressiveSharp.Generator.Infrastructure;
@@ -23,6 +24,9 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     private const string PolyfillMethodName = "Create";
 
     private const string ExpressivePropertyAttributeName = "ExpressiveSharp.Mapping.ExpressivePropertyAttribute";
+
+    /// <summary>Tracking name for the value-equatable interceptor-source node (used by incremental-cache tests).</summary>
+    public const string InterceptorSourcesTrackingName = "InterceptorSources";
 
     private const string ClosureHelperSource = """
 
@@ -112,12 +116,13 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             .Where(static x => x is not null)
             .Select(static (x, _) => x!);
 
-        // Reference equality on the CompilationUnitSyntax root: Roslyn keeps unchanged files'
-        // syntax tree roots as the same object across incremental runs, so editing a noise
-        // file leaves all other (file, compilation) pairs equal and skips re-emission.
+        // A file's interceptors are produced by binding its call sites, which depend on the whole
+        // compilation (the lambdas reference types/members defined in other files). So we recompute
+        // when the compilation changes and gate the output on the value-equatable generated source
+        // below — a comparer keyed on the file's own syntax would serve stale interceptors after a
+        // cross-file edit.
         var filesWithCompilation = candidateFiles
-            .Combine(context.CompilationProvider)
-            .WithComparer(CompilationUnitAndCompilationComparer.Instance);
+            .Combine(context.CompilationProvider);
 
         // Source generators don't see each other's AddSource output, so SemanticModel can't bind
         // references to ExpressiveGenerator's synthesized [ExpressiveProperty] partials. Mirror
@@ -152,18 +157,44 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             .Collect()
             .WithComparer(SynthesizedSourceArrayComparer.Instance);
 
-        var filesWithCompilationAndSynth = filesWithCompilation
+        var fileResults = filesWithCompilation
             .Combine(synthesizedSources)
-            .WithComparer(FileAndSynthesizedSourcesComparer.Instance);
+            .Select(static (pair, ct) =>
+                ComputeFileInterceptors(pair.Left.Left, pair.Left.Right, pair.Right, ct));
 
-        context.RegisterSourceOutput(filesWithCompilationAndSynth,
-            static (spc, pair) =>
+        // Generated interceptor source is value-data: re-emitted only when a file's interceptors
+        // actually change. Implementation output — interceptors are only needed for the real build
+        // (the user's code type-checks against the stub methods), so this stays off the live path.
+        var interceptorSources = fileResults
+            .Select(static (r, _) => r.Sources)
+            .WithTrackingName(InterceptorSourcesTrackingName);
+        context.RegisterImplementationSourceOutput(interceptorSources,
+            static (spc, sources) =>
             {
-                // Keeps its existing caching; collector is just the shared emit path, flushed inline.
-                var output = new GeneratorOutputContext(spc.CancellationToken);
-                ProcessFileAndEmit(pair.Left.Left, pair.Left.Right, pair.Right, output);
-                output.FlushTo(spc);
+                foreach (var source in sources.AsImmutableArray)
+                    spc.AddSource(source.HintName, SourceText.From(source.Text, Encoding.UTF8));
             });
+
+        // Diagnostics flow live (real syntax-tree locations); recomputed each run, never stale.
+        var interceptorDiagnostics = fileResults.Select(static (r, _) => r.Diagnostics);
+        context.RegisterImplementationSourceOutput(interceptorDiagnostics,
+            static (spc, diagnostics) =>
+            {
+                foreach (var diagnostic in diagnostics)
+                    spc.ReportDiagnostic(diagnostic);
+            });
+    }
+
+    private static (EquatableArray<GeneratedSource> Sources, ImmutableArray<Diagnostic> Diagnostics)
+        ComputeFileInterceptors(
+            CompilationUnitSyntax unit,
+            Compilation compilation,
+            ImmutableArray<(string HintName, string Source)> synthesizedSources,
+            CancellationToken cancellationToken)
+    {
+        var output = new GeneratorOutputContext(cancellationToken);
+        ProcessFileAndEmit(unit, compilation, synthesizedSources, output);
+        return (output.Sources, output.Diagnostics);
     }
 
     private static void ProcessFileAndEmit(
@@ -857,59 +888,5 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         }
 
         return type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-    }
-
-    /// <summary>
-    /// Reference equality on the CompilationUnitSyntax root, ignoring Compilation.
-    /// Roslyn keeps unchanged files' syntax tree roots as the same object across incremental
-    /// runs, so noise-file edits leave untouched (file, compilation) pairs equal and skip
-    /// re-emission — O(1) incremental cost.
-    /// </summary>
-    private sealed class CompilationUnitAndCompilationComparer
-        : IEqualityComparer<(CompilationUnitSyntax Left, Compilation Right)>
-    {
-        public readonly static CompilationUnitAndCompilationComparer Instance
-            = new CompilationUnitAndCompilationComparer();
-
-        private CompilationUnitAndCompilationComparer() { }
-
-        public bool Equals(
-            (CompilationUnitSyntax Left, Compilation Right) x,
-            (CompilationUnitSyntax Left, Compilation Right) y)
-            => ReferenceEquals(x.Left, y.Left);
-
-        public int GetHashCode((CompilationUnitSyntax Left, Compilation Right) obj)
-            => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.Left);
-    }
-
-    // ── FileAndSynthesizedSourcesComparer ──────────────────────────────────────
-
-    /// <summary>
-    /// ANDs <see cref="CompilationUnitAndCompilationComparer"/> with sequence equality on the
-    /// synthesized array — editing an [ExpressiveProperty] attribute correctly re-emits all
-    /// files since synthesized binding can affect any file's lambdas.
-    /// </summary>
-    private sealed class FileAndSynthesizedSourcesComparer
-        : IEqualityComparer<((CompilationUnitSyntax Left, Compilation Right) Left, ImmutableArray<(string HintName, string Source)> Right)>
-    {
-        public readonly static FileAndSynthesizedSourcesComparer Instance = new();
-
-        private FileAndSynthesizedSourcesComparer() { }
-
-        public bool Equals(
-            ((CompilationUnitSyntax Left, Compilation Right) Left, ImmutableArray<(string HintName, string Source)> Right) x,
-            ((CompilationUnitSyntax Left, Compilation Right) Left, ImmutableArray<(string HintName, string Source)> Right) y)
-            => CompilationUnitAndCompilationComparer.Instance.Equals(x.Left, y.Left)
-                && SynthesizedSourceArrayComparer.Instance.Equals(x.Right, y.Right);
-
-        public int GetHashCode(
-            ((CompilationUnitSyntax Left, Compilation Right) Left, ImmutableArray<(string HintName, string Source)> Right) obj)
-        {
-            unchecked
-            {
-                return CompilationUnitAndCompilationComparer.Instance.GetHashCode(obj.Left) * 31
-                    + SynthesizedSourceArrayComparer.Instance.GetHashCode(obj.Right);
-            }
-        }
     }
 }
