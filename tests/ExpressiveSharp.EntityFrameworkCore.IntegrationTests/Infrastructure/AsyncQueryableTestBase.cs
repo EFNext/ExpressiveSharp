@@ -7,7 +7,11 @@ namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Infrastructure;
 public abstract class AsyncQueryableTestBase : EFCoreRelationalTestBase
 {
     [TestInitialize]
-    public Task SeedStoreData() => Context.SeedStoreAsync();
+    public async Task SeedStoreData()
+    {
+        await Context.SeedStoreAsync();
+        Context.ChangeTracker.Clear();
+    }
 
     [TestMethod]
     public async Task AnyAsync_WithPredicate_Executes()
@@ -115,6 +119,61 @@ public abstract class AsyncQueryableTestBase : EFCoreRelationalTestBase
 
         Assert.AreEqual(3, results.Count);
         Assert.IsTrue(results.All(o => o.Customer != null));
+    }
+
+    [TestMethod]
+    public async Task ExpressiveDbSet_ToListAsync_DirectTerminal_Executes()
+    {
+        // Streaming terminal directly on the ExpressiveDbSet (no intervening operator to
+        // re-wrap it). ToListAsync casts the source to IAsyncEnumerable<T>.
+        var results = await Context.ExpressiveOrders.ToListAsync();
+
+        Assert.AreEqual(4, results.Count);
+    }
+
+    [TestMethod]
+    public async Task ExpressiveDbSet_ToArrayAsync_DirectTerminal_Executes()
+    {
+        var results = await Context.ExpressiveOrders.ToArrayAsync();
+
+        Assert.AreEqual(4, results.Length);
+    }
+
+    [TestMethod]
+    public async Task Include_ToListAsync_DirectTerminal_LoadsNavigation()
+    {
+        var results = await Context.ExpressiveOrders
+            .Include(o => o.Customer)
+            .ToListAsync();
+
+        Assert.AreEqual(4, results.Count);
+        Assert.AreEqual(3, results.Count(o => o.Customer != null));
+    }
+
+    [TestMethod]
+    public async Task Include_ToArrayAsync_DirectTerminal_LoadsNavigation()
+    {
+        var results = await Context.ExpressiveOrders
+            .Include(o => o.Customer)
+            .ToArrayAsync();
+
+        Assert.AreEqual(4, results.Length);
+        Assert.AreEqual(3, results.Count(o => o.Customer != null));
+    }
+
+    [TestMethod]
+    public async Task Include_ThenInclude_ToListAsync_DirectTerminal_LoadsTwoLevelNavigation()
+    {
+        var results = await Context.ExpressiveOrders
+            .Include(o => o.Customer)
+            .ThenInclude(c => c!.Address)
+            .ToListAsync();
+
+        Assert.AreEqual(4, results.Count);
+        var aliceOrder = results.Single(o => o.CustomerId == 1);
+        Assert.IsNotNull(aliceOrder.Customer);
+        Assert.IsNotNull(aliceOrder.Customer!.Address);
+        Assert.AreEqual("New York", aliceOrder.Customer.Address!.City);
     }
 
     [TestMethod]

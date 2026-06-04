@@ -7,7 +7,11 @@ namespace ExpressiveSharp.EntityFrameworkCore.IntegrationTests.Infrastructure;
 public abstract class IncludeTestBase : EFCoreRelationalTestBase
 {
     [TestInitialize]
-    public Task SeedStoreData() => Context.SeedStoreAsync();
+    public async Task SeedStoreData()
+    {
+        await Context.SeedStoreAsync();
+        Context.ChangeTracker.Clear();
+    }
 
     [TestMethod]
     public async Task Include_LoadsRelatedCustomer()
