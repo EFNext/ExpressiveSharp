@@ -385,7 +385,10 @@ public class ExpressiveReplacer : ExpressionVisitor
 
             foreach (var candidate in types)
             {
+                // Open generic definitions (Box<T>) can't be used in Expression.TypeIs/Convert and
+                // are never a runtime type; only closed constructions reach a query.
                 if (candidate is null || candidate.IsInterface || candidate == rootType
+                    || candidate.ContainsGenericParameters
                     || !rootType.IsAssignableFrom(candidate))
                 {
                     continue;
@@ -438,21 +441,23 @@ public class ExpressiveReplacer : ExpressionVisitor
         return depth;
     }
 
-    // TryGetReflectedExpression throws for [Expressive] members with no generated body (e.g. an
-    // abstract base slot); treat that as "not registered" and cache the miss so it throws once.
     private bool TryGetReflectedExpressionSafe(MemberInfo memberInfo, [NotNullWhen(true)] out LambdaExpression? reflectedExpression)
     {
-        try
+        if (IsAbstractMember(memberInfo))
         {
-            return TryGetReflectedExpression(memberInfo, out reflectedExpression);
-        }
-        catch
-        {
-            _memberCache[memberInfo] = null;
             reflectedExpression = null;
             return false;
         }
+
+        return TryGetReflectedExpression(memberInfo, out reflectedExpression);
     }
+
+    private static bool IsAbstractMember(MemberInfo memberInfo) => memberInfo switch
+    {
+        MethodInfo method => method.IsAbstract,
+        PropertyInfo property => (property.GetMethod ?? property.SetMethod)?.IsAbstract ?? false,
+        _ => false
+    };
 
     private sealed record PolymorphicArm(Type TestType, MemberInfo Member, int Depth);
 

@@ -75,6 +75,18 @@ public class ExpansionEdgeCasesTests
     }
 
     [TestMethod]
+    public void OpenGenericDerivedType_IsSkipped_UsesBaseBodyWithoutThrowing()
+    {
+        // The open generic derived type can't be a runtime type / Expression.TypeIs operand, so
+        // discovery skips it: every instance uses the base body (no crash during expansion).
+        Expression<Func<GenericDescribeBase, string>> expr = b => b.Describe();
+        var fn = ((Expression<Func<GenericDescribeBase, string>>)expr.ExpandExpressives()).Compile();
+
+        Assert.AreEqual("base:5", fn(new GenericDescribeBase { Id = 5 }));
+        Assert.AreEqual("base:7", fn(new GenericDescribe<int> { Id = 7 }));
+    }
+
+    [TestMethod]
     public void DisablePolymorphicDispatch_RevertsToStaticBaseBody()
     {
         var options = new ExpressiveOptions();
@@ -255,6 +267,22 @@ public class Leaf : Branch
 // Inherits Branch's override without redeclaring — should resolve via the `is Branch` arm.
 public class PlainBranch : Branch
 {
+}
+
+public class GenericDescribeBase
+{
+    public int Id { get; set; }
+
+    [Expressive]
+    public virtual string Describe() => "base:" + Id;
+}
+
+// Open generic override: discovery must skip it (ContainsGenericParameters) rather than emit an
+// invalid `is GenericDescribe<>` test.
+public class GenericDescribe<T> : GenericDescribeBase
+{
+    [Expressive]
+    public override string Describe() => "generic:" + Id;
 }
 
 public class RecursiveTree
