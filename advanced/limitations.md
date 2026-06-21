@@ -117,63 +117,57 @@ static bool IsNullOrWhiteSpace(string? s)
 
 ## Virtual and Polymorphic Members {#virtual-polymorphic-members}
 
-Expression-tree expansion happens at **compile time** and works purely from the **static (declared) type** of each receiver. It has no runtime instance to inspect, so it cannot honor C# virtual dispatch.
-
-If you mark a `virtual`, `abstract`, or `override` member `[Expressive]` (a default interface member counts too -- it is implicitly virtual), the generator reports [EXP0024](../reference/diagnostics#exp0024). When the member is expanded for a query provider (EF Core, MongoDB), the call is resolved against the declared type and the **base** body is always inlined -- an overridden body in a derived type is never used:
+Virtual, `abstract`, and `override` `[Expressive]` members **dispatch polymorphically at runtime**. When such a member is expanded for a query provider, `ExpressiveReplacer` discovers the derived `[Expressive]` overrides across the loaded assemblies and emits a runtime type-test chain, so each row uses its own runtime type's body:
 
 ```csharp
 public class Animal
 {
     public string Name { get; set; } = "";
 
-    [Expressive] // EXP0024
+    [Expressive]
     public virtual string Describe() => $"Animal: {Name}";
 }
 
 public class Dog : Animal
 {
-    [Expressive] // EXP0024
+    [Expressive]
     public override string Describe() => $"Dog: {Name}";
 }
 
-// The static type is Animal, so expansion inlines the BASE body -- even for Dog rows:
-db.Animals.AsExpressive().Select(a => a.Describe()); // => "Animal: {Name}" in SQL
-```
-
-This is by design: a query provider translates the expression to SQL/MQL and never materializes a CLR object, so there is no runtime type to dispatch on. (Contrast this with compiling the expression to a delegate and invoking it in memory, where the CLR *does* dispatch on the runtime type.)
-
-### Recommended: test the runtime type explicitly
-
-Branch on the concrete type so each arm has a statically-typed receiver. Every branch then expands to the correct body and the provider emits a `CASE`:
-
-```csharp
-db.Animals.AsExpressive().Select(a => a switch
-{
-    Dog d => d.Describe(),   // expands Dog.Describe
-    _     => a.Describe(),   // expands Animal.Describe
-});
-```
-
-### Recommended: use a non-virtual static/extension method
-
-Move the logic into a single non-virtual `[Expressive]` method that performs the type test itself. This keeps the polymorphic shape in one place and produces no EXP0024:
-
-```csharp
-public static class AnimalExpressions
-{
-    [Expressive]
-    public static string Describe(this Animal a) => a switch
-    {
-        Dog d => $"Dog: {d.Name}",
-        _     => $"Animal: {a.Name}",
-    };
-}
-
+// Expands to: a is Dog ? ("Dog: " + ((Dog)a).Name) : ("Animal: " + a.Name)
 db.Animals.AsExpressive().Select(a => a.Describe());
 ```
 
+EF Core translates `a is Dog` to a table-per-hierarchy discriminator check, so the query emits a `CASE` over the discriminator column and returns the right text per row. In-memory delegates (`.Compile()`) evaluate the same `is` test against the CLR runtime type, so behavior converges with provider translation.
+
+### Mark every override `[Expressive]`
+
+Only overrides that are themselves `[Expressive]` participate. An override that forgets the attribute is invisible to expansion — instances of that type silently fall back to the **base** body — so the analyzer reports [EXP0032](../reference/diagnostics#exp0032) with an "Add `[Expressive]`" fix. If an override is intentionally client-only, mark it `[NotExpressive]` to opt out.
+
+### Opting out
+
+Polymorphic dispatch is on by default. To turn it off for an entire context (e.g. a provider that cannot translate type tests), call `DisablePolymorphicDispatch()` — virtual members then expand using the static (declared) type only:
+
+```csharp
+// EF Core
+optionsBuilder.UseExpressives(o => o.DisablePolymorphicDispatch());
+
+// Standalone
+var options = new ExpressiveOptions();
+options.DisablePolymorphicDispatch();
+expression.ExpandExpressives(options);
+```
+
+Per-override `[NotExpressive]` is independent of this switch.
+
+### Caveats
+
+* **Discovery is runtime and best-effort.** Overrides are found in the assemblies loaded when the query first runs (the plan is cached and refreshed when new assemblies load). For EF Core this is a non-issue: entity types are registered when the model is built, before any query. An override whose assembly loads later and is not referenced by the query falls back to the base body.
+* **Provider must translate type tests.** EF Core relational providers translate `is`/discriminator checks for TPH; some mappings (TPC) or providers may not. If a provider cannot translate the conditional, the query throws at translation time — the same failure mode as any untranslatable expression.
+* **Interfaces are not in scope.** Default interface members keep static interface-implementation resolution; only class virtual members dispatch polymorphically.
+
 ::: tip
-Declaring entity members `virtual` is common in EF Core because it enables lazy-loading proxies. That remains fine for plain navigation and scalar properties -- EXP0024 only concerns members you *also* mark `[Expressive]`.
+Declaring entity members `virtual` is common in EF Core because it enables lazy-loading proxies. That remains fine for plain navigation and scalar properties; for `[Expressive]` members it now additionally enables polymorphic dispatch.
 :::
 
 ## Performance: First-Execution Overhead
