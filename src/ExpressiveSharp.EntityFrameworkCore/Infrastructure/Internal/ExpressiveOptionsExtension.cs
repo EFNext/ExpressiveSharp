@@ -15,12 +15,17 @@ public class ExpressiveOptionsExtension : IDbContextOptionsExtension
 {
     private readonly IReadOnlyList<IExpressivePlugin> _plugins;
     private readonly bool _preserveThrowExpressions;
+    private readonly bool _disablePolymorphicDispatch;
     private readonly int _pluginHash;
 
-    public ExpressiveOptionsExtension(IReadOnlyList<IExpressivePlugin> plugins, bool preserveThrowExpressions = false)
+    public ExpressiveOptionsExtension(
+        IReadOnlyList<IExpressivePlugin> plugins,
+        bool preserveThrowExpressions = false,
+        bool disablePolymorphicDispatch = false)
     {
         _plugins = plugins;
         _preserveThrowExpressions = preserveThrowExpressions;
+        _disablePolymorphicDispatch = disablePolymorphicDispatch;
 
         var hash = new HashCode();
         foreach (var plugin in plugins)
@@ -29,6 +34,7 @@ public class ExpressiveOptionsExtension : IDbContextOptionsExtension
             hash.Add(plugin.GetHashCode());
         }
         hash.Add(preserveThrowExpressions);
+        hash.Add(disablePolymorphicDispatch);
         _pluginHash = hash.ToHashCode();
 
         Info = new ExtensionInfo(this);
@@ -75,9 +81,12 @@ public class ExpressiveOptionsExtension : IDbContextOptionsExtension
             .ToArray();
 
         var preserveThrow = _preserveThrowExpressions;
+        var disablePolymorphic = _disablePolymorphicDispatch;
         services.AddSingleton(sp =>
         {
             var options = new ExpressiveOptions();
+            if (disablePolymorphic)
+                options.DisablePolymorphicDispatch();
             if (!preserveThrow)
                 options.AddTransformers(new ReplaceThrowWithDefault());
             options.AddTransformers(

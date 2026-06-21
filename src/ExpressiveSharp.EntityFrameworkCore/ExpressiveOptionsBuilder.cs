@@ -10,9 +10,22 @@ public sealed class ExpressiveOptionsBuilder
 
     internal bool ShouldPreserveThrowExpressions { get; private set; }
 
+    internal bool ShouldDisablePolymorphicDispatch { get; private set; }
+
     public ExpressiveOptionsBuilder AddPlugin(IExpressivePlugin plugin)
     {
         Plugins.Add(plugin);
+        return this;
+    }
+
+    /// <summary>
+    /// Disables runtime polymorphic dispatch of virtual/<c>override</c> <c>[Expressive]</c> members:
+    /// they expand using the static (declared) type only, never an `is Derived ? ...` chain. Use for
+    /// providers that cannot translate type tests. Per-member <c>[NotExpressive]</c> is independent.
+    /// </summary>
+    public ExpressiveOptionsBuilder DisablePolymorphicDispatch()
+    {
+        ShouldDisablePolymorphicDispatch = true;
         return this;
     }
 

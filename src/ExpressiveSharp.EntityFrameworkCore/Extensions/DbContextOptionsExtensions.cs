@@ -24,7 +24,8 @@ public static class DbContextOptionsExtensions
         var builder = new ExpressiveOptionsBuilder();
         configure(builder);
 
-        var extension = new ExpressiveOptionsExtension(builder.Plugins, builder.ShouldPreserveThrowExpressions);
+        var extension = new ExpressiveOptionsExtension(
+            builder.Plugins, builder.ShouldPreserveThrowExpressions, builder.ShouldDisablePolymorphicDispatch);
 
         ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(extension);
 

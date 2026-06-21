@@ -18,7 +18,7 @@ public static class ExpressionExtensions
     /// Like <see cref="ExpandExpressives(Expression)"/> but uses transformers from the given options.
     /// </summary>
     public static Expression ExpandExpressives(this Expression expression, ExpressiveOptions options)
-        => ExpandExpressivesCore(expression, options.GetTransformers());
+        => ExpandExpressivesCore(expression, options.GetTransformers(), options.IsPolymorphicDispatchEnabled);
 
     /// <summary>
     /// Like <see cref="ExpandExpressives(Expression)"/> but uses the explicitly supplied transformers.
@@ -30,14 +30,15 @@ public static class ExpressionExtensions
 
     private static Expression ExpandExpressivesCore(
         Expression expression,
-        IReadOnlyList<IExpressionTreeTransformer> transformers)
+        IReadOnlyList<IExpressionTreeTransformer> transformers,
+        bool polymorphicDispatch = true)
     {
         using var activity = ExpressiveDiagnostics.ActivitySource.StartActivity("Expressive.Expand");
 
         var measureDuration = activity is not null || ExpressiveDiagnostics.ExpansionDurationMs.Enabled;
         var startTimestamp = measureDuration ? Stopwatch.GetTimestamp() : 0L;
 
-        var expanded = new ExpressiveReplacer(new ExpressiveResolver()).Replace(expression);
+        var expanded = new ExpressiveReplacer(new ExpressiveResolver(), polymorphicDispatch).Replace(expression);
         for (var i = 0; i < transformers.Count; i++)
         {
             expanded = transformers[i].Transform(expanded);

@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using ExpressiveSharp.Services;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpressiveSharp.IntegrationTests.Tests;
@@ -7,33 +8,94 @@ namespace ExpressiveSharp.IntegrationTests.Tests;
 public class ExpansionEdgeCasesTests
 {
     [TestMethod]
-    public void VirtualMethod_Expansion_UsesStaticDeclaredType()
+    public void VirtualMethod_OnBaseReceiver_DispatchesPolymorphically()
     {
-        var derived = new VirtualDispatchDerived { Id = 7, Name = "x" };
-
+        // Static receiver is the base type; the body is chosen by the runtime type.
         Expression<Func<VirtualDispatchBase, string>> expr = b => b.Describe();
-        var expanded = (Expression<Func<VirtualDispatchBase, string>>)expr.ExpandExpressives();
-        var fromExpansion = expanded.Compile()(derived);
+        var fn = ((Expression<Func<VirtualDispatchBase, string>>)expr.ExpandExpressives()).Compile();
 
-        Assert.AreEqual("base#7", fromExpansion);
+        Assert.AreEqual("derived#7/x", fn(new VirtualDispatchDerived { Id = 7, Name = "x" }));
+        Assert.AreEqual("base#3", fn(new VirtualDispatchBase { Id = 3 }));
+
+        // The expansion is a runtime type-test, not a static inline.
+        Assert.IsTrue(expr.ExpandExpressives().ToString().Contains("Is VirtualDispatchDerived", StringComparison.Ordinal),
+            "Expected a runtime `is` type-test in the expansion. Got: " + expr.ExpandExpressives());
     }
 
     [TestMethod]
-    public void BaseSlotProperty_ExpandsBaseBody_NotOverride()
+    public void OverrideProperty_OnDerivedReceiver_ExpandsOverrideBody()
     {
+        // Receiver static type is itself the override declarer, so its body wins over the base slot.
+        // ScoreDerived.Score => base.Score + 1 => (Id * 2) + 1.
         Expression<Func<ScoreDerived, int>> expr = d => d.Score;
         var expanded = (Expression<Func<ScoreDerived, int>>)expr.ExpandExpressives();
 
-        Assert.AreEqual(10, expanded.Compile()(new ScoreDerived { Id = 5 }));
+        Assert.AreEqual(11, expanded.Compile()(new ScoreDerived { Id = 5 }));
     }
 
     [TestMethod]
-    public void BaseSlotMethod_ExpandsBaseBody_NotOverride()
+    public void OverrideProperty_OnBaseReceiver_DispatchesPolymorphically()
     {
+        Expression<Func<ScoreBase, int>> expr = b => b.Score;
+        var fn = ((Expression<Func<ScoreBase, int>>)expr.ExpandExpressives()).Compile();
+
+        Assert.AreEqual(11, fn(new ScoreDerived { Id = 5 }));   // (5 * 2) + 1
+        Assert.AreEqual(10, fn(new ScoreBase { Id = 5 }));      // 5 * 2
+    }
+
+    [TestMethod]
+    public void OverrideMethod_OnDerivedReceiver_ExpandsOverrideBody()
+    {
+        // GreetDerived.Greet() => base.Greet() + 1 => (Id * 10) + 1.
         Expression<Func<GreetDerived, int>> expr = d => d.Greet();
         var expanded = (Expression<Func<GreetDerived, int>>)expr.ExpandExpressives();
 
-        Assert.AreEqual(30, expanded.Compile()(new GreetDerived { Id = 3 }));
+        Assert.AreEqual(31, expanded.Compile()(new GreetDerived { Id = 3 }));
+    }
+
+    [TestMethod]
+    public void MethodWithArgument_DispatchesPolymorphically()
+    {
+        Expression<Func<CalcBase, int>> expr = c => c.Calc(2);
+        var fn = ((Expression<Func<CalcBase, int>>)expr.ExpandExpressives()).Compile();
+
+        Assert.AreEqual(12, fn(new CalcDerived { Id = 6 }));   // Id * n
+        Assert.AreEqual(8, fn(new CalcBase { Id = 6 }));       // Id + n
+    }
+
+    [TestMethod]
+    public void MultiLevelHierarchy_PicksNearestOverride()
+    {
+        Expression<Func<Node, string>> expr = n => n.Kind;
+        var fn = ((Expression<Func<Node, string>>)expr.ExpandExpressives()).Compile();
+
+        Assert.AreEqual("leaf:1", fn(new Leaf { Id = 1 }));           // most-derived override
+        Assert.AreEqual("branch:2", fn(new Branch { Id = 2 }));       // intermediate override
+        Assert.AreEqual("branch:3", fn(new PlainBranch { Id = 3 }));  // inherits Branch's override
+    }
+
+    [TestMethod]
+    public void OpenGenericDerivedType_IsSkipped_UsesBaseBodyWithoutThrowing()
+    {
+        // The open generic derived type can't be a runtime type / Expression.TypeIs operand, so
+        // discovery skips it: every instance uses the base body (no crash during expansion).
+        Expression<Func<GenericDescribeBase, string>> expr = b => b.Describe();
+        var fn = ((Expression<Func<GenericDescribeBase, string>>)expr.ExpandExpressives()).Compile();
+
+        Assert.AreEqual("base:5", fn(new GenericDescribeBase { Id = 5 }));
+        Assert.AreEqual("base:7", fn(new GenericDescribe<int> { Id = 7 }));
+    }
+
+    [TestMethod]
+    public void DisablePolymorphicDispatch_RevertsToStaticBaseBody()
+    {
+        var options = new ExpressiveOptions();
+        options.DisablePolymorphicDispatch();
+
+        Expression<Func<VirtualDispatchBase, string>> expr = b => b.Describe();
+        var fn = ((Expression<Func<VirtualDispatchBase, string>>)expr.ExpandExpressives(options)).Compile();
+
+        Assert.AreEqual("base#7", fn(new VirtualDispatchDerived { Id = 7, Name = "x" }));
     }
 
     [TestMethod]
@@ -124,7 +186,6 @@ public class ExpansionEdgeCasesTests
     }
 }
 
-#pragma warning disable EXP0024
 public class VirtualDispatchBase
 {
     public int Id { get; set; }
@@ -168,7 +229,61 @@ public class GreetDerived : GreetBase
     [Expressive]
     public override int Greet() => base.Greet() + 1;
 }
-#pragma warning restore EXP0024
+
+public class CalcBase
+{
+    public int Id { get; set; }
+
+    [Expressive]
+    public virtual int Calc(int n) => Id + n;
+}
+
+public class CalcDerived : CalcBase
+{
+    [Expressive]
+    public override int Calc(int n) => Id * n;
+}
+
+public abstract class Node
+{
+    public int Id { get; set; }
+
+    [Expressive]
+    public virtual string Kind => $"node:{Id}";
+}
+
+public class Branch : Node
+{
+    [Expressive]
+    public override string Kind => $"branch:{Id}";
+}
+
+public class Leaf : Branch
+{
+    [Expressive]
+    public override string Kind => $"leaf:{Id}";
+}
+
+// Inherits Branch's override without redeclaring — should resolve via the `is Branch` arm.
+public class PlainBranch : Branch
+{
+}
+
+public class GenericDescribeBase
+{
+    public int Id { get; set; }
+
+    [Expressive]
+    public virtual string Describe() => "base:" + Id;
+}
+
+// Open generic override: discovery must skip it (ContainsGenericParameters) rather than emit an
+// invalid `is GenericDescribe<>` test.
+public class GenericDescribe<T> : GenericDescribeBase
+{
+    [Expressive]
+    public override string Describe() => "generic:" + Id;
+}
 
 public class RecursiveTree
 {

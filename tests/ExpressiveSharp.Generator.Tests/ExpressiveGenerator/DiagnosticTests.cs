@@ -210,8 +210,9 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [TestMethod]
-    public void VirtualMethod_ReportsEXP0024()
+    public void VirtualMethod_DoesNotReportEXP0024_NowDispatchesPolymorphically()
     {
+        // EXP0024 is retired: virtual [Expressive] members now dispatch polymorphically at runtime.
         var compilation = CreateCompilation(
             """
             namespace Foo {
@@ -225,15 +226,13 @@ public class DiagnosticTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        var diag = result.Diagnostics.FirstOrDefault(d => d.Id == "EXP0024");
-        Assert.IsNotNull(diag, "Expected EXP0024 for a virtual [Expressive] member");
-        Assert.AreEqual(DiagnosticSeverity.Warning, diag.Severity);
-        Assert.IsTrue(result.GeneratedTrees.Length > 0,
-            "Generator should still produce output alongside the EXP0024 warning");
+        Assert.IsFalse(result.Diagnostics.Any(d => d.Id == "EXP0024"),
+            "EXP0024 is retired and must not be reported for a virtual [Expressive] member");
+        Assert.IsTrue(result.GeneratedTrees.Length > 0, "Generator should still produce output");
     }
 
     [TestMethod]
-    public void VirtualAndOverrideProperties_BothReportEXP0024()
+    public void VirtualAndOverrideProperties_DoNotReportEXP0024()
     {
         var compilation = CreateCompilation(
             """
@@ -253,8 +252,8 @@ public class DiagnosticTests : GeneratorTestBase
             """);
         var result = RunExpressiveGenerator(compilation);
 
-        Assert.AreEqual(2, result.Diagnostics.Count(d => d.Id == "EXP0024"),
-            "Expected EXP0024 for both the virtual base property and its override");
+        Assert.IsFalse(result.Diagnostics.Any(d => d.Id == "EXP0024"),
+            "EXP0024 is retired for both the virtual base property and its override");
     }
 
     [TestMethod]
