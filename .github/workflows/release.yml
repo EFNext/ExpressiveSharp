@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || github.ref }}
 
       - name: Setup .NET SDKs
         uses: actions/setup-dotnet@v4
@@ -45,10 +47,18 @@ jobs:
         id: version
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ inputs.version }}"
+            TAG="${{ inputs.version }}"
           else
-            # Strip 'v' prefix from tag: v1.2.3 -> 1.2.3
-            VERSION="${GITHUB_REF_NAME#v}"
+            # Read the tag from the release payload, NOT $GITHUB_REF_NAME: when a
+            # release is published from a draft, the ref can resolve to the
+            # default branch (main) instead of the tag, yielding an empty version.
+            TAG="${{ github.event.release.tag_name }}"
+          fi
+          # Strip optional leading 'v': v1.2.3 -> 1.2.3
+          VERSION="${TAG#v}"
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not determine a version to publish (event=${{ github.event_name }}, tag='${TAG}'). An empty VersionPrefix would override the default 1.0.0 and break 'dotnet pack'."
+            exit 1
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Publishing version: $VERSION"
