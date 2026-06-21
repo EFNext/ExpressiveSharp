@@ -11,6 +11,14 @@
 	<InterceptorsNamespaces>$(InterceptorsNamespaces);ExpressiveSharp.Generated.Interceptors</InterceptorsNamespaces>
   </PropertyGroup>
 
+  <ItemGroup Condition="'$(IsPackable)' == 'false'">
+	<!-- SQLitePCLRaw.lib.e_sqlite3 (transitive via Microsoft.EntityFrameworkCore.Sqlite)
+	     bundles SQLite < 3.50.2 — CVE-2025-6965.
+	     No patched SQLitePCLRaw package exists yet, so a version pin cannot fix it.
+	     Suppress this single advisory in non-packable projects; all other NuGet auditing stays active. -->
+	<NuGetAuditSuppress Include="https://github.com/advisories/GHSA-2m69-gcr7-jv3q" />
+  </ItemGroup>
+
   <PropertyGroup>
 	<Authors>Koen</Authors>
 	<Copyright>Copyright (c) Koen 2025</Copyright>
