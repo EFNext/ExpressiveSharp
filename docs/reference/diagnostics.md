@@ -33,7 +33,7 @@ See [Troubleshooting](./troubleshooting) for symptom-oriented guidance -- find t
 | [EXP0021](#exp0021) | Error | `[ExpressiveProperty]` requires an instance stub | -- |
 | [EXP0022](#exp0022) | Error | `[ExpressiveProperty]` target shadows inherited member | -- |
 | [EXP0023](#exp0023) | Warning | Unsupported operation ignored | -- |
-| [EXP0024](#exp0024) | Warning | `[Expressive]` member is virtual and will not dispatch polymorphically | -- |
+| EXP0024 | _(retired)_ | `[Expressive]` member is virtual and will not dispatch polymorphically — virtual members now dispatch polymorphically at runtime | -- |
 | [EXP0025](#exp0025) | Warning | Referenced member could benefit from `[Expressive]` | [Add `[Expressive]`](#exp0025-fix) |
 | [EXP0026](#exp0026) | Warning | `IExpressiveQueryable<T>` LINQ method resolves to `Queryable` | [Add `using ExpressiveSharp;`](#exp0026-fix) |
 | [EXP0027](#exp0027) | Info | No `IExpressiveQueryable<T>` overload for `Queryable` method | -- |
@@ -41,6 +41,7 @@ See [Troubleshooting](./troubleshooting) for symptom-oriented guidance -- find t
 | [EXP0029](#exp0029) | Info | `IExpressiveQueryable<T>` chain dropped to plain `IQueryable<T>` | -- |
 | [EXP0030](#exp0030) | Warning | `WindowFunction.Ntile` requires a positive bucket count | -- |
 | [EXP0031](#exp0031) | Warning | `WindowFunction.Lag`/`Lead` offset must be non-negative | -- |
+| [EXP0032](#exp0032) | Warning | Override of an `[Expressive]` member is missing `[Expressive]` | [Add `[Expressive]`](#exp0025-fix) |
 | [EXP1001](#exp1001) | Warning | Replace `[Projectable]` with `[Expressive]` | [Replace attribute](#exp1001-fix) |
 | [EXP1002](#exp1002) | Warning | Replace `UseProjectables()` with `UseExpressives()` | [Replace method call](#exp1002-fix) |
 | [EXP1003](#exp1003) | Warning | Replace Projectables namespace | [Replace namespace](#exp1003-fix) |
@@ -599,48 +600,13 @@ surrounding expression emitted without it.
 
 ---
 
-### EXP0024 -- Virtual member will not dispatch polymorphically {#exp0024}
+### EXP0024 -- Virtual member will not dispatch polymorphically _(retired)_ {#exp0024}
 
-**Severity:** Warning
-**Category:** Design
+**Status:** Retired. This warning no longer exists.
 
-**Message:**
-```
-[Expressive] member '{0}' is virtual, abstract, or an override. When it is expanded into an
-expression tree (e.g. for EF Core or MongoDB), the call is resolved using the static (declared)
-type, so an overridden body in a derived type is never used. Test the runtime type explicitly
-(e.g. 'x switch { Derived d => d.Member, _ => x.Member }'), or move the logic into a non-virtual
-[Expressive] static/extension method.
-```
+Virtual, `abstract`, and `override` `[Expressive]` members now **dispatch polymorphically at runtime**. When a virtual `[Expressive]` member is expanded for a query provider, `ExpressiveReplacer` discovers the derived `[Expressive]` overrides and emits a runtime type-test chain — `entity is Dog ? <Dog body> : <base body>` — which EF Core translates to a table-per-hierarchy discriminator `CASE`. Each row therefore uses its runtime type's body. See [Limitations: virtual and polymorphic members](../advanced/limitations#virtual-polymorphic-members).
 
-**Cause:** An `[Expressive]` member is declared `virtual`, `abstract`, or `override` (a default interface member counts -- it is implicitly virtual). Expression-tree expansion happens at compile time and only sees the **static (declared) type** of the receiver, so it cannot honor C# virtual dispatch. When the member is expanded for a query provider, the **base** body is always inlined; an overridden body in a derived type is never used.
-
-This differs from compiling the expression to a delegate and invoking it in memory, where the CLR dispatches on the runtime type.
-
-**Fix:** Branch on the runtime type so each arm has a statically-typed receiver, or move the logic into a single non-virtual `[Expressive]` static/extension method. See [Limitations: virtual and polymorphic members](../advanced/limitations#virtual-polymorphic-members) for full examples.
-
-```csharp
-// Warning: virtual [Expressive] member
-[Expressive]
-public virtual string Describe() => $"Animal: {Name}";
-
-// Fix 1: test the runtime type explicitly
-db.Animals.AsExpressive().Select(a => a switch
-{
-    Dog d => d.Describe(),
-    _     => a.Describe(),
-});
-
-// Fix 2: non-virtual [Expressive] extension method that does the type test once
-[Expressive]
-public static string Describe(this Animal a) => a switch
-{
-    Dog d => $"Dog: {d.Name}",
-    _     => $"Animal: {a.Name}",
-};
-```
-
-If a virtual member is intentional (you only ever compile it to an in-memory delegate, never translate it through a provider), suppress the warning with `#pragma warning disable EXP0024` or `<NoWarn>$(NoWarn);EXP0024</NoWarn>`.
+The ID `EXP0024` is reserved (not reused). Its derived-side successor is [EXP0032](#exp0032), which flags a derived override that forgets `[Expressive]` and would silently fall back to the base body.
 
 ---
 
@@ -801,6 +767,41 @@ db.Orders.AsExpressiveDbSet()
 
 - `.AsQueryable()` — the standard explicit downcast — is sanctioned and never reported.
 - Marking the offending method with `[NotExpressive]` suppresses the diagnostic at every call site, for cases where the dropout is intentional (the helper performs work that genuinely needs to run on the client).
+
+---
+
+### EXP0032 -- Override of an `[Expressive]` member is missing `[Expressive]` {#exp0032}
+
+**Severity:** Warning
+**Category:** Design
+
+**Message:**
+```
+'{0}' overrides an [Expressive] member but is not itself marked [Expressive]. In expression-tree
+expansion (e.g. EF Core, MongoDB) instances of this type fall back to the base body instead of
+this override. Add [Expressive] so it participates in polymorphic dispatch, or [NotExpressive] to
+silence this.
+```
+
+**Cause:** A `virtual`/`abstract` `[Expressive]` member is overridden, but the override is **not** itself marked `[Expressive]`. Runtime polymorphic dispatch can only inline overrides that are registered as `[Expressive]`, so for instances of the overriding type the query silently falls back to the **base** body — almost always a bug. The check walks *up* the override chain (cheap and cross-assembly), unlike the derived-type discovery that expansion performs at runtime.
+
+**Fix:** Add `[Expressive]` to the override (the [Add `[Expressive]`](#exp0025-fix) code fix does this), so it participates in dispatch:
+
+```csharp
+class Animal
+{
+    [Expressive] public virtual string Description => "Animal: " + Name;
+}
+
+class Dog : Animal
+{
+    public override string Description => "Dog: " + Name;   // ⚠ EXP0032
+    // Fix:
+    [Expressive] public override string Description => "Dog: " + Name;
+}
+```
+
+If the override intentionally should not be translated (it stays client-only), mark it `[NotExpressive]` to silence the diagnostic.
 
 ---
 

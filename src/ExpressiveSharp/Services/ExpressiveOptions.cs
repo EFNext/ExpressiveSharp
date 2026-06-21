@@ -38,4 +38,30 @@ public class ExpressiveOptions
             return _transformers.ToArray();
         }
     }
+
+    private bool _polymorphicDispatch = true;
+
+    /// <summary>
+    /// Disables runtime polymorphic dispatch of virtual/<c>override</c> <c>[Expressive]</c> members;
+    /// they then expand using the static (declared) type only. Per-member <c>[NotExpressive]</c> is
+    /// independent of this. Default: enabled.
+    /// </summary>
+    public void DisablePolymorphicDispatch()
+    {
+        lock (_lock)
+        {
+            _polymorphicDispatch = false;
+        }
+    }
+
+    public bool IsPolymorphicDispatchEnabled
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _polymorphicDispatch;
+            }
+        }
+    }
 }

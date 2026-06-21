@@ -12,15 +12,15 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ExpressiveSharp.CodeFixers;
 
 /// <summary>
-/// Code fix for EXP0025: adds [Expressive] to the referenced member's declaration.
-/// The diagnostic's additional location (index 0) points to that declaration.
+/// Code fix for EXP0025 and EXP0032: adds [Expressive] to the referenced/overriding member's
+/// declaration. The diagnostic's additional location (index 0) points to that declaration.
 /// </summary>
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddExpressiveCodeFixProvider))]
 [Shared]
 public sealed class AddExpressiveCodeFixProvider : CodeFixProvider
 {
     public override ImmutableArray<string> FixableDiagnosticIds =>
-        ImmutableArray.Create("EXP0025");
+        ImmutableArray.Create("EXP0025", "EXP0032");
 
     public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
 

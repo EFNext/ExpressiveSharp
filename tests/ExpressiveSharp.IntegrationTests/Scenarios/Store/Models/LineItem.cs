@@ -8,12 +8,9 @@ public class LineItem
     public double UnitPrice { get; set; }
     public int Quantity { get; set; }
 
-    // Virtual [Expressive] member — regression coverage that static-type expansion still reaches
-    // the query provider as translatable SQL. The reverted "bad commit" gate skipped expansion for
-    // virtual members, so this would hit EF Core untranslated and throw. EXP0024 is expected here
-    // by design and suppressed.
-#pragma warning disable EXP0024
+    // Virtual [Expressive] member with no derived overrides — regression coverage that expansion
+    // still reaches the query provider as translatable SQL. With no overrides anywhere the
+    // polymorphic plan is trivial, so this expands exactly like a non-virtual member (no type-test).
     [Expressive]
     public virtual bool IsExpensive => UnitPrice > 40;
-#pragma warning restore EXP0024
 }

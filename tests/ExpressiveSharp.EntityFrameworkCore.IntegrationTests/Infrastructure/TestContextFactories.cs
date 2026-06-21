@@ -22,6 +22,9 @@ internal static class TestContextFactories
     public static SqliteContextHandle<QueryFilterTestDbContext> CreateSqliteQueryFilter()
         => CreateSqlite<QueryFilterTestDbContext>(opt => new QueryFilterTestDbContext(opt));
 
+    public static SqliteContextHandle<PolymorphicTestDbContext> CreateSqlitePolymorphic()
+        => CreateSqlite<PolymorphicTestDbContext>(opt => new PolymorphicTestDbContext(opt));
+
     public static SqliteContextHandle<TContext> CreateSqlite<TContext>(
         Func<DbContextOptions<TContext>, TContext> factory) where TContext : DbContext
     {
@@ -53,6 +56,9 @@ internal static class TestContextFactories
 
     public static SqlServerContextHandle<QueryFilterTestDbContext> CreateSqlServerQueryFilter()
         => CreateSqlServer<QueryFilterTestDbContext>(opt => new QueryFilterTestDbContext(opt));
+
+    public static SqlServerContextHandle<PolymorphicTestDbContext> CreateSqlServerPolymorphic()
+        => CreateSqlServer<PolymorphicTestDbContext>(opt => new PolymorphicTestDbContext(opt));
 
     public static SqlServerContextHandle<TContext> CreateSqlServer<TContext>(
         Func<DbContextOptions<TContext>, TContext> factory) where TContext : DbContext
@@ -90,6 +96,9 @@ internal static class TestContextFactories
 
     public static PostgresContextHandle<QueryFilterTestDbContext> CreatePostgresQueryFilter()
         => CreatePostgres<QueryFilterTestDbContext>(opt => new QueryFilterTestDbContext(opt));
+
+    public static PostgresContextHandle<PolymorphicTestDbContext> CreatePostgresPolymorphic()
+        => CreatePostgres<PolymorphicTestDbContext>(opt => new PolymorphicTestDbContext(opt));
 
     public static PostgresContextHandle<TContext> CreatePostgres<TContext>(
         Func<DbContextOptions<TContext>, TContext> factory) where TContext : DbContext
@@ -144,6 +153,9 @@ internal static class TestContextFactories
 
     public static PomeloMySqlContextHandle<QueryFilterTestDbContext> CreatePomeloMySqlQueryFilter()
         => CreatePomeloMySql<QueryFilterTestDbContext>(opt => new QueryFilterTestDbContext(opt));
+
+    public static PomeloMySqlContextHandle<PolymorphicTestDbContext> CreatePomeloMySqlPolymorphic()
+        => CreatePomeloMySql<PolymorphicTestDbContext>(opt => new PolymorphicTestDbContext(opt));
 
     public static PomeloMySqlContextHandle<TContext> CreatePomeloMySql<TContext>(
         Func<DbContextOptions<TContext>, TContext> factory) where TContext : DbContext
