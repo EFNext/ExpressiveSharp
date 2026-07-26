@@ -16,7 +16,7 @@ namespace ExpressiveSharp.Generated.Interceptors
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<global::TestNs.Order, string>>(i361d11c18_expr_0, i361d11c18_p_o);
             return global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                 global::System.Linq.Queryable.ThenBy(
-                    (global::System.Linq.IOrderedQueryable<global::TestNs.Order>)source,
+                    global::ExpressiveSharp.ExpressiveQueryableExtensions.AsOrdered<global::TestNs.Order>(source),
                     __lambda));
         }
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
