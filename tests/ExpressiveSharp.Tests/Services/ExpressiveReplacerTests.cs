@@ -157,4 +157,99 @@ public class ExpressiveReplacerTests
         public LambdaExpression? FindExternalExpression(MemberInfo memberInfo)
             => _expressions.TryGetValue(memberInfo, out var expr) ? expr : null;
     }
+
+    public class PlanCacheBase
+    {
+        [Expressive]
+        public virtual int Value => 1;
+    }
+
+    public class PlanCacheDerived : PlanCacheBase
+    {
+        [Expressive]
+        public override int Value => 2;
+    }
+
+    private sealed class PartialStubResolver(bool provideDerivedBody) : IExpressiveResolver
+    {
+        public LambdaExpression FindGeneratedExpression(MemberInfo expressiveMemberInfo,
+            ExpressiveAttribute? expressiveAttribute = null)
+        {
+            if (expressiveMemberInfo.DeclaringType == typeof(PlanCacheDerived) && !provideDerivedBody)
+            {
+                return null!;
+            }
+
+            var parameter = Expression.Parameter(expressiveMemberInfo.DeclaringType!, "x");
+            var value = expressiveMemberInfo.DeclaringType == typeof(PlanCacheDerived) ? 2 : 1;
+            return Expression.Lambda(Expression.Constant(value), parameter);
+        }
+
+        public LambdaExpression? FindExternalExpression(MemberInfo memberInfo) => null;
+    }
+
+    private sealed class DerivedTypeIsFinder : ExpressionVisitor
+    {
+        public bool FoundDerivedTypeTest { get; private set; }
+
+        protected override Expression VisitTypeBinary(TypeBinaryExpression node)
+        {
+            if (node.TypeOperand == typeof(PlanCacheDerived))
+            {
+                FoundDerivedTypeTest = true;
+            }
+
+            return base.VisitTypeBinary(node);
+        }
+    }
+
+    public class ResilientBase { [Expressive] public virtual int Value => 1; }
+
+    public class ResilientDerived : ResilientBase { [Expressive] public override int Value => 2; }
+
+    private sealed class ThrowingDerivedResolver : IExpressiveResolver
+    {
+        public LambdaExpression FindGeneratedExpression(MemberInfo member, ExpressiveAttribute? attribute = null)
+            => member.DeclaringType == typeof(ResilientDerived)
+                ? throw new InvalidOperationException($"Unable to resolve generated expression for {member.Name}.")
+                : Expression.Lambda(Expression.Constant(1), Expression.Parameter(member.DeclaringType!, "x"));
+
+        public LambdaExpression? FindExternalExpression(MemberInfo member) => null;
+    }
+
+    [TestMethod]
+    public void Replace_DerivedOverrideThatFailsToResolve_ThrowsActionableError()
+    {
+        Expression<Func<ResilientBase, int>> query = b => b.Value;
+        var replacer = new ExpressiveReplacer(new ThrowingDerivedResolver());
+
+        var ex = Assert.ThrowsExactly<InvalidOperationException>(() => replacer.Replace(query));
+
+        StringAssert.Contains(ex.Message, nameof(ResilientDerived));
+        StringAssert.Contains(ex.Message, "DisablePolymorphicDispatch");
+        Assert.IsNotNull(ex.InnerException);
+    }
+
+    [TestMethod]
+    public void PolymorphicPlanCache_DoesNotLeakAcrossResolvers()
+    {
+        Expression<Func<PlanCacheBase, int>> query = b => b.Value;
+
+        var replacer1 = new ExpressiveReplacer(new PartialStubResolver(provideDerivedBody: true));
+        replacer1.Replace(query);
+
+        var precondition = new DerivedTypeIsFinder();
+        precondition.Visit(replacer1.Replace(query));
+        Assert.IsTrue(precondition.FoundDerivedTypeTest);
+
+        replacer1.Replace(query);
+
+        var replacer2 = new ExpressiveReplacer(new PartialStubResolver(provideDerivedBody: false));
+        var expanded = replacer2.Replace(query);
+
+        var finder = new DerivedTypeIsFinder();
+        finder.Visit(expanded);
+
+        Assert.IsFalse(finder.FoundDerivedTypeTest);
+    }
 }

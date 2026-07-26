@@ -359,7 +359,7 @@ public class ExpressiveReplacer : ExpressionVisitor
     private PolymorphicPlan BuildPolymorphicPlan(Type rootType, MemberInfo baseMember)
     {
         var rootMember = ResolveConcreteMember(rootType, baseMember) ?? baseMember;
-        var rootRegistered = TryGetReflectedExpressionSafe(rootMember, out _);
+        var rootRegistered = TryGetReflectedExpressionForDispatch(rootMember, baseMember, out _);
 
         var arms = new List<PolymorphicArm>();
         foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
@@ -400,7 +400,7 @@ public class ExpressiveReplacer : ExpressionVisitor
                 // its declaring ancestor's `is` test. Skip plain overrides (no registered body) —
                 // EXP0032 flags those.
                 if (concrete is null || concrete.DeclaringType != candidate
-                    || !TryGetReflectedExpressionSafe(concrete, out _))
+                    || !TryGetReflectedExpressionForDispatch(concrete, baseMember, out _))
                 {
                     continue;
                 }
@@ -450,6 +450,35 @@ public class ExpressiveReplacer : ExpressionVisitor
         }
 
         return TryGetReflectedExpression(memberInfo, out reflectedExpression);
+    }
+
+    // Discovery probe for polymorphic dispatch: a member carrying [Expressive] whose expression
+    // cannot be resolved is a broken setup, not a skippable candidate — using the base body
+    // instead would silently change query results per row. Fail with the remedies spelled out.
+    private bool TryGetReflectedExpressionForDispatch(MemberInfo memberInfo, MemberInfo baseMember,
+        [NotNullWhen(true)] out LambdaExpression? reflectedExpression)
+    {
+        if (IsAbstractMember(memberInfo))
+        {
+            reflectedExpression = null;
+            return false;
+        }
+
+        try
+        {
+            return TryGetReflectedExpression(memberInfo, out reflectedExpression);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(
+                $"Polymorphic dispatch for '{baseMember.DeclaringType}.{baseMember.Name}' requires the generated " +
+                $"expression for [Expressive] member '{memberInfo.DeclaringType}.{memberInfo.Name}', which could not " +
+                $"be resolved. Compile assembly '{memberInfo.DeclaringType?.Assembly.GetName().Name}' with the " +
+                "ExpressiveSharp source generator, remove [Expressive] from the override (optionally marking it " +
+                "[NotExpressive]) to fall back to the base expression, or disable polymorphic dispatch via " +
+                "ExpressiveOptions.DisablePolymorphicDispatch() (EF Core: UseExpressives(o => o.DisablePolymorphicDispatch())).",
+                ex);
+        }
     }
 
     private static bool IsAbstractMember(MemberInfo memberInfo) => memberInfo switch
