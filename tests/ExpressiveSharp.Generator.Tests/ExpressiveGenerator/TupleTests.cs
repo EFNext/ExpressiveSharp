@@ -115,6 +115,29 @@ public class TupleTests : GeneratorTestBase
     }
 
     [TestMethod]
+    public Task TupleBinary_Equality_8Elements()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    public (int, int, int, int, int, int, int, int) A { get; set; }
+                    public (int, int, int, int, int, int, int, int) B { get; set; }
+
+                    [Expressive]
+                    public bool Same => A == B;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
     public Task TupleBinary_Equality()
     {
         var compilation = CreateCompilation(
