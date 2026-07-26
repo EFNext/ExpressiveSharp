@@ -54,7 +54,7 @@ internal static class WindowFunctionSqlExpressionWrapper
         {
             if (node is SqlFragmentExpression fragment
                 && fragment.Sql.StartsWith(PlaceholderPrefix, StringComparison.Ordinal)
-                && _stash.Remove(fragment.Sql, out var original))
+                && _stash.TryGetValue(fragment.Sql, out var original))
             {
                 return original;
             }

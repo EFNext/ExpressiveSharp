@@ -10,9 +10,11 @@ namespace ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Infrastructur
 /// RANK, DENSE_RANK, NTILE, aggregates, and navigation functions (ROW_NUMBER uses the built-in
 /// <see cref="RowNumberExpression"/>).
 /// <para>
-/// Self-rendering: <see cref="VisitChildren"/> interleaves <see cref="SqlFragmentExpression"/>
-/// nodes with column/ordering expressions, producing correct SQL through any provider's
-/// <see cref="QuerySqlGenerator"/> — no custom generator replacement needed.
+/// Self-rendering: for <see cref="QuerySqlGenerator"/> visitors, <see cref="VisitChildren"/>
+/// interleaves <see cref="SqlFragmentExpression"/> nodes with column/ordering expressions,
+/// producing correct SQL through any provider's generator — no custom generator replacement
+/// needed. All other visitors rebuild children normally so rewrites (alias remapping, pushdown)
+/// are preserved.
 /// </para>
 /// <para>
 /// Function names and clause syntax are hardcoded as literal SQL fragments, relying on SQL:2003
@@ -53,10 +55,44 @@ internal sealed class WindowFunctionSqlExpression : SqlExpression
 
     protected override Expression VisitChildren(ExpressionVisitor visitor)
     {
-        EmitWindowFunction(
-            text => visitor.Visit(new SqlFragmentExpression(text)),
-            expr => visitor.Visit(expr));
-        return this;
+        if (visitor is QuerySqlGenerator)
+        {
+            EmitWindowFunction(
+                text => visitor.Visit(new SqlFragmentExpression(text)),
+                expr => visitor.Visit(expr));
+            return this;
+        }
+
+        // Every other visitor (projection pushdown, alias uniquification, ...) rewrites children;
+        // discarding its results would leave stale references in the generated SQL.
+        var changed = false;
+
+        var newArguments = new SqlExpression[Arguments.Count];
+        for (var i = 0; i < Arguments.Count; i++)
+        {
+            newArguments[i] = (SqlExpression)visitor.Visit(Arguments[i]);
+            changed |= newArguments[i] != Arguments[i];
+        }
+
+        var newPartitions = new SqlExpression[Partitions.Count];
+        for (var i = 0; i < Partitions.Count; i++)
+        {
+            newPartitions[i] = (SqlExpression)visitor.Visit(Partitions[i]);
+            changed |= newPartitions[i] != Partitions[i];
+        }
+
+        var newOrderings = new OrderingExpression[Orderings.Count];
+        for (var i = 0; i < Orderings.Count; i++)
+        {
+            newOrderings[i] = (OrderingExpression)visitor.Visit(Orderings[i]);
+            changed |= newOrderings[i] != Orderings[i];
+        }
+
+        return changed
+            ? new WindowFunctionSqlExpression(
+                FunctionName, newArguments, newPartitions, newOrderings, Type, TypeMapping,
+                FrameType, FrameStart, FrameEnd)
+            : this;
     }
 
     protected override void Print(ExpressionPrinter expressionPrinter) =>
@@ -119,6 +155,7 @@ internal sealed class WindowFunctionSqlExpression : SqlExpression
 
     public override bool Equals(object? obj) =>
         obj is WindowFunctionSqlExpression other
+        && base.Equals(other)
         && FunctionName == other.FunctionName
         && Arguments.SequenceEqual(other.Arguments)
         && Partitions.SequenceEqual(other.Partitions)
@@ -130,6 +167,7 @@ internal sealed class WindowFunctionSqlExpression : SqlExpression
     public override int GetHashCode()
     {
         var hash = new HashCode();
+        hash.Add(base.GetHashCode());
         hash.Add(FunctionName);
         foreach (var a in Arguments) hash.Add(a);
         foreach (var p in Partitions) hash.Add(p);
