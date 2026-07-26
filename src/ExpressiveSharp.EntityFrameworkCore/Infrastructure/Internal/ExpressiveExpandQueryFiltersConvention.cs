@@ -1,6 +1,8 @@
 using System.Linq.Expressions;
 
 using ExpressiveSharp.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 
@@ -33,21 +35,34 @@ public class ExpressiveExpandQueryFiltersConvention : IModelFinalizingConvention
                 if (filter.Expression is null)
                     continue;
 
-                var expanded = filter.Expression.ExpandExpressives(_options) as LambdaExpression;
-
                 if (filter.Key is not null)
-                    entityType.SetQueryFilter(filter.Key, expanded);
+                    entityType.SetQueryFilter(filter.Key, Expand(filter.Expression, entityType));
                 else
-                    entityType.SetQueryFilter(expanded);
+                    entityType.SetQueryFilter(Expand(filter.Expression, entityType));
             }
 #else
             var queryFilter = entityType.GetQueryFilter();
             if (queryFilter is not null)
             {
-                entityType.SetQueryFilter(
-                    queryFilter.ExpandExpressives(_options) as LambdaExpression);
+                entityType.SetQueryFilter(Expand(queryFilter, entityType));
             }
 #endif
         }
+    }
+
+    // SetQueryFilter(null) REMOVES a filter, so a non-lambda expansion result must never be
+    // cast-and-forwarded: a silently dropped soft-delete/tenant filter widens data access.
+    private LambdaExpression Expand(LambdaExpression filter, IConventionEntityType entityType)
+    {
+        var expanded = filter.ExpandExpressives(_options);
+        if (expanded is not LambdaExpression lambda)
+        {
+            throw new InvalidOperationException(
+                $"Expanding the query filter for entity type '{entityType.DisplayName()}' produced a " +
+                $"{expanded.NodeType} expression instead of a lambda, which would silently remove the filter. " +
+                "A registered IExpressionTreeTransformer must return a LambdaExpression when given one.");
+        }
+
+        return lambda;
     }
 }
