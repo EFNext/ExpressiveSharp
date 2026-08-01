@@ -3557,14 +3557,15 @@ internal sealed class ExpressionTreeEmitter
                 : double.IsNaN(d) ? "double.NaN"
                 : d.ToString("R", CultureInfo.InvariantCulture) + "d",
             decimal m => m.ToString(CultureInfo.InvariantCulture) + "m",
-            long l => $"{l}L",
-            ulong ul => $"{ul}UL",
-            uint ui => $"{ui}U",
-            byte b => $"(byte){b}",
-            sbyte sb => $"(sbyte){sb}",
-            short s => $"(short){s}",
-            ushort us => $"(ushort){us}",
-            int i => i.ToString(),
+            long l => l.ToString(CultureInfo.InvariantCulture) + "L",
+            ulong ul => ul.ToString(CultureInfo.InvariantCulture) + "UL",
+            uint ui => ui.ToString(CultureInfo.InvariantCulture) + "U",
+            byte b => "(byte)" + b.ToString(CultureInfo.InvariantCulture),
+            sbyte sb => "(sbyte)" + sb.ToString(CultureInfo.InvariantCulture),
+            short s => "(short)" + s.ToString(CultureInfo.InvariantCulture),
+            ushort us => "(ushort)" + us.ToString(CultureInfo.InvariantCulture),
+            int i => i.ToString(CultureInfo.InvariantCulture),
+            IFormattable f => f.ToString(null, CultureInfo.InvariantCulture) ?? "null",
             _ => value.ToString() ?? "null",
         };
     }
