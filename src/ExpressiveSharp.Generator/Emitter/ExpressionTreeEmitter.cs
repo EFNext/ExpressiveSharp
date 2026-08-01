@@ -1536,35 +1536,25 @@ internal sealed class ExpressionTreeEmitter
         if (leftType is null || rightType is null)
             return EmitUnsupported(tupleBinary);
 
-        var leftUnderlying = leftType.TupleUnderlyingType ?? leftType;
-        var leftFields = leftUnderlying.GetMembers()
-            .OfType<IFieldSymbol>()
-            .Where(f => f.Name.StartsWith("Item"))
-            .OrderBy(f => f.Name)
-            .ToList();
+        // Normalize away element names so the emitted typeof(...) matches the runtime layout.
+        var leftTuple = leftType.TupleUnderlyingType ?? leftType;
+        var rightTuple = rightType.TupleUnderlyingType ?? rightType;
 
-        var rightUnderlying = rightType.TupleUnderlyingType ?? rightType;
-        var rightFields = rightUnderlying.GetMembers()
-            .OfType<IFieldSymbol>()
-            .Where(f => f.Name.StartsWith("Item"))
-            .OrderBy(f => f.Name)
-            .ToList();
+        var leftElements = leftTuple.TupleElements;
+        var rightElements = rightTuple.TupleElements;
 
-        if (leftFields.Count == 0 || leftFields.Count != rightFields.Count)
+        if (leftElements.IsDefaultOrEmpty || rightElements.IsDefaultOrEmpty
+            || leftElements.Length != rightElements.Length)
             return EmitUnsupported(tupleBinary);
 
         bool isEquality = tupleBinary.OperatorKind == BinaryOperatorKind.Equals;
 
+        var restVars = new Dictionary<(string Root, int Level), string>();
         var comparisons = new List<string>();
-        for (var i = 0; i < leftFields.Count; i++)
+        for (var i = 0; i < leftElements.Length; i++)
         {
-            var leftFieldRef = _fieldCache.EnsureFieldInfo(leftFields[i]);
-            var rightFieldRef = _fieldCache.EnsureFieldInfo(rightFields[i]);
-
-            var lAccess = NextVar();
-            AppendLine($"var {lAccess} = {Expr}.Field({leftVar}, {leftFieldRef});");
-            var rAccess = NextVar();
-            AppendLine($"var {rAccess} = {Expr}.Field({rightVar}, {rightFieldRef});");
+            var lAccess = EmitTupleElementAccess(leftVar, leftTuple, leftElements[i], i, restVars);
+            var rAccess = EmitTupleElementAccess(rightVar, rightTuple, rightElements[i], i, restVars);
 
             var cmpVar = NextVar();
             AppendLine($"var {cmpVar} = {Expr}.Equal({lAccess}, {rAccess});");
@@ -1588,6 +1578,49 @@ internal sealed class ExpressionTreeEmitter
         }
 
         return resultVar;
+
+        string EmitTupleElementAccess(string tupleVar, INamedTypeSymbol tupleType, IFieldSymbol element, int elementIndex, Dictionary<(string Root, int Level), string> restVars)
+        {
+            const int primaryTupleSize = 7; // ValueTuple<T1..T7, TRest> has 7 direct fields; the 8th is Rest.
+
+            if (elementIndex < primaryTupleSize)
+            {
+                var fieldRef = _fieldCache.EnsureFieldInfo(element);
+                var directVar = NextVar();
+                AppendLine($"var {directVar} = {Expr}.Field({tupleVar}, {fieldRef});");
+                return directVar;
+            }
+
+            const string flags = "global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance";
+
+            var currentVar = tupleVar;
+            var currentType = tupleType.TupleUnderlyingType ?? tupleType;
+            var level = 0;
+            while (elementIndex >= primaryTupleSize)
+            {
+                level++;
+                var restFqn = currentType.ToDisplayString(_fqnFormat);
+                currentType = (INamedTypeSymbol)currentType.TypeArguments[7];
+                currentType = currentType.TupleUnderlyingType ?? currentType;
+                elementIndex -= primaryTupleSize;
+
+                if (restVars.TryGetValue((tupleVar, level), out var cachedRestVar))
+                {
+                    currentVar = cachedRestVar;
+                    continue;
+                }
+
+                var restVar = NextVar();
+                AppendLine($"var {restVar} = {Expr}.Field({currentVar}, typeof({restFqn}).GetField(\"Rest\", {flags}));");
+                restVars[(tupleVar, level)] = restVar;
+                currentVar = restVar;
+            }
+
+            var itemFqn = currentType.ToDisplayString(_fqnFormat);
+            var accessVar = NextVar();
+            AppendLine($"var {accessVar} = {Expr}.Field({currentVar}, typeof({itemFqn}).GetField(\"Item{elementIndex + 1}\", {flags}));");
+            return accessVar;
+        }
     }
 
     private string EmitIsPattern(IIsPatternOperation isPattern)
