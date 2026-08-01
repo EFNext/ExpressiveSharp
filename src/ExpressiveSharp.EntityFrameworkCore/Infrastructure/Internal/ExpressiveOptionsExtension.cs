@@ -94,7 +94,8 @@ public class ExpressiveOptionsExtension : IDbContextOptionsExtension
                 new RemoveNullConditionalPatterns(),
                 new FlattenTupleComparisons(),
                 new FlattenConcatArrayCalls(),
-                new FlattenBlockExpressions());
+                new FlattenBlockExpressions(),
+                new Transformers.RewriteThenByAfterInclude());
             if (extraTransformers.Length > 0)
                 options.AddTransformers(extraTransformers);
             return options;
