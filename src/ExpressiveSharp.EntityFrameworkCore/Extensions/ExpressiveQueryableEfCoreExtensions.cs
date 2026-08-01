@@ -55,7 +55,6 @@ public static class ExpressiveQueryableEfCoreExtensions
     public static IExpressiveQueryable<TEntity> TagWith<TEntity>(
         this IExpressiveQueryable<TEntity> source,
         string tag)
-        where TEntity : class
         => EntityFrameworkQueryableExtensions.TagWith(source, tag).AsExpressive();
 
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -63,7 +62,6 @@ public static class ExpressiveQueryableEfCoreExtensions
         this IExpressiveQueryable<TEntity> source,
         [System.Runtime.CompilerServices.CallerFilePath] string filePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int lineNumber = 0)
-        where TEntity : class
         => EntityFrameworkQueryableExtensions.TagWithCallSite(source, filePath, lineNumber).AsExpressive();
 
     // Include / ThenInclude run at runtime, not intercepted.
@@ -108,7 +106,6 @@ public static class ExpressiveQueryableEfCoreExtensions
         this IExpressiveQueryable<TEntity> source,
         Func<TEntity, bool> predicate,
         CancellationToken cancellationToken = default)
-        where TEntity : class
         => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
@@ -117,7 +114,6 @@ public static class ExpressiveQueryableEfCoreExtensions
         this IExpressiveQueryable<TEntity> source,
         Func<TEntity, bool> predicate,
         CancellationToken cancellationToken = default)
-        where TEntity : class
         => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
@@ -126,7 +122,6 @@ public static class ExpressiveQueryableEfCoreExtensions
         this IExpressiveQueryable<TEntity> source,
         Func<TEntity, bool> predicate,
         CancellationToken cancellationToken = default)
-        where TEntity : class
         => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
@@ -135,7 +130,6 @@ public static class ExpressiveQueryableEfCoreExtensions
         this IExpressiveQueryable<TEntity> source,
         Func<TEntity, bool> predicate,
         CancellationToken cancellationToken = default)
-        where TEntity : class
         => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
@@ -144,7 +138,6 @@ public static class ExpressiveQueryableEfCoreExtensions
         this IExpressiveQueryable<TEntity> source,
         Func<TEntity, bool> predicate,
         CancellationToken cancellationToken = default)
-        where TEntity : class
         => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
@@ -153,7 +146,6 @@ public static class ExpressiveQueryableEfCoreExtensions
         this IExpressiveQueryable<TEntity> source,
         Func<TEntity, bool> predicate,
         CancellationToken cancellationToken = default)
-        where TEntity : class
         => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
@@ -162,7 +154,6 @@ public static class ExpressiveQueryableEfCoreExtensions
         this IExpressiveQueryable<TEntity> source,
         Func<TEntity, bool> predicate,
         CancellationToken cancellationToken = default)
-        where TEntity : class
         => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
@@ -171,7 +162,6 @@ public static class ExpressiveQueryableEfCoreExtensions
         this IExpressiveQueryable<TEntity> source,
         Func<TEntity, bool> predicate,
         CancellationToken cancellationToken = default)
-        where TEntity : class
         => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
@@ -180,7 +170,6 @@ public static class ExpressiveQueryableEfCoreExtensions
         this IExpressiveQueryable<TEntity> source,
         Func<TEntity, bool> predicate,
         CancellationToken cancellationToken = default)
-        where TEntity : class
         => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
@@ -189,88 +178,87 @@ public static class ExpressiveQueryableEfCoreExtensions
         this IExpressiveQueryable<TEntity> source,
         Func<TEntity, bool> predicate,
         CancellationToken cancellationToken = default)
-        where TEntity : class
         => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static Task<int> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, int> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
+    public static Task<int> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, int> selector, CancellationToken cancellationToken = default) => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static Task<int?> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, int?> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
+    public static Task<int?> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, int?> selector, CancellationToken cancellationToken = default) => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static Task<long> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, long> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
+    public static Task<long> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, long> selector, CancellationToken cancellationToken = default) => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static Task<long?> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, long?> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
+    public static Task<long?> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, long?> selector, CancellationToken cancellationToken = default) => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static Task<float> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, float> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
+    public static Task<float> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, float> selector, CancellationToken cancellationToken = default) => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static Task<float?> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, float?> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
+    public static Task<float?> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, float?> selector, CancellationToken cancellationToken = default) => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static Task<double> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, double> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
+    public static Task<double> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, double> selector, CancellationToken cancellationToken = default) => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static Task<double?> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, double?> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
+    public static Task<double?> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, double?> selector, CancellationToken cancellationToken = default) => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static Task<decimal> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, decimal> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
+    public static Task<decimal> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, decimal> selector, CancellationToken cancellationToken = default) => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static Task<decimal?> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, decimal?> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
+    public static Task<decimal?> SumAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, decimal?> selector, CancellationToken cancellationToken = default) => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static Task<double> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, int> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
+    public static Task<double> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, int> selector, CancellationToken cancellationToken = default) => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static Task<double?> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, int?> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
+    public static Task<double?> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, int?> selector, CancellationToken cancellationToken = default) => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static Task<double> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, long> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
+    public static Task<double> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, long> selector, CancellationToken cancellationToken = default) => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static Task<double?> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, long?> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
+    public static Task<double?> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, long?> selector, CancellationToken cancellationToken = default) => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static Task<float> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, float> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
+    public static Task<float> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, float> selector, CancellationToken cancellationToken = default) => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static Task<float?> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, float?> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
+    public static Task<float?> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, float?> selector, CancellationToken cancellationToken = default) => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static Task<double> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, double> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
+    public static Task<double> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, double> selector, CancellationToken cancellationToken = default) => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static Task<double?> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, double?> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
+    public static Task<double?> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, double?> selector, CancellationToken cancellationToken = default) => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static Task<decimal> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, decimal> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
+    public static Task<decimal> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, decimal> selector, CancellationToken cancellationToken = default) => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static Task<decimal?> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, decimal?> selector, CancellationToken cancellationToken = default) where TEntity : class => throw new UnreachableException(InterceptedMessage);
+    public static Task<decimal?> AverageAsync<TEntity>(this IExpressiveQueryable<TEntity> source, Func<TEntity, decimal?> selector, CancellationToken cancellationToken = default) => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -278,7 +266,6 @@ public static class ExpressiveQueryableEfCoreExtensions
         this IExpressiveQueryable<TEntity> source,
         Func<TEntity, TResult> selector,
         CancellationToken cancellationToken = default)
-        where TEntity : class
         => throw new UnreachableException(InterceptedMessage);
 
     [PolyfillTarget(typeof(EntityFrameworkQueryableExtensions))]
@@ -287,6 +274,5 @@ public static class ExpressiveQueryableEfCoreExtensions
         this IExpressiveQueryable<TEntity> source,
         Func<TEntity, TResult> selector,
         CancellationToken cancellationToken = default)
-        where TEntity : class
         => throw new UnreachableException(InterceptedMessage);
 }

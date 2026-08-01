@@ -325,4 +325,25 @@ public abstract class AsyncQueryableTestBase : EFCoreRelationalTestBase
 
         Assert.IsNull(result);
     }
+
+    [TestMethod]
+    public async Task SumAsync_OverValueTypeProjection_WithModernSyntax_Executes()
+    {
+        var result = await Context.Orders.AsExpressiveDbSet()
+            .Select(o => o.Price)
+            .SumAsync(x => x switch { >= 50 => x, _ => 0.0 });
+
+        Assert.AreEqual(245.0, result);
+    }
+
+    [TestMethod]
+    public async Task FirstAsync_OverValueTypeProjection_Executes()
+    {
+        var result = await Context.Orders.AsExpressiveDbSet()
+            .Select(o => o.Id)
+            .OrderBy(x => x)
+            .FirstAsync(x => x > 2);
+
+        Assert.AreEqual(3, result);
+    }
 }
