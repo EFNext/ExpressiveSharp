@@ -389,4 +389,36 @@ public class BlockBodyTests : GeneratorTestBase
 
         return Verifier.Verify(result.GeneratedTrees[0].ToString());
     }
+
+    [TestMethod]
+    public void SwitchCase_LocalBeforeReturn_IsSupported()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    [Expressive(AllowBlockBody = true)]
+                    public static string Label(int x)
+                    {
+                        switch (x)
+                        {
+                            case 1:
+                            {
+                                var y = "one";
+                                return y;
+                            }
+                            default:
+                                return "other";
+                        }
+                    }
+                }
+            }
+            """);
+
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.IsFalse(result.Diagnostics.Any(d => d.Id == "EXP0008"),
+            "A case block with a local before the return should be emitted, not degraded to a " +
+            "default value via EXP0008. Diagnostics: " + string.Join("; ", result.Diagnostics));
+    }
 }
