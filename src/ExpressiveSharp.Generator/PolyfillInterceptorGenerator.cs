@@ -316,7 +316,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         }
     }
 
-    /// <summary>4-char hex tag from source path hash; disambiguates same-line/col call sites across files.</summary>
+    /// <summary>8-char hex tag from source path hash; disambiguates same-line/col call sites across files.</summary>
     private static string GetFileTag(string sourcePath)
     {
         unchecked
@@ -327,7 +327,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                 hash ^= (uint)sourcePath[i];
                 hash *= 16777619u;
             }
-            return (hash & 0xFFFFu).ToString("x4");
+            return hash.ToString("x8");
         }
     }
 
