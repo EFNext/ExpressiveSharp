@@ -225,7 +225,6 @@ namespace ExpressiveSharp.Services
         }
 
         private static bool IsInvalidIdentifierChar(char c) =>
-            c == '.' || c == '<' || c == '>' || c == ',' || c == ' ' ||
-            c == '[' || c == ']' || c == '`' || c == ':' || c == '?';
+            !char.IsLetterOrDigit(c) && c != '_';
     }
 }
