@@ -243,4 +243,23 @@ public class RemoveNullConditionalPatternsTests
 
         Assert.AreSame(expr, result);
     }
+
+    [TestMethod]
+    public void DistinctParametersWithSameName_GuardIsKept()
+    {
+        var x1 = Expression.Parameter(typeof(NullTestInner), "x");
+        var x2 = Expression.Parameter(typeof(NullTestInner), "x");
+
+        var conditional = Expression.Condition(
+            Expression.NotEqual(x1, Expression.Constant(null, typeof(NullTestInner))),
+            Expression.Property(x2, nameof(NullTestInner.Value)),
+            Expression.Constant(null, typeof(string)));
+
+        var lambda = Expression.Lambda<Func<NullTestInner?, NullTestInner?, string?>>(conditional, x1, x2);
+
+        var transformed = (Expression<Func<NullTestInner?, NullTestInner?, string?>>)_sut.Transform(lambda);
+        var compiled = transformed.Compile();
+
+        Assert.IsNull(compiled(null, new NullTestInner { Value = "bob" }));
+    }
 }
