@@ -110,4 +110,26 @@ public class TypeExtensionsTests
 
         Assert.AreEqual(animalName, result);
     }
+
+    public interface IHidden
+    {
+        internal string Secret { get; }
+    }
+
+    public class HiddenImpl : IHidden
+    {
+        string IHidden.Secret => "s";
+    }
+
+    [TestMethod]
+    public void GetConcreteProperty_InterfacePropertyWithNonPublicAccessor_DoesNotThrow()
+    {
+        var interfaceProperty = typeof(IHidden)
+            .GetProperty(nameof(IHidden.Secret), BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.IsNotNull(interfaceProperty);
+
+        var result = typeof(HiddenImpl).GetConcreteProperty(interfaceProperty);
+
+        Assert.IsNotNull(result);
+    }
 }
