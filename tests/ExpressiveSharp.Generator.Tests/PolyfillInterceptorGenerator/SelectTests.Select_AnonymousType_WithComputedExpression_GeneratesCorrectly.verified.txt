@@ -6,20 +6,20 @@ namespace ExpressiveSharp.Generated.Interceptors
     internal static partial class PolyfillInterceptors
     {
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
-        internal static global::ExpressiveSharp.IExpressiveQueryable<T1> __Polyfill_Select_361d_9_33<T0, T1>(
+        internal static global::ExpressiveSharp.IExpressiveQueryable<T1> __Polyfill_Select_d115361d_9_33<T0, T1>(
             this global::ExpressiveSharp.IExpressiveQueryable<T0> source,
             global::System.Func<T0, T1> __func)
         {
             // Source: o => new { o.Id, Total = o.Price * o.Qty }
-            var i361d9c33_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(T0), "o");
-            var i361d9c33_expr_1 = global::System.Linq.Expressions.Expression.Property(i361d9c33_p_o, typeof(T0).GetProperty("Id", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Id
-            var i361d9c33_expr_3 = global::System.Linq.Expressions.Expression.Property(i361d9c33_p_o, typeof(T0).GetProperty("Price", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Price
-            var i361d9c33_expr_5 = global::System.Linq.Expressions.Expression.Property(i361d9c33_p_o, typeof(T0).GetProperty("Qty", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Qty
-            var i361d9c33_expr_4 = global::System.Linq.Expressions.Expression.Convert(i361d9c33_expr_5, typeof(decimal));
-            var i361d9c33_expr_2 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Multiply, i361d9c33_expr_3, i361d9c33_expr_4);
-            var i361d9c33_expr_6 = typeof(T1).GetConstructors()[0];
-            var i361d9c33_expr_0 = global::System.Linq.Expressions.Expression.New(i361d9c33_expr_6, new global::System.Linq.Expressions.Expression[] { i361d9c33_expr_1, i361d9c33_expr_2 }, new global::System.Reflection.MemberInfo[] { typeof(T1).GetProperty("Id"), typeof(T1).GetProperty("Total") });
-            var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<T0, T1>>(i361d9c33_expr_0, i361d9c33_p_o);
+            var id115361d9c33_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(T0), "o");
+            var id115361d9c33_expr_1 = global::System.Linq.Expressions.Expression.Property(id115361d9c33_p_o, typeof(T0).GetProperty("Id", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Id
+            var id115361d9c33_expr_3 = global::System.Linq.Expressions.Expression.Property(id115361d9c33_p_o, typeof(T0).GetProperty("Price", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Price
+            var id115361d9c33_expr_5 = global::System.Linq.Expressions.Expression.Property(id115361d9c33_p_o, typeof(T0).GetProperty("Qty", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Qty
+            var id115361d9c33_expr_4 = global::System.Linq.Expressions.Expression.Convert(id115361d9c33_expr_5, typeof(decimal));
+            var id115361d9c33_expr_2 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.Multiply, id115361d9c33_expr_3, id115361d9c33_expr_4);
+            var id115361d9c33_expr_6 = typeof(T1).GetConstructors()[0];
+            var id115361d9c33_expr_0 = global::System.Linq.Expressions.Expression.New(id115361d9c33_expr_6, new global::System.Linq.Expressions.Expression[] { id115361d9c33_expr_1, id115361d9c33_expr_2 }, new global::System.Reflection.MemberInfo[] { typeof(T1).GetProperty("Id"), typeof(T1).GetProperty("Total") });
+            var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<T0, T1>>(id115361d9c33_expr_0, id115361d9c33_p_o);
             return (global::ExpressiveSharp.IExpressiveQueryable<T1>)(object)
                 global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                     global::System.Linq.Queryable.Select(

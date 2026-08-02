@@ -6,17 +6,17 @@ namespace ExpressiveSharp.Generated.Interceptors
     internal static partial class PolyfillInterceptors
     {
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
-        internal static global::ExpressiveSharp.IExpressiveQueryable<T1> __Polyfill_Select_361d_9_33<T0, T1>(
+        internal static global::ExpressiveSharp.IExpressiveQueryable<T1> __Polyfill_Select_d115361d_9_33<T0, T1>(
             this global::ExpressiveSharp.IExpressiveQueryable<T0> source,
             global::System.Func<T0, T1> __func)
         {
             // Source: o => new { o.Id, o.Name }
-            var i361d9c33_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(T0), "o");
-            var i361d9c33_expr_1 = global::System.Linq.Expressions.Expression.Property(i361d9c33_p_o, typeof(T0).GetProperty("Id", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Id
-            var i361d9c33_expr_2 = global::System.Linq.Expressions.Expression.Property(i361d9c33_p_o, typeof(T0).GetProperty("Name", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Name
-            var i361d9c33_expr_3 = typeof(T1).GetConstructors()[0];
-            var i361d9c33_expr_0 = global::System.Linq.Expressions.Expression.New(i361d9c33_expr_3, new global::System.Linq.Expressions.Expression[] { i361d9c33_expr_1, i361d9c33_expr_2 }, new global::System.Reflection.MemberInfo[] { typeof(T1).GetProperty("Id"), typeof(T1).GetProperty("Name") });
-            var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<T0, T1>>(i361d9c33_expr_0, i361d9c33_p_o);
+            var id115361d9c33_p_o = global::System.Linq.Expressions.Expression.Parameter(typeof(T0), "o");
+            var id115361d9c33_expr_1 = global::System.Linq.Expressions.Expression.Property(id115361d9c33_p_o, typeof(T0).GetProperty("Id", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Id
+            var id115361d9c33_expr_2 = global::System.Linq.Expressions.Expression.Property(id115361d9c33_p_o, typeof(T0).GetProperty("Name", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // o.Name
+            var id115361d9c33_expr_3 = typeof(T1).GetConstructors()[0];
+            var id115361d9c33_expr_0 = global::System.Linq.Expressions.Expression.New(id115361d9c33_expr_3, new global::System.Linq.Expressions.Expression[] { id115361d9c33_expr_1, id115361d9c33_expr_2 }, new global::System.Reflection.MemberInfo[] { typeof(T1).GetProperty("Id"), typeof(T1).GetProperty("Name") });
+            var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<T0, T1>>(id115361d9c33_expr_0, id115361d9c33_p_o);
             return (global::ExpressiveSharp.IExpressiveQueryable<T1>)(object)
                 global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                     global::System.Linq.Queryable.Select(
