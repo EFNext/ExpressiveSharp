@@ -162,6 +162,32 @@ public sealed class MissingExpressiveImportAnalyzerTests : GeneratorTestBase
             "Should not report any diagnostic for plain IQueryable");
     }
 
+    [TestMethod]
+    public async Task PreBuiltExpressionTree_WithUsingPresent_NoEXP0026()
+    {
+        const string source = """
+            using System;
+            using System.Linq;
+            using System.Linq.Expressions;
+            using ExpressiveSharp;
+            namespace Test
+            {
+                class C
+                {
+                    void M(IExpressiveQueryable<int> q)
+                    {
+                        Expression<Func<int, bool>> pred = x => x > 0;
+                        q.Where(pred);
+                    }
+                }
+            }
+            """;
+
+        var diagnostics = await GetDiagnosticsAsync(source);
+
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0026"), string.Join("; ", diagnostics));
+    }
+
     private async Task<ImmutableArray<Diagnostic>> GetDiagnosticsAsync(string source)
     {
         using var workspace = new Microsoft.CodeAnalysis.AdhocWorkspace();

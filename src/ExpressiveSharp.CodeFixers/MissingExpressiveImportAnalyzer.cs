@@ -67,7 +67,12 @@ public sealed class MissingExpressiveImportAnalyzer : DiagnosticAnalyzer
 
         if (stubType != null && stubType.GetMembers(method.Name).Length > 0)
         {
-            // Stub exists but wasn't resolved — missing using.
+            var stubInScope = context.SemanticModel
+                .LookupSymbols(invocation.SpanStart, name: "ExpressiveQueryableLinqExtensions")
+                .Contains(stubType, SymbolEqualityComparer.Default);
+            if (stubInScope)
+                return;
+
             context.ReportDiagnostic(Diagnostic.Create(
                 StubNotResolved,
                 memberAccess.Name.GetLocation(),
