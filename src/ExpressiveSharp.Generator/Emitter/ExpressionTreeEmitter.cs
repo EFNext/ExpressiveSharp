@@ -75,7 +75,7 @@ internal sealed class ExpressionTreeEmitter
         => _typeAliases[type] = alias;
 
     private string ResolveTypeFqn(ITypeSymbol type)
-        => _typeAliases.TryGetValue(type, out var alias) ? alias : type.ToDisplayString(_fqnFormat);
+        => _fieldCache.ResolveTypeFqn(type);
 
     public EmitResult Emit(
         SyntaxNode bodySyntax,

@@ -14,8 +14,8 @@ internal sealed class ReflectionFieldCache
         _typeAliases = typeAliases;
     }
 
-    private string ResolveTypeFqn(ITypeSymbol type)
-        => _typeAliases.TryGetValue(type, out var alias) ? alias : type.ToDisplayString(_fullyQualifiedFormat);
+    internal string ResolveTypeFqn(ITypeSymbol type)
+        => TypeFqnResolver.Resolve(type, _typeAliases);
 
     public string EnsurePropertyInfo(IPropertySymbol property)
     {
