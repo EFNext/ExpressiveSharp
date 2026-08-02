@@ -296,4 +296,35 @@ public class ConvertLoopsToLinqTests
         var result = compiled(new List<int> { 5, 2, 8, 1, 9 });
         Assert.AreEqual(1, result);
     }
+
+    [TestMethod]
+    public void ForEach_StringAccumulation_ThrowsInvalidOperationException()
+    {
+        var items = Expression.Parameter(typeof(List<string>), "items");
+        var acc = Expression.Variable(typeof(string), "s");
+        var concat = typeof(string).GetMethod(nameof(string.Concat), new[] { typeof(string), typeof(string) })!;
+
+        var loopExpr = BuildForEachLoop(items, acc, Expression.Constant(""),
+            typeof(string),
+            (iter, a) => Expression.Assign(a, Expression.Add(a, iter, concat)));
+
+        Assert.ThrowsExactly<InvalidOperationException>(() => _sut.Transform(loopExpr));
+    }
+
+    [TestMethod]
+    public void EnumerableOverloadPredicates_MatchExactlyOneMethod()
+    {
+        var whereMatches = typeof(Enumerable).GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Count(m => m.Name == "Where" && m.IsGenericMethodDefinition && m.GetParameters().Length == 2
+                && m.GetParameters()[1].ParameterType.GetGenericArguments().Length == 2);
+
+        var selectMatches = typeof(Enumerable).GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Count(m => m.Name == "Select" && m.IsGenericMethodDefinition
+                && m.GetParameters().Length == 2
+                && m.GetGenericArguments().Length == 2
+                && m.GetParameters()[1].ParameterType.GetGenericArguments().Length == 2);
+
+        Assert.AreEqual(1, whereMatches);
+        Assert.AreEqual(1, selectMatches);
+    }
 }
