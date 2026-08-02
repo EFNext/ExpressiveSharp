@@ -3168,7 +3168,16 @@ internal sealed class ExpressionTreeEmitter
 
         var binaryVar = NextVar();
         AppendLine($"var {binaryVar} = {Expr}.MakeBinary(global::System.Linq.Expressions.ExpressionType.{op}, {operandVar}, {oneConst});");
-        AppendLine($"var {resultVar} = {Expr}.Assign({operandVar}, {binaryVar});");
+        if (incDec.IsPostfix && incDec.Parent is not IExpressionStatementOperation)
+        {
+            var tempVar = NextVar();
+            AppendLine($"var {tempVar} = {Expr}.Variable(typeof({typeFqn}), \"__post\");");
+            AppendLine($"var {resultVar} = {Expr}.Block(new[] {{ {tempVar} }}, {Expr}.Assign({tempVar}, {operandVar}), {Expr}.Assign({operandVar}, {binaryVar}), {tempVar});");
+        }
+        else
+        {
+            AppendLine($"var {resultVar} = {Expr}.Assign({operandVar}, {binaryVar});");
+        }
         return resultVar;
     }
 
