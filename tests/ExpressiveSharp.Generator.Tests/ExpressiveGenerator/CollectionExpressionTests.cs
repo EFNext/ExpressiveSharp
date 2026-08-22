@@ -171,7 +171,7 @@ public class CollectionExpressionTests : GeneratorTestBase
 
         var result = RunExpressiveGenerator(compilation);
 
+        Assert.AreEqual(0, result.Diagnostics.Length);
         Assert.AreEqual(1, result.GeneratedTrees.Length);
-        Assert.IsFalse(result.Diagnostics.Any(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error));
     }
 }
