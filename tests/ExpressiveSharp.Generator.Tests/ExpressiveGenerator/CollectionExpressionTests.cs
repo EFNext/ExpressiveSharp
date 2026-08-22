@@ -155,4 +155,23 @@ public class CollectionExpressionTests : GeneratorTestBase
 
         return Verifier.Verify(result.GeneratedTrees[0].ToString());
     }
+
+    [TestMethod]
+    public void EmptyArrayInitializer_GeneratedCodeCompiles()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    [Expressive]
+                    public static int[] Empty() => new int[] { };
+                }
+            }
+            """);
+
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+    }
 }
