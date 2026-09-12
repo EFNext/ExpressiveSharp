@@ -57,9 +57,10 @@ public class ExpressiveExpandQueryFiltersConvention : IModelFinalizingConvention
         var expanded = filter.ExpandExpressives(_options);
         if (expanded is not LambdaExpression lambda)
         {
+            var nodeType = expanded?.NodeType.ToString() ?? "null";
             throw new InvalidOperationException(
                 $"Expanding the query filter for entity type '{entityType.DisplayName()}' produced a " +
-                $"{expanded.NodeType} expression instead of a lambda, which would silently remove the filter. " +
+                $"{nodeType} expression instead of a lambda, which would silently remove the filter. " +
                 "A registered IExpressionTreeTransformer must return a LambdaExpression when given one.");
         }
 
