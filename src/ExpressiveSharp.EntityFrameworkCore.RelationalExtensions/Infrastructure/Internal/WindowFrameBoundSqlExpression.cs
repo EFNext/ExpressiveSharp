@@ -30,7 +30,7 @@ internal sealed class WindowFrameBoundSqlExpression : SqlExpression
 #endif
 
     public override bool Equals(object? obj) =>
-        obj is WindowFrameBoundSqlExpression other && BoundInfo == other.BoundInfo;
+        obj is WindowFrameBoundSqlExpression other && base.Equals(other) && BoundInfo == other.BoundInfo;
 
-    public override int GetHashCode() => BoundInfo.GetHashCode();
+    public override int GetHashCode() => HashCode.Combine(base.GetHashCode(), BoundInfo);
 }

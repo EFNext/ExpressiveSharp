@@ -119,6 +119,7 @@ internal sealed class WindowSpecSqlExpression : SqlExpression
 
     public override bool Equals(object? obj) =>
         obj is WindowSpecSqlExpression other
+        && base.Equals(other)
         && Partitions.SequenceEqual(other.Partitions)
         && Orderings.SequenceEqual(other.Orderings)
         && FrameType == other.FrameType
@@ -128,6 +129,7 @@ internal sealed class WindowSpecSqlExpression : SqlExpression
     public override int GetHashCode()
     {
         var hash = new HashCode();
+        hash.Add(base.GetHashCode());
         foreach (var p in Partitions) hash.Add(p);
         foreach (var o in Orderings) hash.Add(o);
         hash.Add(FrameType);
