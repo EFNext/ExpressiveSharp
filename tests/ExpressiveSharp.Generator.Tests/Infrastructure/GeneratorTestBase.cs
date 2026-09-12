@@ -96,6 +96,24 @@ public abstract partial class GeneratorTestBase
         return compilation;
     }
 
+    protected Compilation CreateCompilation(params (string Source, string Path)[] sources)
+    {
+        var parseOptions = CreateParseOptions();
+        var trees = new List<SyntaxTree>
+        {
+            CSharpSyntaxTree.ParseText(GlobalUsings, parseOptions, "GlobalUsings.cs"),
+        };
+        trees.AddRange(sources.Select(s => CSharpSyntaxTree.ParseText(s.Source, parseOptions, s.Path)));
+        var compilation = CSharpCompilation.Create(
+            "compilation",
+            trees,
+            GetDefaultReferences(),
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+        LogSourceDiagnostics(compilation);
+        return compilation;
+    }
+
     protected Compilation CreateCompilation(params string[] sources)
     {
         var parseOptions = CreateParseOptions();
