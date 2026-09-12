@@ -1,3 +1,4 @@
+using ExpressiveSharp.IntegrationTests.Scenarios.Store;
 using ExpressiveSharp.IntegrationTests.Scenarios.Store.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -104,5 +105,49 @@ public abstract class IncludeTestBase : EFCoreRelationalTestBase
 
         Assert.AreEqual(1, results.Count);
         Assert.IsNotNull(results[0].Customer);
+    }
+
+    [TestMethod]
+    public async Task ThenBy_AfterInclude_ExecutesWithComposedOrdering()
+    {
+        var results = await Context.Orders.AsExpressiveDbSet()
+            .OrderBy(o => o.Status)
+            .Include(o => o.Customer)
+            .ThenBy(o => o.Id)
+            .ToListAsync();
+
+        var expectedIds = SeedData.Orders
+            .OrderBy(o => o.Status).ThenBy(o => o.Id)
+            .Select(o => o.Id).ToList();
+        CollectionAssert.AreEqual(expectedIds, results.Select(r => r.Id).ToList());
+        Assert.IsNotNull(results.Single(r => r.Id == 1).Customer);
+    }
+
+    [TestMethod]
+    public async Task ThenBy_AfterIncludeThenInclude_ExecutesWithComposedOrdering()
+    {
+        var results = await Context.Orders.AsExpressiveDbSet()
+            .OrderBy(o => o.Status)
+            .Include(o => o.Customer)
+            .ThenInclude(c => c!.Address)
+            .ThenBy(o => o.Id)
+            .ToListAsync();
+
+        var expectedIds = SeedData.Orders
+            .OrderBy(o => o.Status).ThenBy(o => o.Id)
+            .Select(o => o.Id).ToList();
+        CollectionAssert.AreEqual(expectedIds, results.Select(r => r.Id).ToList());
+        Assert.IsNotNull(results.Single(r => r.Id == 1).Customer!.Address);
+    }
+
+    [TestMethod]
+    public async Task ThenBy_AfterInclude_WithoutOrderBy_ThrowsActionableError()
+    {
+        var query = Context.Orders.AsExpressiveDbSet()
+            .Include(o => o.Customer)
+            .ThenBy(o => o.Id);
+
+        var ex = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => query.ToListAsync());
+        StringAssert.Contains(ex.Message, "OrderBy");
     }
 }

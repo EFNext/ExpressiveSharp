@@ -619,7 +619,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         var typeAliases = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default);
         var delegateFqns = new string[funcParamIndices.Count];
         string elemRef;
-        string castFqn;
+        string sourceRef;
         string typeParams;
         string returnRef;
         string interceptorParamList;
@@ -667,9 +667,11 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                 delegateFqns[fi] = funcFqnGenerics[fi];
             }
 
-            castFqn = isOrdered
-                ? $"global::System.Linq.IOrderedQueryable<{elemRef}>"
-                : $"global::System.Linq.IQueryable<{elemRef}>";
+            // ThenBy/ThenByDescending go through AsOrdered: a plain cast fails when the source's
+            // expression is not statically ordered (e.g. an EF Core Include after OrderBy).
+            sourceRef = isOrdered
+                ? $"global::ExpressiveSharp.ExpressiveQueryableExtensions.AsOrdered<{elemRef}>((global::System.Linq.IQueryable<{elemRef}>)(object)source)"
+                : $"(global::System.Linq.IQueryable<{elemRef}>)(object)source";
 
             if (isRewritableReturn)
             {
@@ -718,9 +720,9 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                         t.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))) + ">";
             }
 
-            castFqn = isOrdered
-                ? $"global::System.Linq.IOrderedQueryable<{elemFqn}>"
-                : $"global::System.Linq.IQueryable<{elemFqn}>";
+            sourceRef = isOrdered
+                ? $"global::ExpressiveSharp.ExpressiveQueryableExtensions.AsOrdered<{elemFqn}>(source)"
+                : $"(global::System.Linq.IQueryable<{elemFqn}>)source";
 
             returnRef = isRewritableReturn
                 ? returnElemType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
@@ -781,7 +783,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                         {
                 {{allBodies}}            return global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                                 {{targetTypeFqn}}.{{methodName}}(
-                                    ({{castFqn}})source,
+                                    {{sourceRef}},
                                     {{queryableArgList}}));
                         }
 
@@ -795,7 +797,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                         {{interceptorParamList}})
                     {
             {{allBodies}}            return {{targetTypeFqn}}.{{methodName}}(
-                                ({{castFqn}})source,
+                                {{sourceRef}},
                                 {{queryableArgList}});
                     }
 
@@ -813,7 +815,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             {{allBodies}}            return (global::ExpressiveSharp.IExpressiveQueryable<{{returnRef}}>)(object)
                             global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                                 {{targetTypeFqn}}.{{methodName}}(
-                                    ({{castFqn}})(object)source,
+                                    {{sourceRef}},
                                     {{queryableArgList}}));
                     }
 
@@ -827,7 +829,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                     {{interceptorParamList}})
                 {
         {{allBodies}}            return {{targetTypeFqn}}.{{methodName}}(
-                            ({{castFqn}})(object)source,
+                            {{sourceRef}},
                             {{queryableArgList}});
                 }
 
