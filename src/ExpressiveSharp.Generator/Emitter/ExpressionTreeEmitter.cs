@@ -2107,8 +2107,12 @@ internal sealed class ExpressionTreeEmitter
         return currentVar;
     }
 
-    /// <summary>Returns the single return operation in a case body, or null if the shape isn't supported.</summary>
-    private static IReturnOperation? FindCaseReturn(ISwitchCaseOperation switchCase)
+    /// <summary>
+    /// Returns the case's return operation, inlining any leading local declarations (their
+    /// initializer expressions are mapped so the returned value embeds them and evaluation stays
+    /// inside the arm); null if the shape isn't supported.
+    /// </summary>
+    private IReturnOperation? FindCaseReturn(ISwitchCaseOperation switchCase)
     {
         foreach (var op in switchCase.Body)
         {
@@ -2123,6 +2127,10 @@ internal sealed class ExpressionTreeEmitter
                         {
                             return innerRet;
                         }
+                        if (inner is IVariableDeclarationGroupOperation declGroup && TryInlineCaseLocals(declGroup))
+                        {
+                            continue;
+                        }
                         return null;
                     }
                     return null;
@@ -2131,6 +2139,24 @@ internal sealed class ExpressionTreeEmitter
             }
         }
         return null;
+    }
+
+    private bool TryInlineCaseLocals(IVariableDeclarationGroupOperation declGroup)
+    {
+        foreach (var declaration in declGroup.Declarations)
+        {
+            foreach (var declarator in declaration.Declarators)
+            {
+                if (declarator.Initializer is null)
+                {
+                    return false;
+                }
+
+                _localToVar[declarator.Symbol] = EmitOperation(declarator.Initializer.Value);
+            }
+        }
+
+        return true;
     }
 
     private string EmitSwitchExpression(ISwitchExpressionOperation switchExpr)
