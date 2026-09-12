@@ -119,8 +119,6 @@ public sealed class RemoveNullConditionalPatterns : ExpressionVisitor, IExpressi
     private static bool ExpressionsEqual(Expression a, Expression b)
     {
         if (a == b) return true;
-        if (a is ParameterExpression pa && b is ParameterExpression pb)
-            return pa.Name == pb.Name && pa.Type == pb.Type;
         if (a is MemberExpression ma && b is MemberExpression mb)
             return ma.Member == mb.Member
                 && ma.Expression is not null && mb.Expression is not null
