@@ -1229,7 +1229,7 @@ internal sealed class ExpressionTreeEmitter
                 else
                 {
                     AppendLine(bindingVars.Count == 0
-                        ? $"var {resultVar} = {Expr}.MemberInit({newVar});"
+                        ? $"var {resultVar} = {newVar};"
                         : $"var {resultVar} = {Expr}.MemberInit({newVar}, {string.Join(", ", bindingVars)});");
                 }
             }
