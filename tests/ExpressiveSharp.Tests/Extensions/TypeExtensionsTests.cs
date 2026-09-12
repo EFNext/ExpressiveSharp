@@ -131,5 +131,6 @@ public class TypeExtensionsTests
         var result = typeof(HiddenImpl).GetConcreteProperty(interfaceProperty);
 
         Assert.IsNotNull(result);
+        Assert.AreEqual(typeof(HiddenImpl), result.DeclaringType);
     }
 }
