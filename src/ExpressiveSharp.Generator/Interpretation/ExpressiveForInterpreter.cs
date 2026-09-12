@@ -482,7 +482,7 @@ static internal class ExpressiveForInterpreter
         if (!targetParameters.IsEmpty)
         {
             descriptor.ParameterTypeNames = targetParameters
-                .Select(p => p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
+                .Select(p => p.Type.ToDisplayString(ExpressiveInterpreter.RuntimeNameFormat))
                 .ToList();
         }
 

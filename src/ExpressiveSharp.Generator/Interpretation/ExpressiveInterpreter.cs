@@ -9,6 +9,12 @@ namespace ExpressiveSharp.Generator.Interpretation;
 
 static internal partial class ExpressiveInterpreter
 {
+    // Tuples must render as ValueTuple<...> so compile-time names match what the runtime
+    // resolver derives from reflection (which never sees tuple syntax or element names).
+    internal static readonly SymbolDisplayFormat RuntimeNameFormat =
+        SymbolDisplayFormat.FullyQualifiedFormat.AddMiscellaneousOptions(
+            SymbolDisplayMiscellaneousOptions.ExpandValueTuple);
+
     public static ExpressiveDescriptor? GetDescriptor(
         SemanticModel semanticModel,
         MemberDeclarationSyntax member,
@@ -104,7 +110,7 @@ static internal partial class ExpressiveInterpreter
         if (methodSymbol is not null)
         {
             var parameterTypeNames = methodSymbol.Parameters
-                .Select(p => p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
+                .Select(p => p.Type.ToDisplayString(RuntimeNameFormat))
                 .ToList();
 
             // Prepend the extension receiver type to match how the runtime sees the method
@@ -112,7 +118,7 @@ static internal partial class ExpressiveInterpreter
             if (isInstanceExtensionMember)
             {
                 parameterTypeNames.Insert(0,
-                    extensionReceiverType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                    extensionReceiverType!.ToDisplayString(RuntimeNameFormat));
             }
 
             descriptor.ParameterTypeNames = parameterTypeNames;
