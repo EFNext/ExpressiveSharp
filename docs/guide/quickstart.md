@@ -4,7 +4,7 @@ This guide walks you through a complete end-to-end example — from installing t
 
 ## Prerequisites
 
-- .NET 8 SDK or later (.NET 10 also supported)
+- .NET 8 SDK or later (.NET 9, 10, and 11 also supported)
 - A LINQ provider. ExpressiveSharp integrates with **EF Core**, **MongoDB**, or **any `IQueryable<T>`**.
 
 ## Step 1 — Install the Packages
