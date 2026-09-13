@@ -10,19 +10,24 @@
     <!-- Testcontainers transitive deps (e.g., Newtonsoft.Json via CosmosDb emulator) may have known vulnerabilities.
          Suppress the NuGet audit warning in test projects only. -->
     <NoWarn>$(NoWarn);NU1903;NU1902;NU1901;NU1904</NoWarn>
+
+    <!-- Pomelo has no EF Core 10/11 release; Npgsql has no EF 11 rc-compatible release
+         (only 11.0.0-preview.1, built against an earlier EF 11 preview). Revisit at EF 11 GA. -->
+    <PomeloMySqlSupported Condition="'$(TargetFramework)' == 'net8.0' or '$(TargetFramework)' == 'net9.0'">true</PomeloMySqlSupported>
+    <NpgsqlSupported Condition="'$(TargetFramework)' != 'net11.0'">true</NpgsqlSupported>
   </PropertyGroup>
 
   <!-- Define compilation constants per database provider -->
   <PropertyGroup Condition="'$(TestDatabase)' == 'SqlServer' or '$(TestDatabase)' == 'All'">
     <DefineConstants>$(DefineConstants);TEST_SQLSERVER</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(TestDatabase)' == 'Postgres' or '$(TestDatabase)' == 'All'">
+  <PropertyGroup Condition="('$(TestDatabase)' == 'Postgres' or '$(TestDatabase)' == 'All') and '$(NpgsqlSupported)' == 'true'">
     <DefineConstants>$(DefineConstants);TEST_POSTGRES</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TestDatabase)' == 'Cosmos' or '$(TestDatabase)' == 'All'">
     <DefineConstants>$(DefineConstants);TEST_COSMOS</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition="('$(TestDatabase)' == 'PomeloMySql' or '$(TestDatabase)' == 'All') and '$(TargetFramework)' != 'net10.0'">
+  <PropertyGroup Condition="('$(TestDatabase)' == 'PomeloMySql' or '$(TestDatabase)' == 'All') and '$(PomeloMySqlSupported)' == 'true'">
     <DefineConstants>$(DefineConstants);TEST_POMELO_MYSQL</DefineConstants>
   </PropertyGroup>
 
@@ -36,6 +41,9 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"
                       Condition="'$(TargetFramework)' == 'net10.0'"
                       VersionOverride="10.0.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"
+                      Condition="'$(TargetFramework)' == 'net11.0'"
+                      VersionOverride="11.0.0-rc.1.26425.128" />
   </ItemGroup>
 
   <!-- SQL Server (conditional) -->
@@ -49,10 +57,13 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer"
                       Condition="'$(TargetFramework)' == 'net10.0'"
                       VersionOverride="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer"
+                      Condition="'$(TargetFramework)' == 'net11.0'"
+                      VersionOverride="11.0.0-rc.1.26425.128" />
   </ItemGroup>
 
   <!-- PostgreSQL (conditional) -->
-  <ItemGroup Condition="'$(TestDatabase)' == 'Postgres' or '$(TestDatabase)' == 'All'">
+  <ItemGroup Condition="('$(TestDatabase)' == 'Postgres' or '$(TestDatabase)' == 'All') and '$(NpgsqlSupported)' == 'true'">
     <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"
                       Condition="'$(TargetFramework)' == 'net8.0'" />
@@ -77,10 +88,13 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Cosmos"
                       Condition="'$(TargetFramework)' == 'net10.0'"
                       VersionOverride="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Cosmos"
+                      Condition="'$(TargetFramework)' == 'net11.0'"
+                      VersionOverride="11.0.0-rc.1.26425.128" />
   </ItemGroup>
 
-  <!-- MySQL via Pomelo (conditional, no EF 10 support) -->
-  <ItemGroup Condition="('$(TestDatabase)' == 'PomeloMySql' or '$(TestDatabase)' == 'All') and '$(TargetFramework)' != 'net10.0'">
+  <!-- MySQL via Pomelo (conditional, no EF 10/11 support) -->
+  <ItemGroup Condition="('$(TestDatabase)' == 'PomeloMySql' or '$(TestDatabase)' == 'All') and '$(PomeloMySqlSupported)' == 'true'">
     <PackageReference Include="Testcontainers.MySql" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql"
                       Condition="'$(TargetFramework)' == 'net8.0'" />
