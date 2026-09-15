@@ -545,6 +545,40 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     private static bool IsAnonymousType(ITypeSymbol type)
         => type is INamedTypeSymbol { IsAnonymousType: true };
 
+    // Anonymous types have no nameable form at ANY nesting depth (IGrouping<int, Anon>,
+    // IEnumerable<Anon>, Anon[]) — such signatures must go through the generic-parameter path.
+    private static bool ContainsAnonymousType(ITypeSymbol type)
+        => type switch
+        {
+            INamedTypeSymbol { IsAnonymousType: true } => true,
+            INamedTypeSymbol named => named.TypeArguments.Any(ContainsAnonymousType),
+            IArrayTypeSymbol array => ContainsAnonymousType(array.ElementType),
+            _ => false,
+        };
+
+    private static void AddNestedAnonymousTypeParams(
+        ITypeSymbol type, Dictionary<ITypeSymbol, string> typeAliases, List<string> typeParamNames)
+    {
+        switch (type)
+        {
+            case INamedTypeSymbol { IsAnonymousType: true } anon:
+                if (!typeAliases.ContainsKey(anon))
+                {
+                    var paramName = $"T{typeParamNames.Count}";
+                    typeParamNames.Add(paramName);
+                    typeAliases[anon] = paramName;
+                }
+                break;
+            case INamedTypeSymbol named:
+                foreach (var argument in named.TypeArguments)
+                    AddNestedAnonymousTypeParams(argument, typeAliases, typeParamNames);
+                break;
+            case IArrayTypeSymbol array:
+                AddNestedAnonymousTypeParams(array.ElementType, typeAliases, typeParamNames);
+                break;
+        }
+    }
+
     private static bool ContainsInvalidOperation(IOperation op)
     {
         if (op is IInvalidOperation) return true;
@@ -585,19 +619,19 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
         bool single = funcParamIndices.Count == 1;
 
-        var hasAnyAnon = elemSym.IsAnonymousType;
+        var hasAnyAnon = ContainsAnonymousType(elemSym);
         for (int i = 0; i < funcParamIndices.Count; i++)
         {
             var fta = ((INamedTypeSymbol)method.Parameters[funcParamIndices[i]].Type).TypeArguments;
             for (int j = 0; j < fta.Length; j++)
-                hasAnyAnon = hasAnyAnon || IsAnonymousType(fta[j]);
+                hasAnyAnon = hasAnyAnon || ContainsAnonymousType(fta[j]);
         }
 
         // Non-Func params can also be anonymous (e.g. AggregateBy seed).
         for (int i = 0; i < method.Parameters.Length; i++)
         {
             if (!funcParamIndices.Contains(i))
-                hasAnyAnon = hasAnyAnon || IsAnonymousType(method.Parameters[i].Type);
+                hasAnyAnon = hasAnyAnon || ContainsAnonymousType(method.Parameters[i].Type);
         }
 
         var isRewritableReturn = method.ReturnType is INamedTypeSymbol rqType
@@ -607,7 +641,7 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         if (isRewritableReturn)
         {
             returnElemType = ((INamedTypeSymbol)method.ReturnType).TypeArguments[0];
-            hasAnyAnon = hasAnyAnon || IsAnonymousType(returnElemType);
+            hasAnyAnon = hasAnyAnon || ContainsAnonymousType(returnElemType);
         }
 
         var scalarReturnFqn = method.ReturnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
@@ -627,11 +661,29 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
         if (hasAnyAnon)
         {
-            // All method type args become generic params (T0, T1, …) so the C# compiler can infer
-            // anonymous types — they have no nameable form in the interceptor signature.
-            var typeParamNames = new string[methodTypeArgs.Length];
+            // Method type args become generic params (T0, T1, …) so the C# compiler can infer
+            // anonymous types — they have no nameable form in the interceptor signature. An arg
+            // that merely CONTAINS an anonymous type (IGrouping<int, Anon>) resolves structurally
+            // instead, with each nested anonymous type getting its own generic param — that keeps
+            // those params inferable from the signature and nameable inside the body
+            // (e.g. MakeGenericMethod(typeof(T0)) for g.Count()).
+            var typeParamNames = new List<string>();
+            var positionRefs = new string[methodTypeArgs.Length];
             for (int i = 0; i < methodTypeArgs.Length; i++)
-                typeParamNames[i] = $"T{i}";
+            {
+                var arg = methodTypeArgs[i];
+                if (!IsAnonymousType(arg) && ContainsAnonymousType(arg))
+                {
+                    AddNestedAnonymousTypeParams(arg, typeAliases, typeParamNames);
+                    positionRefs[i] = ResolveTypeFqn(arg, typeAliases);
+                }
+                else
+                {
+                    var paramName = $"T{typeParamNames.Count}";
+                    typeParamNames.Add(paramName);
+                    positionRefs[i] = paramName;
+                }
+            }
             typeParams = $"<{string.Join(", ", typeParamNames)}>";
 
             // The unsubstituted method type parameter symbols carry per-position identity
@@ -641,13 +693,13 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             // sees substituted parameter symbols) can still resolve anonymous return types
             // and element types into Tn aliases.
             for (int i = 0; i < method.TypeParameters.Length; i++)
-                typeAliases[method.TypeParameters[i]] = typeParamNames[i];
+                typeAliases[method.TypeParameters[i]] = positionRefs[i];
             if (!typeAliases.ContainsKey(elemSym))
-                typeAliases[elemSym] = typeParamNames[0];
+                typeAliases[elemSym] = positionRefs[0];
             for (int i = 0; i < methodTypeArgs.Length; i++)
             {
                 if (!typeAliases.ContainsKey(methodTypeArgs[i]))
-                    typeAliases[methodTypeArgs[i]] = typeParamNames[i];
+                    typeAliases[methodTypeArgs[i]] = positionRefs[i];
             }
 
             if (typeAliases.TryGetValue(elemSym, out var ep))
@@ -857,36 +909,5 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     /// For <c>IEnumerable&lt;Customer&gt;</c> where Customer→T1, returns <c>IEnumerable&lt;T1&gt;</c>.
     /// </summary>
     private static string ResolveTypeFqn(ITypeSymbol type, Dictionary<ITypeSymbol, string> typeAliases)
-    {
-        if (typeAliases.TryGetValue(type, out var alias))
-            return alias;
-
-        if (type is INamedTypeSymbol named && named.TypeArguments.Length > 0)
-        {
-            bool anyResolved = false;
-            var resolvedArgs = new string[named.TypeArguments.Length];
-            for (int i = 0; i < named.TypeArguments.Length; i++)
-            {
-                if (typeAliases.TryGetValue(named.TypeArguments[i], out var argAlias))
-                {
-                    resolvedArgs[i] = argAlias;
-                    anyResolved = true;
-                }
-                else
-                {
-                    resolvedArgs[i] = named.TypeArguments[i].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                }
-            }
-            if (anyResolved)
-            {
-                var openType = named.ConstructedFrom.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                var idx = openType.LastIndexOf('<');
-                if (idx >= 0)
-                    openType = openType.Substring(0, idx);
-                return openType + "<" + string.Join(", ", resolvedArgs) + ">";
-            }
-        }
-
-        return type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-    }
+        => Emitter.TypeFqnResolver.Resolve(type, typeAliases);
 }
