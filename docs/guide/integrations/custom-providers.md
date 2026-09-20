@@ -32,6 +32,12 @@ The query runs through your provider's own translation pipeline after Expressive
 1. Expanded `[Expressive]` member accesses into their generated expression trees
 2. Normalized the tree via the built-in transformers (null-conditional flattening, block lifting, tuple comparison flattening)
 
+If your provider returns its own `IExpressiveQueryable<T>` wrapper from
+`IQueryProvider.CreateQuery<TElement>`, that wrapper should also implement
+`IOrderedExpressiveQueryable<T>` — as `ExpressiveMongoQueryable<T>` does. Otherwise `AsExpressive`
+re-wraps it after `OrderBy`/`ThenBy` and any extra interfaces it carries (an async cursor source,
+a provider-specific query interface) stop being observable.
+
 ## LINQ to Objects
 
 The same extension works on `IEnumerable<T>.AsQueryable()`:

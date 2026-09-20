@@ -20,6 +20,9 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
     private const string IExpressiveQueryableOpenTypeName =
         "ExpressiveSharp.IExpressiveQueryable<T>";
 
+    private const string IOrderedExpressiveQueryableOpenTypeName =
+        "ExpressiveSharp.IOrderedExpressiveQueryable<T>";
+
     private const string PolyfillTypeName = "ExpressiveSharp.ExpressionPolyfill";
     private const string PolyfillMethodName = "Create";
 
@@ -601,7 +604,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         }
 
         var isRewritableReturn = method.ReturnType is INamedTypeSymbol rqType
-            && rqType.ConstructedFrom.ToDisplayString() == IExpressiveQueryableOpenTypeName;
+            && (rqType.ConstructedFrom.ToDisplayString() == IExpressiveQueryableOpenTypeName
+                || rqType.ConstructedFrom.ToDisplayString() == IOrderedExpressiveQueryableOpenTypeName);
 
         ITypeSymbol? returnElemType = null;
         var returnOpenFqn = "global::ExpressiveSharp.IExpressiveQueryable";

@@ -6,7 +6,7 @@ namespace ExpressiveSharp.Generated.Interceptors
     internal static partial class PolyfillInterceptors
     {
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
-        internal static global::ExpressiveSharp.IExpressiveQueryable<global::TestNs.Order> __Polyfill_OrderBy_361d_9_33(
+        internal static global::ExpressiveSharp.IOrderedExpressiveQueryable<global::TestNs.Order> __Polyfill_OrderBy_361d_9_33(
             this global::ExpressiveSharp.IExpressiveQueryable<global::TestNs.Order> source,
             global::System.Func<global::TestNs.Order, int> __func)
         {

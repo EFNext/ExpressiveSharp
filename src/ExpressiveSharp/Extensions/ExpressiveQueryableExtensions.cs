@@ -20,5 +20,18 @@ namespace ExpressiveSharp
             // etc.) remain observable through the returned reference.
             => source as IExpressiveQueryable<T>
                ?? new ExpressiveQueryableWrapper<T>(source);
+
+        /// <summary>
+        /// Ordered overload, preserving orderedness in the static type. Selected by overload
+        /// resolution for the results of <see cref="Queryable"/> ordering operators.
+        /// </summary>
+        /// <param name="options">
+        /// Read by the source generator at compile time; ignored at runtime.
+        /// </param>
+        public static IOrderedExpressiveQueryable<T> AsExpressive<T>(
+            this IOrderedQueryable<T> source,
+            ExpressionRewriteOptions? options = null)
+            => source as IOrderedExpressiveQueryable<T>
+               ?? new ExpressiveQueryableWrapper<T>(source);
     }
 }

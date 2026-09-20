@@ -5,12 +5,13 @@ using MongoDB.Driver;
 namespace ExpressiveSharp.MongoDB.Infrastructure;
 
 /// <remarks>
-/// Implements <see cref="IOrderedQueryable{T}"/> so <c>ThenBy</c>/<c>ThenByDescending</c>
-/// interceptors can cast the wrapper, and <see cref="IAsyncCursorSource{TDocument}"/> so
-/// <c>MongoQueryable.ToListAsync</c> / <c>ToCursorAsync</c> (which cast the source directly,
-/// not the provider) accept the wrapper.
+/// Implements <see cref="IOrderedExpressiveQueryable{T}"/> so <c>AsExpressive</c> returns this
+/// instance unchanged after an ordering operator; re-wrapping would drop
+/// <see cref="IAsyncCursorSource{TDocument}"/>, which <c>MongoQueryable.ToListAsync</c> /
+/// <c>ToCursorAsync</c> require because they cast the source rather than the provider.
 /// </remarks>
-internal sealed class ExpressiveMongoQueryable<T> : IExpressiveMongoQueryable<T>, IOrderedQueryable<T>, IAsyncCursorSource<T>
+internal sealed class ExpressiveMongoQueryable<T>
+    : IExpressiveMongoQueryable<T>, IOrderedExpressiveQueryable<T>, IAsyncCursorSource<T>
 {
     private readonly IQueryable<T> _source;
     private readonly ExpressiveMongoQueryProvider _provider;

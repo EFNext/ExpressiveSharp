@@ -53,26 +53,26 @@ namespace ExpressiveSharp
             => throw new UnreachableException(InterceptedMessage);
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static IExpressiveQueryable<T> OrderBy<T, TKey>(
+        public static IOrderedExpressiveQueryable<T> OrderBy<T, TKey>(
             this IExpressiveQueryable<T> source,
             Func<T, TKey> keySelector)
             => throw new UnreachableException(InterceptedMessage);
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static IExpressiveQueryable<T> OrderByDescending<T, TKey>(
+        public static IOrderedExpressiveQueryable<T> OrderByDescending<T, TKey>(
             this IExpressiveQueryable<T> source,
             Func<T, TKey> keySelector)
             => throw new UnreachableException(InterceptedMessage);
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static IExpressiveQueryable<T> ThenBy<T, TKey>(
-            this IExpressiveQueryable<T> source,
+        public static IOrderedExpressiveQueryable<T> ThenBy<T, TKey>(
+            this IOrderedExpressiveQueryable<T> source,
             Func<T, TKey> keySelector)
             => throw new UnreachableException(InterceptedMessage);
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static IExpressiveQueryable<T> ThenByDescending<T, TKey>(
-            this IExpressiveQueryable<T> source,
+        public static IOrderedExpressiveQueryable<T> ThenByDescending<T, TKey>(
+            this IOrderedExpressiveQueryable<T> source,
             Func<T, TKey> keySelector)
             => throw new UnreachableException(InterceptedMessage);
 
@@ -491,29 +491,29 @@ namespace ExpressiveSharp
 #endif
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static IExpressiveQueryable<T> OrderBy<T, TKey>(
+        public static IOrderedExpressiveQueryable<T> OrderBy<T, TKey>(
             this IExpressiveQueryable<T> source,
             Func<T, TKey> keySelector,
             IComparer<TKey>? comparer)
             => throw new UnreachableException(InterceptedMessage);
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static IExpressiveQueryable<T> OrderByDescending<T, TKey>(
+        public static IOrderedExpressiveQueryable<T> OrderByDescending<T, TKey>(
             this IExpressiveQueryable<T> source,
             Func<T, TKey> keySelector,
             IComparer<TKey>? comparer)
             => throw new UnreachableException(InterceptedMessage);
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static IExpressiveQueryable<T> ThenBy<T, TKey>(
-            this IExpressiveQueryable<T> source,
+        public static IOrderedExpressiveQueryable<T> ThenBy<T, TKey>(
+            this IOrderedExpressiveQueryable<T> source,
             Func<T, TKey> keySelector,
             IComparer<TKey>? comparer)
             => throw new UnreachableException(InterceptedMessage);
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static IExpressiveQueryable<T> ThenByDescending<T, TKey>(
-            this IExpressiveQueryable<T> source,
+        public static IOrderedExpressiveQueryable<T> ThenByDescending<T, TKey>(
+            this IOrderedExpressiveQueryable<T> source,
             Func<T, TKey> keySelector,
             IComparer<TKey>? comparer)
             => throw new UnreachableException(InterceptedMessage);

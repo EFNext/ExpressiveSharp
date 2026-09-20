@@ -332,6 +332,43 @@ public sealed class ExpressiveQueryableDropoutAnalyzerTests : GeneratorTestBase
             "EXP0029 should suppress itself when EXP0026 covers the same dropout cause.");
     }
 
+    [TestMethod]
+    public async Task OrderedExpressiveQueryable_BuiltInThenBy_OnlyEXP0026Fires_NotEXP0029()
+    {
+        const string source = """
+            using System.Linq;
+            namespace Test
+            {
+                public class Order { public int Id { get; set; } }
+
+                public class StubOrderedExpressive<T>
+                    : ExpressiveSharp.IExpressiveQueryable<T>, System.Linq.IOrderedQueryable<T>
+                {
+                    public System.Linq.Expressions.Expression Expression => null!;
+                    public System.Type ElementType => typeof(T);
+                    public System.Linq.IQueryProvider Provider => null!;
+                    public System.Collections.Generic.IEnumerator<T> GetEnumerator() => null!;
+                    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => null!;
+                }
+
+                class C
+                {
+                    void M(StubOrderedExpressive<Order> orders)
+                    {
+                        var sorted = orders.ThenBy(o => o.Id);
+                    }
+                }
+            }
+            """;
+
+        var diagnostics = await GetDiagnosticsAsync(source,
+            new ExpressiveQueryableDropoutAnalyzer(),
+            new MissingExpressiveImportAnalyzer());
+
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "EXP0026"));
+        Assert.IsFalse(diagnostics.Any(d => d.Id == "EXP0029"));
+    }
+
     private async Task<ImmutableArray<Diagnostic>> GetDiagnosticsAsync(string source)
         => await GetDiagnosticsAsync(source, new ExpressiveQueryableDropoutAnalyzer());
 
