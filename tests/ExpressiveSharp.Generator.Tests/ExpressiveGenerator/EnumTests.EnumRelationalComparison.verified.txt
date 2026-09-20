@@ -13,13 +13,13 @@ namespace ExpressiveSharp.Generated
         {
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.Entity), "@this");
             var expr_2 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Entity).GetProperty("Value", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Value
-            var expr_3 = global::System.Linq.Expressions.Expression.Field(null, typeof(global::Foo.Bucket).GetField("Low", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static)); // Bucket.Low
+            var expr_3 = global::System.Linq.Expressions.Expression.Constant(global::Foo.Bucket.Low, typeof(global::Foo.Bucket)); // Bucket.Low
             var expr_4 = global::System.Linq.Expressions.Expression.Convert(expr_2, typeof(int));
             var expr_5 = global::System.Linq.Expressions.Expression.Convert(expr_3, typeof(int));
             var expr_1 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.LessThanOrEqual, expr_4, expr_5);
             var expr_6 = global::System.Linq.Expressions.Expression.Constant("low", typeof(string)); // "low"
             var expr_9 = global::System.Linq.Expressions.Expression.Property(p__this, typeof(global::Foo.Entity).GetProperty("Value", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // Value
-            var expr_10 = global::System.Linq.Expressions.Expression.Field(null, typeof(global::Foo.Bucket).GetField("Mid", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static)); // Bucket.Mid
+            var expr_10 = global::System.Linq.Expressions.Expression.Constant(global::Foo.Bucket.Mid, typeof(global::Foo.Bucket)); // Bucket.Mid
             var expr_11 = global::System.Linq.Expressions.Expression.Convert(expr_9, typeof(int));
             var expr_12 = global::System.Linq.Expressions.Expression.Convert(expr_10, typeof(int));
             var expr_8 = global::System.Linq.Expressions.Expression.MakeBinary(global::System.Linq.Expressions.ExpressionType.LessThanOrEqual, expr_11, expr_12);

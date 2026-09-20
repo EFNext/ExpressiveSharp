@@ -389,4 +389,67 @@ public class EnumTests : GeneratorTestBase
 
         return Verifier.Verify(result.GeneratedTrees[0].ToString());
     }
+
+    [TestMethod]
+    public Task EnumToEnumSwitchMapping()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                public enum ActualStatus { New, InProgress, Archived }
+                public enum GeneralStatus { Defined, PartiallyProcessed, Annulled }
+
+                public record Entity
+                {
+                    public ActualStatus Status { get; set; }
+
+                    [Expressive]
+                    public GeneralStatus General => Status switch
+                    {
+                        ActualStatus.New => GeneralStatus.Defined,
+                        ActualStatus.InProgress => GeneralStatus.PartiallyProcessed,
+                        ActualStatus.Archived => GeneralStatus.Annulled,
+                        _ => throw new System.NotImplementedException()
+                    };
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
+    public Task PrivateConstFields()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                public enum Level { Negative = -1, Zero, Positive }
+
+                public record Entity
+                {
+                    private const Level Floor = Level.Negative;
+                    private const long Threshold = 10;
+                    private const string Label = "a\"b";
+
+                    public Level Value { get; set; }
+                    public long Amount { get; set; }
+                    public string Name { get; set; }
+
+                    [Expressive]
+                    public bool Matches => Value == Floor && Amount > Threshold && Name == Label;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
 }
