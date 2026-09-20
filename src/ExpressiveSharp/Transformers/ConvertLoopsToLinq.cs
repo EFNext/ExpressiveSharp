@@ -420,7 +420,8 @@ public sealed class ConvertLoopsToLinq : ExpressionVisitor, IExpressionTreeTrans
             var method = typeof(Enumerable).GetMethods(BindingFlags.Public | BindingFlags.Static)
                 .First(m => m.Name == linqMethodName && m.IsGenericMethodDefinition
                     && m.GetParameters().Length == 2
-                    && m.GetGenericArguments().Length == 2);
+                    && m.GetGenericArguments().Length == 2
+                    && m.GetParameters()[1].ParameterType.GetGenericArguments().Length == 2);
             result = Expression.Call(
                 method.MakeGenericMethod(elementType, selectorBody.Type),
                 collection,
@@ -461,7 +462,8 @@ public sealed class ConvertLoopsToLinq : ExpressionVisitor, IExpressionTreeTrans
         var selectMethod = typeof(Enumerable).GetMethods(BindingFlags.Public | BindingFlags.Static)
             .First(m => m.Name == "Select" && m.IsGenericMethodDefinition
                 && m.GetParameters().Length == 2
-                && m.GetGenericArguments().Length == 2);
+                && m.GetGenericArguments().Length == 2
+                && m.GetParameters()[1].ParameterType.GetGenericArguments().Length == 2);
         var selectCall = Expression.Call(
             selectMethod.MakeGenericMethod(elementType, resultElementType),
             collection,
@@ -504,7 +506,8 @@ public sealed class ConvertLoopsToLinq : ExpressionVisitor, IExpressionTreeTrans
         var selectMethod = typeof(Enumerable).GetMethods(BindingFlags.Public | BindingFlags.Static)
             .First(m => m.Name == "Select" && m.IsGenericMethodDefinition
                 && m.GetParameters().Length == 2
-                && m.GetGenericArguments().Length == 2);
+                && m.GetGenericArguments().Length == 2
+                && m.GetParameters()[1].ParameterType.GetGenericArguments().Length == 2);
         var selectCall = Expression.Call(
             selectMethod.MakeGenericMethod(elementType, resultElementType),
             whereCall,
@@ -537,9 +540,23 @@ public sealed class ConvertLoopsToLinq : ExpressionVisitor, IExpressionTreeTrans
 
     private static bool IsNumericZero(Expression expr)
     {
-        if (expr is ConstantExpression constant && constant.Value is not null)
+        if (expr is ConstantExpression { Value: not null } constant)
         {
-            return Convert.ToDouble(constant.Value) == 0.0;
+            return constant.Value switch
+            {
+                byte v => v == 0,
+                sbyte v => v == 0,
+                short v => v == 0,
+                ushort v => v == 0,
+                int v => v == 0,
+                uint v => v == 0,
+                long v => v == 0,
+                ulong v => v == 0,
+                float v => v == 0f,
+                double v => v == 0d,
+                decimal v => v == 0m,
+                _ => false,
+            };
         }
 
         return expr is DefaultExpression;
@@ -568,7 +585,8 @@ public sealed class ConvertLoopsToLinq : ExpressionVisitor, IExpressionTreeTrans
         {
             // Generic overload with predicate/selector (e.g., Count<T>(IEnumerable<T>, Func<T, bool>))
             var method = typeof(Enumerable).GetMethods(BindingFlags.Public | BindingFlags.Static)
-                .First(m => m.Name == name && m.IsGenericMethodDefinition && m.GetParameters().Length == 2);
+                .First(m => m.Name == name && m.IsGenericMethodDefinition && m.GetParameters().Length == 2
+                    && m.GetParameters()[1].ParameterType.GetGenericArguments().Length == 2);
             return method.MakeGenericMethod(elementType);
         }
 
