@@ -14,6 +14,9 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"
                       Condition="'$(TargetFramework)' == 'net10.0'"
                       VersionOverride="10.0.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"
+                      Condition="'$(TargetFramework)' == 'net11.0'"
+                      VersionOverride="11.0.0-rc.1.26425.128" />
   </ItemGroup>
 
   <ItemGroup>

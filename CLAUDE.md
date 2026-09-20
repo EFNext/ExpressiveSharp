@@ -35,7 +35,7 @@ dotnet run -c Release --project benchmarks/ExpressiveSharp.Benchmarks/Expressive
 dotnet run -c Release --project benchmarks/ExpressiveSharp.Benchmarks/ExpressiveSharp.Benchmarks.csproj -- --filter "*GeneratorBenchmarks*"
 ```
 
-CI targets both .NET 8.0 and .NET 10.0 SDKs.
+CI targets the .NET 8.0, 9.0, 10.0, and 11.0 (RC) SDKs.
 
 ## Architecture
 
@@ -68,12 +68,12 @@ CI targets both .NET 8.0 and .NET 10.0 SDKs.
 ### Project Dependencies
 
 ```
-ExpressiveSharp.Abstractions (attributes + source generator, net8.0;net10.0)
+ExpressiveSharp.Abstractions (attributes + source generator, net8.0;net9.0;net10.0;net11.0)
   └── no external deps
   Provides: [Expressive], [ExpressiveFor], [ExpressiveForConstructor], [PolyfillTarget],
       IExpressionTreeTransformer, source generator + code fixers (as analyzers)
 
-ExpressiveSharp (core runtime, net8.0;net10.0)
+ExpressiveSharp (core runtime, net8.0;net9.0;net10.0;net11.0)
   └── ExpressiveSharp.Abstractions
   Provides: ExpressiveResolver, ExpressiveReplacer, expression transformers,
       IExpressiveQueryable<T>, ExpressionPolyfill, .ExpandExpressives(), .AsExpressive()
@@ -81,20 +81,20 @@ ExpressiveSharp (core runtime, net8.0;net10.0)
 ExpressiveSharp.Generator (source generator, netstandard2.0)
   └── Microsoft.CodeAnalysis.CSharp 5.0.0
 
-ExpressiveSharp.MongoDB (net8.0;net10.0)
+ExpressiveSharp.MongoDB (net8.0;net9.0;net10.0;net11.0)
   ├── ExpressiveSharp
   ├── MongoDB.Driver 3.4.0
   └── Provides: IRewritableMongoQueryable<T>, ExpressiveMongoCollection<T>,
       ExpressiveMongoQueryProvider (decorating IQueryProvider/IMongoQueryProvider),
       async lambda stubs with [PolyfillTarget(typeof(MongoQueryable))]
 
-ExpressiveSharp.EntityFrameworkCore (net8.0;net10.0)
+ExpressiveSharp.EntityFrameworkCore (net8.0;net9.0;net10.0;net11.0)
   ├── ExpressiveSharp
-  ├── EF Core 8.0.25 / 10.0.0
+  ├── EF Core 8.0.25 / 9.0.0 / 10.0.0 / 11.0.0-rc.1 (per-TFM VersionOverride)
   └── Provides: ExpressiveDbSet<T>, IIncludableExpressiveQueryable<T,P>,
       chain-continuity stubs, async lambda stubs with [PolyfillTarget]
 
-ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions (net8.0;net10.0)
+ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions (net8.0;net9.0;net10.0 — no net11.0, see below)
   └── no external deps
   Provides: Pure marker types for window functions — no EF Core dependency:
       WindowFunction (ranking: ROW_NUMBER, RANK, DENSE_RANK, NTILE, PERCENT_RANK, CUME_DIST;
@@ -102,16 +102,22 @@ ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions (net8.0;ne
           LAST_VALUE, NTH_VALUE), Window, OrderedWindowDefinition,
           PartitionedWindowDefinition, FramedWindowDefinition, WindowFrameBound
 
-ExpressiveSharp.EntityFrameworkCore.RelationalExtensions (net8.0;net10.0)
+ExpressiveSharp.EntityFrameworkCore.RelationalExtensions (net8.0;net9.0;net10.0 — no net11.0, see below)
   ├── ExpressiveSharp.EntityFrameworkCore
   ├── ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions
-  ├── EF Core Relational 8.0.25 / 10.0.0
+  ├── EF Core Relational 8.0.25 / 9.0.0 / 10.0.0 (per-TFM VersionOverride)
   └── Provides: Window function SQL translation (ranking, aggregate with ROWS/RANGE
       frame clauses, navigation with LAG/LEAD/FIRST_VALUE/LAST_VALUE/NTH_VALUE),
       indexed Select, activated via UseExpressives(o => o.UseRelationalExtensions()).
       Translators: WindowFunctionMethodCallTranslator, WindowSpecMethodCallTranslator,
       WindowFrameBoundMemberTranslator (IMemberTranslatorPlugin for property getters).
       Note: NTH_VALUE is not supported on SQL Server.
+      EF Core 11 is unsupported: both RelationalExtensions packages deliberately do
+      not target net11.0 — EF 11 removed the QuerySqlGenerator VisitChildren fallback
+      that WindowFunctionSqlExpression's self-rendering relied on, with no replacement
+      extension point (dotnet/efcore#37533; tracked in dotnet/efcore#38977). Test
+      projects gate on a RelationalExtensionsSupported msbuild property. Add the TFM
+      back (and drop those gates) once EF provides a hook.
 
 ExpressiveSharp.EntityFrameworkCore.CodeFixers (Roslyn analyzer, netstandard2.0)
   └── Microsoft.CodeAnalysis.CSharp.Workspaces 4.12.0
@@ -146,7 +152,7 @@ Snapshot tests use `GeneratorTestBase.RunExpressiveGenerator()` to compile via R
 
 - `TreatWarningsAsErrors: true` — all warnings are errors
 - `Nullable: enable` — full nullable reference types
-- C# 12.0 on net8.0, C# 14.0 on net10.0
+- C# 14.0 on all TFMs (net8.0–net11.0; `LangVersion` is set globally in `Directory.Build.props`)
 - Allman brace style, 4-space indentation, `var` preferred
 - Instance fields: `_camelCase`
 - Expression-bodied members preferred for methods/properties

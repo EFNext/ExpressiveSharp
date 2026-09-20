@@ -2,6 +2,11 @@
 
   <PropertyGroup>
     <Description>Relational database extensions for ExpressiveSharp EF Core — SQL window functions (ranking, aggregate, navigation) with PARTITION BY / ORDER BY / ROWS|RANGE frame support, plus indexed Select.</Description>
+    <!-- No net11.0: EF Core 11 removed the QuerySqlGenerator fallback that
+         WindowFunctionSqlExpression's self-rendering relies on, with no replacement
+         extension point (dotnet/efcore#37533; tracked in dotnet/efcore#38977).
+         Add the TFM back once EF provides a hook. -->
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
   </PropertyGroup>
 
   <!-- EF Core Relational major version must match the target framework (8.x for net8.0, 10.x for net10.0).

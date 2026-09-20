@@ -3,12 +3,22 @@
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+
+    <!-- RelationalExtensions does not target net11.0 — EF Core 11 removed the SQL-generation
+         fallback its window functions rely on (dotnet/efcore#38977). -->
+    <RelationalExtensionsSupported Condition="'$(TargetFramework)' == 'net8.0' or '$(TargetFramework)' == 'net9.0' or '$(TargetFramework)' == 'net10.0'">true</RelationalExtensionsSupported>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(RelationalExtensionsSupported)' != 'true'">
+    <Compile Remove="RelationalExtensions/**/*.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ExpressiveSharp\ExpressiveSharp.csproj" />
-    <ProjectReference Include="..\..\src\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.csproj" />
-    <ProjectReference Include="..\..\src\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.csproj"
+                      Condition="'$(RelationalExtensionsSupported)' == 'true'" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions.csproj"
+                      Condition="'$(RelationalExtensionsSupported)' == 'true'" />
     <ProjectReference Include="..\..\src\ExpressiveSharp.Generator\ExpressiveSharp.Generator.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>

@@ -4,7 +4,7 @@ This guide walks you through a complete end-to-end example — from installing t
 
 ## Prerequisites
 
-- .NET 8 SDK or later (.NET 10 also supported)
+- .NET 8 SDK or later (.NET 9, 10, and 11 also supported)
 - A LINQ provider. ExpressiveSharp integrates with **EF Core**, **MongoDB**, or **any `IQueryable<T>`**.
 
 ## Step 1 — Install the Packages
@@ -39,7 +39,7 @@ dotnet add package ExpressiveSharp.MongoDB
 | `ExpressiveSharp.Abstractions` | Lightweight — `[Expressive]` attribute, `[ExpressiveFor]`, `IExpressionTreeTransformer`, source generator only (no runtime services) |
 | `ExpressiveSharp.EntityFrameworkCore` | EF Core integration — `UseExpressives()`, `ExpressiveDbSet<T>`, Include/ThenInclude, async methods, analyzers and code fixes |
 | `ExpressiveSharp.MongoDB` | MongoDB integration — `.AsExpressive()` on `IMongoCollection<T>`, MQL aggregation translation |
-| `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` | SQL window functions — ranking (ROW_NUMBER, RANK, DENSE_RANK, NTILE, PERCENT_RANK, CUME_DIST), aggregate (SUM, AVG, COUNT, MIN, MAX), and navigation (LAG, LEAD, FIRST_VALUE, LAST_VALUE, NTH_VALUE) with PARTITION BY / ORDER BY / ROWS\|RANGE frame support, plus indexed Select. |
+| `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` | SQL window functions (EF Core 8–10; [EF Core 11 pending](https://github.com/dotnet/efcore/issues/38977)) — ranking (ROW_NUMBER, RANK, DENSE_RANK, NTILE, PERCENT_RANK, CUME_DIST), aggregate (SUM, AVG, COUNT, MIN, MAX), and navigation (LAG, LEAD, FIRST_VALUE, LAST_VALUE, NTH_VALUE) with PARTITION BY / ORDER BY / ROWS\|RANGE frame support, plus indexed Select. |
 
 ## Step 2 — Define Your Entities
 

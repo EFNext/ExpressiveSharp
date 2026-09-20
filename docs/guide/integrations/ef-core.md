@@ -149,6 +149,10 @@ Supported chain-preserving operations:
 
 With the `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` package, you can use modern C# syntax inside `ExecuteUpdate` / `ExecuteUpdateAsync`:
 
+::: warning
+The `RelationalExtensions` package supports EF Core 8–10 only; it does not ship a `net11.0` target until EF Core 11 restores an extension point for third-party SQL expressions ([dotnet/efcore#38977](https://github.com/dotnet/efcore/issues/38977)). See the [window functions guide](../window-functions) for details.
+:::
+
 ```csharp
 // Requires: .UseExpressives(o => o.UseRelationalExtensions())
 ctx.Orders

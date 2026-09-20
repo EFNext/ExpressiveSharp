@@ -31,6 +31,15 @@ jobs:
             9.0.x
             10.0.x
 
+      # Separate step: dotnet-quality applies to every wildcard version in a
+      # step, and the 8/9/10 SDKs above must keep resolving to GA releases.
+      # Fold into the block above (and drop the quality flag) at .NET 11 GA.
+      - name: Setup .NET 11 SDK (RC)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+          dotnet-quality: preview
+
       - name: Cache NuGet packages
         uses: actions/cache@v4
         with:
@@ -51,13 +60,15 @@ jobs:
         # Docker or pay the container startup cost on every PR.
         run: |
           set -e
+          # --project must be absolute: the .NET 11 RC SDK's dotnet test resolves
+          # relative --project paths against the project directory, doubling them.
           for proj in \
             tests/ExpressiveSharp.Tests \
             tests/ExpressiveSharp.IntegrationTests \
             tests/ExpressiveSharp.Generator.Tests \
             tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests; do
             dotnet test --no-build -c Release \
-              --project "$proj" \
+              --project "$GITHUB_WORKSPACE/$proj" \
               --results-directory ./test-results \
               -- \
               --report-trx --report-trx-filename "$(basename "$proj").trx" \
@@ -135,6 +146,15 @@ jobs:
             9.0.x
             10.0.x
 
+      # Separate step: dotnet-quality applies to every wildcard version in a
+      # step, and the 8/9/10 SDKs above must keep resolving to GA releases.
+      # Fold into the block above (and drop the quality flag) at .NET 11 GA.
+      - name: Setup .NET 11 SDK (RC)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+          dotnet-quality: preview
+
       - name: Cache NuGet packages
         uses: actions/cache@v4
         with:
@@ -163,10 +183,10 @@ jobs:
             # connects to the gateway-advertised endpoint, which must
             # match the host-side port), so only one emulator can run
             # at a time. Run TFMs sequentially.
-            for tfm in net8.0 net9.0 net10.0; do
+            for tfm in net8.0 net9.0 net10.0 net11.0; do
               echo "::group::Cosmos tests ($tfm)"
               dotnet test --no-build -c Release \
-                --project tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests \
+                --project "$GITHUB_WORKSPACE/tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests" \
                 -p:TestDatabase=${{ matrix.database }} \
                 -f "$tfm" \
                 --results-directory ./test-results \
@@ -176,7 +196,7 @@ jobs:
             done
           else
             dotnet test --no-build -c Release \
-              --project tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests \
+              --project "$GITHUB_WORKSPACE/tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests" \
               -p:TestDatabase=${{ matrix.database }} \
               --results-directory ./test-results \
               -- \
@@ -220,6 +240,15 @@ jobs:
             9.0.x
             10.0.x
 
+      # Separate step: dotnet-quality applies to every wildcard version in a
+      # step, and the 8/9/10 SDKs above must keep resolving to GA releases.
+      # Fold into the block above (and drop the quality flag) at .NET 11 GA.
+      - name: Setup .NET 11 SDK (RC)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+          dotnet-quality: preview
+
       - name: Cache NuGet packages
         uses: actions/cache@v4
         with:
@@ -242,7 +271,7 @@ jobs:
       - name: Test
         run: >-
           dotnet test --no-build -c Release
-          --project tests/ExpressiveSharp.MongoDB.IntegrationTests
+          --project "$GITHUB_WORKSPACE/tests/ExpressiveSharp.MongoDB.IntegrationTests"
           --results-directory ./test-results
           --
           --report-trx --report-trx-filename results.trx

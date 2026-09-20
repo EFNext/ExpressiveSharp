@@ -33,7 +33,12 @@ internal static class TestContextFactories
 
         var options = new DbContextOptionsBuilder<TContext>()
             .UseSqlite(connection)
+            // RelationalExtensions does not target net11.0 (dotnet/efcore#38977).
+#if NET11_0_OR_GREATER
+            .UseExpressives()
+#else
             .UseExpressives(o => o.UseRelationalExtensions())
+#endif
             .Options;
 
         return new SqliteContextHandle<TContext>(factory(options), connection);
@@ -72,7 +77,11 @@ internal static class TestContextFactories
 
         var options = new DbContextOptionsBuilder<TContext>()
             .UseSqlServer(connStr)
+#if NET11_0_OR_GREATER
+            .UseExpressives()
+#else
             .UseExpressives(o => o.UseRelationalExtensions())
+#endif
             .Options;
 
         return new SqlServerContextHandle<TContext>(factory(options));

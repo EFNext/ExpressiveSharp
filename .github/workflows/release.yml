@@ -35,6 +35,15 @@ jobs:
             9.0.x
             10.0.x
 
+      # Separate step: dotnet-quality applies to every wildcard version in a
+      # step, and the 8/9/10 SDKs above must keep resolving to GA releases.
+      # Fold into the block above (and drop the quality flag) at .NET 11 GA.
+      - name: Setup .NET 11 SDK (RC)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+          dotnet-quality: preview
+
       - name: Cache NuGet packages
         uses: actions/cache@v4
         with:

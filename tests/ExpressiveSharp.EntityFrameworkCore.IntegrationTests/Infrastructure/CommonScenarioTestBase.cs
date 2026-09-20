@@ -137,7 +137,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     }
 
     [TestMethod]
-    public async Task Select_OrderDto_ProjectsCorrectly()
+    public virtual async Task Select_OrderDto_ProjectsCorrectly()
     {
         Expression<Func<Order, OrderDto>> expr = o => new OrderDto(o.Id, o.Tag ?? "N/A", o.Total);
         var expanded = (Expression<Func<Order, OrderDto>>)expr.ExpandExpressives();
@@ -519,7 +519,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     }
 
     [TestMethod]
-    public async Task Select_Summary_ReturnsCorrectValues()
+    public virtual async Task Select_Summary_ReturnsCorrectValues()
     {
         Expression<Func<Order, string>> expr = o => o.Summary;
         var expanded = (Expression<Func<Order, string>>)expr.ExpandExpressives();
@@ -538,7 +538,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     }
 
     [TestMethod]
-    public async Task Select_SummaryConcat_ReturnsCorrectValues()
+    public virtual async Task Select_SummaryConcat_ReturnsCorrectValues()
     {
         Expression<Func<Order, string>> expr = o => o.SummaryConcat;
         var expanded = (Expression<Func<Order, string>>)expr.ExpandExpressives();
@@ -699,7 +699,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     }
 
     [TestMethod]
-    public async Task Select_InlineTuple_ProjectsCorrectly()
+    public virtual async Task Select_InlineTuple_ProjectsCorrectly()
     {
         var expr = ExpressionPolyfill.Create((Order o) => (o.Id, o.Price));
 
@@ -711,7 +711,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     }
 
     [TestMethod]
-    public async Task Select_TupleWithExpressiveMember_ProjectsCorrectly()
+    public virtual async Task Select_TupleWithExpressiveMember_ProjectsCorrectly()
     {
         var expr = ExpressionPolyfill.Create((Order o) => (o.Id, o.Price * o.Quantity));
 
@@ -724,7 +724,7 @@ public abstract class CommonScenarioTestBase : EFCoreTestBase
     }
 
     [TestMethod]
-    public async Task Select_TupleWithNullable_ProjectsCorrectly()
+    public virtual async Task Select_TupleWithNullable_ProjectsCorrectly()
     {
         var expr = ExpressionPolyfill.Create((Order o) => (o.Id, o.Tag ?? "none"));
 

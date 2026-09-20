@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <Description>Pure marker types for SQL window functions (ROW_NUMBER, RANK, DENSE_RANK, NTILE) with no EF Core dependency. Pair with ExpressiveSharp.EntityFrameworkCore.RelationalExtensions for EF Core SQL translation.</Description>
+    <!-- No net11.0 until RelationalExtensions supports EF Core 11 (dotnet/efcore#38977). -->
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
   </PropertyGroup>
 
 </Project>
