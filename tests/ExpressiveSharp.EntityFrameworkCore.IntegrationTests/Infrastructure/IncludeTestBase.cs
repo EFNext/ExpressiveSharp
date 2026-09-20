@@ -1,3 +1,4 @@
+using ExpressiveSharp.IntegrationTests.Scenarios.Store;
 using ExpressiveSharp.IntegrationTests.Scenarios.Store.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -104,5 +105,38 @@ public abstract class IncludeTestBase : EFCoreRelationalTestBase
 
         Assert.AreEqual(1, results.Count);
         Assert.IsNotNull(results[0].Customer);
+    }
+
+    [TestMethod]
+    public async Task Include_OrderBy_ThenBy_ExecutesWithComposedOrdering()
+    {
+        var results = await Context.Orders.AsExpressiveDbSet()
+            .Include(o => o.Customer)
+            .OrderBy(o => o.Status)
+            .ThenBy(o => o.Id)
+            .ToListAsync();
+
+        var expectedIds = SeedData.Orders
+            .OrderBy(o => o.Status).ThenBy(o => o.Id)
+            .Select(o => o.Id).ToList();
+        CollectionAssert.AreEqual(expectedIds, results.Select(r => r.Id).ToList());
+        Assert.IsNotNull(results.Single(r => r.Id == 1).Customer);
+    }
+
+    [TestMethod]
+    public async Task Include_ThenInclude_OrderBy_ThenByDescending_ExecutesWithComposedOrdering()
+    {
+        var results = await Context.Orders.AsExpressiveDbSet()
+            .Include(o => o.Customer)
+            .ThenInclude(c => c!.Address)
+            .OrderBy(o => o.Status)
+            .ThenByDescending(o => o.Id)
+            .ToListAsync();
+
+        var expectedIds = SeedData.Orders
+            .OrderBy(o => o.Status).ThenByDescending(o => o.Id)
+            .Select(o => o.Id).ToList();
+        CollectionAssert.AreEqual(expectedIds, results.Select(r => r.Id).ToList());
+        Assert.IsNotNull(results.Single(r => r.Id == 1).Customer!.Address);
     }
 }

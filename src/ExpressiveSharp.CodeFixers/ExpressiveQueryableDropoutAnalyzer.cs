@@ -92,7 +92,7 @@ public sealed class ExpressiveQueryableDropoutAnalyzer : DiagnosticAnalyzer
         // — that scenario is owned by EXP0026 (a higher-severity Warning with its own codefix
         // for adding the missing `using`). Reporting both would just be duplicate noise.
         if (expressiveQueryableOpenGeneric is not null
-            && FindExpressiveSiblingNamespace(context.SemanticModel.Compilation, calledName, expressiveQueryableOpenGeneric) is not null)
+            && FindExpressiveSiblingNamespace(context.SemanticModel.Compilation, calledName) is not null)
         {
             return;
         }
@@ -111,30 +111,31 @@ public sealed class ExpressiveQueryableDropoutAnalyzer : DiagnosticAnalyzer
     /// string when found — used to suggest a `using` directive that would bring the
     /// sibling overload into scope.
     /// </summary>
-    private static string? FindExpressiveSiblingNamespace(Compilation compilation, string methodName, INamedTypeSymbol expressiveQueryableOpenGeneric)
+    private static string? FindExpressiveSiblingNamespace(Compilation compilation, string methodName)
     {
         foreach (var reference in compilation.References)
         {
             if (compilation.GetAssemblyOrModuleSymbol(reference) is not IAssemblySymbol assembly)
                 continue;
-            var match = SearchNamespace(assembly.GlobalNamespace, methodName, expressiveQueryableOpenGeneric);
+            var match = SearchNamespace(assembly.GlobalNamespace, methodName);
             if (match is not null) return match;
         }
-        return SearchNamespace(compilation.Assembly.GlobalNamespace, methodName, expressiveQueryableOpenGeneric);
+        return SearchNamespace(compilation.Assembly.GlobalNamespace, methodName);
     }
 
-    private static string? SearchNamespace(INamespaceSymbol ns, string methodName, INamedTypeSymbol expressiveQueryableOpenGeneric)
+    private static string? SearchNamespace(INamespaceSymbol ns, string methodName)
     {
         foreach (var type in ns.GetTypeMembers())
         {
             if (!type.IsStatic) continue;
             foreach (var member in type.GetMembers(methodName))
             {
+                // Is-or-implements, not exact construction: stubs can be declared on a derived
+                // marker (IOrderedExpressiveQueryable<T> for ThenBy) and must still be found.
                 if (member is IMethodSymbol method
                     && method.IsExtensionMethod
                     && method.Parameters.Length > 0
-                    && method.Parameters[0].Type is INamedTypeSymbol firstParamType
-                    && SymbolEqualityComparer.Default.Equals(firstParamType.ConstructedFrom, expressiveQueryableOpenGeneric))
+                    && ExpressiveSymbolHelpers.IsOrImplementsExpressiveQueryable(method.Parameters[0].Type))
                 {
                     return type.ContainingNamespace?.ToDisplayString();
                 }
@@ -142,7 +143,7 @@ public sealed class ExpressiveQueryableDropoutAnalyzer : DiagnosticAnalyzer
         }
         foreach (var child in ns.GetNamespaceMembers())
         {
-            var found = SearchNamespace(child, methodName, expressiveQueryableOpenGeneric);
+            var found = SearchNamespace(child, methodName);
             if (found is not null) return found;
         }
         return null;

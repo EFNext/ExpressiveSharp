@@ -184,4 +184,15 @@ public class PolyfillInterceptorTests : MongoTestBase
         // Pending orders: 2 (75), 4 (50) → sorted by price: 4, 2
         CollectionAssert.AreEqual(new[] { 4, 2 }, results);
     }
+
+    [TestMethod]
+    public async Task OrderBy_ThenBy_PreservesMongoCursorSource()
+    {
+        var results = await MongoQueryable.ToListAsync(
+            Query.OrderBy(o => o.Status).ThenBy(o => o.Id));
+
+        CollectionAssert.AreEqual(
+            results.OrderBy(o => o.Status).ThenBy(o => o.Id).Select(o => o.Id).ToList(),
+            results.Select(o => o.Id).ToList());
+    }
 }

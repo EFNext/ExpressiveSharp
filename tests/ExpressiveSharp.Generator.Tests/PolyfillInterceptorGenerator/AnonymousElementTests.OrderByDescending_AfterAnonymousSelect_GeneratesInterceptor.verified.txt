@@ -6,7 +6,7 @@ namespace ExpressiveSharp.Generated.Interceptors
     internal static partial class PolyfillInterceptors
     {
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(/* scrubbed */)]
-        internal static global::ExpressiveSharp.IExpressiveQueryable<T0> __Polyfill_OrderByDescending_361d_11_18<T0, T1>(
+        internal static global::ExpressiveSharp.IOrderedExpressiveQueryable<T0> __Polyfill_OrderByDescending_361d_11_18<T0, T1>(
             this global::ExpressiveSharp.IExpressiveQueryable<T0> source,
             global::System.Func<T0, T1> __func)
         {
@@ -14,7 +14,7 @@ namespace ExpressiveSharp.Generated.Interceptors
             var i361d11c18_p_x = global::System.Linq.Expressions.Expression.Parameter(typeof(T0), "x");
             var i361d11c18_expr_0 = global::System.Linq.Expressions.Expression.Property(i361d11c18_p_x, typeof(T0).GetProperty("Name", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance)); // x.Name
             var __lambda = global::System.Linq.Expressions.Expression.Lambda<global::System.Func<T0, T1>>(i361d11c18_expr_0, i361d11c18_p_x);
-            return (global::ExpressiveSharp.IExpressiveQueryable<T0>)(object)
+            return (global::ExpressiveSharp.IOrderedExpressiveQueryable<T0>)(object)
                 global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                     global::System.Linq.Queryable.OrderByDescending(
                         (global::System.Linq.IQueryable<T0>)(object)source,
