@@ -423,6 +423,39 @@ public class EnumTests : GeneratorTestBase
     }
 
     [TestMethod]
+    public Task KeywordNamedEnumMembers()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                public enum Kind { @class, @default }
+
+                public static class KindExtensions
+                {
+                    public static string Describe(this Kind value) => value.ToString();
+                }
+
+                public record Entity
+                {
+                    public Kind Value { get; set; }
+
+                    [Expressive]
+                    public bool IsClass => Value == Kind.@class;
+
+                    [Expressive]
+                    public string Description => Value.Describe();
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(2, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(string.Join("\n", result.GeneratedTrees.Select(t => t.ToString())));
+    }
+
+    [TestMethod]
     public Task PrivateConstFields()
     {
         var compilation = CreateCompilation(

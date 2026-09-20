@@ -695,7 +695,7 @@ internal sealed class ExpressionTreeEmitter
         string valueLiteral;
         if (field.ContainingType.TypeKind == TypeKind.Enum)
         {
-            valueLiteral = $"{typeFqn}.{field.Name}";
+            valueLiteral = $"{typeFqn}.{EscapeIdentifier(field.Name)}";
         }
         else if (field.Type.TypeKind == TypeKind.Enum)
         {
@@ -822,7 +822,7 @@ internal sealed class ExpressionTreeEmitter
         foreach (var member in enumMembers.AsEnumerable().Reverse())
         {
             var enumValueVar = NextVar();
-            AppendLine($"var {enumValueVar} = {Expr}.Constant({enumTypeFqn}.{member.Name}, typeof({enumTypeFqn}));");
+            AppendLine($"var {enumValueVar} = {Expr}.Constant({enumTypeFqn}.{EscapeIdentifier(member.Name)}, typeof({enumTypeFqn}));");
 
             // The MethodInfo is bound on the original receiver type — for an instance method on
             // Nullable<TEnum> or an extension whose first param is Nullable<TEnum>, the per-arm
@@ -3601,6 +3601,10 @@ internal sealed class ExpressionTreeEmitter
     {
         return name.Replace("@", "_").Replace(".", "_").Replace("<", "_").Replace(">", "_");
     }
+
+    // Symbol display's EscapeKeywordIdentifiers does not cover enum members, so escape by hand.
+    private static string EscapeIdentifier(string name) =>
+        SyntaxFacts.GetKeywordKind(name) != SyntaxKind.None ? "@" + name : name;
 
     private static string FormatConstantValue(object? value, ITypeSymbol? type)
     {
