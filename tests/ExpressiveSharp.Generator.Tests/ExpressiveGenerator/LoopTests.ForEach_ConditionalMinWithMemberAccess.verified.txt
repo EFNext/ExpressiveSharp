@@ -24,7 +24,7 @@ namespace ExpressiveSharp.Generated
             var p__this = global::System.Linq.Expressions.Expression.Parameter(typeof(global::Foo.C), "@this");
             var p_items = global::System.Linq.Expressions.Expression.Parameter(typeof(global::System.Collections.Generic.List<global::Foo.Item>), "items");
             var expr_0 = global::System.Linq.Expressions.Expression.Variable(typeof(int), "min"); // {             var min = int.MaxValue;             foreach...
-            var expr_1 = global::System.Linq.Expressions.Expression.Field(null, typeof(int).GetField("MaxValue", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static)); // int.MaxValue
+            var expr_1 = global::System.Linq.Expressions.Expression.Constant(2147483647, typeof(int)); // int.MaxValue
             var expr_2 = global::System.Linq.Expressions.Expression.Assign(expr_0, expr_1);
             var expr_4 = global::System.Linq.Expressions.Expression.Variable(typeof(global::Foo.Item), "x"); // foreach (var x in items) { if (x.Value > 0) min = Math.Mi...
             var expr_5 = global::System.Linq.Expressions.Expression.Variable(typeof(global::System.Collections.Generic.IEnumerator<global::Foo.Item>), "enumerator");

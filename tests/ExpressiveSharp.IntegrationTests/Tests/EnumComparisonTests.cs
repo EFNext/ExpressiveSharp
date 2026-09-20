@@ -108,6 +108,49 @@ public class EnumComparisonTests
         // The null branch must invoke Describe(null) so the extension's own null handling wins.
         CollectionAssert.AreEqual(new[] { "Low", "n/a" }, labels);
     }
+
+    [TestMethod]
+    public void EnumToEnumSwitch_ExpandExpressives_MaterializesAndEvaluates()
+    {
+        var source = new List<EnumComparisonEntity>
+        {
+            new() { Value = Bucket.Low },
+            new() { Value = Bucket.Mid },
+            new() { Value = Bucket.High },
+        }.AsQueryable();
+
+        Expression<Func<EnumComparisonEntity, Grade>> expr = e => e.Grade;
+        var expanded = (Expression<Func<EnumComparisonEntity, Grade>>)expr.ExpandExpressives();
+
+        var grades = source.Select(expanded.Compile()).ToList();
+
+        CollectionAssert.AreEqual(new[] { Grade.Poor, Grade.Fair, Grade.Good }, grades);
+    }
+
+    [TestMethod]
+    public void EnumToEnumSwitch_ExpandExpressives_EmitsConstantsNotFieldAccess()
+    {
+        Expression<Func<EnumComparisonEntity, Grade>> expr = e => e.Grade;
+        var expanded = expr.ExpandExpressives();
+
+        var finder = new LiteralFieldAccessFinder();
+        finder.Visit(expanded);
+
+        Assert.AreEqual(0, finder.Count);
+    }
+
+    private sealed class LiteralFieldAccessFinder : ExpressionVisitor
+    {
+        public int Count { get; private set; }
+
+        protected override Expression VisitMember(MemberExpression node)
+        {
+            if (node.Member is System.Reflection.FieldInfo { IsLiteral: true })
+                Count++;
+
+            return base.VisitMember(node);
+        }
+    }
 }
 
 public static class BucketExtensions
@@ -138,9 +181,20 @@ public class EnumComparisonEntity
 
     [Expressive]
     public string NullableDescription => NullableValue.Describe();
+
+    [Expressive]
+    public Grade Grade => Value switch
+    {
+        Bucket.Low => Grade.Poor,
+        Bucket.Mid => Grade.Fair,
+        Bucket.High => Grade.Good,
+        _ => throw new NotImplementedException()
+    };
 }
 
 public enum Bucket { Low, Mid, High }
+
+public enum Grade { Poor, Fair, Good }
 
 public partial class EnumComparisonProperty
 {

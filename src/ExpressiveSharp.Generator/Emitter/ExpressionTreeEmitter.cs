@@ -666,6 +666,11 @@ internal sealed class ExpressionTreeEmitter
             return resultVar;
         }
 
+        // Enum members and const fields are inlined as constants, matching the C# compiler. A reflected
+        // field access would be funcletized by query providers into a parameter instead.
+        if (fieldRef.Field.HasConstantValue)
+            return EmitConstantField(fieldRef.Field);
+
         var fieldResultVar = NextVar();
         var fieldName = _fieldCache.EnsureFieldInfo(fieldRef.Field);
 
@@ -680,6 +685,30 @@ internal sealed class ExpressionTreeEmitter
         }
 
         return fieldResultVar;
+    }
+
+    private string EmitConstantField(IFieldSymbol field)
+    {
+        var resultVar = NextVar();
+        var typeFqn = field.Type.ToDisplayString(_fqnFormat);
+
+        string valueLiteral;
+        if (field.ContainingType.TypeKind == TypeKind.Enum)
+        {
+            valueLiteral = $"{typeFqn}.{EscapeIdentifier(field.Name)}";
+        }
+        else if (field.Type.TypeKind == TypeKind.Enum)
+        {
+            // The const itself may be inaccessible from the generated class, so emit its value rather than its name.
+            valueLiteral = $"({typeFqn})({FormatConstantValue(field.ConstantValue, field.Type)})";
+        }
+        else
+        {
+            valueLiteral = FormatConstantValue(field.ConstantValue, field.Type);
+        }
+
+        AppendLine($"var {resultVar} = {Expr}.Constant({valueLiteral}, typeof({typeFqn}));");
+        return resultVar;
     }
 
     private bool TryEmitEnumMethodExpansion(IInvocationOperation invocation, out string resultVar)
@@ -793,7 +822,7 @@ internal sealed class ExpressionTreeEmitter
         foreach (var member in enumMembers.AsEnumerable().Reverse())
         {
             var enumValueVar = NextVar();
-            AppendLine($"var {enumValueVar} = {Expr}.Constant({enumTypeFqn}.{member.Name}, typeof({enumTypeFqn}));");
+            AppendLine($"var {enumValueVar} = {Expr}.Constant({enumTypeFqn}.{EscapeIdentifier(member.Name)}, typeof({enumTypeFqn}));");
 
             // The MethodInfo is bound on the original receiver type — for an instance method on
             // Nullable<TEnum> or an extension whose first param is Nullable<TEnum>, the per-arm
@@ -3572,6 +3601,10 @@ internal sealed class ExpressionTreeEmitter
     {
         return name.Replace("@", "_").Replace(".", "_").Replace("<", "_").Replace(">", "_");
     }
+
+    // Symbol display's EscapeKeywordIdentifiers does not cover enum members, so escape by hand.
+    private static string EscapeIdentifier(string name) =>
+        SyntaxFacts.GetKeywordKind(name) != SyntaxKind.None ? "@" + name : name;
 
     private static string FormatConstantValue(object? value, ITypeSymbol? type)
     {
