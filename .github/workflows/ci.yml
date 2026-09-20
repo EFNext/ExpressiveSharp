@@ -60,13 +60,15 @@ jobs:
         # Docker or pay the container startup cost on every PR.
         run: |
           set -e
+          # --project must be absolute: the .NET 11 RC SDK's dotnet test resolves
+          # relative --project paths against the project directory, doubling them.
           for proj in \
             tests/ExpressiveSharp.Tests \
             tests/ExpressiveSharp.IntegrationTests \
             tests/ExpressiveSharp.Generator.Tests \
             tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests; do
             dotnet test --no-build -c Release \
-              --project "$proj" \
+              --project "$GITHUB_WORKSPACE/$proj" \
               --results-directory ./test-results \
               -- \
               --report-trx --report-trx-filename "$(basename "$proj").trx" \
@@ -184,7 +186,7 @@ jobs:
             for tfm in net8.0 net9.0 net10.0 net11.0; do
               echo "::group::Cosmos tests ($tfm)"
               dotnet test --no-build -c Release \
-                --project tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests \
+                --project "$GITHUB_WORKSPACE/tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests" \
                 -p:TestDatabase=${{ matrix.database }} \
                 -f "$tfm" \
                 --results-directory ./test-results \
@@ -194,7 +196,7 @@ jobs:
             done
           else
             dotnet test --no-build -c Release \
-              --project tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests \
+              --project "$GITHUB_WORKSPACE/tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests" \
               -p:TestDatabase=${{ matrix.database }} \
               --results-directory ./test-results \
               -- \
@@ -269,7 +271,7 @@ jobs:
       - name: Test
         run: >-
           dotnet test --no-build -c Release
-          --project tests/ExpressiveSharp.MongoDB.IntegrationTests
+          --project "$GITHUB_WORKSPACE/tests/ExpressiveSharp.MongoDB.IntegrationTests"
           --results-directory ./test-results
           --
           --report-trx --report-trx-filename results.trx
