@@ -15,7 +15,16 @@
          (only 11.0.0-preview.1, built against an earlier EF 11 preview). Revisit at EF 11 GA. -->
     <PomeloMySqlSupported Condition="'$(TargetFramework)' == 'net8.0' or '$(TargetFramework)' == 'net9.0'">true</PomeloMySqlSupported>
     <NpgsqlSupported Condition="'$(TargetFramework)' != 'net11.0'">true</NpgsqlSupported>
+
+    <!-- RelationalExtensions does not target net11.0 — EF Core 11 removed the SQL-generation
+         fallback its window functions rely on (dotnet/efcore#38977). -->
+    <RelationalExtensionsSupported Condition="'$(TargetFramework)' != 'net11.0'">true</RelationalExtensionsSupported>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(RelationalExtensionsSupported)' != 'true'">
+    <Compile Remove="Infrastructure/WindowFunctionTestBase.cs" />
+    <Compile Remove="Tests/**/WindowFunctionTests.cs" />
+  </ItemGroup>
 
   <!-- Define compilation constants per database provider -->
   <PropertyGroup Condition="'$(TestDatabase)' == 'SqlServer' or '$(TestDatabase)' == 'All'">
@@ -107,8 +116,10 @@
     <ProjectReference Include="..\ExpressiveSharp.IntegrationTests\ExpressiveSharp.IntegrationTests.csproj" />
     <ProjectReference Include="..\..\src\ExpressiveSharp\ExpressiveSharp.csproj" />
     <ProjectReference Include="..\..\src\ExpressiveSharp.EntityFrameworkCore\ExpressiveSharp.EntityFrameworkCore.csproj" />
-    <ProjectReference Include="..\..\src\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.csproj" />
-    <ProjectReference Include="..\..\src\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.csproj"
+                      Condition="'$(RelationalExtensionsSupported)' == 'true'" />
+    <ProjectReference Include="..\..\src\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions\ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions.csproj"
+                      Condition="'$(RelationalExtensionsSupported)' == 'true'" />
     <ProjectReference Include="..\..\src\ExpressiveSharp.Generator\ExpressiveSharp.Generator.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>

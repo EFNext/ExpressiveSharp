@@ -57,9 +57,6 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
         }
     }
 
-    // All window functions except RowNumber are unsupported on EF Core 11 — the translator
-    // throws NotSupportedException (see WindowFunctionMethodCallTranslator).
-#if !NET11_0_OR_GREATER
     [TestMethod]
     public async Task Rank_WithTies_ReturnsGaps()
     {
@@ -138,7 +135,6 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
         Assert.AreEqual(2, bucketCounts[2]);
         Assert.AreEqual(2, bucketCounts[3]);
     }
-#endif
 
     [TestMethod]
     public async Task RowNumber_WithPartitionBy_ResetsPerGroup()
@@ -183,7 +179,6 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
         CollectionAssert.AreEqual(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }, positions);
     }
 
-#if !NET11_0_OR_GREATER
     [TestMethod]
     public async Task MultipleWindowFunctions_InSameSelect()
     {
@@ -208,7 +203,6 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
         Assert.AreEqual(9, results[9].Dense);
         Assert.AreEqual(4, results[9].Quartile);
     }
-#endif
 
     // RowNumber over o.Total (which is [Expressive] => Price * Quantity). The
     // ExpressiveQueryCompiler must expand Total inside the OrderBy argument of
@@ -252,7 +246,6 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
             Assert.IsTrue(results[i].Total >= results[i - 1].Total);
     }
 
-#if !NET11_0_OR_GREATER
     // Aggregate window functions (SUM, AVG, COUNT, MIN, MAX) depend on the frame clause.
     // Seed prices (ASC): 10, 15, 20, 20, 25, 30, 35, 40, 45, 50
     // Running total:     10, 25, 45, 65, 90, 120, 155, 195, 240, 290
@@ -970,7 +963,6 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
             Assert.AreEqual(r.Price, r.Last,
                 $"With the default frame, LAST_VALUE should return the current row's price (got {r.Last} vs {r.Price})");
     }
-#endif
 
     [TestMethod]
     public void Ntile_ZeroBuckets_ThrowsAtTranslation()
@@ -1040,19 +1032,4 @@ public abstract class WindowFunctionTestBase : EFCoreRelationalTestBase
         StringAssert.Contains(ex.Message, "NthValue");
         StringAssert.Contains(ex.Message, "1-based");
     }
-
-#if NET11_0_OR_GREATER
-    [TestMethod]
-    public void WindowFunction_ThrowsNotSupported_OnEfCore11()
-    {
-        var query = Context.Orders.Select(o => new
-        {
-            o.Id,
-            PriceRank = WindowFunction.Rank(Window.OrderBy(o.Price)),
-        });
-
-        var ex = Assert.ThrowsExactly<NotSupportedException>(() => query.ToQueryString());
-        StringAssert.Contains(ex.Message, "EF Core 11");
-    }
-#endif
 }

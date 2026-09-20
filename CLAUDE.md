@@ -93,7 +93,7 @@ ExpressiveSharp.EntityFrameworkCore (net8.0;net9.0;net10.0;net11.0)
   └── Provides: ExpressiveDbSet<T>, IIncludableExpressiveQueryable<T,P>,
       chain-continuity stubs, async lambda stubs with [PolyfillTarget]
 
-ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions (net8.0;net9.0;net10.0;net11.0)
+ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions (net8.0;net9.0;net10.0 — no net11.0, see below)
   └── no external deps
   Provides: Pure marker types for window functions — no EF Core dependency:
       WindowFunction (ranking: ROW_NUMBER, RANK, DENSE_RANK, NTILE, PERCENT_RANK, CUME_DIST;
@@ -101,21 +101,22 @@ ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions (net8.0;ne
           LAST_VALUE, NTH_VALUE), Window, OrderedWindowDefinition,
           PartitionedWindowDefinition, FramedWindowDefinition, WindowFrameBound
 
-ExpressiveSharp.EntityFrameworkCore.RelationalExtensions (net8.0;net9.0;net10.0;net11.0)
+ExpressiveSharp.EntityFrameworkCore.RelationalExtensions (net8.0;net9.0;net10.0 — no net11.0, see below)
   ├── ExpressiveSharp.EntityFrameworkCore
   ├── ExpressiveSharp.EntityFrameworkCore.RelationalExtensions.Abstractions
-  ├── EF Core Relational 8.0.25 / 9.0.0 / 10.0.0 / 11.0.0-rc.1 (per-TFM VersionOverride)
+  ├── EF Core Relational 8.0.25 / 9.0.0 / 10.0.0 (per-TFM VersionOverride)
   └── Provides: Window function SQL translation (ranking, aggregate with ROWS/RANGE
       frame clauses, navigation with LAG/LEAD/FIRST_VALUE/LAST_VALUE/NTH_VALUE),
       indexed Select, activated via UseExpressives(o => o.UseRelationalExtensions()).
       Translators: WindowFunctionMethodCallTranslator, WindowSpecMethodCallTranslator,
       WindowFrameBoundMemberTranslator (IMemberTranslatorPlugin for property getters).
       Note: NTH_VALUE is not supported on SQL Server.
-      EF Core 11 limitation: all window functions except RowNumber throw
-      NotSupportedException on net11.0 — EF 11 removed the QuerySqlGenerator
-      VisitChildren fallback that WindowFunctionSqlExpression's self-rendering
-      relied on (dotnet/efcore#37533). RowNumber and indexed Select still work
-      (built-in RowNumberExpression). Revisit if EF 11 GA restores a hook.
+      EF Core 11 is unsupported: both RelationalExtensions packages deliberately do
+      not target net11.0 — EF 11 removed the QuerySqlGenerator VisitChildren fallback
+      that WindowFunctionSqlExpression's self-rendering relied on, with no replacement
+      extension point (dotnet/efcore#37533; tracked in dotnet/efcore#38977). Test
+      projects gate on a RelationalExtensionsSupported msbuild property. Add the TFM
+      back (and drop those gates) once EF provides a hook.
 
 ExpressiveSharp.EntityFrameworkCore.CodeFixers (Roslyn analyzer, netstandard2.0)
   └── Microsoft.CodeAnalysis.CSharp.Workspaces 4.12.0

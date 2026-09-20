@@ -38,20 +38,6 @@ internal sealed class WindowFunctionMethodCallTranslator : IMethodCallTranslator
 
         ValidateArguments(method, arguments);
 
-#if NET11_0_OR_GREATER
-        // EF Core 11 removed the SQL-generation fallback for third-party SqlExpressions
-        // (dotnet/efcore#37533): QuerySqlGenerator.VisitExtension now throws for unknown nodes
-        // instead of falling back to VisitChildren, which WindowFunctionSqlExpression's
-        // self-rendering relied on. RowNumber maps to EF's built-in RowNumberExpression and
-        // still works; everything else must fail here with a clear message rather than with
-        // an opaque "Unhandled expression" error during SQL generation.
-        if (method.Name != nameof(WindowFunction.RowNumber))
-            throw new NotSupportedException(
-                $"WindowFunction.{method.Name} is not supported on EF Core 11: EF Core 11 removed the "
-                + "SQL-generation fallback that ExpressiveSharp window functions rely on "
-                + "(dotnet/efcore#37533). WindowFunction.RowNumber and indexed Select remain supported.");
-#endif
-
         var longTypeMapping = _typeMappingSource.FindMapping(typeof(long))!;
 
         return method.Name switch
