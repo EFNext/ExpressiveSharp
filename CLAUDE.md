@@ -52,7 +52,7 @@ CI targets both .NET 8.0 and .NET 10.0 SDKs.
 - `src/ExpressiveSharp.Generator/ExpressiveGenerator.cs` — main generator entry point
 - `src/ExpressiveSharp.Generator/Emitter/ExpressionTreeEmitter.cs` — maps IOperation nodes to `Expression.*` factory calls (the heart of code generation). Uses `varPrefix` to ensure unique local variable names across multi-lambda emitters
 - `src/ExpressiveSharp.Generator/Interpretation/ExpressiveInterpreter.cs` — validates and prepares `[Expressive]` members
-- `src/ExpressiveSharp.Generator/PolyfillInterceptorGenerator.cs` — interceptor generation. Dedicated emitters for complex methods (Join, GroupJoin, GroupBy multi-lambda), enhanced generic fallback (`EmitGenericSingleLambda`) for single-lambda methods with non-lambda arg forwarding, `[PolyfillTarget]` support for custom target types
+- `src/ExpressiveSharp.Generator/PolyfillInterceptorGenerator.cs` — interceptor generation. Dedicated emitters for complex methods (Join, GroupJoin, GroupBy multi-lambda), enhanced generic fallback (`EmitGenericSingleLambda`) for single-lambda methods with non-lambda arg forwarding, `[PolyfillTarget]` support for custom target types. Emits each stub's **declared** receiver and return types, so stubs on derived markers work
 - `src/ExpressiveSharp/Services/ExpressiveResolver.cs` — runtime expression registry lookup
 - `src/ExpressiveSharp/PolyfillTargetAttribute.cs` — specifies a non-`Queryable` target type for interceptor forwarding (e.g., `EntityFrameworkQueryableExtensions`)
 - `src/ExpressiveSharp/Extensions/ExpressiveQueryableLinqExtensions.cs` — delegate-based LINQ stubs on `IExpressiveQueryable<T>` (~85 intercepted + ~15 passthrough methods)

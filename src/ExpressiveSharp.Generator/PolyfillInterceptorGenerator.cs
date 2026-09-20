@@ -604,11 +604,20 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             && rqType.ConstructedFrom.ToDisplayString() == IExpressiveQueryableOpenTypeName;
 
         ITypeSymbol? returnElemType = null;
+        var returnOpenFqn = "global::ExpressiveSharp.IExpressiveQueryable";
         if (isRewritableReturn)
         {
             returnElemType = ((INamedTypeSymbol)method.ReturnType).TypeArguments[0];
+            returnOpenFqn = OpenTypeFqn((INamedTypeSymbol)method.ReturnType);
             hasAnyAnon = hasAnyAnon || IsAnonymousType(returnElemType);
         }
+
+        // Interceptor signatures must match the stub's declared types. `method` is reduced, so
+        // its Parameters[0] is the first non-receiver parameter; the receiver is on ReducedFrom.
+        var declaredReceiver = (method.ReducedFrom ?? method).Parameters[0].Type;
+        var receiverOpenFqn = declaredReceiver is INamedTypeSymbol namedReceiver
+            ? OpenTypeFqn(namedReceiver)
+            : "global::ExpressiveSharp.IExpressiveQueryable";
 
         var scalarReturnFqn = method.ReturnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
@@ -622,6 +631,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         string castFqn;
         string typeParams;
         string returnRef;
+        string receiverRef;
+        string returnTypeRef;
         string interceptorParamList;
         string queryableArgList;
 
@@ -671,14 +682,18 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                 ? $"global::System.Linq.IOrderedQueryable<{elemRef}>"
                 : $"global::System.Linq.IQueryable<{elemRef}>";
 
+            receiverRef = $"{receiverOpenFqn}<{elemRef}>";
+
             if (isRewritableReturn)
             {
                 var origReturnElem = ((INamedTypeSymbol)origMethod.ReturnType).TypeArguments[0];
                 returnRef = ResolveTypeFqn(origReturnElem, typeAliases);
+                returnTypeRef = $"{returnOpenFqn}<{returnRef}>";
             }
             else
             {
                 returnRef = scalarReturnFqn;
+                returnTypeRef = returnRef;
             }
 
             var interceptorParams = new List<string>();
@@ -722,9 +737,13 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                 ? $"global::System.Linq.IOrderedQueryable<{elemFqn}>"
                 : $"global::System.Linq.IQueryable<{elemFqn}>";
 
+            receiverRef = $"{receiverOpenFqn}<{elemFqn}>";
+
             returnRef = isRewritableReturn
                 ? returnElemType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
                 : scalarReturnFqn;
+
+            returnTypeRef = isRewritableReturn ? $"{returnOpenFqn}<{returnRef}>" : returnRef;
 
             var interceptorParams = new List<string>();
             var queryableArgs = new List<string>();
@@ -775,8 +794,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
             {
                 return $$"""
                         {{interceptAttr}}
-                        internal static global::ExpressiveSharp.IExpressiveQueryable<{{returnRef}}> {{MethodId(methodName, fileTag, line, col)}}(
-                            this global::ExpressiveSharp.IExpressiveQueryable<{{elemFqn}}> source,
+                        internal static {{returnTypeRef}} {{MethodId(methodName, fileTag, line, col)}}(
+                            this {{receiverRef}} source,
                             {{interceptorParamList}})
                         {
                 {{allBodies}}            return global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
@@ -790,8 +809,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
             return $$"""
                     {{interceptAttr}}
-                    internal static {{returnRef}} {{MethodId(methodName, fileTag, line, col)}}(
-                        this global::ExpressiveSharp.IExpressiveQueryable<{{elemFqn}}> source,
+                    internal static {{returnTypeRef}} {{MethodId(methodName, fileTag, line, col)}}(
+                        this {{receiverRef}} source,
                         {{interceptorParamList}})
                     {
             {{allBodies}}            return {{targetTypeFqn}}.{{methodName}}(
@@ -806,11 +825,11 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
         {
             return $$"""
                     {{interceptAttr}}
-                    internal static global::ExpressiveSharp.IExpressiveQueryable<{{returnRef}}> {{MethodId(methodName, fileTag, line, col)}}{{typeParams}}(
-                        this global::ExpressiveSharp.IExpressiveQueryable<{{elemRef}}> source,
+                    internal static {{returnTypeRef}} {{MethodId(methodName, fileTag, line, col)}}{{typeParams}}(
+                        this {{receiverRef}} source,
                         {{interceptorParamList}})
                     {
-            {{allBodies}}            return (global::ExpressiveSharp.IExpressiveQueryable<{{returnRef}}>)(object)
+            {{allBodies}}            return ({{returnTypeRef}})(object)
                             global::ExpressiveSharp.ExpressiveQueryableExtensions.AsExpressive(
                                 {{targetTypeFqn}}.{{methodName}}(
                                     ({{castFqn}})(object)source,
@@ -822,8 +841,8 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
 
         return $$"""
                 {{interceptAttr}}
-                internal static {{returnRef}} {{MethodId(methodName, fileTag, line, col)}}{{typeParams}}(
-                    this global::ExpressiveSharp.IExpressiveQueryable<{{elemRef}}> source,
+                internal static {{returnTypeRef}} {{MethodId(methodName, fileTag, line, col)}}{{typeParams}}(
+                    this {{receiverRef}} source,
                     {{interceptorParamList}})
                 {
         {{allBodies}}            return {{targetTypeFqn}}.{{methodName}}(
@@ -832,6 +851,17 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                 }
 
         """;
+    }
+
+    /// <summary>
+    /// Fully-qualified name with the type-argument list stripped, so a caller can re-append its
+    /// own (possibly aliased) argument.
+    /// </summary>
+    private static string OpenTypeFqn(INamedTypeSymbol type)
+    {
+        var fqn = type.ConstructedFrom.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var idx = fqn.LastIndexOf('<');
+        return idx >= 0 ? fqn.Substring(0, idx) : fqn;
     }
 
     private static bool IsExpressiveQueryable(INamedTypeSymbol type)
