@@ -2,6 +2,10 @@
 
 This recipe shows how to use SQL window functions in EF Core LINQ queries via the `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` package. Coverage includes ranking (ROW_NUMBER, RANK, DENSE_RANK, NTILE, PERCENT_RANK, CUME_DIST), aggregate (SUM, AVG, COUNT, MIN, MAX), and navigation (LAG, LEAD, FIRST_VALUE, LAST_VALUE, NTH_VALUE) functions.
 
+::: warning Not supported on EF Core 11
+The `RelationalExtensions` packages do not ship a `net11.0` target — EF Core 11 removed the SQL-generation fallback the window function translation relies on. See the [window functions guide](../guide/window-functions) for details and [dotnet/efcore#38977](https://github.com/dotnet/efcore/issues/38977) for tracking. On .NET 11, stay on EF Core 10.
+:::
+
 ## Setup
 
 Install the package:
