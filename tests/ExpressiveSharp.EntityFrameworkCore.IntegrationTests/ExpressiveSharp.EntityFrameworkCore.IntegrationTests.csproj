@@ -14,11 +14,11 @@
     <!-- Pomelo has no EF Core 10/11 release; Npgsql has no EF 11 rc-compatible release
          (only 11.0.0-preview.1, built against an earlier EF 11 preview). Revisit at EF 11 GA. -->
     <PomeloMySqlSupported Condition="'$(TargetFramework)' == 'net8.0' or '$(TargetFramework)' == 'net9.0'">true</PomeloMySqlSupported>
-    <NpgsqlSupported Condition="'$(TargetFramework)' != 'net11.0'">true</NpgsqlSupported>
+    <NpgsqlSupported Condition="'$(TargetFramework)' == 'net8.0' or '$(TargetFramework)' == 'net9.0' or '$(TargetFramework)' == 'net10.0'">true</NpgsqlSupported>
 
     <!-- RelationalExtensions does not target net11.0 — EF Core 11 removed the SQL-generation
          fallback its window functions rely on (dotnet/efcore#38977). -->
-    <RelationalExtensionsSupported Condition="'$(TargetFramework)' != 'net11.0'">true</RelationalExtensionsSupported>
+    <RelationalExtensionsSupported Condition="'$(TargetFramework)' == 'net8.0' or '$(TargetFramework)' == 'net9.0' or '$(TargetFramework)' == 'net10.0'">true</RelationalExtensionsSupported>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(RelationalExtensionsSupported)' != 'true'">

@@ -6,7 +6,7 @@
 
     <!-- RelationalExtensions does not target net11.0 — EF Core 11 removed the SQL-generation
          fallback its window functions rely on (dotnet/efcore#38977). -->
-    <RelationalExtensionsSupported Condition="'$(TargetFramework)' != 'net11.0'">true</RelationalExtensionsSupported>
+    <RelationalExtensionsSupported Condition="'$(TargetFramework)' == 'net8.0' or '$(TargetFramework)' == 'net9.0' or '$(TargetFramework)' == 'net10.0'">true</RelationalExtensionsSupported>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(RelationalExtensionsSupported)' != 'true'">
