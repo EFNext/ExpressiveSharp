@@ -19,7 +19,7 @@ Every coexistence claim on this page was verified against `LinqKit.Microsoft.Ent
 |---|---|---|
 | `Expression<Func<T, R>>` field + `.Invoke(x)` | `[Expressive]` property or method, called normally | [Details](#invoke-to-expressive-members) |
 | `[Expandable(nameof(Impl))]` stub method | `[Expressive]` on the method itself | [Details](#expandable-attribute) |
-| `.AsExpandable()` per query | Nothing -- `UseExpressives()` expands globally | Outside EF Core: `.AsExpressive()` |
+| `.AsExpandable()` per query | Nothing -- `UseExpressives()` expands globally | Outside EF Core, `.AsExpressive()` adds modern-syntax LINQ overloads; keep LINQKit expansion (or call `Expand()` / `ExpandExpressives()`) for `Invoke` / `[Expandable]` expressions |
 | `optionsBuilder.WithExpressionExpanding()` | `optionsBuilder.UseExpressives()` | See the [edge case](#global-expansion-order) before combining them |
 | `expr.Expand()` | `expr.ExpandExpressives()` | Expands `[Expressive]` members only -- it does **not** inline `Invoke` calls |
 | `PredicateBuilder` / `ExpressionStarter<T>` | *(no equivalent)* | Keep LINQKit; [it works with `[Expressive]` members](#predicatebuilder) |
