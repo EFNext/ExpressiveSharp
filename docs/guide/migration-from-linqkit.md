@@ -198,7 +198,7 @@ Pick any of these fixes:
 | Fix | Code |
 |---|---|
 | Use per-query `AsExpandable()` -- LINQKit then inlines *before* ExpressiveSharp expands | `db.Customers.AsExpandable().Where(c => isBig.Invoke(c))` |
-| Call `Expand()` up front | `db.Customers.Where(outer.Expand())` |
+| Call `Expand()` up front | `db.Customers.Where(isBig.Expand())`
 | Pre-expand the inner expression | `var isBig2 = (Expression<Func<Customer, bool>>)isBig.ExpandExpressives();` |
 | Convert the call site so no `Invoke` remains | `db.Customers.Where(c => c.IsBigSpender)` |
 
