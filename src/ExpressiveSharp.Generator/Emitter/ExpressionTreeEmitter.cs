@@ -1257,8 +1257,9 @@ internal sealed class ExpressionTreeEmitter
                 }
                 else
                 {
-                    var bindingsExpr = string.Join(", ", bindingVars);
-                    AppendLine($"var {resultVar} = {Expr}.MemberInit({newVar}, {bindingsExpr});");
+                    AppendLine(bindingVars.Count == 0
+                        ? $"var {resultVar} = {newVar};"
+                        : $"var {resultVar} = {Expr}.MemberInit({newVar}, {string.Join(", ", bindingVars)});");
                 }
             }
             else
@@ -1414,8 +1415,9 @@ internal sealed class ExpressionTreeEmitter
                 elementVars.Add(EmitOperation(element));
             }
 
-            var elementsExpr = string.Join(", ", elementVars);
-            AppendLine($"var {resultVar} = {Expr}.NewArrayInit(typeof({elementTypeFqn}), {elementsExpr});");
+            AppendLine(elementVars.Count == 0
+                ? $"var {resultVar} = {Expr}.NewArrayInit(typeof({elementTypeFqn}));"
+                : $"var {resultVar} = {Expr}.NewArrayInit(typeof({elementTypeFqn}), {string.Join(", ", elementVars)});");
         }
         else
         {
@@ -1425,8 +1427,9 @@ internal sealed class ExpressionTreeEmitter
                 dimVars.Add(EmitOperation(dim));
             }
 
-            var dimsExpr = string.Join(", ", dimVars);
-            AppendLine($"var {resultVar} = {Expr}.NewArrayBounds(typeof({elementTypeFqn}), {dimsExpr});");
+            AppendLine(dimVars.Count == 0
+                ? $"var {resultVar} = {Expr}.NewArrayBounds(typeof({elementTypeFqn}));"
+                : $"var {resultVar} = {Expr}.NewArrayBounds(typeof({elementTypeFqn}), {string.Join(", ", dimVars)});");
         }
 
         return resultVar;
