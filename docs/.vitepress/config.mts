@@ -49,6 +49,7 @@ const sidebar: DefaultTheme.Sidebar = {
       text: 'Migration',
       items: [
         { text: 'Migrating from Projectables', link: '/guide/migration-from-projectables' },
+        { text: 'Migrating from LINQKit', link: '/guide/migration-from-linqkit' },
       ]
     }
   ],

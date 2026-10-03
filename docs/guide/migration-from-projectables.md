@@ -428,3 +428,4 @@ Make sure you have a clean working tree (commit or stash your changes) and a pas
 - [Computed Entity Properties](/recipes/computed-properties) -- the foundational recipe
 - [Modern Syntax in LINQ Chains](/recipes/modern-syntax-in-linq) -- the biggest new capability
 - [External Member Mapping](/recipes/external-member-mapping) -- replaces `UseMemberBody`
+- [Migrating from LINQKit](./migration-from-linqkit) -- if your project also uses LINQKit's `Invoke` / `AsExpandable` / `PredicateBuilder`
