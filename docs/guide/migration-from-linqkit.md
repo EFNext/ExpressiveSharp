@@ -39,7 +39,7 @@ options.UseSqlServer(connectionString)
        .UseExpressives();
 ```
 
-Do not remove `LinqKit.Microsoft.EntityFrameworkCore` (or `LinqKit.Core`) yet. Remove it at the end, and only if no `PredicateBuilder`, `Invoke`, or `Expand` usage is left.
+Do not remove `LinqKit.Microsoft.EntityFrameworkCore` (or `LinqKit.Core`) yet. Remove it at the end, and only if no `PredicateBuilder`, `Invoke`, `Expand`, `AsExpandable()`, `WithExpressionExpanding()`, or `[Expandable]` usage remains.
 
 ## API Changes
 
