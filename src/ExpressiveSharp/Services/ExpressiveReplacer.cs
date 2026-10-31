@@ -23,6 +23,7 @@ public class ExpressiveReplacer : ExpressionVisitor
     // calls instead of being inlined again — the runtime then dispatches normally on
     // .Compile()/.Invoke().
     private readonly HashSet<MemberInfo> _expandingMembers = new();
+    private readonly HashSet<IQueryable> _inliningQueryables = new(ReferenceEqualityComparer.Instance);
 
     private static readonly ConditionalWeakTable<Type, StrongBox<bool>> _compilerGeneratedClosureCache = new();
 
@@ -174,8 +175,20 @@ public class ExpressiveReplacer : ExpressionVisitor
         return base.VisitNew(node);
     }
 
+    protected override Expression VisitConstant(ConstantExpression node)
+        => TryInlineQueryable(node.Value, node.Type, out var inlined)
+            ? inlined
+            : base.VisitConstant(node);
+
     protected override Expression VisitMember(MemberExpression node)
     {
+        if (typeof(IQueryable).IsAssignableFrom(node.Type)
+            && TryEvaluateCapturedValue(node, out var capturedValue)
+            && TryInlineQueryable(capturedValue, node.Type, out var inlinedQueryable))
+        {
+            return inlinedQueryable;
+        }
+
         var nodeExpression = node.Expression switch {
             UnaryExpression { NodeType: ExpressionType.Convert, Type: { IsInterface: true } type, Operand: { } operand }
                 when type.IsAssignableFrom(operand.Type)
@@ -220,6 +233,64 @@ public class ExpressiveReplacer : ExpressionVisitor
         }
 
         return base.VisitMember(node);
+    }
+
+    private bool TryInlineQueryable(object? value, Type nodeType, [NotNullWhen(true)] out Expression? inlined)
+    {
+        inlined = null;
+
+        if (value is not IQueryable queryable
+            || queryable.Expression is ConstantExpression { Value: var root } && ReferenceEquals(root, queryable)
+            || !nodeType.IsAssignableFrom(queryable.Expression.Type)
+            || !_inliningQueryables.Add(queryable))
+        {
+            return false;
+        }
+
+        try
+        {
+            inlined = Visit(queryable.Expression);
+            return true;
+        }
+        finally
+        {
+            _inliningQueryables.Remove(queryable);
+        }
+    }
+
+    private static bool TryEvaluateCapturedValue(Expression expression, out object? value)
+    {
+        value = null;
+
+        switch (expression)
+        {
+            case ConstantExpression constant:
+                value = constant.Value;
+                return true;
+
+            case MemberExpression { Member: FieldInfo or PropertyInfo { GetMethod: not null } } member:
+                object? instance = null;
+                if (member.Expression is not null
+                    && (!TryEvaluateCapturedValue(member.Expression, out instance) || instance is null))
+                {
+                    return false;
+                }
+
+                try
+                {
+                    value = member.Member is FieldInfo field
+                        ? field.GetValue(instance)
+                        : ((PropertyInfo)member.Member).GetValue(instance);
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+
+            default:
+                return false;
+        }
     }
 
     /// <summary>
