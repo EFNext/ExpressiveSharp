@@ -157,4 +157,76 @@ public class ExpressiveReplacerTests
         public LambdaExpression? FindExternalExpression(MemberInfo memberInfo)
             => _expressions.TryGetValue(memberInfo, out var expr) ? expr : null;
     }
+
+    [TestMethod]
+    public void Replace_CapturedQueryable_InlinesAndExpandsExpressiveMembers()
+    {
+        var products = new[]
+        {
+            new Product { Id = 1, Price = 60, Quantity = 2 },
+            new Product { Id = 2, Price = 10, Quantity = 1 },
+        };
+        var expensive = products.AsQueryable().Where(p => p.Total > 100);
+        Expression<Func<Product, bool>> isExpensive = p => expensive.Any(e => e.Id == p.Id);
+
+        var result = (Expression<Func<Product, bool>>)new ExpressiveReplacer(new ExpressiveResolver()).Replace(isExpensive);
+
+        var members = ReferencedMembers.Collect(result);
+        Assert.IsTrue(members.Contains(typeof(Product).GetProperty(nameof(Product.Price))!));
+        Assert.IsFalse(members.Contains(typeof(Product).GetProperty(nameof(Product.Total))!));
+        var compiled = result.Compile();
+        Assert.IsTrue(compiled(products[0]));
+        Assert.IsFalse(compiled(products[1]));
+    }
+
+    [TestMethod]
+    public void Replace_NestedCapturedQueryables_ExpandsExpressiveMembersAtEveryLevel()
+    {
+        var products = new[] { new Product { Id = 1, Price = 60, Quantity = 2 } }.AsQueryable();
+        var expensive = products.Where(p => p.Total > 100);
+        var labelled = products.Where(p => p.Label() == "Product 1" && expensive.Any(e => e.Id == p.Id));
+        Expression<Func<bool>> anyLabelled = () => labelled.Any();
+
+        var result = new ExpressiveReplacer(new ExpressiveResolver()).Replace(anyLabelled);
+
+        var members = ReferencedMembers.Collect(result);
+        Assert.IsTrue(members.Contains(typeof(Product).GetProperty(nameof(Product.Price))!));
+        Assert.IsFalse(members.Contains(typeof(Product).GetProperty(nameof(Product.Total))!));
+        Assert.IsFalse(members.Contains(typeof(Product).GetMethod(nameof(Product.Label))!));
+    }
+
+    [TestMethod]
+    public void Replace_CapturedRootEnumerableQuery_LeftUnchanged()
+    {
+        var products = new List<Product>().AsQueryable();
+        Expression<Func<bool>> anyProducts = () => products.Any();
+
+        var result = new ExpressiveReplacer(new ExpressiveResolver()).Replace(anyProducts);
+
+        Assert.AreSame(anyProducts, result);
+    }
+
+    private sealed class ReferencedMembers : ExpressionVisitor
+    {
+        private readonly HashSet<MemberInfo> _members = new();
+
+        public static HashSet<MemberInfo> Collect(Expression expression)
+        {
+            var collector = new ReferencedMembers();
+            collector.Visit(expression);
+            return collector._members;
+        }
+
+        protected override Expression VisitMember(MemberExpression node)
+        {
+            _members.Add(node.Member);
+            return base.VisitMember(node);
+        }
+
+        protected override Expression VisitMethodCall(MethodCallExpression node)
+        {
+            _members.Add(node.Method);
+            return base.VisitMethodCall(node);
+        }
+    }
 }
