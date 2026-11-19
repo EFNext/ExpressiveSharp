@@ -81,6 +81,18 @@ If you need an `internal` synthesized property, cap the effective visibility by 
 
 If you need a mutable `set` (not just `init`), that's a future addition; open an issue describing the scenario.
 
+## XML documentation
+
+XML doc comments on the stub are copied onto the synthesized property, so it doesn't trigger `CS1591` (missing XML comment) and shows up in API documentation generated from the XML docs file (e.g. HotChocolate's `UseXmlDocumentation`, `AddOpenApi`). Document the stub as if documenting the target:
+
+```csharp
+/// <summary>The customer's display name, "Last, First".</summary>
+[ExpressiveProperty("FullName")]
+private string FullNameExpression => LastName + ", " + FirstName;
+```
+
+`cref`s are resolved against the stub's scope, so the stub file's `using` directives apply.
+
 ## When to use `[ExpressiveFor]` instead
 
 | Scenario | Use |
