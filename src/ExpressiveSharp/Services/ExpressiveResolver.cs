@@ -298,7 +298,12 @@ namespace ExpressiveSharp.Services
             string[]? parameterTypeNames = null;
             var memberLookupName = expressiveMemberInfo.Name;
 
-            if (expressiveMemberInfo is MethodInfo method)
+            if (expressiveMemberInfo is MethodInfo extensionGetter
+                && extensionGetter.GetExtensionPropertyForImplementationGetter() is { } extensionProperty)
+            {
+                memberLookupName = extensionProperty.Name;
+            }
+            else if (expressiveMemberInfo is MethodInfo method)
             {
                 // Use the generic definition so type parameters (TEntity, etc.) are used instead of closed-generic arguments.
                 var methodToInspect = method.IsGenericMethod ? method.GetGenericMethodDefinition() : method;

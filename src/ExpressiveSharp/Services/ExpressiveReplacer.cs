@@ -49,7 +49,8 @@ public class ExpressiveReplacer : ExpressionVisitor
     {
         if (!_memberCache.TryGetValue(memberInfo, out reflectedExpression))
         {
-            var attribute = memberInfo.GetCustomAttribute<ExpressiveAttribute>(false);
+            var attribute = memberInfo.GetCustomAttribute<ExpressiveAttribute>(false)
+                ?? (memberInfo as MethodInfo)?.GetExtensionPropertyForImplementationGetter()?.GetCustomAttribute<ExpressiveAttribute>(false);
 
             reflectedExpression = attribute is not null
                 ? _resolver.FindGeneratedExpression(memberInfo, attribute)

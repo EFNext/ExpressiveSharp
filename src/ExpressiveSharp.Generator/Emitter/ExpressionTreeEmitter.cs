@@ -638,6 +638,17 @@ internal sealed class ExpressionTreeEmitter
             return resultVar;
         }
 
+        if (propRef.Property is { ContainingType.IsExtension: true, GetMethod: { } extensionGetter })
+        {
+            var callResultVar = NextVar();
+            var getterField = _fieldCache.EnsureMethodInfo(GetExtensionImplementation(extensionGetter));
+            var receiverArgs = propRef.Instance is not null
+                ? $"new global::System.Linq.Expressions.Expression[] {{ {EmitOperation(propRef.Instance)} }}"
+                : "global::System.Array.Empty<global::System.Linq.Expressions.Expression>()";
+            AppendLine($"var {callResultVar} = {Expr}.Call({getterField}, {receiverArgs});");
+            return callResultVar;
+        }
+
         var propResultVar = NextVar();
         var fieldName = _fieldCache.EnsurePropertyInfo(propRef.Property);
 
@@ -716,6 +727,8 @@ internal sealed class ExpressionTreeEmitter
         resultVar = "";
 
         var method = invocation.TargetMethod;
+        if (method.ContainingType is { IsExtension: true })
+            return false;
 
         // Receiver could be the instance call's instance, or the first arg of an extension method.
         ITypeSymbol? receiverType = null;
@@ -875,10 +888,22 @@ internal sealed class ExpressionTreeEmitter
 
         var resultVar = NextVar();
         var method = invocation.TargetMethod;
+        var instance = invocation.Instance;
+
+        var argVars = new List<string>();
+
+        if (method.ContainingType is { IsExtension: true })
+        {
+            method = GetExtensionImplementation(method);
+            if (instance is not null)
+            {
+                argVars.Add(EmitOperation(instance));
+                instance = null;
+            }
+        }
 
         var methodFieldName = _fieldCache.EnsureMethodInfo(method);
 
-        var argVars = new List<string>();
         foreach (var arg in invocation.Arguments)
         {
             argVars.Add(EmitOperation(arg.Value));
@@ -888,17 +913,32 @@ internal sealed class ExpressionTreeEmitter
             ? $"new global::System.Linq.Expressions.Expression[] {{ {string.Join(", ", argVars)} }}"
             : "global::System.Array.Empty<global::System.Linq.Expressions.Expression>()";
 
-        if (method.IsStatic || invocation.Instance is null)
+        if (method.IsStatic || instance is null)
         {
             AppendLine($"var {resultVar} = {Expr}.Call({methodFieldName}, {argsExpr});");
         }
         else
         {
-            var instanceVar = EmitOperation(invocation.Instance);
+            var instanceVar = EmitOperation(instance);
             AppendLine($"var {resultVar} = {Expr}.Call({instanceVar}, {methodFieldName}, {argsExpr});");
         }
 
         return resultVar;
+    }
+
+    private static IMethodSymbol GetExtensionImplementation(IMethodSymbol extensionMember)
+    {
+        if (extensionMember.AssociatedExtensionImplementation is not { } implementation)
+            return extensionMember;
+
+        var implementationDefinition = implementation.OriginalDefinition;
+        if (!implementationDefinition.IsGenericMethod)
+            return implementationDefinition;
+
+        var typeArguments = extensionMember.ContainingType.TypeArguments.AddRange(extensionMember.TypeArguments);
+        return typeArguments.Length == implementationDefinition.TypeParameters.Length
+            ? implementationDefinition.Construct(typeArguments.ToArray())
+            : implementationDefinition;
     }
 
     private string EmitBinary(IBinaryOperation binary)
