@@ -35,7 +35,7 @@ dotnet run -c Release --project benchmarks/ExpressiveSharp.Benchmarks/Expressive
 dotnet run -c Release --project benchmarks/ExpressiveSharp.Benchmarks/ExpressiveSharp.Benchmarks.csproj -- --filter "*GeneratorBenchmarks*"
 ```
 
-CI targets the .NET 8.0, 9.0, 10.0, and 11.0 (RC) SDKs.
+CI targets the .NET 8.0, 9.0, 10.0, and 11.0 SDKs.
 
 ## Architecture
 
@@ -90,7 +90,7 @@ ExpressiveSharp.MongoDB (net8.0;net9.0;net10.0;net11.0)
 
 ExpressiveSharp.EntityFrameworkCore (net8.0;net9.0;net10.0;net11.0)
   ├── ExpressiveSharp
-  ├── EF Core 8.0.25 / 9.0.0 / 10.0.0 / 11.0.0-rc.1 (per-TFM VersionOverride)
+  ├── EF Core 8.0.25 / 9.0.0 / 10.0.0 / 11.0.0 (per-TFM VersionOverride)
   └── Provides: ExpressiveDbSet<T>, IIncludableExpressiveQueryable<T,P>,
       chain-continuity stubs, async lambda stubs with [PolyfillTarget]
 
