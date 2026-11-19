@@ -260,5 +260,34 @@ public class ExtensionMemberTests : GeneratorTestBase
 
         return Verifier.Verify(result.GeneratedTrees[0].ToString());
     }
+
+    [TestMethod]
+    public Task ExtensionMemberReferencingExtensionProperty()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class Entity {
+                    public int Id { get; set; }
+                }
+
+                static class EntityExtensions {
+                    extension(Entity e) {
+                        public int DoubleId => e.Id * 2;
+
+                        [Expressive]
+                        public bool HasLargeDoubleId => e.DoubleId > 10;
+                    }
+                }
+            }
+            """);
+
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
 #endif
 }

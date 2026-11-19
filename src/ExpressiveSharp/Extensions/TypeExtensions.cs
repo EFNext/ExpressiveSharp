@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace ExpressiveSharp.Extensions;
 
@@ -186,4 +187,59 @@ internal static class TypeExtensions
         => propertyInfo.DeclaringType?.IsInterface == true
             ? derivedType.GetImplementingProperty(propertyInfo)
             : derivedType.GetOverridingProperty(propertyInfo);
+
+    public static PropertyInfo? GetExtensionPropertyForImplementationGetter(this MethodInfo method)
+    {
+        if (!method.IsStatic || method.IsSpecialName || !method.Name.StartsWith("get_", StringComparison.Ordinal)
+            || method.DeclaringType is not { IsAbstract: true, IsSealed: true } declaringType)
+        {
+            return null;
+        }
+
+        var propertyName = method.Name.Substring(4);
+        var parameters = (method.IsGenericMethod ? method.GetGenericMethodDefinition() : method).GetParameters();
+
+        foreach (var groupingType in declaringType.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic))
+        {
+            if (!groupingType.IsDefined(typeof(ExtensionAttribute), false))
+                continue;
+
+            var property = groupingType.GetProperty(propertyName,
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            if (property?.GetMethod is not { } skeletonGetter)
+                continue;
+
+            if (skeletonGetter.IsStatic)
+            {
+                if (parameters.Length == 0)
+                    return property;
+            }
+            else if (parameters.Length == 1 && ExtensionReceiverMatches(groupingType, parameters[0].ParameterType))
+            {
+                return property;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool ExtensionReceiverMatches(Type groupingType, Type receiverType)
+    {
+        foreach (var markerType in groupingType.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic))
+        {
+            foreach (var markerMethod in markerType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly))
+            {
+                if (markerMethod.GetParameters() is not [var receiverParameter])
+                    continue;
+
+                if (receiverParameter.ParameterType == receiverType
+                    || (receiverParameter.ParameterType.ContainsGenericParameters && receiverType.ContainsGenericParameters))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 }

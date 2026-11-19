@@ -104,6 +104,58 @@ public class ExtensionMemberTests
 
         Assert.AreEqual(22, result);
     }
+
+    [TestMethod]
+    public void Polyfill_ExtensionProperty_Compiles_AndEvaluates()
+    {
+        var entity = new ExtEntity { Id = 7 };
+        var expr = ExpressionPolyfill.Create((ExtEntity e) => e.DoubleId);
+        var expanded = (Expression<Func<ExtEntity, int>>)expr.ExpandExpressives();
+
+        Assert.IsInstanceOfType<BinaryExpression>(expanded.Body);
+        var result = expanded.Compile()(entity);
+
+        Assert.AreEqual(14, result);
+    }
+
+    [TestMethod]
+    public void Polyfill_ExtensionPropertyReferencingExtensionProperty_Compiles_AndEvaluates()
+    {
+        var entity = new ExtEntity { Id = 6 };
+        var expr = ExpressionPolyfill.Create((ExtEntity e) => e.HasLargeDoubleId);
+        var expanded = (Expression<Func<ExtEntity, bool>>)expr.ExpandExpressives();
+
+        Assert.IsInstanceOfType<BinaryExpression>(expanded.Body);
+        Assert.IsInstanceOfType<BinaryExpression>(((BinaryExpression)expanded.Body).Left);
+        var result = expanded.Compile()(entity);
+
+        Assert.IsTrue(result);
+    }
+
+    [TestMethod]
+    public void Polyfill_ExtensionMethod_Compiles_AndEvaluates()
+    {
+        var entity = new ExtEntity { Id = 4 };
+        var expr = ExpressionPolyfill.Create((ExtEntity e) => e.Multiply(5));
+        var expanded = (Expression<Func<ExtEntity, int>>)expr.ExpandExpressives();
+
+        Assert.IsInstanceOfType<BinaryExpression>(expanded.Body);
+        var result = expanded.Compile()(entity);
+
+        Assert.AreEqual(20, result);
+    }
+
+    [TestMethod]
+    public void Polyfill_StaticExtensionMethod_Compiles_AndEvaluates()
+    {
+        var expr = ExpressionPolyfill.Create((int x) => ExtEntity.DoubleOf(x));
+        var expanded = (Expression<Func<int, int>>)expr.ExpandExpressives();
+
+        Assert.IsInstanceOfType<BinaryExpression>(expanded.Body);
+        var result = expanded.Compile()(11);
+
+        Assert.AreEqual(22, result);
+    }
 }
 
 public interface IExtEntity
@@ -125,6 +177,9 @@ public static class ExtEntityExtensions
     {
         [Expressive]
         public int DoubleId => e.Id * 2;
+
+        [Expressive]
+        public bool HasLargeDoubleId => e.DoubleId > 10;
 
         [Expressive]
         public int TripleId() => e.Id * 3;
