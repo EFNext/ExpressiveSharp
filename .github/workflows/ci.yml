@@ -30,15 +30,7 @@ jobs:
             8.0.x
             9.0.x
             10.0.x
-
-      # Separate step: dotnet-quality applies to every wildcard version in a
-      # step, and the 8/9/10 SDKs above must keep resolving to GA releases.
-      # Fold into the block above (and drop the quality flag) at .NET 11 GA.
-      - name: Setup .NET 11 SDK (RC)
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 11.0.x
-          dotnet-quality: preview
+            11.0.x
 
       - name: Cache NuGet packages
         uses: actions/cache@v4
@@ -60,7 +52,7 @@ jobs:
         # Docker or pay the container startup cost on every PR.
         run: |
           set -e
-          # --project must be absolute: the .NET 11 RC SDK's dotnet test resolves
+          # --project must be absolute: the .NET 11 SDK's dotnet test resolves
           # relative --project paths against the project directory, doubling them.
           for proj in \
             tests/ExpressiveSharp.Tests \
@@ -145,15 +137,7 @@ jobs:
             8.0.x
             9.0.x
             10.0.x
-
-      # Separate step: dotnet-quality applies to every wildcard version in a
-      # step, and the 8/9/10 SDKs above must keep resolving to GA releases.
-      # Fold into the block above (and drop the quality flag) at .NET 11 GA.
-      - name: Setup .NET 11 SDK (RC)
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 11.0.x
-          dotnet-quality: preview
+            11.0.x
 
       - name: Cache NuGet packages
         uses: actions/cache@v4
@@ -239,15 +223,7 @@ jobs:
             8.0.x
             9.0.x
             10.0.x
-
-      # Separate step: dotnet-quality applies to every wildcard version in a
-      # step, and the 8/9/10 SDKs above must keep resolving to GA releases.
-      # Fold into the block above (and drop the quality flag) at .NET 11 GA.
-      - name: Setup .NET 11 SDK (RC)
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 11.0.x
-          dotnet-quality: preview
+            11.0.x
 
       - name: Cache NuGet packages
         uses: actions/cache@v4

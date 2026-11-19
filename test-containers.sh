@@ -30,7 +30,7 @@ echo "==> Building with TestDatabase=$database..."
 dotnet build "$PROJECT" -c "$CONFIG" -p:TestDatabase="$database" --verbosity quiet
 
 echo "==> Running tests with TestDatabase=$database..."
-# --project must be absolute: the .NET 11 RC SDK's dotnet test resolves
+# --project must be absolute: the .NET 11 SDK's dotnet test resolves
 # relative --project paths against the project directory, doubling them.
 dotnet test --project "$(cd "$(dirname "$0")" && pwd)/tests/ExpressiveSharp.EntityFrameworkCore.IntegrationTests" \
     --no-build -c "$CONFIG" \
