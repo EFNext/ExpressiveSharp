@@ -49,7 +49,7 @@ static internal class SynthesizedPropertyEmitter
         }
 
         var memberIndent = baseIndent + new string(' ', nestingDepth * 4);
-        var body = spec.UseTernaryShape ? BuildTernaryBody(spec, memberIndent) : BuildCoalesceBody(spec, memberIndent);
+        var body =spec.UseTernaryShape ? BuildTernaryBody(spec, memberIndent) : BuildCoalesceBody(spec, memberIndent);
         sb.Append(body);
 
         for (var i = nestingDepth - 1; i >= 0; i--)
@@ -66,12 +66,24 @@ static internal class SynthesizedPropertyEmitter
         return sb.ToString();
     }
 
+    private static void AppendDocumentationComment(StringBuilder sb, SynthesizedPropertySpec spec, string indent)
+    {
+        if (spec.DocumentationCommentLines is null)
+            return;
+
+        foreach (var line in spec.DocumentationCommentLines)
+        {
+            sb.AppendLine(line.Length == 0 ? $"{indent}///" : $"{indent}/// {line}");
+        }
+    }
+
     private static string BuildCoalesceBody(SynthesizedPropertySpec spec, string indent)
     {
         var stubCall = spec.StubIsMethod ? $"{spec.StubMemberName}()" : spec.StubMemberName;
 
         var sb = new StringBuilder();
         sb.AppendLine($"{indent}private {spec.BackingFieldTypeFqn} {spec.BackingFieldName};");
+        AppendDocumentationComment(sb, spec, indent);
         sb.AppendLine($"{indent}public {spec.PropertyTypeFqn} {spec.PropertyName}");
         sb.AppendLine($"{indent}{{");
         sb.AppendLine($"{indent}    get => {spec.BackingFieldName} ?? {stubCall};");
@@ -87,6 +99,7 @@ static internal class SynthesizedPropertyEmitter
         var sb = new StringBuilder();
         sb.AppendLine($"{indent}private {spec.BackingFieldTypeFqn} {spec.BackingFieldName};");
         sb.AppendLine($"{indent}private bool {spec.HasValueFlagName};");
+        AppendDocumentationComment(sb, spec, indent);
         sb.AppendLine($"{indent}public {spec.PropertyTypeFqn} {spec.PropertyName}");
         sb.AppendLine($"{indent}{{");
         sb.AppendLine($"{indent}    get => {spec.HasValueFlagName} ? {spec.BackingFieldName} : {stubCall};");

@@ -37,4 +37,8 @@ internal sealed class SynthesizedPropertySpec
 
     // Ternary shape only; chosen at interpret time to avoid collisions.
     public string HasValueFlagName { get; set; } = "";
+
+    // Stub's XML doc comment body (without `///` prefixes), copied onto the synthesized property.
+    // Null when the stub is undocumented or documentation parsing is disabled.
+    public IReadOnlyList<string>? DocumentationCommentLines { get; set; }
 }

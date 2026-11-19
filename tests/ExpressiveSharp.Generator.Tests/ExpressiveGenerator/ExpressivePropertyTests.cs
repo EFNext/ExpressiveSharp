@@ -1,4 +1,6 @@
 using System.Linq;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using VerifyMSTest;
 using ExpressiveSharp.Generator.Tests.Infrastructure;
@@ -587,5 +589,65 @@ public class ExpressivePropertyTests : GeneratorTestBase
 
         return Verifier.Verify(string.Join("\n\n// ===\n\n",
             result.GeneratedTrees.Select(t => t.ToString())));
+    }
+
+    private const string DocumentedStubSource =
+        """
+        using System.Text;
+        using ExpressiveSharp.Mapping;
+
+        namespace Foo {
+            /// <summary>An account.</summary>
+            public partial class Account {
+                /// <summary>First name.</summary>
+                public string FirstName { get; set; } = "";
+
+                /// <summary>Last name.</summary>
+                public string LastName { get; set; } = "";
+
+                /// <summary>
+                /// The display name, <see cref="LastName"/> &amp; <see cref="FirstName"/>.
+                /// </summary>
+                /// <remarks>
+                /// <para>Built like a <see cref="StringBuilder"/> would.</para>
+                /// <code>
+                ///     var name = account.FullName;
+                /// </code>
+                /// </remarks>
+                [ExpressiveProperty("FullName")]
+                private string FullNameExpression => LastName + ", " + FirstName;
+            }
+        }
+        """;
+
+    [TestMethod]
+    public Task DocumentedStub_CopiesDocumentationComment()
+    {
+        var compilation = CreateCompilation(DocumentedStubSource);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(2, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[1].ToString());
+    }
+
+    [TestMethod]
+    public void DocumentedStub_SynthesizedPropertyHasNoDocumentationWarnings()
+    {
+        var compilation = CreateCompilation(DocumentedStubSource);
+        var diagnoseTrees = compilation.SyntaxTrees.Select(t => CSharpSyntaxTree.ParseText(
+            t.GetText(),
+            ((CSharpParseOptions)t.Options).WithDocumentationMode(DocumentationMode.Diagnose),
+            t.FilePath));
+        compilation = compilation.RemoveAllSyntaxTrees().AddSyntaxTrees(diagnoseTrees);
+
+        var result = RunExpressiveGenerator(compilation);
+        var outputCompilation = compilation.AddSyntaxTrees(result.AllGeneratedTrees);
+
+        var warnings = outputCompilation.GetDiagnostics()
+            .Where(d => d.Severity >= DiagnosticSeverity.Warning)
+            .ToList();
+        Assert.AreEqual(0, warnings.Count);
     }
 }
