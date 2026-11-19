@@ -63,10 +63,9 @@ jobs:
               --project "$GITHUB_WORKSPACE/$proj" \
               --results-directory ./test-results \
               -- \
-              --report-trx --report-trx-filename "$(basename "$proj").trx" \
+              --report-trx \
               --coverage \
-              --coverage-output-format cobertura \
-              --coverage-output "$(basename "$proj").coverage.xml"
+              --coverage-output-format cobertura
           done
 
       - name: Upload test results
@@ -76,7 +75,7 @@ jobs:
           name: test-results
           path: |
             ./test-results/*.trx
-            ./test-results/*.coverage.xml
+            ./test-results/*.cobertura.xml
           retention-days: 14
 
       - name: Upload coverage to Codecov
@@ -84,7 +83,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./test-results/*.coverage.xml
+          files: ./test-results/*.cobertura.xml
           fail_ci_if_error: false
 
       - name: Test report
@@ -184,7 +183,7 @@ jobs:
               -p:TestDatabase=${{ matrix.database }} \
               --results-directory ./test-results \
               -- \
-              --report-trx --report-trx-filename results.trx
+              --report-trx
           fi
 
       - name: Upload test results
@@ -250,7 +249,7 @@ jobs:
           --project "$GITHUB_WORKSPACE/tests/ExpressiveSharp.MongoDB.IntegrationTests"
           --results-directory ./test-results
           --
-          --report-trx --report-trx-filename results.trx
+          --report-trx
 
       - name: Upload test results
         if: always()
