@@ -30,15 +30,7 @@ jobs:
             8.0.x
             9.0.x
             10.0.x
-
-      # Separate step: dotnet-quality applies to every wildcard version in a
-      # step, and the 8/9/10 SDKs above must keep resolving to GA releases.
-      # Fold into the block above (and drop the quality flag) at .NET 11 GA.
-      - name: Setup .NET 11 SDK (RC)
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 11.0.x
-          dotnet-quality: preview
+            11.0.x
 
       - name: Cache NuGet packages
         uses: actions/cache@v4
@@ -60,7 +52,7 @@ jobs:
         # Docker or pay the container startup cost on every PR.
         run: |
           set -e
-          # --project must be absolute: the .NET 11 RC SDK's dotnet test resolves
+          # --project must be absolute: the .NET 11 SDK's dotnet test resolves
           # relative --project paths against the project directory, doubling them.
           for proj in \
             tests/ExpressiveSharp.Tests \
@@ -71,10 +63,9 @@ jobs:
               --project "$GITHUB_WORKSPACE/$proj" \
               --results-directory ./test-results \
               -- \
-              --report-trx --report-trx-filename "$(basename "$proj").trx" \
+              --report-trx \
               --coverage \
-              --coverage-output-format cobertura \
-              --coverage-output "$(basename "$proj").coverage.xml"
+              --coverage-output-format cobertura
           done
 
       - name: Upload test results
@@ -84,7 +75,7 @@ jobs:
           name: test-results
           path: |
             ./test-results/*.trx
-            ./test-results/*.coverage.xml
+            ./test-results/*.cobertura.xml
           retention-days: 14
 
       - name: Upload coverage to Codecov
@@ -92,7 +83,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./test-results/*.coverage.xml
+          files: ./test-results/*.cobertura.xml
           fail_ci_if_error: false
 
       - name: Test report
@@ -145,15 +136,7 @@ jobs:
             8.0.x
             9.0.x
             10.0.x
-
-      # Separate step: dotnet-quality applies to every wildcard version in a
-      # step, and the 8/9/10 SDKs above must keep resolving to GA releases.
-      # Fold into the block above (and drop the quality flag) at .NET 11 GA.
-      - name: Setup .NET 11 SDK (RC)
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 11.0.x
-          dotnet-quality: preview
+            11.0.x
 
       - name: Cache NuGet packages
         uses: actions/cache@v4
@@ -200,7 +183,7 @@ jobs:
               -p:TestDatabase=${{ matrix.database }} \
               --results-directory ./test-results \
               -- \
-              --report-trx --report-trx-filename results.trx
+              --report-trx
           fi
 
       - name: Upload test results
@@ -239,15 +222,7 @@ jobs:
             8.0.x
             9.0.x
             10.0.x
-
-      # Separate step: dotnet-quality applies to every wildcard version in a
-      # step, and the 8/9/10 SDKs above must keep resolving to GA releases.
-      # Fold into the block above (and drop the quality flag) at .NET 11 GA.
-      - name: Setup .NET 11 SDK (RC)
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 11.0.x
-          dotnet-quality: preview
+            11.0.x
 
       - name: Cache NuGet packages
         uses: actions/cache@v4
@@ -274,7 +249,7 @@ jobs:
           --project "$GITHUB_WORKSPACE/tests/ExpressiveSharp.MongoDB.IntegrationTests"
           --results-directory ./test-results
           --
-          --report-trx --report-trx-filename results.trx
+          --report-trx
 
       - name: Upload test results
         if: always()

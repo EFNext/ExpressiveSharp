@@ -244,45 +244,45 @@ public class CommonScenarioTests : CommonScenarioTestBase
     }
 
 #if NET11_0_OR_GREATER
-    // EF Core 11 rc.1 Cosmos regressions in the rewritten System.Text.Json shaper,
+    // EF Core 11 Cosmos regressions in the rewritten System.Text.Json shaper,
     // reproduced with vanilla EF Core (no ExpressiveSharp involved): constructor and
     // interpolated-string projections throw "A part of the projection was undefined"
     // when they include a JSON-null value or mix the key property with a coalesced
     // member, and string-concat projections of int properties fail shaper compilation
-    // with an invalid int -> string Convert. Revisit at EF 11 GA.
+    // with an invalid int -> string Convert. Still present in 11.0.0.
     public override Task Select_OrderDto_ProjectsCorrectly()
     {
-        Assert.Inconclusive("EF Core 11 rc.1 Cosmos shaper regression");
+        Assert.Inconclusive("EF Core 11 Cosmos shaper regression");
         return Task.CompletedTask;
     }
 
     public override Task Select_Summary_ReturnsCorrectValues()
     {
-        Assert.Inconclusive("EF Core 11 rc.1 Cosmos shaper regression");
+        Assert.Inconclusive("EF Core 11 Cosmos shaper regression");
         return Task.CompletedTask;
     }
 
     public override Task Select_SummaryConcat_ReturnsCorrectValues()
     {
-        Assert.Inconclusive("EF Core 11 rc.1 Cosmos shaper regression");
+        Assert.Inconclusive("EF Core 11 Cosmos shaper regression");
         return Task.CompletedTask;
     }
 
     public override Task Select_InlineTuple_ProjectsCorrectly()
     {
-        Assert.Inconclusive("EF Core 11 rc.1 Cosmos shaper regression");
+        Assert.Inconclusive("EF Core 11 Cosmos shaper regression");
         return Task.CompletedTask;
     }
 
     public override Task Select_TupleWithExpressiveMember_ProjectsCorrectly()
     {
-        Assert.Inconclusive("EF Core 11 rc.1 Cosmos shaper regression");
+        Assert.Inconclusive("EF Core 11 Cosmos shaper regression");
         return Task.CompletedTask;
     }
 
     public override Task Select_TupleWithNullable_ProjectsCorrectly()
     {
-        Assert.Inconclusive("EF Core 11 rc.1 Cosmos shaper regression");
+        Assert.Inconclusive("EF Core 11 Cosmos shaper regression");
         return Task.CompletedTask;
     }
 #endif
