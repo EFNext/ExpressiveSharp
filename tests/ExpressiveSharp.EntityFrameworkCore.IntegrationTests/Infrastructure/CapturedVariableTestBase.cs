@@ -195,6 +195,46 @@ public abstract class CapturedVariableTestBase : EFCoreRelationalTestBase
         Assert.AreEqual(2, results[1]);
     }
 
+    [TestMethod]
+    public async Task Where_CapturedQueryableWithExpressiveMember_InAny_TranslatesToSql()
+    {
+        var premiumOrders = Context.Orders.Where(o => o.GetGrade() == "Premium");
+
+        var results = await Context.Orders
+            .Where(o => premiumOrders.Any(p => p.Id == o.Id))
+            .Select(o => o.Id)
+            .ToListAsync();
+
+        CollectionAssert.AreEquivalent(new[] { 1 }, results);
+    }
+
+    [TestMethod]
+    public async Task Where_CapturedQueryableWithExpressiveMember_InContains_TranslatesToSql()
+    {
+        var premiumOrderIds = Context.Orders.Where(o => o.GetGrade() == "Premium").Select(o => o.Id);
+
+        var results = await Context.Orders
+            .Where(o => premiumOrderIds.Contains(o.Id))
+            .Select(o => o.Id)
+            .ToListAsync();
+
+        CollectionAssert.AreEquivalent(new[] { 1 }, results);
+    }
+
+    [TestMethod]
+    public async Task Where_NestedCapturedQueryablesWithExpressiveMembers_TranslatesToSql()
+    {
+        var premiumOrders = Context.Orders.Where(o => o.GetGrade() == "Premium");
+        var alicePremiumOrders = Context.Orders.Where(o => o.CustomerName == "Alice" && premiumOrders.Any(p => p.Id == o.Id));
+
+        var results = await Context.Orders
+            .Where(o => alicePremiumOrders.Any(r => r.Id == o.Id))
+            .Select(o => o.Id)
+            .ToListAsync();
+
+        CollectionAssert.AreEquivalent(new[] { 1 }, results);
+    }
+
     // Must be internal (not private): the generated interceptor references the type.
     internal class InstanceFieldCaptureHelper
     {
