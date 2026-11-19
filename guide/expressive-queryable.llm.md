@@ -99,14 +99,10 @@ db
 **Generated SQL (SQLite):**
 
 ```sql
-.param set @Paid 1
-.param set @Shipped 2
-.param set @Delivered 3
-
 SELECT "o"."Id", CASE
-    WHEN "o"."Status" = @Paid THEN 'Confirmed'
-    WHEN "o"."Status" = @Shipped THEN 'Out for delivery'
-    WHEN "o"."Status" = @Delivered THEN 'Complete'
+    WHEN "o"."Status" = 1 THEN 'Confirmed'
+    WHEN "o"."Status" = 2 THEN 'Out for delivery'
+    WHEN "o"."Status" = 3 THEN 'Complete'
     ELSE 'Pending'
 END AS "Tier"
 FROM "Orders" AS "o"

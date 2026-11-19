@@ -103,7 +103,7 @@ dotnet test --filter "FullyQualifiedName~MyTestName"
 dotnet test -f net8.0 -c Release
 ```
 
-CI targets both .NET 8.0 and .NET 10.0 SDKs.
+CI targets the .NET 8.0, 9.0, 10.0, and 11.0 SDKs.
 
 ## Performance Benchmarks
 

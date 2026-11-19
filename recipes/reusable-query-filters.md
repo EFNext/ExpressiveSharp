@@ -207,11 +207,9 @@ public static class OrderComposedFilters
 **Generated SQL:**
 
 ```sql
-.param set @Paid 1
-
 SELECT "o"."Id", "o"."CustomerId", "o"."PlacedAt", "o"."Status"
 FROM "Orders" AS "o"
-WHERE "o"."Status" = @Paid AND "o"."PlacedAt" >= '2024-01-01 00:00:00'
+WHERE "o"."Status" = 1 AND "o"."PlacedAt" >= '2024-01-01 00:00:00'
 ```
 
 The composed filters are expanded recursively -- `IsRecentPaidOrder` references `IsPaid` and `IsRecent`, which are both expanded to their underlying expressions before translation.
@@ -302,12 +300,9 @@ public static class OrderSpecifications
 **Generated SQL:**
 
 ```sql
-.param set @Refunded 4
-.param set @Pending 0
-
 SELECT "o"."Id"
 FROM "Orders" AS "o"
-WHERE ("o"."Status" <> @Refunded AND "o"."PlacedAt" < '2024-06-01 00:00:00' AND "o"."Status" = @Pending) OR "o"."Status" = @Pending
+WHERE ("o"."Status" <> 4 AND "o"."PlacedAt" < '2024-06-01 00:00:00' AND "o"."Status" = 0) OR "o"."Status" = 0
 ```
 
 All specification methods are expanded recursively -- `RequiresAttention` calls `IsOverdue`, which calls `IsActive`. The entire chain becomes a flat `WHERE` clause.
@@ -365,18 +360,14 @@ public static class OrderActiveForDbSet
 **Generated SQL:**
 
 ```sql
-.param set @Paid 1
-.param set @Pending 0
-.param set @Refunded 4
-
 SELECT "o"."Id", CASE
-    WHEN "o"."Status" = @Paid THEN 'Paid'
-    WHEN "o"."Status" = @Pending THEN 'Pending'
+    WHEN "o"."Status" = 1 THEN 'Paid'
+    WHEN "o"."Status" = 0 THEN 'Pending'
     ELSE 'Other'
 END AS "StatusLabel"
 FROM "Orders" AS "o"
 INNER JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
-WHERE "o"."Status" <> @Refunded AND "c"."Country" = 'US'
+WHERE "o"."Status" <> 4 AND "c"."Country" = 'US'
 ```
 
 See [Modern Syntax in LINQ Chains](/recipes/modern-syntax-in-linq) for more on this approach.

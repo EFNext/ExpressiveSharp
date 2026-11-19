@@ -460,16 +460,11 @@ db
 **Generated SQL:**
 
 ```sql
-.param set @Delivered 3
-.param set @Shipped 2
-.param set @Paid 1
-.param set @Pending 0
-
 SELECT "o"."Id", CASE
-    WHEN "o"."Status" = @Delivered THEN 'Completed'
-    WHEN "o"."Status" = @Shipped THEN 'InTransit'
-    WHEN "o"."Status" = @Paid THEN 'Awaiting'
-    WHEN "o"."Status" = @Pending THEN 'New'
+    WHEN "o"."Status" = 3 THEN 'Completed'
+    WHEN "o"."Status" = 2 THEN 'InTransit'
+    WHEN "o"."Status" = 1 THEN 'Awaiting'
+    WHEN "o"."Status" = 0 THEN 'New'
     ELSE 'Other'
 END AS "Tier"
 FROM "Orders" AS "o"

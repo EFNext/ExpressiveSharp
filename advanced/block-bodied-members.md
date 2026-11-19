@@ -282,10 +282,8 @@ public static class OrderExt
 **Generated SQL:**
 
 ```sql
-.param set @Paid 1
-
 SELECT "o"."Id", CASE
-    WHEN "o"."Status" = @Paid THEN 'Active'
+    WHEN "o"."Status" = 1 THEN 'Active'
     ELSE 'Inactive'
 END AS "Status"
 FROM "Orders" AS "o"
@@ -390,14 +388,10 @@ public static class OrderExt
 **Generated SQL:**
 
 ```sql
-.param set @Pending 0
-.param set @Paid 1
-.param set @Delivered 3
-
 SELECT "o"."Id", CASE
-    WHEN "o"."Status" = @Pending THEN 'New'
-    WHEN "o"."Status" = @Paid THEN 'Active'
-    WHEN "o"."Status" = @Delivered THEN 'Closed'
+    WHEN "o"."Status" = 0 THEN 'New'
+    WHEN "o"."Status" = 1 THEN 'Active'
+    WHEN "o"."Status" = 3 THEN 'Closed'
     ELSE 'Unknown'
 END AS "Label"
 FROM "Orders" AS "o"

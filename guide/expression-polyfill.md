@@ -102,17 +102,13 @@ db
 **Generated SQL:**
 
 ```sql
-.param set @Paid 1
-.param set @Shipped 2
-.param set @Delivered 3
-
 SELECT "o"."Id", "o"."CustomerId", "o"."PlacedAt", "o"."Status"
 FROM "Orders" AS "o"
 INNER JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
 WHERE "c"."Email" IS NOT NULL AND CASE
-    WHEN "o"."Status" = @Paid THEN 1
-    WHEN "o"."Status" = @Shipped THEN 1
-    WHEN "o"."Status" = @Delivered THEN 1
+    WHEN "o"."Status" = 1 THEN 1
+    WHEN "o"."Status" = 2 THEN 1
+    WHEN "o"."Status" = 3 THEN 1
     ELSE 0
 END
 ```

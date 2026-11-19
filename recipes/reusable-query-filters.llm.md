@@ -134,11 +134,9 @@ public static class OrderComposedFilters
 **Generated SQL (SQLite):**
 
 ```sql
-.param set @Paid 1
-
 SELECT "o"."Id", "o"."CustomerId", "o"."PlacedAt", "o"."Status"
 FROM "Orders" AS "o"
-WHERE "o"."Status" = @Paid AND "o"."PlacedAt" >= '2024-01-01 00:00:00'
+WHERE "o"."Status" = 1 AND "o"."PlacedAt" >= '2024-01-01 00:00:00'
 ```
 
 
@@ -205,12 +203,9 @@ public static class OrderSpecifications
 **Generated SQL (SQLite):**
 
 ```sql
-.param set @Refunded 4
-.param set @Pending 0
-
 SELECT "o"."Id"
 FROM "Orders" AS "o"
-WHERE ("o"."Status" <> @Refunded AND "o"."PlacedAt" < '2024-06-01 00:00:00' AND "o"."Status" = @Pending) OR "o"."Status" = @Pending
+WHERE ("o"."Status" <> 4 AND "o"."PlacedAt" < '2024-06-01 00:00:00' AND "o"."Status" = 0) OR "o"."Status" = 0
 ```
 
 
@@ -247,18 +242,14 @@ public static class OrderActiveForDbSet
 **Generated SQL (SQLite):**
 
 ```sql
-.param set @Paid 1
-.param set @Pending 0
-.param set @Refunded 4
-
 SELECT "o"."Id", CASE
-    WHEN "o"."Status" = @Paid THEN 'Paid'
-    WHEN "o"."Status" = @Pending THEN 'Pending'
+    WHEN "o"."Status" = 1 THEN 'Paid'
+    WHEN "o"."Status" = 0 THEN 'Pending'
     ELSE 'Other'
 END AS "StatusLabel"
 FROM "Orders" AS "o"
 INNER JOIN "Customers" AS "c" ON "o"."CustomerId" = "c"."Id"
-WHERE "o"."Status" <> @Refunded AND "c"."Country" = 'US'
+WHERE "o"."Status" <> 4 AND "c"."Country" = 'US'
 ```
 
 

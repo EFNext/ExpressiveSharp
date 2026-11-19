@@ -125,11 +125,9 @@ public static class OrderExt
 **Generated SQL (SQLite):**
 
 ```sql
-.param set @Paid 1
-
 SELECT "o"."Id"
 FROM "Orders" AS "o"
-WHERE "o"."Status" = @Paid AND (
+WHERE "o"."Status" = 1 AND (
     SELECT COUNT(*)
     FROM "LineItems" AS "l"
     WHERE "o"."Id" = "l"."OrderId") > 5

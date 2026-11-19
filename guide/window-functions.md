@@ -5,6 +5,10 @@ url: 'https://efnext.github.io/ExpressiveSharp/guide/window-functions.md'
 
 ExpressiveSharp provides SQL window function support through the `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` package. This enables ranking (ROW\_NUMBER, RANK, DENSE\_RANK, NTILE, PERCENT\_RANK, CUME\_DIST), aggregate (SUM, AVG, COUNT, MIN, MAX), and navigation (LAG, LEAD, FIRST\_VALUE, LAST\_VALUE, NTH\_VALUE) functions directly in LINQ queries with a fluent window specification API.
 
+::: warning Not supported on EF Core 11
+EF Core 11 removed the SQL-generation fallback for third-party SQL expressions ([dotnet/efcore#37533](https://github.com/dotnet/efcore/pull/37533)), which the window function translation relies on. Until EF Core provides a replacement extension point (tracked in [dotnet/efcore#38977](https://github.com/dotnet/efcore/issues/38977)), the `RelationalExtensions` packages do not ship a `net11.0` target and EF Core 11 is unsupported. Applications on .NET 11 that need window functions should stay on EF Core 10, which runs fine on the .NET 11 runtime. All functions remain fully supported on EF Core 8, 9, and 10.
+:::
+
 ## Installation
 
 ```bash

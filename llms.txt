@@ -34,6 +34,7 @@ ExpressiveSharp is a Roslyn source generator that enables modern C# syntax (null
 ### Migration
 
 - [Migrating from Projectables](https://efnext.github.io/ExpressiveSharp/guide/migration-from-projectables.md)
+- [Migrating from LINQKit](https://efnext.github.io/ExpressiveSharp/guide/migration-from-linqkit.md)
 
 ### Reference
 

@@ -280,9 +280,6 @@ db
 **Generated SQL:**
 
 ```sql
-.param set @Pending 0
-.param set @Paid 1
-
 SELECT "o"."Id", CASE
     WHEN (
         SELECT COUNT(*)
@@ -294,8 +291,8 @@ SELECT "o"."Id", CASE
         WHERE "o"."Id" = "l0"."OrderId") >= 5 THEN 'Standard'
     ELSE 'Budget'
 END AS "Tier", CASE
-    WHEN "o"."Status" = @Pending THEN 'Urgent'
-    WHEN "o"."Status" = @Paid THEN 'Normal'
+    WHEN "o"."Status" = 0 THEN 'Urgent'
+    WHEN "o"."Status" = 1 THEN 'Normal'
     ELSE 'Low'
 END AS "Priority"
 FROM "Orders" AS "o"

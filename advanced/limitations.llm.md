@@ -227,4 +227,8 @@ The `ExpressiveSharp.EntityFrameworkCore.RelationalExtensions` package implement
 
 Non-relational providers (Cosmos DB, in-memory) are not supported for window functions.
 
+### EF Core 11 is not supported
+
+The `RelationalExtensions` packages support EF Core 8, 9, and 10 but do not ship a `net11.0` target: EF Core 11 removed the `QuerySqlGenerator` fallback that renders third-party SQL expressions ([dotnet/efcore#37533](https://github.com/dotnet/efcore/pull/37533)), with no replacement extension point. Support returns once EF Core provides one — tracked in [dotnet/efcore#38977](https://github.com/dotnet/efcore/issues/38977). Applications on .NET 11 that need window functions should stay on EF Core 10, which runs fine on the .NET 11 runtime. Note that NuGet will not block installing the package in a `net11.0` project — it silently falls back to the `net10.0` build, and window functions then fail at runtime with EF Core 11's `Unhandled expression … in 'QuerySqlGenerator'` error.
+
 EF Core also tracks native window function support in [dotnet/efcore#12747](https://github.com/dotnet/efcore/issues/12747); see the [window functions guide](../guide/window-functions#forward-compatibility) for forward-compatibility notes.
