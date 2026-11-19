@@ -1,3 +1,5 @@
+using System.Xml;
+using System.Xml.Linq;
 using ExpressiveSharp.Generator.Emitter;
 using ExpressiveSharp.Generator.Infrastructure;
 using ExpressiveSharp.Generator.Models;
@@ -125,6 +127,7 @@ static internal class ExpressivePropertyInterpreter
             ContainingTypePath = GetNestedInClassPath(containingType).ToList(),
             ContainingTypeKeywords = GetNestedInClassKeywords(containingType).ToList(),
             ContainingTypeKeyword = GetTypeKeyword(containingType),
+            DocumentationCommentLines = GetDocumentationCommentLines(stubSymbol),
         };
 
         descriptor.SynthesisSpec = spec;
@@ -230,6 +233,40 @@ static internal class ExpressivePropertyInterpreter
             returnTypeName, delegateTypeFqn);
 
         return descriptor;
+    }
+
+    // Uses the compiler-processed XML rather than the raw trivia: crefs come back as
+    // documentation IDs (`T:Foo.Bar`), which the compiler emits verbatim instead of re-binding
+    // them in the generated file (where the stub's usings aren't in scope), and <include>
+    // elements are already expanded.
+    private static IReadOnlyList<string>? GetDocumentationCommentLines(IPropertySymbol stubSymbol)
+    {
+        var xml = stubSymbol.GetDocumentationCommentXml(expandIncludes: true);
+        if (string.IsNullOrWhiteSpace(xml))
+            return null;
+
+        XElement member;
+        try
+        {
+            member = XElement.Parse(xml, LoadOptions.PreserveWhitespace);
+        }
+        catch (XmlException)
+        {
+            return null;
+        }
+
+        var content = string.Concat(member.Nodes().Select(n => n.ToString(SaveOptions.DisableFormatting)));
+        var lines = content.Replace("\r\n", "\n").Split('\n').Select(l => l.TrimEnd()).ToList();
+
+        while (lines.Count > 0 && lines[0].Length == 0)
+            lines.RemoveAt(0);
+        while (lines.Count > 0 && lines[lines.Count - 1].Length == 0)
+            lines.RemoveAt(lines.Count - 1);
+        if (lines.Count == 0)
+            return null;
+
+        var indent = lines.Where(l => l.Length > 0).Min(l => l.Length - l.TrimStart().Length);
+        return lines.Select(l => l.Length == 0 ? l : l.Substring(indent)).ToList();
     }
 
     private static bool IsNullablePropertyType(ITypeSymbol type)
