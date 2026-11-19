@@ -20,6 +20,7 @@
     <PackageReference Include="MongoDB.Driver" />
     <PackageReference Include="Snappier" />
     <PackageReference Include="SharpCompress" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
   </ItemGroup>
 
   <ItemGroup>
