@@ -14,9 +14,16 @@ namespace ExpressiveSharp.EntityFrameworkCore.Infrastructure.Internal;
 public class ExpressiveDbSetDiscoveryConvention : IModelInitializedConvention, IEntityTypeAddedConvention
 {
     private readonly Dictionary<Type, string> _sets;
+    private readonly ConventionSet? _conventionSet;
 
     public ExpressiveDbSetDiscoveryConvention(Type contextType)
+        : this(contextType, null)
     {
+    }
+
+    public ExpressiveDbSetDiscoveryConvention(Type contextType, ConventionSet? conventionSet)
+    {
+        _conventionSet = conventionSet;
         _sets = new Dictionary<Type, string>();
 
         foreach (var property in contextType.GetRuntimeProperties())
@@ -48,6 +55,10 @@ public class ExpressiveDbSetDiscoveryConvention : IModelInitializedConvention, I
         IConventionModelBuilder modelBuilder,
         IConventionContext<IConventionModelBuilder> context)
     {
+        if (_conventionSet is not null
+            && !_conventionSet.ModelInitializedConventions.Any(c => c is DbSetFindingConvention))
+            return;
+
         // Mirror DbSetFindingConvention: shouldBeOwned = false, fromDataAnnotation = true
         foreach (var entityType in _sets.Keys)
             modelBuilder.Entity(entityType, shouldBeOwned: false, fromDataAnnotation: true);
@@ -92,7 +103,7 @@ public class ExpressiveDbSetDiscoveryConventionPlugin : IConventionSetPlugin
 
     public ConventionSet ModifyConventions(ConventionSet conventionSet)
     {
-        var convention = new ExpressiveDbSetDiscoveryConvention(_dependencies.ContextType);
+        var convention = new ExpressiveDbSetDiscoveryConvention(_dependencies.ContextType, conventionSet);
         conventionSet.ModelInitializedConventions.Add(convention);
         conventionSet.EntityTypeAddedConventions.Add(convention);
         return conventionSet;
