@@ -64,6 +64,21 @@ public class PolyfillInterceptorGenerator : IIncrementalGenerator
                         throw new global::System.InvalidOperationException("Captured member '" + memberName + "' on type '" + thisType.Name + "' not found in closure.");
                     }
 
+                    internal static global::System.Linq.Expressions.MemberExpression ResolveCapturedPrimaryConstructorParameter(
+                        global::System.Delegate func, global::System.Type thisType, string parameterName)
+                    {
+                        var direct = FindByName(func.Target, parameterName);
+                        if (direct != null) return direct;
+                        var fieldName = "<" + parameterName + ">P";
+                        var onTarget = FindByName(func.Target, fieldName);
+                        if (onTarget != null) return onTarget;
+                        var thisExpr = FindByType(func.Target, thisType);
+                        var field = thisType.GetField(fieldName, F);
+                        if (thisExpr != null && field != null)
+                            return global::System.Linq.Expressions.Expression.Field(thisExpr, field);
+                        throw new global::System.InvalidOperationException("Captured primary constructor parameter '" + parameterName + "' on type '" + thisType.Name + "' not found in closure.");
+                    }
+
                     private static global::System.Linq.Expressions.MemberExpression FindByName(object c, string name)
                     {
                         var field = c.GetType().GetField(name, F);

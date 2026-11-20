@@ -184,6 +184,46 @@ public class ExpansionEdgeCasesTests
         var fromEndBoth = ExpressionPolyfill.Create((string s) => s[^2..]);
         Assert.AreEqual("lo", fromEndBoth.Compile()("hello"));
     }
+
+    [TestMethod]
+    public void ExpressiveMember_ReferencingPrimaryConstructorParameter_ReadsCapturedValue()
+    {
+        Expression<Func<PrimaryCtorOffset, int>> expr = p => p.Shifted();
+        var fn = ((Expression<Func<PrimaryCtorOffset, int>>)expr.ExpandExpressives()).Compile();
+
+        Assert.AreEqual(15, fn(new PrimaryCtorOffset(10) { Id = 5 }));
+    }
+
+    [TestMethod]
+    public void Polyfill_CapturingPrimaryConstructorParameter_ReadsCapturedValue()
+    {
+        var expr = new PrimaryCtorPolyfill(4).Build();
+
+        Assert.AreEqual(7, expr.Compile()(3));
+    }
+
+    [TestMethod]
+    public void Polyfill_CapturingPrimaryConstructorParameterAndLocal_ReadsCapturedValues()
+    {
+        var expr = new PrimaryCtorPolyfill(4).BuildWithLocal(100);
+
+        Assert.AreEqual(107, expr.Compile()(3));
+    }
+}
+
+public class PrimaryCtorOffset(int offset)
+{
+    public int Id { get; set; }
+
+    [Expressive]
+    public int Shifted() => Id + offset;
+}
+
+public class PrimaryCtorPolyfill(int offset)
+{
+    public Expression<Func<int, int>> Build() => ExpressionPolyfill.Create((int x) => x + offset);
+
+    public Expression<Func<int, int>> BuildWithLocal(int extra) => ExpressionPolyfill.Create((int x) => x + offset + extra);
 }
 
 public class VirtualDispatchBase

@@ -29,6 +29,27 @@ public class MethodTests : GeneratorTestBase
     }
 
     [TestMethod]
+    public Task ExpressiveMethodReferencingPrimaryConstructorParameter()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C(int offset) {
+                    public int Id { get; set; }
+                    [Expressive]
+                    public int Foo() => Id + offset;
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
     public Task ExpressiveComputedMethodWithSingleArgument()
     {
         var compilation = CreateCompilation(
