@@ -558,10 +558,30 @@ internal sealed class ExpressionTreeEmitter
         if (_symbolToVar.TryGetValue(paramRef.Parameter, out var varName))
             return varName;
 
+        if (_delegateVarName is not null && IsPrimaryConstructorParameter(paramRef.Parameter))
+        {
+            var resultVar = NextVar();
+            var enclosingTypeFqn = ResolveTypeFqn(paramRef.Parameter.ContainingType);
+            AppendLine($"var {resultVar} = __ClosureHelper.ResolveCapturedPrimaryConstructorParameter({_delegateVarName}, typeof({enclosingTypeFqn}), \"{paramRef.Parameter.Name}\");");
+            _symbolToVar[paramRef.Parameter] = resultVar;
+            return resultVar;
+        }
+
         // Outer-scope param — pull the captured value from the delegate's closure at runtime.
         if (_delegateVarName is not null)
         {
             var resultVar = EmitCapturedVariable(paramRef.Parameter.Name, paramRef.Parameter.Type);
+            _symbolToVar[paramRef.Parameter] = resultVar;
+            return resultVar;
+        }
+
+        if (_delegateVarName is null && IsPrimaryConstructorParameter(paramRef.Parameter))
+        {
+            var instanceVar = EmitInstanceReference(paramRef.Parameter.ContainingType);
+            var resultVar = NextVar();
+            var enclosingTypeFqn = ResolveTypeFqn(paramRef.Parameter.ContainingType);
+            AppendLine($"var {resultVar} = {Expr}.Field({instanceVar}, typeof({enclosingTypeFqn}).GetField(\"<{paramRef.Parameter.Name}>P\", " +
+                "global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.NonPublic));");
             _symbolToVar[paramRef.Parameter] = resultVar;
             return resultVar;
         }
@@ -573,6 +593,10 @@ internal sealed class ExpressionTreeEmitter
         _symbolToVar[paramRef.Parameter] = fallbackVar;
         return fallbackVar;
     }
+
+    private static bool IsPrimaryConstructorParameter(IParameterSymbol parameter) =>
+        parameter.ContainingSymbol is IMethodSymbol { MethodKind: MethodKind.Constructor } ctor &&
+        ctor.DeclaringSyntaxReferences.Any(r => r.GetSyntax() is TypeDeclarationSyntax);
 
     private string EmitLocalReference(ILocalReferenceOperation localRef)
     {

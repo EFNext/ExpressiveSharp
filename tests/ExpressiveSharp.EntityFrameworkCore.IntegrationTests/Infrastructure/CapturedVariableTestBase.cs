@@ -235,7 +235,66 @@ public abstract class CapturedVariableTestBase : EFCoreRelationalTestBase
         CollectionAssert.AreEquivalent(new[] { 1 }, results);
     }
 
+    [TestMethod]
+    public async Task Where_CapturedPrimaryConstructorParameter_TranslatesToSql()
+    {
+        var helper = new PrimaryConstructorCaptureHelper(Context, 50);
+        var results = await helper.GetExpensiveOrderIds();
+
+        CollectionAssert.AreEquivalent(new[] { 1, 2 }, results);
+    }
+
+    [TestMethod]
+    public async Task Where_CapturedPrimaryConstructorParameter_InInitializer_TranslatesToSql()
+    {
+        var helper = new PrimaryConstructorInitializerCaptureHelper(Context, 50);
+        var results = await helper.ExpensiveOrderIds.ToListAsync();
+
+        CollectionAssert.AreEquivalent(new[] { 1, 2 }, results);
+    }
+
+    [TestMethod]
+    public async Task Where_CapturedPrimaryConstructorParameter_WithCapturedLocal_TranslatesToSql()
+    {
+        var helper = new PrimaryConstructorWithLocalCaptureHelper(Context, 10);
+        var results = await helper.GetOrderIdsInRange(100);
+
+        CollectionAssert.AreEquivalent(new[] { 2, 4 }, results);
+    }
+
     // Must be internal (not private): the generated interceptor references the type.
+    internal class PrimaryConstructorCaptureHelper(IntegrationTestDbContext context, double minPrice)
+    {
+        public async Task<List<int>> GetExpensiveOrderIds()
+        {
+            return await context.Orders.AsQueryable()
+                .AsExpressive()
+                .Where(o => o.Price > minPrice)
+                .Select(o => o.Id)
+                .ToListAsync();
+        }
+    }
+
+    internal class PrimaryConstructorWithLocalCaptureHelper(IntegrationTestDbContext context, double minPrice)
+    {
+        public async Task<List<int>> GetOrderIdsInRange(double maxPrice)
+        {
+            return await context.Orders.AsQueryable()
+                .AsExpressive()
+                .Where(o => o.Price > minPrice && o.Price < maxPrice)
+                .Select(o => o.Id)
+                .ToListAsync();
+        }
+    }
+
+    internal class PrimaryConstructorInitializerCaptureHelper(IntegrationTestDbContext context, double minPrice)
+    {
+        public IQueryable<int> ExpensiveOrderIds { get; } = context.Orders.AsQueryable()
+            .AsExpressive()
+            .Where(o => o.Price > minPrice)
+            .Select(o => o.Id);
+    }
+
     internal class InstanceFieldCaptureHelper
     {
         private readonly IntegrationTestDbContext _context;
