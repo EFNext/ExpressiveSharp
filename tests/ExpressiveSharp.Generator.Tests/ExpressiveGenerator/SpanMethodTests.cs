@@ -79,6 +79,29 @@ public class SpanMethodTests : GeneratorTestBase
     }
 
     [TestMethod]
+    public Task ArrayIndexOf_PinsReadOnlySpanOverload()
+    {
+        var compilation = CreateCompilation(
+            """
+            namespace Foo {
+                class C {
+                    private static readonly int[] Ranked = [30, 10, 20];
+                    public int Id { get; set; }
+
+                    [Expressive]
+                    public int Rank => Ranked.IndexOf(Id);
+                }
+            }
+            """);
+        var result = RunExpressiveGenerator(compilation);
+
+        Assert.AreEqual(0, result.Diagnostics.Length);
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+
+        return Verifier.Verify(result.GeneratedTrees[0].ToString());
+    }
+
+    [TestMethod]
     public Task ArraySequenceEqual_EmitsEnumerableSequenceEqual()
     {
         var compilation = CreateCompilation(

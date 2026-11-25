@@ -65,7 +65,10 @@ internal sealed class ReflectionFieldCache
                     paramChecksBuilder.Append($" && m.GetParameters()[{i}].ParameterType.IsGenericParameter && !m.GetParameters()[{i}].ParameterType.IsGenericType");
                 else if (paramType is INamedTypeSymbol { IsGenericType: true } genericParam)
                 {
-                    paramChecksBuilder.Append($" && m.GetParameters()[{i}].ParameterType.IsGenericType && !m.GetParameters()[{i}].ParameterType.IsGenericParameter");
+                    // Pinning the definition separates overloads that differ only in the outer
+                    // generic type, e.g. IndexOf<T>(Span<T>, T) from IndexOf<T>(ReadOnlySpan<T>, T).
+                    var paramDefinitionFqn = genericParam.ConstructUnboundGenericType().ToDisplayString(_fullyQualifiedFormat);
+                    paramChecksBuilder.Append($" && m.GetParameters()[{i}].ParameterType.IsGenericType && !m.GetParameters()[{i}].ParameterType.IsGenericParameter && m.GetParameters()[{i}].ParameterType.GetGenericTypeDefinition() == typeof({paramDefinitionFqn})");
                     for (int t = 0; t < genericParam.TypeArguments.Length; t++)
                     {
                         var innerArg = genericParam.TypeArguments[t];
