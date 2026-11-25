@@ -31,6 +31,15 @@ public class Order
     [Expressive]
     public string StatusDescription => Status.GetDescription();
 
+    private static readonly OrderStatus[] OpenStatuses = [OrderStatus.Pending, OrderStatus.Approved];
+    private static readonly int[] FeaturedIds = [1, 3];
+
+    [Expressive]
+    public bool IsOpen => OpenStatuses.Contains(Status);
+
+    [Expressive]
+    public bool IsFeatured => FeaturedIds.Contains(Id);
+
     [Expressive]
     public string GetGrade() => Price switch
     {
