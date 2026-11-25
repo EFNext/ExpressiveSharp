@@ -910,6 +910,11 @@ internal sealed class ExpressionTreeEmitter
             return enumResult;
         }
 
+        if (TryEmitSpanMethodAsEnumerable(invocation, out var enumerableResult))
+        {
+            return enumerableResult;
+        }
+
         var resultVar = NextVar();
         var method = invocation.TargetMethod;
         var instance = invocation.Instance;
@@ -948,6 +953,82 @@ internal sealed class ExpressionTreeEmitter
         }
 
         return resultVar;
+    }
+
+    // C# 14 first-class spans bind array.Contains(x) and array.SequenceEqual(y) to MemoryExtensions.
+    // A span cannot be boxed, so query providers can neither translate nor client-evaluate the
+    // array-to-span conversion; the Enumerable overload is what the same code bound to before C# 14.
+    private bool TryEmitSpanMethodAsEnumerable(IInvocationOperation invocation, out string resultVar)
+    {
+        resultVar = "";
+
+        var method = invocation.TargetMethod;
+        if (method.Name is not ("Contains" or "SequenceEqual")
+            || method.TypeArguments.Length != 1
+            || method.Parameters.Length is not (2 or 3)
+            || method.ContainingType is not { Name: "MemoryExtensions", ContainingNamespace: { Name: "System", ContainingNamespace.IsGlobalNamespace: true } })
+        {
+            return false;
+        }
+
+        var arguments = invocation.Arguments
+            .Where(a => a.Parameter is not null)
+            .OrderBy(a => a.Parameter!.Ordinal)
+            .ToList();
+        if (arguments.Count != method.Parameters.Length)
+            return false;
+
+        var spanArgumentCount = method.Name == "SequenceEqual" ? 2 : 1;
+        var operands = new List<IOperation>();
+        for (var i = 0; i < spanArgumentCount; i++)
+        {
+            if (!TryGetArrayBehindSpanConversion(arguments[i].Value, out var array))
+                return false;
+            operands.Add(array);
+        }
+
+        if (spanArgumentCount == 1)
+            operands.Add(arguments[1].Value);
+
+        if (arguments.Count == 3)
+        {
+            var comparer = arguments[2];
+            if (comparer.Parameter!.Type is not INamedTypeSymbol { Name: "IEqualityComparer" })
+                return false;
+
+            var usesDefaultComparer = comparer.ArgumentKind == ArgumentKind.DefaultValue
+                || comparer.Value.ConstantValue is { HasValue: true, Value: null };
+            if (!usesDefaultComparer)
+                operands.Add(comparer.Value);
+        }
+
+        var methodField = ResolveEnumerableMethod(method.Name, operands.Count, method.TypeArguments[0]);
+        if (methodField is null)
+            return false;
+
+        resultVar = NextVar();
+        var argVars = operands.Select(EmitOperation).ToList();
+        AppendLine($"var {resultVar} = {Expr}.Call({methodField}, new global::System.Linq.Expressions.Expression[] {{ {string.Join(", ", argVars)} }});");
+        return true;
+    }
+
+    private static bool TryGetArrayBehindSpanConversion(IOperation operation, out IOperation array)
+    {
+        array = operation;
+
+        if (operation is not IConversionOperation { IsImplicit: true } conversion
+            || conversion.Operand.Type is not IArrayTypeSymbol { Rank: 1 }
+            || conversion.Type is not INamedTypeSymbol
+            {
+                Name: "Span" or "ReadOnlySpan",
+                ContainingNamespace: { Name: "System", ContainingNamespace.IsGlobalNamespace: true }
+            })
+        {
+            return false;
+        }
+
+        array = conversion.Operand;
+        return true;
     }
 
     private static IMethodSymbol GetExtensionImplementation(IMethodSymbol extensionMember)

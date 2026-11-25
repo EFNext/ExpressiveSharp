@@ -92,6 +92,28 @@ public class StoreQueryTests
     }
 
     [TestMethod]
+    public void ArrayContains_EnumArray_FiltersByMembership()
+    {
+        Expression<Func<Order, bool>> expr = o => o.IsOpen;
+        var expanded = (Expression<Func<Order, bool>>)expr.ExpandExpressives();
+
+        var ids = _runner.Where(expanded).Select(o => o.Id).ToList();
+
+        CollectionAssert.AreEquivalent(new[] { 1, 2, 4 }, ids);
+    }
+
+    [TestMethod]
+    public void ArrayContains_IntArray_FiltersByMembership()
+    {
+        Expression<Func<Order, bool>> expr = o => o.IsFeatured;
+        var expanded = (Expression<Func<Order, bool>>)expr.ExpandExpressives();
+
+        var ids = _runner.Where(expanded).Select(o => o.Id).ToList();
+
+        CollectionAssert.AreEquivalent(new[] { 1, 3 }, ids);
+    }
+
+    [TestMethod]
     public void OrderByGrade_ThenByTotal_CompoundSort()
     {
         Expression<Func<Order, string>> gradeExpr = o => o.GetGrade();

@@ -133,6 +133,28 @@ public abstract class ExpressiveExpansionTestBase : EFCoreRelationalTestBase
     }
 
     [TestMethod]
+    public async Task ArrayContains_EnumArray_InWhere()
+    {
+        var results = await Context.Orders
+            .Where(o => o.IsOpen)
+            .Select(o => o.Id)
+            .ToListAsync();
+
+        CollectionAssert.AreEquivalent(new[] { 1, 2, 4 }, results);
+    }
+
+    [TestMethod]
+    public async Task ArrayContains_IntArray_InWhere()
+    {
+        var results = await Context.Orders
+            .Where(o => o.IsFeatured)
+            .Select(o => o.Id)
+            .ToListAsync();
+
+        CollectionAssert.AreEquivalent(new[] { 1, 3 }, results);
+    }
+
+    [TestMethod]
     public async Task CapturedVariable_WithExpressive_InSameQuery()
     {
         var minTotal = 200.0;
